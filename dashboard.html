@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard — Recall</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --red:       #F85149;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+    }
+    nav.top .row {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px;
+      color: var(--text);
+    }
+    .brand:hover { text-decoration: none; }
+    .brand-mark {
+      width: 28px; height: 28px;
+      background: var(--blue); color: #fff;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 14px;
+      border-radius: var(--r-sm);
+    }
+    nav.top .right { display: flex; align-items: center; gap: 14px; font-size: 13px; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 7px 14px;
+      border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-ghost:hover { background: var(--bg-2); }
+
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 64px 24px 80px;
+    }
+    h1 {
+      font-size: 28px; font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0 0 8px;
+    }
+    .sub {
+      color: var(--text-3);
+      font-size: 14px;
+      margin: 0 0 32px;
+    }
+
+    .empty {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 32px;
+      text-align: center;
+      color: var(--text-3);
+      font-size: 14px;
+    }
+    .empty b { color: var(--text-2); font-weight: 600; }
+
+    .state {
+      display: none;
+      border-radius: var(--r-sm);
+      padding: 12px 14px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .state.show { display: block; }
+    .state.info {
+      background: var(--blue-pale);
+      border: 1px solid rgba(56,139,253,0.4);
+      color: var(--blue);
+    }
+
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html"><span class="brand-mark">R</span> Recall</a>
+    <div class="right">
+      <span id="navName" style="color: var(--text-3);"></span>
+      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <h1>Welcome to Recall</h1>
+  <p class="sub">Your dashboard is being set up. Subjects, lessons, and progress will live here.</p>
+
+  <div class="state info" id="state"></div>
+
+  <div class="empty">
+    <b>Nothing here yet.</b><br>
+    We're still building this page. Sign in or confirm your email to get started.
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://jdfimuncooatyuavswjs.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkZmltdW5jb29hdHl1YXZzd2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5Mjk2NDAsImV4cCI6MjA5ODUwNTY0MH0.nyzxqzeazFaCzWM1MV00zTIxxikMIdnRylAJ71q6NKs';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const stateEl = document.getElementById('state');
+  const signOutBtn = document.getElementById('signOutBtn');
+  const navName = document.getElementById('navName');
+
+  function showState(msg) { stateEl.textContent = msg; stateEl.classList.add('show'); }
+
+  async function load() {
+    const { data, error } = await supabase.auth.getUser();
+
+    if (error || !data || !data.user) {
+      // Not signed in. Common right after signup, because Supabase hasn't
+      // confirmed the email yet, or because the parent-consent hook is
+      // blocking sign-in.
+      showState('Not signed in. Check your email for a confirmation link, or sign in.');
+      return;
+    }
+
+    const user = data.user;
+    const meta = user.user_metadata || {};
+    navName.textContent = meta.full_name ? meta.full_name : user.email;
+    signOutBtn.hidden = false;
+
+    // If the user is signed in but their account is still pending parental
+    // consent, surface that.
+    if (user.id) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('consent_status, requires_parental_consent')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile && profile.requires_parental_consent && profile.consent_status !== 'granted') {
+        showState('Your account is waiting for parental consent. Ask your parent to check their email.');
+      }
+    }
+  }
+
+  signOutBtn.addEventListener('click', async function () {
+    await supabase.auth.signOut();
+    window.location.href = 'index.html';
+  });
+
+  load();
+</script>
+</body>
+</html>

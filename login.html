@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign in — Recall</title>
+  <meta name="description" content="Sign in to your Recall account to continue your revision." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --red:       #F85149;
+      --r-sm: 6px;
+      --r-md: 8px;
+      --maxw: 1240px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    ::selection { background: var(--blue); color: #fff; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---------- TOP NAV (slim, signed-out state) ---------- */
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+    }
+    nav.top .row {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px;
+      color: var(--text);
+    }
+    .brand:hover { text-decoration: none; }
+    .brand-mark {
+      width: 28px; height: 28px;
+      background: var(--blue); color: #fff;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 14px;
+      border-radius: var(--r-sm);
+    }
+    nav.top .right { font-size: 13px; color: var(--text-3); }
+    nav.top .right a { color: var(--text-2); font-weight: 500; }
+
+    /* ---------- LAYOUT ---------- */
+    .page {
+      max-width: 1100px; margin: 0 auto;
+      padding: 56px 24px 80px;
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 64px;
+      align-items: start;
+    }
+
+    /* ---------- LEFT PITCH PANEL ---------- */
+    .pitch h1 {
+      font-weight: 700;
+      font-size: 32px;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin: 0 0 12px;
+      max-width: 18ch;
+    }
+    .pitch .lede {
+      font-size: 15px;
+      color: var(--text-2);
+      max-width: 48ch;
+      margin: 0 0 32px;
+    }
+    .pitch .lede b { color: var(--text); font-weight: 600; }
+
+    .quote-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .quote-card p {
+      margin: 0 0 14px;
+      font-size: 14px; line-height: 1.5;
+      color: var(--text);
+    }
+    .quote-card .who {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 12px; color: var(--text-3);
+    }
+    .quote-card .who .avatar {
+      width: 26px; height: 26px;
+      background: var(--bg-3);
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-weight: 700; color: var(--text);
+      font-size: 11px;
+    }
+    .quote-card .who b { color: var(--text-2); font-weight: 600; }
+
+    .stats {
+      display: flex; gap: 24px;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+    .stat { display: flex; flex-direction: column; gap: 2px; }
+    .stat .num {
+      font-size: 22px; font-weight: 700;
+      letter-spacing: -0.015em;
+    }
+    .stat .lbl { font-size: 12px; color: var(--text-3); }
+
+    /* ---------- RIGHT FORM CARD ---------- */
+    .form-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 32px;
+    }
+    .form-card h2 {
+      margin: 0 0 6px;
+      font-size: 20px; font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+    .form-card .sub {
+      font-size: 13px; color: var(--text-3);
+      margin: 0 0 24px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field label {
+      font-size: 13px; font-weight: 500;
+      color: var(--text-2);
+    }
+    .field input {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 9px 12px;
+      font-family: inherit; font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .field input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .field input::placeholder { color: var(--text-4); }
+    .field .hint { font-size: 12px; color: var(--text-3); }
+    .field .hint.error { color: var(--red); }
+
+    .row-between {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: -2px 0 18px;
+      font-size: 13px;
+    }
+    .check {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--text-2);
+      cursor: pointer;
+    }
+    .check input { accent-color: var(--blue); width: 14px; height: 14px; margin: 0; }
+    .forgot { color: var(--blue); font-size: 13px; }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--blue); color: #fff;
+      padding: 10px 18px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      border: 1px solid var(--blue);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Divider */
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 20px 0;
+      font-size: 12px; color: var(--text-4);
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--line);
+    }
+
+    .oauth {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+    }
+    .oauth-btn {
+      background: var(--bg-3);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 9px 8px;
+      font-family: inherit; font-size: 12.5px; font-weight: 500;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .oauth-btn:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .oauth-btn svg { width: 14px; height: 14px; }
+
+    .foot {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      font-size: 12.5px;
+      color: var(--text-3);
+      text-align: center;
+    }
+    .foot a { color: var(--blue); }
+
+    /* ---------- SECURITY NOTE ---------- */
+    .security {
+      margin-top: 18px;
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--text-3);
+    }
+    .security .lock {
+      width: 14px; height: 14px;
+      color: var(--green);
+    }
+
+    /* ---------- ERROR BANNER (optional state) ---------- */
+    .error-banner {
+      display: none;
+      background: rgba(248,81,73,0.1);
+      border: 1px solid rgba(248,81,73,0.4);
+      border-radius: var(--r-sm);
+      padding: 10px 12px;
+      font-size: 13px;
+      color: #FFA198;
+      margin-bottom: 16px;
+    }
+    .error-banner.show { display: block; }
+    .error-banner b { color: var(--red); font-weight: 600; }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 900px) {
+      .page { grid-template-columns: 1fr; gap: 32px; padding: 32px 20px 56px; }
+      .pitch { order: 2; }
+      .form-card { order: 1; }
+    }
+    @media (max-width: 480px) {
+      .oauth { grid-template-columns: 1fr; }
+      .stats { flex-direction: column; gap: 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+<a class="brand" href="index.html"><span class="brand-mark">R</span> Recall</a>
+    <div class="right">Don't have an account? <a href="signup.html">Sign up</a></div>
+  </div>
+</nav>
+
+<main class="page">
+
+  <!-- LEFT: PITCH PANEL -->
+  <section class="pitch">
+    <h1>Pick up where you left off.</h1>
+    <p class="lede">
+      Sign in to keep going on <b>Biology · Cell structure</b>, your 14-day streak, and the past-paper practice you've already started.
+    </p>
+
+    <div class="quote-card">
+      <p>"I went from a 5 to an 8 in biology. I actually opened the app every day because it didn't feel like a chore."</p>
+      <div class="who">
+        <div class="avatar">S</div>
+        <span><b>Sarah M.</b> · Year 12 · Birmingham</span>
+      </div>
+    </div>
+
+    <div class="quote-card">
+      <p>"My son refuses to revise. He does 15 minutes of Recall without being asked. We'll take it."</p>
+      <div class="who">
+        <div class="avatar">D</div>
+        <span><b>Daniel K.</b> · Parent · Cardiff</span>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><span class="num">34,000+</span><span class="lbl">UK students</span></div>
+      <div class="stat"><span class="num">30+</span><span class="lbl">subjects</span></div>
+      <div class="stat"><span class="num">80+</span><span class="lbl">partner schools</span></div>
+    </div>
+  </section>
+
+  <!-- RIGHT: FORM CARD -->
+  <section>
+    <div class="form-card">
+      <h2>Sign in</h2>
+      <p class="sub">Welcome back. Continue your revision.</p>
+
+      <div class="error-banner" id="err">
+        <b>Couldn't sign you in.</b> Check your email and password and try again.
+      </div>
+
+      <form id="loginForm" novalidate>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="you@school.ac.uk" autocomplete="email" required />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Your password" autocomplete="current-password" required />
+        </div>
+
+        <div class="row-between">
+          <label class="check">
+            <input type="checkbox" name="remember" />
+            <span>Keep me signed in</span>
+          </label>
+          <a class="forgot" href="#">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn-primary">Sign in</button>
+      </form>
+
+      <div class="divider">or continue with</div>
+
+      <div class="oauth">
+        <button class="oauth-btn" type="button" aria-label="Sign in with Google">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v3.2h5.35c-.23 1.4-1.6 4.1-5.35 4.1-3.22 0-5.85-2.67-5.85-5.95s2.63-5.95 5.85-5.95c1.83 0 3.06.78 3.76 1.45l2.57-2.48C16.83 4.1 14.66 3.1 12 3.1 6.92 3.1 2.85 7.17 2.85 12.25S6.92 21.4 12 21.4c6.93 0 9.55-4.86 9.55-9.35 0-.63-.07-1.1-.2-1.95z"/></svg>
+          Google
+        </button>
+        <button class="oauth-btn" type="button" aria-label="Sign in with Microsoft">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.4 11.4H2V2h9.4v9.4zM22 11.4h-9.4V2H22v9.4zM11.4 22H2v-9.4h9.4V22zM22 22h-9.4v-9.4H22V22z"/></svg>
+          Microsoft
+        </button>
+        <button class="oauth-btn" type="button" aria-label="Sign in with Apple">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.4 2-3.5 2.1-3.6-1.1-1.6-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-3.9 2.4-1.7 2.9-.4 7.2 1.2 9.5.8 1.1 1.7 2.4 3 2.4 1.2 0 1.7-.8 3.1-.8 1.4 0 1.9.8 3.2.8 1.3 0 2.2-1.1 3-2.3.9-1.3 1.3-2.6 1.3-2.7-.1 0-2.6-1-2.6-3.9zM14.1 5.4c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3z"/></svg>
+          Apple
+        </button>
+      </div>
+
+      <div class="foot">
+        New to Recall? <a href="signup.html">Create a free account</a>
+      </div>
+    </div>
+
+    <div class="security">
+      <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+      <span>UK-hosted. GDPR-compliant. Your data is yours.</span>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // Demo: toggle error banner on submit so the styling can be inspected.
+  document.getElementById('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const pwd = document.getElementById('password').value;
+    const err = document.getElementById('err');
+    if (!email.includes('@') || pwd.length < 4) {
+      err.classList.add('show');
+      return;
+    }
+    err.classList.remove('show');
+    this.querySelector('button').textContent = 'Signing in…';
+    setTimeout(() => { this.querySelector('button').textContent = 'Sign in'; }, 1200);
+  });
+</script>
+</body>
+</html>

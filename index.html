@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Recall — Every GCSE and A-level subject, properly taught</title>
+  <meta name="description" content="An online learning platform for UK secondary students. Maths, English, sciences, humanities, languages — full courses for GCSE and A-level." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --yellow:    #D29922;
+      --purple:    #A371F7;
+      --red:       #F85149;
+      --teal:      #56D4DD;
+      --r-sm: 6px;
+      --r-md: 8px;
+      --maxw: 1240px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    ::selection { background: var(--blue); color: #fff; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+    /* ---------- NAV ---------- */
+    nav.top {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(13,17,23,0.85);
+      backdrop-filter: saturate(140%) blur(8px);
+      -webkit-backdrop-filter: saturate(140%) blur(8px);
+      border-bottom: 1px solid var(--line);
+    }
+    nav.top .row {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .brand:hover { text-decoration: none; }
+    .brand-mark {
+      width: 28px; height: 28px;
+      background: var(--blue); color: #fff;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 14px;
+      border-radius: var(--r-sm);
+    }
+    nav.top ul { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; }
+    nav.top a.nav-link {
+      color: var(--text-2); font-size: 14px; font-weight: 500;
+      padding: 6px 12px; border-radius: var(--r-sm);
+    }
+    nav.top a.nav-link:hover { color: var(--text); background: var(--bg-3); text-decoration: none; }
+    .nav-right { display: flex; align-items: center; gap: 6px; }
+    .nav-cta {
+      background: var(--blue); color: #fff;
+      padding: 6px 14px; border-radius: var(--r-sm); font-size: 14px; font-weight: 600;
+    }
+    .nav-cta:hover { background: var(--blue-2); text-decoration: none; }
+
+    /* ---------- HERO ---------- */
+    .hero { padding: 64px 0 56px; }
+    .hero-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 48px; align-items: center; }
+
+    .hero h1 {
+      font-weight: 700;
+      font-size: clamp(36px, 4.6vw, 56px);
+      line-height: 1.1;
+      letter-spacing: -0.025em;
+      margin: 0 0 16px;
+    }
+    .hero p.lede {
+      font-size: 18px; line-height: 1.5; color: var(--text-2);
+      max-width: 48ch; margin: 0 0 28px;
+    }
+    .hero p.lede b { color: var(--text); font-weight: 600; }
+
+    .cta-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      padding: 10px 18px; border-radius: var(--r-sm); font-size: 14px; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover { background: var(--blue-2); text-decoration: none; }
+    .btn-ghost {
+      color: var(--text); padding: 10px 14px; font-size: 14px; font-weight: 500;
+      display: inline-flex; align-items: center; gap: 6px;
+      border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      background: transparent;
+    }
+    .btn-ghost:hover { background: var(--bg-2); border-color: var(--line-3); text-decoration: none; }
+
+    .hero-meta {
+      margin-top: 24px;
+      display: flex; gap: 18px; flex-wrap: wrap;
+      font-size: 13px; color: var(--text-3);
+    }
+    .hero-meta span { display: inline-flex; align-items: center; gap: 6px; }
+    .hero-meta b { color: var(--text-2); font-weight: 500; }
+
+    /* ---------- DASHBOARD (signature) ---------- */
+    .dash {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      overflow: hidden;
+    }
+    .dash-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px;
+      background: var(--bg-3);
+      border-bottom: 1px solid var(--line);
+      font-size: 12px; color: var(--text-3);
+    }
+    .dash-bar .crumbs { color: var(--text-2); }
+    .dash-bar .crumbs a { color: var(--text-3); }
+    .dash-bar .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .dash-bar .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .dash-bar .crumbs .current { color: var(--text); font-weight: 600; }
+    .dash-bar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+    .dash-bar .right .pill {
+      padding: 2px 8px; background: var(--bg-4); border-radius: 999px;
+      font-size: 11px; font-weight: 600; color: var(--text-2);
+    }
+    .dash-bar .right .streak { color: var(--yellow); font-weight: 600; }
+
+    .dash-head {
+      padding: 18px 20px 14px;
+      display: flex; justify-content: space-between; align-items: end;
+      border-bottom: 1px solid var(--line);
+    }
+    .dash-head h3 {
+      margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em;
+    }
+    .dash-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .dash-head .right { font-size: 12px; color: var(--text-3); }
+
+    .dash-list { display: flex; flex-direction: column; }
+    .subj-row {
+      display: grid;
+      grid-template-columns: 14px 1.2fr 80px 90px 60px;
+      gap: 14px; align-items: center;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+      transition: background 0.1s ease;
+    }
+    .subj-row:last-child { border-bottom: none; }
+    .subj-row:hover { background: var(--bg-3); }
+    .subj-row .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .subj-row .name { color: var(--text); font-weight: 600; }
+    .subj-row .name .exam { color: var(--text-3); font-weight: 400; font-size: 11px; margin-left: 6px; }
+    .subj-row .prog-wrap { display: flex; align-items: center; gap: 8px; }
+    .subj-row .prog { flex: 1; height: 6px; background: var(--bg-4); border-radius: 3px; overflow: hidden; }
+    .subj-row .prog i { display: block; height: 100%; background: var(--blue); border-radius: 3px; }
+    .subj-row .prog-pct { font-size: 11px; color: var(--text-3); font-weight: 600; min-width: 28px; text-align: right; }
+    .subj-row .last { color: var(--text-3); font-size: 11px; }
+    .subj-row .action { text-align: right; font-size: 12px; color: var(--blue); font-weight: 600; }
+    .subj-row .action span { padding: 3px 8px; border: 1px solid var(--line-2); border-radius: var(--r-sm); }
+    .subj-row.continue { background: var(--blue-pale); }
+    .subj-row.continue:hover { background: var(--blue-dim); }
+    .subj-row.continue .action span {
+      background: var(--blue); color: #fff; border-color: var(--blue);
+    }
+    .subj-row .dot.maths { background: #58A6FF; }
+    .subj-row .dot.eng { background: #A371F7; }
+    .subj-row .dot.bio { background: #3FB950; }
+    .subj-row .dot.chem { background: #D29922; }
+    .subj-row .dot.phys { background: #F85149; }
+    .subj-row .dot.hist { background: #FF7B72; }
+    .subj-row .dot.geog { background: #56D4DD; }
+    .subj-row .dot.psych { background: #BC8CFF; }
+
+    /* ---------- SUBJECTS GRID ---------- */
+    .subj-grid-section { padding: 80px 0; border-top: 1px solid var(--line); }
+    .subj-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    }
+    .subj-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 18px;
+      display: flex; flex-direction: column; gap: 6px;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .subj-card:hover { border-color: var(--line-2); background: var(--bg-3); }
+    .subj-card .top { display: flex; align-items: center; gap: 10px; }
+    .subj-card .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .subj-card h4 { margin: 0; font-size: 14px; font-weight: 600; color: var(--text); }
+    .subj-card .meta { font-size: 12px; color: var(--text-3); }
+    .subj-card .meta span { color: var(--text-2); }
+
+    /* ---------- MARQUEE ---------- */
+    .marquee {
+      background: var(--bg-2);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 12px 0;
+      overflow: hidden;
+    }
+    .marquee-inner {
+      display: flex; gap: 40px; white-space: nowrap;
+      animation: scroll 40s linear infinite;
+      font-size: 13px; color: var(--text-3); font-weight: 500;
+    }
+    .marquee-inner span { display: inline-flex; align-items: center; gap: 12px; }
+    .marquee-inner span::after { content: '·'; color: var(--text-4); }
+    @keyframes scroll {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    /* ---------- SECTION ---------- */
+    section { padding: 80px 0; }
+    .section-head { max-width: 720px; margin: 0 0 40px; }
+    .section-head .eyebrow {
+      display: inline-block; font-size: 12px; font-weight: 600;
+      color: var(--blue); letter-spacing: 0.02em;
+      margin-bottom: 12px;
+    }
+    h2.section-title {
+      font-weight: 600;
+      font-size: clamp(26px, 3.2vw, 38px);
+      line-height: 1.15; letter-spacing: -0.02em;
+      margin: 0 0 12px;
+      max-width: 22ch;
+    }
+    .section-sub { font-size: 15px; color: var(--text-2); max-width: 60ch; line-height: 1.5; margin: 0; }
+
+    /* ---------- HOW IT WORKS ---------- */
+    .how-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .step {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 20px;
+    }
+    .step .step-num {
+      width: 24px; height: 24px;
+      background: var(--bg-3); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      display: grid; place-items: center;
+      border-radius: var(--r-sm);
+      font-weight: 700; font-size: 12px;
+      margin-bottom: 14px;
+    }
+    .step h3 { font-weight: 600; font-size: 15px; line-height: 1.3; margin: 0 0 6px; color: var(--text); }
+    .step p { margin: 0; color: var(--text-2); font-size: 13.5px; line-height: 1.5; }
+
+    /* ---------- FEATURED ---------- */
+    .featured { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; }
+    .feature-visual {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      overflow: hidden;
+    }
+    .feature-visual .head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px;
+      background: var(--bg-3);
+      border-bottom: 1px solid var(--line);
+      font-size: 12px; color: var(--text-3);
+    }
+    .feature-visual .head .crumbs .current { color: var(--text); font-weight: 600; }
+    .feature-visual .head .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .feature-visual .head .right { margin-left: auto; }
+    .lesson {
+      padding: 24px;
+    }
+    .lesson .subj {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 600; color: var(--text-3);
+      margin-bottom: 8px;
+    }
+    .lesson .subj .dot { width: 8px; height: 8px; border-radius: 50%; background: #3FB950; }
+    .lesson h3 { margin: 0 0 6px; font-size: 22px; font-weight: 600; letter-spacing: -0.015em; }
+    .lesson .desc { font-size: 14px; color: var(--text-2); margin: 0 0 16px; }
+    .lesson .chapters {
+      display: flex; flex-direction: column;
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      overflow: hidden;
+    }
+    .ch {
+      display: grid; grid-template-columns: 18px 1fr 56px;
+      gap: 12px; align-items: center;
+      padding: 11px 14px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg-2);
+      min-height: 40px;
+    }
+    .ch:last-child { border-bottom: none; }
+    .ch .tick {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px;
+      color: var(--green); font-weight: 700; font-size: 13px;
+      line-height: 1;
+    }
+    .ch .tick.pending { color: var(--text-4); }
+    .ch .tick.current { color: var(--blue); font-size: 14px; }
+    .ch .name { color: var(--text-2); line-height: 1.3; }
+    .ch.current { background: var(--blue-pale); }
+    .ch.current .name { color: var(--text); font-weight: 600; }
+    .ch .dur { color: var(--text-3); font-size: 11px; text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+    .feature-text {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 32px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .feature-text h3 { font-weight: 600; font-size: 24px; line-height: 1.2; margin: 0 0 14px; letter-spacing: -0.015em; }
+    .feature-text p { font-size: 14.5px; line-height: 1.55; color: var(--text-2); margin: 0 0 12px; }
+    .feature-list { list-style: none; padding: 0; margin: 18px 0 0; }
+    .feature-list li {
+      display: grid; grid-template-columns: 18px 1fr;
+      gap: 10px; padding: 11px 0;
+      border-top: 1px solid var(--line);
+      font-size: 13.5px; color: var(--text-2);
+    }
+    .feature-list li:last-child { border-bottom: 1px solid var(--line); }
+    .feature-list li::before { content: '✓'; color: var(--green); font-weight: 700; font-size: 12px; }
+    .feature-list li b { color: var(--text); font-weight: 600; }
+
+    /* ---------- EVIDENCE ---------- */
+    .ev-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .ev-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 20px;
+    }
+    .ev-card .metric {
+      font-weight: 700; font-size: 32px; line-height: 1;
+      letter-spacing: -0.02em; color: var(--text);
+      margin-bottom: 4px;
+    }
+    .ev-card .metric small { font-size: 14px; color: var(--text-3); font-weight: 500; }
+    .ev-card h4 { font-weight: 600; font-size: 14px; line-height: 1.3; margin: 14px 0 6px; }
+    .ev-card p { font-size: 12.5px; color: var(--text-2); margin: 0; line-height: 1.5; }
+    .ev-card .src {
+      font-size: 11px; color: var(--text-4); margin-top: 14px; padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+
+    /* ---------- PRICING ---------- */
+    .plans { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; max-width: 880px; }
+    .plan {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 28px;
+    }
+    .plan.featured-plan {
+      background: var(--bg-2);
+      border-color: var(--blue);
+      box-shadow: 0 0 0 1px var(--blue);
+    }
+    .plan .tag {
+      display: inline-block; font-size: 11px; font-weight: 600;
+      color: var(--blue); letter-spacing: 0.02em;
+      margin-bottom: 14px;
+    }
+    .plan h3 { font-weight: 600; font-size: 18px; line-height: 1.2; margin: 0 0 4px; }
+    .plan .desc { font-size: 13px; color: var(--text-2); margin: 0 0 22px; }
+    .plan .price {
+      font-weight: 700; font-size: 40px; line-height: 1; letter-spacing: -0.025em;
+      margin: 0 0 4px;
+    }
+    .plan .price small { font-size: 14px; color: var(--text-3); font-weight: 500; }
+    .plan .price-note { font-size: 12px; color: var(--text-3); margin: 0 0 22px; }
+    .plan ul { list-style: none; padding: 0; margin: 0 0 22px; }
+    .plan li {
+      padding: 9px 0;
+      border-top: 1px solid var(--line);
+      font-size: 13px; color: var(--text-2);
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+    .plan li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+    .plan li b { color: var(--text); font-weight: 600; }
+    .plan .plan-cta {
+      display: block; text-align: center; padding: 10px 18px;
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid var(--line-2);
+      font-weight: 600; font-size: 14px;
+      border-radius: var(--r-sm);
+    }
+    .plan .plan-cta:hover { background: var(--bg-4); text-decoration: none; }
+    .plan.featured-plan .plan-cta { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .plan.featured-plan .plan-cta:hover { background: var(--blue-2); }
+
+    /* ---------- FAQ ---------- */
+    .faq-list { max-width: 800px; }
+    .faq-item { border-top: 1px solid var(--line); }
+    .faq-item:last-child { border-bottom: 1px solid var(--line); }
+    .faq-q {
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; gap: 16px;
+      font-weight: 600; font-size: 15px; line-height: 1.4;
+      color: var(--text);
+      background: none; border: none; padding: 18px 0; text-align: left; width: 100%;
+    }
+    .faq-q:hover { color: var(--blue); }
+    .faq-q .pm {
+      width: 22px; height: 22px;
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      display: grid; place-items: center;
+      font-size: 14px; font-weight: 700; color: var(--text-2);
+      flex-shrink: 0;
+    }
+    .faq-item.open .pm { background: var(--blue); color: #fff; border-color: var(--blue); transform: rotate(45deg); }
+    .faq-a { max-height: 0; overflow: hidden; transition: max-height 0.25s ease, padding 0.25s ease; color: var(--text-2); font-size: 14px; line-height: 1.6; }
+    .faq-item.open .faq-a { max-height: 320px; padding-bottom: 18px; }
+
+    /* ---------- CTA STRIP ---------- */
+    .cta-strip {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 56px 48px;
+      margin: 0 24px 80px;
+    }
+    .cta-strip .grid {
+      display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: end;
+    }
+    .cta-strip h2 {
+      font-weight: 600;
+      font-size: clamp(28px, 3.6vw, 40px);
+      line-height: 1.1; letter-spacing: -0.02em;
+      margin: 0 0 8px;
+    }
+    .cta-strip .lede { color: var(--text-2); font-size: 14px; margin: 0; }
+    .cta-strip .right { display: flex; flex-direction: column; gap: 8px; }
+    .cta-strip .signup { display: flex; gap: 6px; }
+    .cta-strip input[type=email] {
+      flex: 1; padding: 9px 12px;
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      font-family: inherit; font-size: 14px;
+      outline: none;
+    }
+    .cta-strip input[type=email]:focus { border-color: var(--blue); }
+    .cta-strip input[type=email]::placeholder { color: var(--text-4); }
+    .cta-strip button {
+      background: var(--blue); color: #fff;
+      border: 1px solid var(--blue); padding: 0 16px; border-radius: var(--r-sm);
+      font-family: inherit; font-weight: 600; font-size: 14px;
+      cursor: pointer;
+    }
+    .cta-strip button:hover { background: var(--blue-2); }
+    .cta-strip .micro { font-size: 12px; color: var(--text-3); }
+
+    /* ---------- FOOTER ---------- */
+    footer { padding: 48px 0 32px; border-top: 1px solid var(--line); }
+    footer .top {
+      display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 32px;
+      margin-bottom: 36px;
+    }
+    footer h5 { margin: 0 0 12px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+    footer ul { list-style: none; padding: 0; margin: 0; }
+    footer li { margin-bottom: 8px; }
+    footer a { color: var(--text-3); font-size: 13px; }
+    footer a:hover { color: var(--blue); text-decoration: none; }
+    footer .bottom {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-top: 20px; border-top: 1px solid var(--line);
+      font-size: 12px; color: var(--text-4);
+    }
+    footer .brand-block { max-width: 320px; }
+    footer .brand-block p { font-size: 13px; color: var(--text-2); margin: 12px 0 0; line-height: 1.5; }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 1000px) {
+      .how-grid, .ev-grid { grid-template-columns: repeat(2, 1fr); }
+      .subj-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 900px) {
+      .hero-grid, .featured, .cta-strip .grid, footer .top { grid-template-columns: 1fr; }
+      .plans, .subj-grid { grid-template-columns: 1fr; }
+      .subj-grid { grid-template-columns: repeat(2, 1fr); }
+      section { padding: 56px 0; }
+      .hero { padding: 48px 0 40px; }
+      .cta-strip { margin: 0 20px 56px; padding: 40px 28px; }
+    }
+    @media (max-width: 560px) {
+      .wrap { padding: 0 16px; }
+      nav.top ul { display: none; }
+      .subj-grid { grid-template-columns: 1fr; }
+      .subj-row { grid-template-columns: 10px 1fr 60px; gap: 8px; }
+      .subj-row .prog-wrap, .subj-row .last { display: none; }
+      .subj-row .action { grid-column: 2 / -1; text-align: left; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; animation: none !important; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap row">
+    <a class="brand" href="index.html"><span class="brand-mark">R</span> Recall</a>
+    <ul>
+      <li><a class="nav-link" href="#subjects">Subjects</a></li>
+      <li><a class="nav-link" href="#how">How it works</a></li>
+      <li><a class="nav-link" href="#pricing">Pricing</a></li>
+      <li><a class="nav-link" href="#faq">FAQ</a></li>
+    </ul>
+    <div class="nav-right">
+      <a class="nav-link" href="login.html">Sign in</a>
+      <a class="nav-cta" href="signup.html">Start free</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <h1>Every GCSE and A-level subject, properly taught.</h1>
+      <p class="lede">
+        Full courses for the subjects you take at school. <b>Maths, English, the sciences, humanities, languages</b> — all in one place, taught the way your exam board wants.
+      </p>
+      <div class="cta-row">
+        <a class="btn-primary" href="signup.html">Start free</a>
+        <a class="btn-ghost" href="#subjects">Browse subjects</a>
+      </div>
+      <div class="hero-meta">
+        <span><b>30+ subjects</b></span>
+        <span><b>AQA, OCR, Edexcel, WJEC, CCEA</b></span>
+        <span><b>Year 7–13</b></span>
+      </div>
+    </div>
+
+    <!-- DASHBOARD (signature) -->
+    <div class="dash">
+      <div class="dash-bar">
+        <span class="crumbs">
+          <a href="#">recall</a>
+          <span class="sep">/</span>
+          <span class="current">your-subjects</span>
+        </span>
+        <div class="right">
+          <span class="streak">14 day streak</span>
+          <span class="pill">Y12 · Alex</span>
+        </div>
+      </div>
+      <div class="dash-head">
+        <div>
+          <h3>Your subjects</h3>
+          <div class="sub">8 enrolled · last activity 2 hours ago</div>
+        </div>
+        <div class="right">View all →</div>
+      </div>
+      <div class="dash-list">
+        <div class="subj-row continue">
+          <span class="dot bio"></span>
+          <span class="name">Biology <span class="exam">AQA · A-level</span></span>
+          <span class="prog-wrap"><span class="prog"><i style="width: 62%"></i></span><span class="prog-pct">62%</span></span>
+          <span class="last">2 hr ago</span>
+          <span class="action"><span>Resume</span></span>
+        </div>
+        <div class="subj-row">
+          <span class="dot maths"></span>
+          <span class="name">Mathematics <span class="exam">Edexcel · GCSE</span></span>
+          <span class="prog-wrap"><span class="prog"><i style="width: 84%"></i></span><span class="prog-pct">84%</span></span>
+          <span class="last">yesterday</span>
+          <span class="action"><span>Resume</span></span>
+        </div>
+        <div class="subj-row">
+          <span class="dot eng"></span>
+          <span class="name">English Literature <span class="exam">AQA · GCSE</span></span>
+          <span class="prog-wrap"><span class="prog"><i style="width: 41%"></i></span><span class="prog-pct">41%</span></span>
+          <span class="last">3 days ago</span>
+          <span class="action"><span>Resume</span></span>
+        </div>
+        <div class="subj-row">
+          <span class="dot chem"></span>
+          <span class="name">Chemistry <span class="exam">OCR · A-level</span></span>
+          <span class="prog-wrap"><span class="prog"><i style="width: 28%"></i></span><span class="prog-pct">28%</span></span>
+          <span class="last">4 days ago</span>
+          <span class="action"><span>Resume</span></span>
+        </div>
+        <div class="subj-row">
+          <span class="dot phys"></span>
+          <span class="name">Physics <span class="exam">AQA · GCSE</span></span>
+          <span class="prog-wrap"><span class="prog"><i style="width: 73%"></i></span><span class="prog-pct">73%</span></span>
+          <span class="last">last week</span>
+          <span class="action"><span>Resume</span></span>
+        </div>
+        <div class="subj-row">
+          <span class="dot hist"></span>
+          <span class="name">History <span class="exam">Edexcel · GCSE</span></span>
+          <span class="prog-wrap"><span class="prog"><i style="width: 19%"></i></span><span class="prog-pct">19%</span></span>
+          <span class="last">2 weeks ago</span>
+          <span class="action"><span>Resume</span></span>
+        </div>
+        <div class="subj-row">
+          <span class="dot geog"></span>
+          <span class="name">Geography <span class="exam">AQA · GCSE</span></span>
+          <span class="prog-wrap"><span class="prog"><i style="width: 55%"></i></span><span class="prog-pct">55%</span></span>
+          <span class="last">5 days ago</span>
+          <span class="action"><span>Resume</span></span>
+        </div>
+        <div class="subj-row">
+          <span class="dot psych"></span>
+          <span class="name">Psychology <span class="exam">AQA · A-level</span></span>
+          <span class="prog-wrap"><span class="prog"><i style="width: 8%"></i></span><span class="prog-pct">8%</span></span>
+          <span class="last">just started</span>
+          <span class="action"><span>Resume</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- MARQUEE -->
+<div class="marquee">
+  <div class="marquee-inner">
+    <span>30+ subjects</span><span>Full GCSE &amp; A-level courses</span><span>Video lessons</span><span>Practice questions</span><span>Past papers</span><span>Marking &amp; feedback</span><span>Progress tracking</span><span>Parent reports</span><span>30+ subjects</span><span>Full GCSE &amp; A-level courses</span><span>Video lessons</span><span>Practice questions</span><span>Past papers</span><span>Marking &amp; feedback</span><span>Progress tracking</span><span>Parent reports</span>
+  </div>
+</div>
+
+<!-- SUBJECTS -->
+<section id="subjects">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Subjects</span>
+      <h2 class="section-title">Pick what you take at school.</h2>
+      <p class="section-sub">Every course is built around your exam board's spec, with the topics in the order you'll meet them in class.</p>
+    </div>
+
+    <div class="subj-grid">
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#58A6FF"></span><h4>Mathematics</h4></div><div class="meta"><span>GCSE</span> · A-level · Further Maths</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#58A6FF"></span><h4>Further Mathematics</h4></div><div class="meta"><span>A-level</span></div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#A371F7"></span><h4>English Language</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#A371F7"></span><h4>English Literature</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#3FB950"></span><h4>Biology</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#D29922"></span><h4>Chemistry</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#F85149"></span><h4>Physics</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#3FB950"></span><h4>Combined Science</h4></div><div class="meta"><span>GCSE</span></div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#FF7B72"></span><h4>History</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#56D4DD"></span><h4>Geography</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#BC8CFF"></span><h4>Psychology</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#FF7B72"></span><h4>Sociology</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#D29922"></span><h4>Religious Studies</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#56D4DD"></span><h4>Computer Science</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#A371F7"></span><h4>French</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#A371F7"></span><h4>Spanish</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#A371F7"></span><h4>German</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#F85149"></span><h4>Business</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#D29922"></span><h4>Economics</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#BC8CFF"></span><h4>Media Studies</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#3FB950"></span><h4>PE</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+      <div class="subj-card"><div class="top"><span class="dot" style="background:#58A6FF"></span><h4>Latin</h4></div><div class="meta"><span>GCSE</span> · A-level</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" style="border-top: 1px solid var(--line);">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">How it works</span>
+      <h2 class="section-title">A full course in four parts.</h2>
+      <p class="section-sub">Each subject is broken down into topics, lessons, practice, and tests — the same structure your school uses, just always available.</p>
+    </div>
+
+    <div class="how-grid">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Watch a lesson</h3>
+        <p>Short, focused video lessons taught by experienced teachers. Pause, rewind, replay — at your own pace.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Read the notes</h3>
+        <p>Clear, written summaries for every topic. The kind of notes you'd borrow from a friend if you had a good one.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Practise questions</h3>
+        <p>Worked examples, then practice questions that get harder as you go. Instant feedback, no waiting for a teacher.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h3>Test yourself</h3>
+        <p>End-of-topic tests and timed past-paper questions. Track what you've nailed and what to go back to.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURED -->
+<section id="lesson" style="border-top: 1px solid var(--line); padding-top: 80px;">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Inside a subject</span>
+      <h2 class="section-title">Every topic. Every chapter. In order.</h2>
+      <p class="section-sub">Open a subject and you'll see the full syllabus, broken into chapters and lessons. Pick up wherever you left off, or jump to the topic your teacher is on this week.</p>
+    </div>
+
+    <div class="featured">
+      <div class="feature-visual">
+        <div class="head">
+          <span class="crumbs">
+            <a href="#" style="color: var(--text-3); text-decoration: none;">Subjects</a>
+            <span class="sep">/</span>
+            <a href="#" style="color: var(--text-3); text-decoration: none;">Biology</a>
+            <span class="sep">/</span>
+            <span class="current">Cell biology</span>
+          </span>
+          <span class="right">AQA · A-level</span>
+        </div>
+        <div class="lesson">
+          <div class="subj"><span class="dot"></span> CHAPTER 4 OF 8</div>
+          <h3>Cell structure</h3>
+          <p class="desc">Eukaryotic vs prokaryotic cells, organelles, and microscopy.</p>
+          <div class="chapters">
+            <div class="ch"><span class="tick">✓</span><span class="name">Introduction to cells</span><span class="dur">12 min</span></div>
+            <div class="ch"><span class="tick">✓</span><span class="name">Eukaryotic cell structure</span><span class="dur">18 min</span></div>
+            <div class="ch"><span class="tick">✓</span><span class="name">Prokaryotic cells</span><span class="dur">14 min</span></div>
+            <div class="ch current"><span class="tick current">●</span><span class="name">Microscopy &amp; magnification</span><span class="dur">22 min</span></div>
+            <div class="ch"><span class="tick pending">○</span><span class="name">Mitochondria &amp; chloroplasts</span><span class="dur">16 min</span></div>
+            <div class="ch"><span class="tick pending">○</span><span class="name">End-of-topic test</span><span class="dur">30 min</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-text">
+        <h3>Built around your exam board's spec.</h3>
+        <p>Every lesson is tagged to a specification point. When your teacher moves on, you can match it lesson-for-lesson, or skip ahead to the topics you actually need.</p>
+        <p>If you're behind, the smart-path view shows only the lessons you haven't done, in the right order to catch up before the next test.</p>
+        <ul class="feature-list">
+          <li><span></span><div><b>Spec-aligned.</b> Every topic maps to a specific exam board objective.</div></li>
+          <li><span></span><div><b>Written by teachers.</b> Not generated. Each course is written by an experienced UK subject specialist.</div></li>
+          <li><span></span><div><b>Real past-paper practice.</b> Questions from past AQA, OCR, Edexcel, and WJEC papers, with mark schemes.</div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EVIDENCE -->
+<section style="border-top: 1px solid var(--line); padding-top: 80px;">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">The evidence</span>
+      <h2 class="section-title">What works in revision, by the numbers.</h2>
+      <p class="section-sub">Recall is built on the most replicated findings in cognitive psychology — the things teachers know but rarely have time to apply.</p>
+    </div>
+
+    <div class="ev-grid">
+      <div class="ev-card">
+        <div class="metric">150%<small> retention</small></div>
+        <h4>Testing beats re-reading</h4>
+        <p>Students who self-tested retained ~50% more after a week than those who re-read the same material.</p>
+        <div class="src">Roediger &amp; Karpicke, 2006</div>
+      </div>
+      <div class="ev-card">
+        <div class="metric">+1<small> grade</small></div>
+        <h4>Spaced practice</h4>
+        <p>Spaced practice lifts exam performance by roughly one grade boundary vs. massed cramming.</p>
+        <div class="src">Cepeda et al., 2006</div>
+      </div>
+      <div class="ev-card">
+        <div class="metric">10<small> techniques</small></div>
+        <h4>Top of the list</h4>
+        <p>A panel review of 100+ studies ranked practice testing as the most effective revision technique.</p>
+        <div class="src">Dunlosky et al., 2013</div>
+      </div>
+      <div class="ev-card">
+        <div class="metric">4×<small> recall</small></div>
+        <h4>Desirable difficulties</h4>
+        <p>The productive struggle of retrieval is what the brain needs to encode something durably.</p>
+        <div class="src">Bjork &amp; Bjork, 2011</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" style="border-top: 1px solid var(--line);">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Pricing</span>
+      <h2 class="section-title">Free to start. Honest to keep.</h2>
+      <p class="section-sub">The free plan is actually useful. Upgrade for full access to every subject and past-paper practice.</p>
+    </div>
+
+    <div class="plans">
+      <div class="plan">
+        <span class="tag">Free</span>
+        <h3>Solo</h3>
+        <p class="desc">One student, forever free.</p>
+        <p class="price">£0<small> / month</small></p>
+        <p class="price-note">No card. No trial clock.</p>
+        <ul>
+          <li><span><b>2 subjects</b> at a time</span></li>
+          <li><span>First <b>3 chapters</b> of each course</span></li>
+          <li><span>Video lessons &amp; notes</span></li>
+          <li><span>Web + mobile</span></li>
+        </ul>
+        <a class="plan-cta" href="signup.html">Create free account</a>
+      </div>
+
+      <div class="plan featured-plan">
+        <span class="tag">Most popular</span>
+        <h3>Revision</h3>
+        <p class="desc">All subjects. No limits.</p>
+        <p class="price">£6<small> / month</small></p>
+        <p class="price-note">Billed monthly · cancel anytime</p>
+        <ul>
+          <li><span><b>All 30+ subjects</b>, full courses</span></li>
+          <li><span><b>Past-paper practice</b> with mark schemes</span></li>
+          <li><span><b>Topic-by-topic testing</b></span></li>
+          <li><span><b>Stuck-question help</b> with worked solutions</span></li>
+          <li><span><b>Parent progress digest</b>, weekly</span></li>
+          <li><span><b>All exam boards</b> — AQA, OCR, Edexcel, WJEC, CCEA</span></li>
+        </ul>
+        <a class="plan-cta" href="signup.html">Start 14-day trial</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" style="border-top: 1px solid var(--line);">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">FAQ</span>
+      <h2 class="section-title">Questions, answered.</h2>
+    </div>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          <span>Which subjects and exam boards do you cover?</span>
+          <span class="pm" aria-hidden="true">+</span>
+        </button>
+        <div class="faq-a"><div>
+          30+ subjects across GCSE and A-level: maths, the three sciences, English language and literature, the main humanities, all three modern foreign languages, computer science, business, economics, media studies, and more. All five major exam boards — AQA, OCR, Edexcel, WJEC/Eduqas, and CCEA. Tag your subject and the course reshapes around that spec.
+        </div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          <span>Is this just another Khan Academy?</span>
+          <span class="pm" aria-hidden="true">+</span>
+        </button>
+        <div class="faq-a"><div>
+          Khan Academy is great and we like it. The difference is that Recall is built for the UK system specifically — your exam board, your spec, your past papers. The lessons are written by UK teachers, the questions are from UK past papers, and the order matches what you'll cover in class.
+        </div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          <span>How is the content made?</span>
+          <span class="pm" aria-hidden="true">+</span>
+        </button>
+        <div class="faq-a"><div>
+          Every course is written by an experienced UK subject specialist — typically a current or former secondary school teacher with exam-marking experience. Nothing is auto-generated by AI. The teaching team reviews courses annually against the latest spec.
+        </div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          <span>My child won’t use it. Will it sit there like their textbook?</span>
+          <span class="pm" aria-hidden="true">+</span>
+        </button>
+        <div class="faq-a"><div>
+          Possibly, but probably not. The lessons are short (8–20 minutes), progress is visible, and the weekly parent digest shows what they did or didn't do. Most students who try it for a week keep going. If not, cancel anytime — no contract.
+        </div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          <span>Can schools or sixth forms get a site licence?</span>
+          <span class="pm" aria-hidden="true">+</span>
+        </button>
+        <div class="faq-a"><div>
+          Yes. We work with about 80 UK schools already. Site licences include shared class sets, teacher dashboards with assignment tools, and SSO. Email schools@recalleducation.co.uk for an overview.
+        </div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">
+          <span>Is my data private?</span>
+          <span class="pm" aria-hidden="true">+</span>
+        </button>
+        <div class="faq-a"><div>
+          Yes. We don't sell it, we don't train AI on it, and we don't show it to advertisers. UK company, hosted in the UK, GDPR-compliant by default. You can export or delete everything any time from Settings → Data.
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-strip" id="start">
+  <div class="grid">
+    <div>
+      <h2>Start free. Pick a subject tonight.</h2>
+      <p class="lede">Two free subjects, no card, no catch. Try it for a week and see if it sticks.</p>
+    </div>
+    <div class="right">
+      <form class="signup" onsubmit="event.preventDefault(); this.querySelector('button').textContent='Check your inbox ✓';">
+        <input type="email" placeholder="you@school.ac.uk" required aria-label="Email address" />
+        <button type="submit">Get the free sample</button>
+      </form>
+      <p class="micro">Free forever. Upgrade only if you want to.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand-block">
+        <a class="brand" href="index.html"><span class="brand-mark">R</span> Recall</a>
+        <p>An online learning platform for UK secondary students. 30+ GCSE and A-level subjects, taught the way your exam board wants.</p>
+      </div>
+      <div>
+        <h5>Subjects</h5>
+        <ul>
+          <li><a href="#">Maths</a></li>
+          <li><a href="#">English</a></li>
+          <li><a href="#">Sciences</a></li>
+          <li><a href="#">Humanities</a></li>
+          <li><a href="#">Languages</a></li>
+          <li><a href="#subjects">All subjects</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Product</h5>
+        <ul>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#">iOS app</a></li>
+          <li><a href="#">Android app</a></li>
+          <li><a href="#">For schools</a></li>
+          <li><a href="#">Changelog</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <ul>
+          <li><a href="#">About</a></li>
+          <li><a href="#">The science</a></li>
+          <li><a href="#">Privacy</a></li>
+          <li><a href="#">Terms</a></li>
+          <li><a href="mailto:hello@recalleducation.co.uk">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="bottom">
+      <span>© 2026 Recall Education Ltd · 14882047</span>
+      <span>Made in Sheffield, UK</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.faq-item').forEach(function (item) {
+    const q = item.querySelector('.faq-q');
+    q.addEventListener('click', function () {
+      const open = item.classList.toggle('open');
+      q.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  });
+</script>
+</body>
+</html>

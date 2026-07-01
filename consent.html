@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Parental consent — Recall</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --red:       #F85149;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+    }
+    nav.top .row {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px;
+      color: var(--text);
+    }
+    .brand:hover { text-decoration: none; }
+    .brand-mark {
+      width: 28px; height: 28px;
+      background: var(--blue); color: #fff;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 14px;
+      border-radius: var(--r-sm);
+    }
+
+    .wrap {
+      max-width: 560px; margin: 0 auto;
+      padding: 56px 24px 80px;
+    }
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 32px;
+    }
+    h1 {
+      font-size: 22px; font-weight: 600;
+      letter-spacing: -0.015em;
+      margin: 0 0 8px;
+    }
+    .lede {
+      font-size: 14px;
+      color: var(--text-2);
+      margin: 0 0 24px;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 8px 16px;
+      padding: 16px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      margin-bottom: 20px;
+    }
+    .kv .k { color: var(--text-3); font-size: 12px; }
+    .kv .v { color: var(--text); font-size: 13px; font-weight: 500; }
+
+    .actions {
+      display: flex; gap: 10px;
+      margin-top: 8px;
+    }
+    .btn-primary, .btn-ghost {
+      flex: 1;
+      padding: 10px 18px;
+      border-radius: var(--r-sm);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      border: 1px solid var(--blue);
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line-2);
+    }
+    .btn-ghost:hover { background: var(--bg-3); }
+    .btn-primary:disabled, .btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .msg {
+      display: none;
+      border-radius: var(--r-sm);
+      padding: 10px 12px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .msg.show { display: block; }
+    .msg.error {
+      background: rgba(248,81,73,0.1);
+      border: 1px solid rgba(248,81,73,0.4);
+      color: #FFA198;
+    }
+    .msg.ok {
+      background: rgba(63,185,80,0.08);
+      border: 1px solid rgba(63,185,80,0.4);
+      color: #7EE787;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--text-3);
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html"><span class="brand-mark">R</span> Recall</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="card">
+    <h1>Parental consent</h1>
+    <p class="lede">
+      Your child has signed up for Recall. UK law requires us to get a parent or guardian's consent before they can use the product. Please review and decide below.
+    </p>
+
+    <div class="msg error" id="err"></div>
+    <div class="msg ok"    id="ok"></div>
+
+    <div id="loading" style="font-size: 13px; color: var(--text-3);">Loading…</div>
+
+    <div id="content" hidden>
+      <div class="kv">
+        <div class="k">Student</div>     <div class="v" id="kName">—</div>
+        <div class="k">Date of birth</div><div class="v" id="kDob">—</div>
+        <div class="k">Your email</div> <div class="v" id="kEmail">—</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary" id="grantBtn">I consent</button>
+        <button class="btn-ghost"   id="denyBtn">I do not consent</button>
+      </div>
+
+      <div class="small">
+        If you have questions, email <a href="mailto:hello@recalleducation.co.uk">hello@recalleducation.co.uk</a>.
+        You can withdraw consent at any time and we will delete the account.
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://jdfimuncooatyuavswjs.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkZmltdW5jb29hdHl1YXZzd2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5Mjk2NDAsImV4cCI6MjA5ODUwNTY0MH0.nyzxqzeazFaCzWM1MV00zTIxxikMIdnRylAJ71q6NKs';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+
+  const errEl = document.getElementById('err');
+  const okEl  = document.getElementById('ok');
+  const loading = document.getElementById('loading');
+  const content = document.getElementById('content');
+  const grantBtn = document.getElementById('grantBtn');
+  const denyBtn  = document.getElementById('denyBtn');
+
+  function showError(m) { errEl.textContent = m; errEl.classList.add('show'); okEl.classList.remove('show'); }
+  function showOk(m)    { okEl.textContent = m;  okEl.classList.add('show'); errEl.classList.remove('show'); }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); }
+    catch (e) { return iso; }
+  }
+
+  async function load() {
+    if (!token) {
+      loading.hidden = true;
+      return showError('Missing consent token. Open the link from the consent email.');
+    }
+
+    const { data, error } = await supabase.rpc('peek_consent', { consent_token: token });
+
+    loading.hidden = true;
+
+    if (error) {
+      return showError('Could not load this consent request. The link may have expired.');
+    }
+    if (!data || !data.ok) {
+      return showError('This consent link is not valid. It may have been used already or expired.');
+    }
+
+    if (data.status === 'granted') {
+      content.hidden = false;
+      document.getElementById('kName').textContent  = data.student_name || '—';
+      document.getElementById('kDob').textContent   = fmtDate(data.student_dob);
+      document.getElementById('kEmail').textContent = data.parent_email || '—';
+      grantBtn.disabled = true;
+      denyBtn.disabled  = true;
+      return showOk('Consent already granted. You can close this page.');
+    }
+    if (data.status === 'denied') {
+      content.hidden = false;
+      document.getElementById('kName').textContent  = data.student_name || '—';
+      document.getElementById('kDob').textContent   = fmtDate(data.student_dob);
+      document.getElementById('kEmail').textContent = data.parent_email || '—';
+      grantBtn.disabled = true;
+      denyBtn.disabled  = true;
+      return showError('Consent was previously declined. The student’s account will not be activated.');
+    }
+    if (data.status === 'expired') {
+      return showError('This consent link has expired. Ask your child to sign up again.');
+    }
+
+    // pending — show the form
+    content.hidden = false;
+    document.getElementById('kName').textContent  = data.student_name || '—';
+    document.getElementById('kDob').textContent   = fmtDate(data.student_dob);
+    document.getElementById('kEmail').textContent = data.parent_email || '—';
+  }
+
+  async function decide(decision) {
+    grantBtn.disabled = true;
+    denyBtn.disabled  = true;
+    const originalText = decision === 'granted' ? 'I consent' : 'I do not consent';
+    (decision === 'granted' ? grantBtn : denyBtn).textContent = 'Working…';
+
+    const { data, error } = await supabase.rpc('grant_consent', {
+      consent_token: token,
+      decision: decision
+    });
+
+    if (error) {
+      grantBtn.disabled = false;
+      denyBtn.disabled  = false;
+      grantBtn.textContent = 'I consent';
+      denyBtn.textContent  = 'I do not consent';
+      return showError('Could not record your decision. Please try again.');
+    }
+    if (!data || !data.ok) {
+      grantBtn.disabled = false;
+      denyBtn.disabled  = false;
+      grantBtn.textContent = 'I consent';
+      denyBtn.textContent  = 'I do not consent';
+      if (data && data.reason === 'expired') {
+        return showError('This link has expired. Please ask your child to sign up again.');
+      }
+      if (data && data.reason === 'already_decided') {
+        return showError('This link has already been used.');
+      }
+      return showError('Something went wrong. Please try again.');
+    }
+
+    if (decision === 'granted') {
+      showOk('Thank you. Consent recorded. Your child can now use Recall.');
+    } else {
+      showError('Consent declined. The account will not be activated.');
+    }
+  }
+
+  grantBtn.addEventListener('click', function () { decide('granted'); });
+  denyBtn.addEventListener('click',  function () { decide('denied');  });
+  load();
+</script>
+</body>
+</html>

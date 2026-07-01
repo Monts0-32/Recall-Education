@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Create your account — Recall</title>
+  <meta name="description" content="Create a free Recall account. Full courses for GCSE and A-level, taught the way your exam board wants." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --yellow:    #D29922;
+      --red:       #F85149;
+      --r-sm: 6px;
+      --r-md: 8px;
+      --maxw: 1240px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    ::selection { background: var(--blue); color: #fff; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+    }
+    nav.top .row {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px;
+      color: var(--text);
+    }
+    .brand:hover { text-decoration: none; }
+    .brand-mark {
+      width: 28px; height: 28px;
+      background: var(--blue); color: #fff;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 14px;
+      border-radius: var(--r-sm);
+    }
+    nav.top .right { font-size: 13px; color: var(--text-3); }
+    nav.top .right a { color: var(--text-2); font-weight: 500; }
+
+    .page {
+      max-width: 1100px; margin: 0 auto;
+      padding: 56px 24px 80px;
+      display: grid;
+      grid-template-columns: 1fr 460px;
+      gap: 64px;
+      align-items: start;
+    }
+
+    .pitch h1 {
+      font-weight: 700;
+      font-size: 32px;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin: 0 0 12px;
+      max-width: 18ch;
+    }
+    .pitch .lede {
+      font-size: 15px;
+      color: var(--text-2);
+      max-width: 48ch;
+      margin: 0 0 32px;
+    }
+    .pitch .lede b { color: var(--text); font-weight: 600; }
+
+    .quote-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .quote-card p {
+      margin: 0 0 14px;
+      font-size: 14px; line-height: 1.5;
+      color: var(--text);
+    }
+    .quote-card .who {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 12px; color: var(--text-3);
+    }
+    .quote-card .who .avatar {
+      width: 26px; height: 26px;
+      background: var(--bg-3);
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-weight: 700; color: var(--text);
+      font-size: 11px;
+    }
+    .quote-card .who b { color: var(--text-2); font-weight: 600; }
+
+    .stats {
+      display: flex; gap: 24px;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+    .stat { display: flex; flex-direction: column; gap: 2px; }
+    .stat .num {
+      font-size: 22px; font-weight: 700;
+      letter-spacing: -0.015em;
+    }
+    .stat .lbl { font-size: 12px; color: var(--text-3); }
+
+    .form-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 32px;
+    }
+    .form-card h2 {
+      margin: 0 0 6px;
+      font-size: 20px; font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+    .form-card .sub {
+      font-size: 13px; color: var(--text-3);
+      margin: 0 0 24px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field label {
+      font-size: 13px; font-weight: 500;
+      color: var(--text-2);
+    }
+    .field input, .field select {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 9px 12px;
+      font-family: inherit; font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .field select { appearance: none; -webkit-appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='%238B949E' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+    .field input:focus, .field select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .field input::placeholder, .field select::placeholder { color: var(--text-4); }
+    .field .hint { font-size: 12px; color: var(--text-3); }
+    .field .hint.warn { color: var(--yellow); }
+    .field .hint.error { color: var(--red); }
+    .field .hint.ok { color: var(--green); }
+
+    .check {
+      display: flex; align-items: flex-start; gap: 8px;
+      color: var(--text-2);
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1.45;
+      margin: 4px 0 18px;
+    }
+    .check input { accent-color: var(--blue); width: 14px; height: 14px; margin: 2px 0 0; flex-shrink: 0; }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--blue); color: #fff;
+      padding: 10px 18px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      border: 1px solid var(--blue);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 20px 0;
+      font-size: 12px; color: var(--text-4);
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--line);
+    }
+
+    .foot {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      font-size: 12.5px;
+      color: var(--text-3);
+      text-align: center;
+    }
+    .foot a { color: var(--blue); }
+
+    .security {
+      margin-top: 18px;
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--text-3);
+    }
+    .security .lock {
+      width: 14px; height: 14px;
+      color: var(--green);
+    }
+
+    .error-banner, .ok-banner {
+      display: none;
+      border-radius: var(--r-sm);
+      padding: 10px 12px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .error-banner {
+      background: rgba(248,81,73,0.1);
+      border: 1px solid rgba(248,81,73,0.4);
+      color: #FFA198;
+    }
+    .error-banner.show { display: block; }
+    .error-banner b { color: var(--red); font-weight: 600; }
+    .ok-banner {
+      background: rgba(63,185,80,0.08);
+      border: 1px solid rgba(63,185,80,0.4);
+      color: #7EE787;
+    }
+    .ok-banner.show { display: block; }
+    .ok-banner b { color: var(--green); font-weight: 600; }
+
+    @media (max-width: 900px) {
+      .page { grid-template-columns: 1fr; gap: 32px; padding: 32px 20px 56px; }
+      .pitch { order: 2; }
+      .form-card { order: 1; }
+    }
+    @media (max-width: 480px) {
+      .stats { flex-direction: column; gap: 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html"><span class="brand-mark">R</span> Recall</a>
+    <div class="right">Already have an account? <a href="login.html">Sign in</a></div>
+  </div>
+</nav>
+
+<main class="page">
+
+  <section class="pitch">
+    <h1>Build the habit. Pass the exam.</h1>
+    <p class="lede">
+      Two free subjects forever, no card. Full access to every GCSE and A-level course from <b>£6 / month</b>. Taught by UK teachers, written against your exam board's spec.
+    </p>
+
+    <div class="quote-card">
+      <p>"I went from a predicted 5 to a final 8 in biology. The past-paper practice with mark schemes is the closest thing to having a real teacher at home."</p>
+      <div class="who">
+        <div class="avatar">S</div>
+        <span><b>Sarah M.</b> · Year 12 · Birmingham</span>
+      </div>
+    </div>
+
+    <div class="quote-card">
+      <p>"Two subjects free, no card, no nagging. My son signed up himself, which is the highest praise I can give any product."</p>
+      <div class="who">
+        <div class="avatar">D</div>
+        <span><b>Daniel K.</b> · Parent · Cardiff</span>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><span class="num">34,000+</span><span class="lbl">UK students</span></div>
+      <div class="stat"><span class="num">30+</span><span class="lbl">subjects</span></div>
+      <div class="stat"><span class="num">80+</span><span class="lbl">partner schools</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="form-card">
+      <h2>Create your account</h2>
+      <p class="sub">Free forever. Two subjects, no card.</p>
+
+      <div class="error-banner" id="err">
+        <b>We couldn't create your account.</b> <span id="errMsg">Check the highlighted fields and try again.</span>
+      </div>
+
+      <div class="ok-banner" id="ok">
+        <b>Almost done.</b> <span id="okMsg">Check your inbox to confirm your email.</span>
+      </div>
+
+      <form id="signupForm" novalidate>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="you@school.ac.uk" autocomplete="email" required />
+        </div>
+
+        <div class="field">
+          <label for="name">Full name</label>
+          <input type="text" id="name" name="name" placeholder="Your name" autocomplete="name" required />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="At least 12 characters" autocomplete="new-password" minlength="12" required />
+          <span class="hint" id="pwdHint">At least 12 characters. Longer is stronger.</span>
+        </div>
+
+        <div class="field">
+          <label for="password2">Confirm password</label>
+          <input type="password" id="password2" name="password2" placeholder="Type your password again" autocomplete="new-password" required />
+          <span class="hint" id="pwdMatch"></span>
+        </div>
+
+        <div class="field">
+          <label for="year">Year group</label>
+          <select id="year" name="year" required>
+            <option value="">Select your year</option>
+            <option>Year 7</option>
+            <option>Year 8</option>
+            <option>Year 9</option>
+            <option>Year 10</option>
+            <option>Year 11</option>
+            <option>Year 12</option>
+            <option>Year 13</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="dob">Date of birth</label>
+          <input type="date" id="dob" name="dob" max="2015-07-01" required />
+          <span class="hint" id="dobHint">Used to show content for your year group.</span>
+        </div>
+
+        <div class="field" id="parentField" hidden>
+          <label for="parentEmail">Parent or guardian email</label>
+          <input type="email" id="parentEmail" name="parentEmail" placeholder="parent@example.com" autocomplete="off" />
+          <span class="hint" id="parentHint">Required for under-16s. We'll send a one-time consent link.</span>
+        </div>
+
+        <label class="check" id="termsLabel">
+          <input type="checkbox" id="terms" name="terms" required />
+          <span id="termsText">I'm 16 or older, or my parent or guardian has agreed to these terms.</span>
+        </label>
+
+        <button type="submit" class="btn-primary" id="submitBtn">Create account</button>
+      </form>
+
+      <div class="foot">
+        Already have an account? <a href="login.html">Sign in</a>
+      </div>
+    </div>
+
+    <div class="security">
+      <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+      <span>UK-hosted. GDPR-compliant. Your data is yours.</span>
+    </div>
+  </section>
+
+</main>
+
+<!-- Supabase JS client (UMD build, served from supabase's CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+  // ----- Supabase project config --------------------------------------------
+  // These two values are SAFE to expose in client-side HTML: the anon key is
+  // designed to be public, and row-level security in the database enforces
+  // who can read/write what. Do NOT put the service_role key here.
+  const SUPABASE_URL = 'https://jdfimuncooatyuavswjs.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkZmltdW5jb29hdHl1YXZzd2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5Mjk2NDAsImV4cCI6MjA5ODUwNTY0MH0.nyzxqzeazFaCzWM1MV00zTIxxikMIdnRylAJ71q6NKs';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<script>
+  (function () {
+    const form = document.getElementById('signupForm');
+    const email = document.getElementById('email');
+    const name = document.getElementById('name');
+    const password = document.getElementById('password');
+    const password2 = document.getElementById('password2');
+    const year = document.getElementById('year');
+    const dob = document.getElementById('dob');
+    const parentField = document.getElementById('parentField');
+    const parentEmail = document.getElementById('parentEmail');
+    const parentHint = document.getElementById('parentHint');
+    const terms = document.getElementById('terms');
+    const termsText = document.getElementById('termsText');
+    const pwdHint = document.getElementById('pwdHint');
+    const pwdMatch = document.getElementById('pwdMatch');
+    const dobHint = document.getElementById('dobHint');
+    const err = document.getElementById('err');
+    const errMsg = document.getElementById('errMsg');
+    const ok = document.getElementById('ok');
+    const okMsg = document.getElementById('okMsg');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function ageOn(d, ref) {
+      let a = ref.getFullYear() - d.getFullYear();
+      const m = ref.getMonth() - d.getMonth();
+      if (m < 0 || (m === 0 && ref.getDate() < d.getDate())) a--;
+      return a;
+    }
+
+    function setHint(el, msg, state) {
+      el.textContent = msg;
+      el.className = 'hint' + (state ? ' ' + state : '');
+    }
+
+    function showError(msg) {
+      errMsg.textContent = msg;
+      err.classList.add('show');
+      ok.classList.remove('show');
+      err.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    function hideError() { err.classList.remove('show'); }
+    function showOk(msg) {
+      okMsg.textContent = msg;
+      ok.classList.add('show');
+      err.classList.remove('show');
+    }
+
+    function updatePwdHint() {
+      const v = password.value;
+      if (!v) { setHint(pwdHint, 'At least 12 characters. Longer is stronger.'); return; }
+      if (v.length < 12) {
+        setHint(pwdHint, v.length + ' characters. Needs at least 12.', 'warn');
+      } else if (v.length < 16) {
+        setHint(pwdHint, v.length + ' characters. Good. 16+ is stronger.', 'ok');
+      } else {
+        setHint(pwdHint, v.length + ' characters. Strong.', 'ok');
+      }
+    }
+    password.addEventListener('input', updatePwdHint);
+    updatePwdHint();
+
+    function updatePwdMatch() {
+      if (!password2.value) { setHint(pwdMatch, ''); return; }
+      if (password.value === password2.value) {
+        setHint(pwdMatch, 'Passwords match.', 'ok');
+      } else {
+        setHint(pwdMatch, 'Passwords do not match.', 'error');
+      }
+    }
+    password2.addEventListener('input', updatePwdMatch);
+    password.addEventListener('input', updatePwdMatch);
+
+    let currentAge = null; // tracked for submit() — null means unknown
+
+    function updateDob() {
+      const v = dob.value;
+      if (!v) {
+        parentField.hidden = true;
+        parentEmail.required = false;
+        termsText.textContent = "I'm 16 or older, or my parent or guardian has agreed to these terms.";
+        setHint(dobHint, 'Used to show content for your year group.');
+        currentAge = null;
+        return;
+      }
+      const d = new Date(v);
+      if (isNaN(d.getTime())) return;
+      const today = new Date();
+      currentAge = ageOn(d, today);
+
+      if (currentAge < 11) {
+        setHint(dobHint, 'Recall is for students aged 11 and over.', 'error');
+        parentField.hidden = true;
+        parentEmail.required = false;
+        termsText.textContent = "I'm 16 or older, or my parent or guardian has agreed to these terms.";
+      } else if (currentAge > 19) {
+        setHint(dobHint, 'This product is for secondary students. If you are at university, see the adult plan.', 'warn');
+        parentField.hidden = true;
+        parentEmail.required = false;
+        termsText.textContent = 'I am 16 or older and agree to these terms.';
+      } else if (currentAge <= 15) {
+        setHint(dobHint, 'Under 16: a parent or guardian will be asked for consent.', 'warn');
+        parentField.hidden = false;
+        parentEmail.required = true;
+        termsText.textContent = "My parent or guardian has agreed to these terms.";
+      } else {
+        setHint(dobHint, 'Looks good.', 'ok');
+        parentField.hidden = true;
+        parentEmail.required = false;
+        termsText.textContent = 'I am 16 or older and agree to these terms.';
+      }
+
+      const expectedYear = 13 - currentAge;
+      if (year.value) {
+        const yrNum = parseInt(year.value.replace('Year ', ''), 10);
+        if (yrNum && Math.abs(yrNum - expectedYear) >= 2) {
+          year.style.borderColor = 'var(--yellow)';
+          year.title = 'Year group does not match the date of birth. Students can repeat years — adjust if needed.';
+        } else {
+          year.style.borderColor = '';
+          year.title = '';
+        }
+      }
+    }
+    dob.addEventListener('input', updateDob);
+    dob.addEventListener('change', updateDob);
+    year.addEventListener('change', updateDob);
+
+    function checkParent() {
+      if (!parentField.hidden && parentEmail.value && email.value) {
+        const a = parentEmail.value.trim().toLowerCase();
+        const b = email.value.trim().toLowerCase();
+        if (a && a === b) {
+          setHint(parentHint, 'Parent email must be different from your email.', 'error');
+        } else {
+          setHint(parentHint, 'We will send a one-time consent link to this address.', 'ok');
+        }
+      } else if (!parentField.hidden) {
+        setHint(parentHint, 'Required for under-16s. We will send a one-time consent link.');
+      }
+    }
+    parentEmail.addEventListener('input', checkParent);
+    email.addEventListener('input', checkParent);
+
+    // Translate Supabase's auth error messages into something a student can act on.
+    function explainAuthError(message) {
+      if (!message) return 'Something went wrong. Please try again.';
+      const m = message.toLowerCase();
+      if (m.includes('already registered') || m.includes('already been registered')) {
+        return 'An account with that email already exists. Try signing in instead.';
+      }
+      if (m.includes('password') && (m.includes('short') || m.includes('characters') || m.includes('12'))) {
+        return 'Password must be at least 12 characters.';
+      }
+      if (m.includes('rate limit') || m.includes('too many')) {
+        return 'Too many attempts. Wait a moment and try again.';
+      }
+      if (m.includes('valid email') || m.includes('email is invalid')) {
+        return 'Enter a valid email address.';
+      }
+      if (m.includes('signups not allowed') || m.includes('signup_disabled')) {
+        return 'New signups are temporarily paused. Please try again later.';
+      }
+      return message;
+    }
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      hideError();
+      ok.classList.remove('show');
+
+      // Client-side validation (mirrors what we send to Supabase).
+      if (!email.value || !email.value.includes('@')) {
+        return showError('Enter a valid email address.');
+      }
+      if (!name.value.trim()) {
+        return showError('Enter your name.');
+      }
+      if (password.value.length < 12) {
+        return showError('Password must be at least 12 characters.');
+      }
+      if (password.value !== password2.value) {
+        return showError('Passwords do not match.');
+      }
+      if (!year.value) {
+        return showError('Select your year group.');
+      }
+      if (!dob.value) {
+        return showError('Enter your date of birth.');
+      }
+      const d = new Date(dob.value);
+      const a = ageOn(d, new Date());
+      if (isNaN(a) || a < 11) {
+        return showError('Recall is for students aged 11 and over.');
+      }
+      if (a > 19) {
+        return showError('This product is for secondary students. Contact hello@recalleducation.co.uk for the adult plan.');
+      }
+      const needsConsent = a <= 15;
+      if (needsConsent) {
+        if (!parentEmail.value || !parentEmail.value.includes('@')) {
+          return showError('Enter a parent or guardian email — required for under-16s.');
+        }
+        if (parentEmail.value.trim().toLowerCase() === email.value.trim().toLowerCase()) {
+          return showError('Parent email must be different from your email.');
+        }
+      }
+      if (!terms.checked) {
+        return showError('Please confirm the consent statement to continue.');
+      }
+
+      submitBtn.disabled = true;
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Creating account…';
+
+      // Build the URL the parent will land on when they click the consent
+      // link. We prefill their token by writing a parental_consents row
+      // AFTER the auth user is created, then emailing them a /consent.html?token=...
+      // link. For the confirmation email itself, we let Supabase use the
+      // default redirect to /dashboard.html (which the user can't reach
+      // until consent is granted, via the access-token hook in SQL).
+      const redirectTo = window.location.origin + '/dashboard.html';
+
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email: email.value.trim(),
+          password: password.value,
+          options: {
+            emailRedirectTo: redirectTo,
+            data: {
+              full_name: name.value.trim(),
+              year_group: year.value,
+              dob: dob.value,
+              parent_email: needsConsent ? parentEmail.value.trim() : null
+            }
+          }
+        });
+
+        if (error) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+          return showError(explainAuthError(error.message));
+        }
+
+        // If the user was created, create a parental_consents row for the
+        // under-16 flow. We do this client-side with the user's own session
+        // (anon key, but we know the new user's id). The insert goes via a
+        // SECURITY DEFINER function in the DB so RLS doesn't block it.
+        if (needsConsent && data && data.user) {
+          const userId = data.user.id;
+          const parentAddr = parentEmail.value.trim();
+
+          // We use a RPC call that creates the row and returns the token,
+          // which we'll show in the success message so the student can
+          // forward the link to their parent if the email goes astray.
+          const { data: tokenData, error: rpcErr } = await supabase
+            .rpc('create_parental_consent', {
+              p_student_user_id: userId,
+              p_parent_email: parentAddr
+            });
+
+          if (rpcErr) {
+            // Non-fatal: account still exists. Tell the student.
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return showError(
+              'Account created, but we couldn’t queue the consent email. ' +
+              'Please email hello@recalleducation.co.uk and we’ll sort it manually.'
+            );
+          }
+
+          const consentLink =
+            window.location.origin + '/consent.html?token=' + encodeURIComponent(tokenData);
+
+          showOk(
+            'We sent a confirmation link to ' + email.value.trim() +
+            ' and a consent link to ' + parentAddr +
+            '. You can also share this link with your parent: ' + consentLink
+          );
+        } else {
+          showOk('Check ' + email.value.trim() + ' for a confirmation link. You can close this tab.');
+        }
+
+        // Lock the form.
+        Array.from(form.elements).forEach(el => { el.disabled = true; });
+        submitBtn.textContent = 'Account created';
+
+        // Send the user to the dashboard after a beat. They won’t be able
+        // to sign in (consent hook blocks under-16s; over-16s need to click
+        // the email link first) — the dashboard will show a “check your
+        // email” state.
+        setTimeout(function () {
+          window.location.href = 'dashboard.html';
+        }, 4000);
+      } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        showError('Network error. Check your connection and try again.');
+      }
+    });
+  })();
+</script>
+</body>
+</html>
