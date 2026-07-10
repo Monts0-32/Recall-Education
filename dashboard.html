@@ -22,9 +22,13 @@
       --text-4:    #6E7681;
       --blue:      #58A6FF;
       --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
       --blue-pale: rgba(56,139,253,0.08);
       --green:     #3FB950;
+      --yellow:    #D29922;
       --red:       #F85149;
+      --purple:    #A371F7;
+      --teal:      #56D4DD;
       --r-sm: 6px;
       --r-md: 8px;
     }
@@ -41,9 +45,11 @@
     a { color: var(--blue); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
+    /* ---------- TOP NAV ---------- */
     nav.top {
       border-bottom: 1px solid var(--line);
       background: var(--bg);
+      position: sticky; top: 0; z-index: 50;
     }
     nav.top .row {
       max-width: 1280px; margin: 0 auto;
@@ -76,39 +82,123 @@
     }
     .btn-ghost:hover { background: var(--bg-2); }
 
-    .wrap {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 64px 24px 80px;
-    }
-    h1 {
-      font-size: 28px; font-weight: 600;
-      letter-spacing: -0.02em;
-      margin: 0 0 8px;
-    }
-    .sub {
-      color: var(--text-3);
-      font-size: 14px;
-      margin: 0 0 32px;
+    /* ---------- LAYOUT ---------- */
+    .layout {
+      max-width: 1280px; margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 24px;
+      align-items: start;
     }
 
-    .empty {
-      background: var(--bg-2);
-      border: 1px solid var(--line-2);
-      border-radius: var(--r-md);
-      padding: 32px;
-      text-align: center;
-      color: var(--text-3);
-      font-size: 14px;
+    /* ---------- SIDEBAR ---------- */
+    .sidebar {
+      position: sticky; top: 88px;
+      display: flex; flex-direction: column; gap: 16px;
     }
-    .empty b { color: var(--text-2); font-weight: 600; }
+    .user-block {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .user-block .avatar {
+      width: 38px; height: 38px;
+      background: var(--blue); color: #fff;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-weight: 700; font-size: 14px;
+      flex-shrink: 0;
+    }
+    .user-block .who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .user-block .name { font-weight: 600; font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-block .meta { font-size: 12px; color: var(--text-3); }
+
+    .side-nav {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 8px;
+      display: flex; flex-direction: column;
+    }
+    .side-nav a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px;
+      border-radius: var(--r-sm);
+      color: var(--text-2);
+      font-size: 13.5px; font-weight: 500;
+    }
+    .side-nav a:hover { background: var(--bg-3); color: var(--text); text-decoration: none; }
+    .side-nav a.active { background: var(--blue-pale); color: var(--blue); }
+    .side-nav a svg { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.8; }
+    .side-nav a.active svg { opacity: 1; }
+    .side-nav .section-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+      color: var(--text-4); text-transform: uppercase;
+      padding: 12px 10px 6px;
+    }
+
+    .streak-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 16px;
+    }
+    .streak-card .flame {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--text-3);
+      margin-bottom: 6px;
+    }
+    .streak-card .flame b { color: var(--yellow); font-weight: 700; font-size: 22px; letter-spacing: -0.02em; }
+    .streak-card .flame span { color: var(--yellow); font-size: 18px; }
+    .streak-card .lbl { font-size: 12px; color: var(--text-3); }
+    .streak-card .bar {
+      margin-top: 12px;
+      display: flex; gap: 3px;
+    }
+    .streak-card .bar i {
+      flex: 1; height: 6px; border-radius: 2px;
+      background: var(--bg-4);
+    }
+    .streak-card .bar i.on { background: var(--yellow); }
+
+    /* ---------- MAIN ---------- */
+    .main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+    .dash-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      font-size: 12px; color: var(--text-3);
+    }
+    .dash-bar .crumbs { color: var(--text-2); }
+    .dash-bar .crumbs a { color: var(--text-3); }
+    .dash-bar .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .dash-bar .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .dash-bar .crumbs .current { color: var(--text); font-weight: 600; }
+    .dash-bar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+    .dash-bar .right .pill {
+      padding: 2px 8px; background: var(--bg-4); border-radius: 999px;
+      font-size: 11px; font-weight: 600; color: var(--text-2);
+    }
+    .dash-bar .right .streak { color: var(--yellow); font-weight: 600; }
+
+    .welcome h1 {
+      font-size: 24px; font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0 0 4px;
+    }
+    .welcome .sub { color: var(--text-3); font-size: 13.5px; margin: 0; }
 
     .state {
       display: none;
       border-radius: var(--r-sm);
       padding: 12px 14px;
       font-size: 13px;
-      margin-bottom: 16px;
     }
     .state.show { display: block; }
     .state.info {
@@ -117,6 +207,175 @@
       color: var(--blue);
     }
 
+    /* ---------- KPI ROW ---------- */
+    .kpis {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    }
+    .kpi {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 16px;
+    }
+    .kpi .lbl { font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
+    .kpi .num {
+      font-size: 24px; font-weight: 700;
+      letter-spacing: -0.02em; color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi .num small { font-size: 13px; color: var(--text-3); font-weight: 500; margin-left: 2px; }
+    .kpi .delta { font-size: 12px; font-weight: 600; margin-top: 6px; }
+    .kpi .delta.up { color: var(--green); }
+    .kpi .delta.down { color: var(--red); }
+    .kpi .delta.flat { color: var(--text-3); }
+
+    /* ---------- CARD (shared) ---------- */
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      overflow: hidden;
+    }
+    .card-head {
+      padding: 14px 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--line);
+    }
+    .card-head h3 {
+      margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+    }
+    .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .card-head .right { font-size: 12px; color: var(--text-3); }
+    .card-head .right a { color: var(--blue); font-weight: 500; }
+
+    /* ---------- SUBJECT ROWS ---------- */
+    .dash-list { display: flex; flex-direction: column; }
+    .subj-row {
+      display: grid;
+      grid-template-columns: 14px 1.4fr 90px 1fr 70px;
+      gap: 14px; align-items: center;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+      transition: background 0.1s ease;
+    }
+    .subj-row:last-child { border-bottom: none; }
+    .subj-row:hover { background: var(--bg-3); }
+    .subj-row .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .subj-row .name { color: var(--text); font-weight: 600; }
+    .subj-row .name .exam { color: var(--text-3); font-weight: 400; font-size: 11px; margin-left: 6px; }
+    .subj-row .prog-wrap { display: flex; align-items: center; gap: 8px; }
+    .subj-row .prog { flex: 1; height: 6px; background: var(--bg-4); border-radius: 3px; overflow: hidden; }
+    .subj-row .prog i { display: block; height: 100%; background: var(--blue); border-radius: 3px; }
+    .subj-row .prog-pct { font-size: 11px; color: var(--text-3); font-weight: 600; min-width: 28px; text-align: right; }
+    .subj-row .last { color: var(--text-3); font-size: 11px; }
+    .subj-row .action { text-align: right; }
+    .subj-row .action button {
+      background: transparent;
+      color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 4px 10px;
+      border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      cursor: pointer;
+    }
+    .subj-row .action button:hover { background: var(--bg-3); color: var(--text); }
+    .subj-row.continue { background: var(--blue-pale); }
+    .subj-row.continue:hover { background: var(--blue-dim); }
+    .subj-row.continue .action button {
+      background: var(--blue); color: #fff; border-color: var(--blue);
+    }
+    .subj-row.continue .action button:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .subj-row .dot.maths { background: #58A6FF; }
+    .subj-row .dot.eng { background: #A371F7; }
+    .subj-row .dot.bio { background: #3FB950; }
+    .subj-row .dot.chem { background: #D29922; }
+    .subj-row .dot.phys { background: #F85149; }
+    .subj-row .dot.hist { background: #FF7B72; }
+    .subj-row .dot.geog { background: #56D4DD; }
+    .subj-row .dot.psych { background: #BC8CFF; }
+
+    /* ---------- TWO-COL LOWER ---------- */
+    .lower {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    }
+
+    /* ---------- UPCOMING ---------- */
+    .upcoming-list { display: flex; flex-direction: column; }
+    .up-item {
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      gap: 14px; align-items: center;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .up-item:last-child { border-bottom: none; }
+    .up-item .date {
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      text-align: center;
+      padding: 4px 0;
+    }
+    .up-item .date b { display: block; font-size: 16px; font-weight: 700; color: var(--text); line-height: 1; }
+    .up-item .date span { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; }
+    .up-item .info .title { color: var(--text); font-weight: 600; }
+    .up-item .info .meta { color: var(--text-3); font-size: 12px; margin-top: 2px; }
+    .up-item .info .meta b { color: var(--text-2); font-weight: 500; }
+    .up-item .count {
+      font-size: 12px; color: var(--text-3);
+      font-variant-numeric: tabular-nums;
+    }
+    .up-item .count b { color: var(--text); font-weight: 600; }
+
+    /* ---------- ACTIVITY ---------- */
+    .activity-list { display: flex; flex-direction: column; }
+    .act-item {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 12px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .act-item:last-child { border-bottom: none; }
+    .act-item .icon {
+      width: 26px; height: 26px;
+      background: var(--bg-3);
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 12px; font-weight: 700;
+      color: var(--text-2);
+    }
+    .act-item .icon.t { color: var(--green); }
+    .act-item .icon.q { color: var(--blue); }
+    .act-item .icon.s { color: var(--purple); }
+    .act-item .icon.b { color: var(--yellow); }
+    .act-item .text { color: var(--text-2); line-height: 1.45; }
+    .act-item .text b { color: var(--text); font-weight: 600; }
+    .act-item .time { color: var(--text-4); font-size: 11px; margin-top: 2px; }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 1000px) {
+      .kpis { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .lower { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .layout { padding: 16px; }
+      .kpis { grid-template-columns: 1fr; }
+      .subj-row { grid-template-columns: 10px 1fr 64px; gap: 10px; }
+      .subj-row .prog-wrap, .subj-row .last { display: none; }
+      .subj-row .action { grid-column: 2 / -1; text-align: left; }
+      nav.top ul { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; }
+    }
     a:focus-visible, button:focus-visible {
       outline: 2px solid var(--blue); outline-offset: 2px;
     }
@@ -134,17 +393,138 @@
   </div>
 </nav>
 
-<main class="wrap">
-  <h1>Welcome to Recall</h1>
-  <p class="sub">Your dashboard is being set up. Subjects, lessons, and progress will live here.</p>
+<div class="layout">
 
-  <div class="state info" id="state"></div>
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="user-block">
+      <div class="avatar" id="userAvatar">R</div>
+      <div class="who">
+        <span class="name" id="userName">Recall student</span>
+        <span class="meta" id="userMeta">Signed out</span>
+      </div>
+    </div>
 
-  <div class="empty">
-    <b>Nothing here yet.</b><br>
-    We're still building this page. Sign in or confirm your email to get started.
-  </div>
-</main>
+    <nav class="side-nav" aria-label="Dashboard">
+      <a href="#" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 3l9 9"/><path d="M5 10v10h14V10"/></svg>
+        Home
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Subjects
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Assignments
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+        Progress
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Past papers
+      </a>
+
+      <div class="section-label">Account</div>
+      <a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>
+        Profile
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        Settings
+      </a>
+    </nav>
+
+    <div class="streak-card">
+      <div class="flame">
+        <span>🔥</span>
+        <b id="streakNum">14</b>
+        <span>day streak</span>
+      </div>
+      <div class="lbl">You've studied every day for two weeks. Keep going.</div>
+      <div class="bar" id="streakBar" aria-label="Last 14 days"></div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <div class="dash-bar">
+      <span class="crumbs">
+        <a href="index.html">Recall</a>
+        <span class="sep">/</span>
+        <span class="current">Dashboard</span>
+      </span>
+      <div class="right">
+        <span class="streak" id="dashBarStreak">🔥 14 day streak</span>
+        <span class="pill" id="dashBarPill">Y12</span>
+      </div>
+    </div>
+
+    <section class="welcome">
+      <h1 id="welcomeTitle">Welcome to Recall</h1>
+      <p class="sub" id="welcomeSub">Pick up where you left off, or start something new.</p>
+    </section>
+
+    <div class="state info" id="state"></div>
+
+    <!-- KPI row -->
+    <div class="kpis" id="kpis"></div>
+
+    <!-- Continue learning -->
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h3>Continue learning</h3>
+          <div class="sub" id="continueSub">Picked up from your last session.</div>
+        </div>
+        <div class="right"><a href="#">View all</a></div>
+      </div>
+      <div class="dash-list" id="continueList"></div>
+    </div>
+
+    <!-- Your subjects -->
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h3>Your subjects</h3>
+          <div class="sub" id="subjectsSub">8 enrolled · last activity 2 hours ago</div>
+        </div>
+        <div class="right"><a href="#">View all</a></div>
+      </div>
+      <div class="dash-list" id="subjectsList"></div>
+    </div>
+
+    <!-- Upcoming + Activity -->
+    <div class="lower">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Upcoming</h3>
+            <div class="sub">Deadlines, mocks, and live lessons.</div>
+          </div>
+          <div class="right"><a href="#">Calendar</a></div>
+        </div>
+        <div class="upcoming-list" id="upcomingList"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Recent activity</h3>
+            <div class="sub">What you've done this week.</div>
+          </div>
+        </div>
+        <div class="activity-list" id="activityList"></div>
+      </div>
+    </div>
+
+  </main>
+
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -152,44 +532,186 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkZmltdW5jb29hdHl1YXZzd2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5Mjk2NDAsImV4cCI6MjA5ODUwNTY0MH0.nyzxqzeazFaCzWM1MV00zTIxxikMIdnRylAJ71q6NKs';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const stateEl = document.getElementById('state');
-  const signOutBtn = document.getElementById('signOutBtn');
-  const navName = document.getElementById('navName');
+  // ---------- mock data ----------
+  const MOCK = {
+    kpis: [
+      { lbl: 'Enrolled subjects',  num: '8',  delta: '+1 this term', dir: 'up'   },
+      { lbl: 'Lessons completed',  num: '47', delta: '+6 this week',  dir: 'up'   },
+      { lbl: 'Average score',      num: '78', small: '%',  delta: '+4 pts vs last month', dir: 'up'   },
+      { lbl: 'Study time this week', num: '4.2', small: 'hrs', delta: 'On track', dir: 'flat' },
+    ],
+    continue: [
+      { id: 'bio',  dot: 'bio',   name: 'Biology',     exam: 'AQA · A-level', chapter: 'Cell structure', prog: 64, last: '2 hours ago', continue: true,  cta: 'Continue' },
+      { id: 'mat',  dot: 'maths', name: 'Maths',       exam: 'Edexcel · GCSE', chapter: 'Algebra · quadratics', prog: 38, last: 'Yesterday',  continue: false, cta: 'Resume' },
+    ],
+    subjects: [
+      { id: 'mat',  dot: 'maths', name: 'Maths',         exam: 'Edexcel · GCSE',   prog: 62, last: 'Yesterday' },
+      { id: 'eng',  dot: 'eng',   name: 'English Lit.',  exam: 'AQA · GCSE',       prog: 54, last: '2 days ago' },
+      { id: 'bio',  dot: 'bio',   name: 'Biology',       exam: 'AQA · A-level',    prog: 71, last: '2 hours ago' },
+      { id: 'chem', dot: 'chem',  name: 'Chemistry',     exam: 'OCR · A-level',    prog: 28, last: '3 days ago' },
+      { id: 'phys', dot: 'phys',  name: 'Physics',       exam: 'AQA · GCSE',       prog: 45, last: '5 days ago' },
+      { id: 'hist', dot: 'hist',  name: 'History',       exam: 'Edexcel · GCSE',   prog: 33, last: '1 week ago' },
+      { id: 'geog', dot: 'geog',  name: 'Geography',     exam: 'AQA · GCSE',       prog: 49, last: '4 days ago' },
+      { id: 'psy',  dot: 'psych', name: 'Psychology',    exam: 'OCR · A-level',    prog: 18, last: '2 weeks ago' },
+    ],
+    upcoming: [
+      { day: '12', mon: 'May', title: 'Biology mock · Paper 1',          meta: 'Cell structure · Cell transport', in: 4  },
+      { day: '18', mon: 'May', title: 'Maths homework · Quadratics set 3', meta: '8 questions · auto-graded',     in: 10 },
+      { day: '22', mon: 'May', title: 'Live lesson · Chemistry bonding', meta: 'Dr. Patel · 4:30pm',              in: 14 },
+      { day: '03', mon: 'Jun', title: 'GCSE English Lit · Macbeth essay', meta: 'Final draft · 1500 words',       in: 26 },
+    ],
+    activity: [
+      { kind: 't', glyph: '✓', text: 'You completed <b>Cell structure · Mitochondria</b> in Biology.', time: '2 hours ago' },
+      { kind: 'q', glyph: '?', text: 'Scored <b>9/10</b> on the Quadratics quick check.', time: 'Yesterday, 7:14pm' },
+      { kind: 's', glyph: '◐', text: 'Studied for <b>32 minutes</b> — longest session this week.', time: 'Yesterday' },
+      { kind: 'b', glyph: '!', text: 'Biology mock in <b>4 days</b>. 71% of the syllabus covered.', time: 'Today' },
+    ],
+    streakDays: [1,1,1,1,1,0,1,1,1,1,1,0,1,1],
+  };
 
-  function showState(msg) { stateEl.textContent = msg; stateEl.classList.add('show'); }
+  // ---------- helpers ----------
+  const $ = (id) => document.getElementById(id);
+
+  function initials(name) {
+    if (!name) return 'R';
+    const parts = name.trim().split(/\s+/);
+    return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || 'R';
+  }
+
+  function renderKPIs() {
+    $('kpis').innerHTML = MOCK.kpis.map(k => `
+      <div class="kpi">
+        <div class="lbl">${k.lbl}</div>
+        <div class="num">${k.num}${k.small ? `<small>${k.small}</small>` : ''}</div>
+        <div class="delta ${k.dir}">${k.delta}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderSubjRow(s, opts = {}) {
+    return `
+      <div class="subj-row${opts.continue ? ' continue' : ''}">
+        <span class="dot ${s.dot}"></span>
+        <div class="name">${s.name}<span class="exam">${s.exam}</span></div>
+        <div class="prog-wrap">
+          <div class="prog"><i style="width:${s.prog}%"></i></div>
+          <span class="prog-pct">${s.prog}%</span>
+        </div>
+        <div class="last">${opts.continue ? s.chapter : s.last}</div>
+        <div class="action">
+          <button type="button">${opts.continue ? s.cta : 'Open'}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderContinue() {
+    $('continueList').innerHTML = MOCK.continue.map(s => renderSubjRow(s, { continue: true })).join('');
+  }
+
+  function renderSubjects() {
+    $('subjectsList').innerHTML = MOCK.subjects.map(s => renderSubjRow(s)).join('');
+  }
+
+  function renderUpcoming() {
+    $('upcomingList').innerHTML = MOCK.upcoming.map(u => `
+      <div class="up-item">
+        <div class="date"><b>${u.day}</b><span>${u.mon}</span></div>
+        <div class="info">
+          <div class="title">${u.title}</div>
+          <div class="meta">${u.meta}</div>
+        </div>
+        <div class="count"><b>${u.in}</b> days</div>
+      </div>
+    `).join('');
+  }
+
+  function renderActivity() {
+    $('activityList').innerHTML = MOCK.activity.map(a => `
+      <div class="act-item">
+        <div class="icon ${a.kind}">${a.glyph}</div>
+        <div>
+          <div class="text">${a.text}</div>
+          <div class="time">${a.time}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderStreak() {
+    $('streakNum').textContent = '14';
+    $('dashBarStreak').textContent = '🔥 14 day streak';
+    $('streakBar').innerHTML = MOCK.streakDays
+      .map(d => `<i class="${d ? 'on' : ''}"></i>`)
+      .join('');
+  }
+
+  function setIdentity(name, yearGroup) {
+    const display = name || 'Recall student';
+    const first = (display.split(/\s+/)[0]) || 'there';
+    $('userName').textContent = display;
+    $('userAvatar').textContent = initials(display);
+    $('userMeta').textContent = yearGroup ? `${yearGroup} · Year group` : 'Signed in';
+    $('welcomeTitle').textContent = name ? `Welcome back, ${first}` : 'Welcome to Recall';
+    $('welcomeSub').textContent = name
+      ? "Pick up where you left off, or start something new."
+      : "Your dashboard is being set up. Sign in or confirm your email to get started.";
+    $('dashBarPill').textContent = yearGroup || 'Y12';
+    $('navName').textContent = name || '';
+    $('signOutBtn').hidden = !name;
+  }
+
+  // ---------- state ----------
+  function showState(msg) {
+    const el = $('state');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+
+  // ---------- bootstrap ----------
+  function renderAll() {
+    renderKPIs();
+    renderContinue();
+    renderSubjects();
+    renderUpcoming();
+    renderActivity();
+    renderStreak();
+  }
+
+  renderAll();
+  setIdentity(null, null);
 
   async function load() {
     const { data, error } = await supabase.auth.getUser();
 
     if (error || !data || !data.user) {
-      // Not signed in. Common right after signup, because Supabase hasn't
-      // confirmed the email yet, or because the parent-consent hook is
-      // blocking sign-in.
       showState('Not signed in. Check your email for a confirmation link, or sign in.');
       return;
     }
 
     const user = data.user;
     const meta = user.user_metadata || {};
-    navName.textContent = meta.full_name ? meta.full_name : user.email;
-    signOutBtn.hidden = false;
 
-    // If the user is signed in but their account is still pending parental
-    // consent, surface that.
-    if (user.id) {
+    // Try to read year_group from profiles; not fatal if it fails.
+    let yearGroup = meta.year_group || null;
+    try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('consent_status, requires_parental_consent')
+        .select('year_group, consent_status, requires_parental_consent')
         .eq('id', user.id)
         .maybeSingle();
-
-      if (profile && profile.requires_parental_consent && profile.consent_status !== 'granted') {
-        showState('Your account is waiting for parental consent. Ask your parent to check their email.');
+      if (profile) {
+        yearGroup = profile.year_group || yearGroup;
+        if (profile.requires_parental_consent && profile.consent_status !== 'granted') {
+          showState('Your account is waiting for parental consent. Ask your parent to check their email.');
+        }
       }
-    }
+    } catch (_) { /* profiles table may not be readable in this env; ignore */ }
+
+    setIdentity(meta.full_name || user.email, yearGroup);
   }
 
-  signOutBtn.addEventListener('click', async function () {
+  $('signOutBtn').addEventListener('click', async function () {
     await supabase.auth.signOut();
     window.location.href = 'index.html';
   });
