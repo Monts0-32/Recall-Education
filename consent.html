@@ -304,7 +304,11 @@
     }
 
     if (decision === 'granted') {
-      showOk('Thank you. Consent recorded. Your child can now use Recall.');
+      // Land on a dedicated "consent recorded" page rather than just
+      // showing the inline message. Easier for the parent to see, easier
+      // for us to test, and gives the student a clean signal too if they
+      // happen to be watching over the parent's shoulder.
+      window.location.href = '/auth/consent-confirmed.html';
     } else {
       showError('Consent declined. The account will not be activated.');
     }

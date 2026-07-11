@@ -632,16 +632,17 @@
       const originalText = submitBtn.textContent;
       submitBtn.textContent = 'Creating account…';
 
-      // Build the URL the parent will land on when they click the consent
-      // link. We prefill their token by writing a parental_consents row
-      // AFTER the auth user is created, then emailing them a /consent.html?token=...
-      // link. For the confirmation email itself, we let Supabase use the
-      // default redirect to /dashboard.html (which the user can't reach
-      // until consent is granted, via the access-token hook in SQL).
-      const redirectTo = window.location.origin + '/dashboard.html';
+      // After signUp, Supabase's `send_email` auth hook fires our Edge
+      // Function, which sends the confirmation email via Resend and (for
+      // under-16s) emails the parent a consent request. The student just
+      // waits for the email. The `emailRedirectTo` below is the page the
+      // user lands on AFTER clicking the link in the email — that's why it
+      // points at /auth/confirmed.html, not /dashboard.html (which would
+      // be immediately bounced for under-16s by check_parental_consent).
+      const redirectTo = window.location.origin + '/auth/confirmed.html';
 
       try {
-        const { data, error } = await supabaseClient.auth.signUp({
+        const { error } = await supabaseClient.auth.signUp({
           email: email.value.trim(),
           password: password.value,
           options: {
@@ -661,40 +662,15 @@
           return showError(explainAuthError(error.message));
         }
 
-        // If the user was created, create a parental_consents row for the
-        // under-16 flow. We do this client-side with the user's own session
-        // (anon key, but we know the new user's id). The insert goes via a
-        // SECURITY DEFINER function in the DB so RLS doesn't block it.
-        if (needsConsent && data && data.user) {
-          const userId = data.user.id;
-          const parentAddr = parentEmail.value.trim();
-
-          // We use a RPC call that creates the row and returns the token,
-          // which we'll show in the success message so the student can
-          // forward the link to their parent if the email goes astray.
-          const { data: tokenData, error: rpcErr } = await supabaseClient
-            .rpc('create_parental_consent', {
-              p_student_user_id: userId,
-              p_parent_email: parentAddr
-            });
-
-          if (rpcErr) {
-            // Non-fatal: account still exists. Tell the student.
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
-            return showError(
-              'Account created, but we couldn’t queue the consent email. ' +
-              'Please email hello@recalleducation.co.uk and we’ll sort it manually.'
-            );
-          }
-
-          const consentLink =
-            window.location.origin + '/consent.html?token=' + encodeURIComponent(tokenData);
-
+        // Account is created. The Edge Function handles emailing the
+        // student (and the parent, if under 16). We do NOT show the consent
+        // link in the banner — anyone who saw the page could grab it. The
+        // parent gets a real email from hello@recalleducation.co.uk.
+        if (needsConsent) {
           showOk(
             'We sent a confirmation link to ' + email.value.trim() +
-            ' and a consent link to ' + parentAddr +
-            '. You can also share this link with your parent: ' + consentLink
+            ' and a consent link to ' + parentEmail.value.trim() +
+            '. Ask your parent to check their email — the link expires in 7 days.'
           );
         } else {
           showOk('Check ' + email.value.trim() + ' for a confirmation link. You can close this tab.');
@@ -703,14 +679,6 @@
         // Lock the form.
         Array.from(form.elements).forEach(el => { el.disabled = true; });
         submitBtn.textContent = 'Account created';
-
-        // Send the user to the dashboard after a beat. They won’t be able
-        // to sign in (consent hook blocks under-16s; over-16s need to click
-        // the email link first) — the dashboard will show a “check your
-        // email” state.
-        setTimeout(function () {
-          window.location.href = 'dashboard.html';
-        }, 4000);
       } catch (err) {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
