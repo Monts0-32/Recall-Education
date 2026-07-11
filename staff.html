@@ -1,0 +1,1713 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson creator — Recall staff</title>
+  <meta name="description" content="Author lessons for the Recall catalogue." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --teal:      #56D4DD;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---------- TOP NAV ---------- */
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+      position: sticky; top: 0; z-index: 50;
+    }
+    nav.top .row {
+      max-width: 100%; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 15px;
+      color: var(--text);
+    }
+    .brand-mark {
+      width: 26px; height: 26px;
+      background: var(--blue); color: #fff;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 13px;
+      border-radius: var(--r-sm);
+    }
+    .brand .tag {
+      font-size: 11px; font-weight: 600;
+      background: var(--blue-dim); color: var(--blue);
+      padding: 2px 8px; border-radius: 999px;
+      margin-left: 6px;
+      letter-spacing: 0.02em;
+    }
+    nav.top .right { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-3); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 6px 12px;
+      border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+
+    /* ---------- LAYOUT ---------- */
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 0;
+      min-height: calc(100vh - 56px);
+    }
+
+    /* ---------- SIDEBAR (tree) ---------- */
+    .sidebar {
+      background: var(--bg-2);
+      border-right: 1px solid var(--line);
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+    .sidebar .head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .sidebar .head h2 {
+      margin: 0; font-size: 13px; font-weight: 600;
+      color: var(--text); letter-spacing: 0.01em;
+    }
+    .sidebar .head .actions { display: flex; gap: 6px; }
+    .sidebar .body {
+      flex: 1; overflow-y: auto;
+      padding: 8px 0 32px;
+    }
+    .tree-subject { border-top: 1px solid var(--line); }
+    .tree-subject:first-child { border-top: 0; }
+    .tree-subject-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 13px; font-weight: 600;
+      color: var(--text);
+      user-select: none;
+    }
+    .tree-subject-head:hover { background: var(--bg-3); }
+    .tree-subject-head .caret {
+      width: 12px; text-align: center;
+      color: var(--text-4); font-size: 10px;
+      transition: transform 0.15s ease;
+    }
+    .tree-subject.open .caret { transform: rotate(90deg); }
+    .tree-subject-head .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .tree-subject-head .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tree-subject-head .meta { color: var(--text-4); font-size: 11px; font-weight: 500; }
+    .tree-subject-head .row-btn {
+      background: transparent; border: 0; color: var(--text-4);
+      font-size: 14px; padding: 2px 6px; border-radius: 4px; cursor: pointer; line-height: 1;
+    }
+    .tree-subject-head .row-btn:hover { background: var(--bg-4); color: var(--text); }
+    .tree-children { display: none; padding: 4px 0 8px 26px; }
+    .tree-subject.open .tree-children { display: block; }
+    .tree-topic-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 14px 6px 8px;
+      font-size: 12.5px;
+      color: var(--text-2); font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+    }
+    .tree-topic-head:hover { background: var(--bg-3); }
+    .tree-topic-head .caret {
+      width: 10px; text-align: center;
+      color: var(--text-4); font-size: 9px;
+      transition: transform 0.15s ease;
+    }
+    .tree-topic.open .tree-topic-head .caret { transform: rotate(90deg); }
+    .tree-topic-head .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tree-topic-head .row-btn { background: transparent; border: 0; color: var(--text-4); font-size: 13px; padding: 1px 5px; border-radius: 4px; cursor: pointer; line-height: 1; }
+    .tree-topic-head .row-btn:hover { background: var(--bg-4); color: var(--text); }
+    .tree-lessons { display: none; padding: 2px 0 6px 28px; }
+    .tree-topic.open .tree-lessons { display: block; }
+    .tree-lesson {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 14px 5px 8px;
+      font-size: 12.5px;
+      color: var(--text-3); cursor: pointer;
+      border-left: 2px solid transparent;
+    }
+    .tree-lesson:hover { background: var(--bg-3); color: var(--text-2); }
+    .tree-lesson.active {
+      background: var(--blue-pale);
+      color: var(--blue); font-weight: 600;
+      border-left-color: var(--blue);
+    }
+    .tree-lesson .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tree-lesson .row-btn { background: transparent; border: 0; color: var(--text-4); font-size: 12px; padding: 1px 4px; border-radius: 4px; cursor: pointer; line-height: 1; opacity: 0; }
+    .tree-lesson:hover .row-btn { opacity: 1; }
+    .tree-lesson .row-btn:hover { background: var(--bg-4); color: var(--text); }
+    .tree-add {
+      display: flex; gap: 6px; padding: 4px 14px 6px 8px;
+    }
+    .tree-add button {
+      background: transparent; border: 0; color: var(--text-4);
+      font-size: 11.5px; padding: 3px 6px; border-radius: 4px; cursor: pointer;
+      font-family: inherit;
+    }
+    .tree-add button:hover { background: var(--bg-3); color: var(--blue); }
+
+    .dot.maths { background: #58A6FF; }
+    .dot.eng   { background: #A371F7; }
+    .dot.bio   { background: #3FB950; }
+    .dot.chem  { background: #D29922; }
+    .dot.phys  { background: #F85149; }
+    .dot.hist  { background: #FF7B72; }
+    .dot.geog  { background: #56D4DD; }
+    .dot.psych { background: #BC8CFF; }
+
+    /* ---------- MAIN ---------- */
+    .main {
+      display: flex; flex-direction: column;
+      min-width: 0;
+      min-height: calc(100vh - 56px);
+    }
+    .main .topbar {
+      padding: 14px 28px;
+      border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .crumbs { color: var(--text-3); font-size: 12.5px; }
+    .crumbs a { color: var(--text-3); }
+    .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+    .main .topbar .right { margin-left: auto; display: flex; gap: 8px; }
+
+    .editor {
+      flex: 1;
+      padding: 24px 28px 64px;
+      max-width: 920px;
+      width: 100%;
+    }
+    .empty-state {
+      flex: 1;
+      display: grid; place-items: center;
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text-3);
+    }
+    .empty-state h2 {
+      font-size: 20px; font-weight: 600;
+      color: var(--text); margin: 0 0 6px;
+    }
+    .empty-state p { margin: 0 0 18px; max-width: 44ch; }
+    .empty-state .actions { display: flex; gap: 8px; justify-content: center; }
+
+    .gate {
+      max-width: 520px;
+      margin: 80px auto;
+      padding: 32px;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      text-align: center;
+    }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+    .gate .muted { color: var(--text-4); font-size: 12px; }
+
+    /* ---------- BUTTONS ---------- */
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      padding: 8px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      border: 1px solid var(--blue);
+      cursor: pointer;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid var(--line-2);
+      padding: 7px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-secondary:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .btn-danger {
+      background: transparent; color: var(--red);
+      border: 1px solid rgba(248,81,73,0.3);
+      padding: 7px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-danger:hover { background: var(--red-dim); border-color: var(--red); }
+    .btn-link {
+      background: transparent; border: 0; color: var(--blue);
+      font-family: inherit; font-size: 12.5px; font-weight: 500;
+      cursor: pointer; padding: 4px 6px;
+    }
+    .btn-link:hover { text-decoration: underline; }
+
+    /* ---------- FORMS ---------- */
+    .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-row label {
+      font-size: 12.5px; font-weight: 500;
+      color: var(--text-2);
+    }
+    .form-row .hint { font-size: 11.5px; color: var(--text-4); }
+    .form-row input, .form-row select, .form-row textarea {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 8px 11px;
+      font-family: inherit; font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .form-row select { appearance: none; -webkit-appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='%238B949E' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+      background-repeat: no-repeat; background-position: right 10px center;
+      padding-right: 28px;
+    }
+    .form-row textarea { resize: vertical; min-height: 80px; line-height: 1.5; font-family: inherit; }
+    .form-row textarea.mono { font-family: 'JetBrains Mono', ui-monospace, Consolas, monospace; font-size: 12.5px; }
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .form-row input::placeholder, .form-row textarea::placeholder { color: var(--text-4); }
+    .form-row.inline { flex-direction: row; align-items: center; gap: 10px; }
+    .form-row.inline > label { margin: 0; }
+    .form-row.inline input, .form-row.inline select { flex: 1; }
+
+    /* ---------- EDITOR HEADER ---------- */
+    .editor-meta {
+      display: grid; grid-template-columns: 1fr 100px 80px;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .editor-actions {
+      display: flex; gap: 8px; align-items: center;
+      margin: 0 0 16px;
+    }
+    .editor-actions .spacer { flex: 1; }
+    .editor-actions .dirty {
+      font-size: 12px; color: var(--yellow);
+    }
+    .editor-actions .saved {
+      font-size: 12px; color: var(--green);
+    }
+
+    /* ---------- BLOCKS ---------- */
+    .blocks { display: flex; flex-direction: column; gap: 14px; }
+    .block {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      overflow: hidden;
+    }
+    .block-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg-3);
+      border-bottom: 1px solid var(--line);
+      font-size: 11.5px; color: var(--text-3);
+    }
+    .block-head .kind-label {
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-2);
+      font-size: 10.5px;
+    }
+    .block-head .spacer { flex: 1; }
+    .block-head .icon-btn {
+      background: transparent; border: 0; color: var(--text-4);
+      width: 24px; height: 24px;
+      display: grid; place-items: center;
+      border-radius: 4px; cursor: pointer; font-size: 12px;
+      line-height: 1;
+    }
+    .block-head .icon-btn:hover { background: var(--bg-4); color: var(--text); }
+    .block-head .icon-btn.danger:hover { background: var(--red-dim); color: var(--red); }
+    .block-head .icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .block-body { padding: 14px; }
+
+    .block-add {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .block-add .picker-btn {
+      background: var(--bg-2);
+      border: 1px dashed var(--line-3);
+      color: var(--text-2);
+      padding: 6px 10px;
+      border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12px; font-weight: 500;
+      cursor: pointer;
+    }
+    .block-add .picker-btn:hover { background: var(--bg-3); border-color: var(--blue); color: var(--blue); }
+
+    /* ---------- BLOCK-SPECIFIC EDITORS ---------- */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .preview {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      padding: 12px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--text-2);
+      min-height: 80px;
+      overflow: auto;
+    }
+    .preview h2 { font-size: 18px; font-weight: 600; margin: 0 0 6px; color: var(--text); }
+    .preview h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; color: var(--text); }
+    .preview p  { margin: 0 0 8px; }
+    .preview ul, .preview ol { margin: 0 0 8px 18px; }
+    .preview blockquote {
+      border-left: 3px solid var(--line-3);
+      margin: 0 0 8px; padding: 4px 12px;
+      color: var(--text-3); font-style: italic;
+    }
+    .preview code {
+      background: var(--bg-3); padding: 1px 5px; border-radius: 3px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    }
+    .preview pre {
+      background: var(--bg-3); padding: 10px 12px; border-radius: var(--r-sm);
+      overflow: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    }
+    .preview img { max-width: 100%; border-radius: var(--r-sm); display: block; }
+    .preview figure { margin: 0; }
+    .preview figcaption { font-size: 12px; color: var(--text-3); margin-top: 6px; text-align: center; }
+    .preview .callout {
+      display: flex; gap: 10px; align-items: flex-start;
+      border-radius: var(--r-sm); padding: 10px 12px;
+      margin: 0 0 8px;
+    }
+    .preview .callout.tip       { background: var(--green-dim);  border-left: 3px solid var(--green); }
+    .preview .callout.warning   { background: var(--yellow-dim); border-left: 3px solid var(--yellow); }
+    .preview .callout.definition{ background: var(--blue-pale);  border-left: 3px solid var(--blue); }
+    .preview .callout .icon { font-size: 16px; line-height: 1; }
+    .preview .callout .body { flex: 1; }
+    .preview .callout .body p:last-child { margin: 0; }
+    .preview .video-frame {
+      position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;
+      background: var(--bg-3); border-radius: var(--r-sm);
+    }
+    .preview .video-frame iframe {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;
+    }
+    .preview .keypoints {
+      background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--r-sm);
+      padding: 12px 14px;
+    }
+    .preview .keypoints ul { margin: 0; padding-left: 18px; }
+    .preview .worked { display: flex; flex-direction: column; gap: 8px; }
+    .preview .worked .q {
+      background: var(--blue-pale); border-left: 3px solid var(--blue);
+      padding: 8px 12px; border-radius: 0 var(--r-sm) var(--r-sm) 0;
+      font-weight: 500; color: var(--text);
+    }
+    .preview .worked .step {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 8px 10px;
+    }
+    .preview .worked .step b { color: var(--text-2); }
+    .preview .worked .ans {
+      background: var(--green-dim); border-left: 3px solid var(--green);
+      padding: 8px 12px; border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    }
+    .preview .reveal {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 10px 12px;
+    }
+    .preview .reveal .prompt { font-weight: 500; color: var(--text); }
+    .preview .reveal .answer {
+      display: none; margin-top: 8px; padding-top: 8px;
+      border-top: 1px solid var(--line-2);
+      color: var(--text-2);
+    }
+    .preview .reveal.open .answer { display: block; }
+    .preview .reveal .toggle {
+      background: transparent; border: 0; color: var(--blue);
+      font-family: inherit; font-size: 11.5px; cursor: pointer; padding: 4px 0;
+    }
+    .preview .flashcard {
+      perspective: 800px; height: 120px; cursor: pointer;
+    }
+    .preview .flashcard-inner {
+      position: relative; width: 100%; height: 100%;
+      transition: transform 0.5s; transform-style: preserve-3d;
+    }
+    .preview .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+    .preview .flashcard-face {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      backface-visibility: hidden;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      display: grid; place-items: center; text-align: center; padding: 14px;
+    }
+    .preview .flashcard-back { transform: rotateY(180deg); background: var(--blue-pale); border-color: var(--blue); }
+    .preview .math-inline { background: var(--bg-3); padding: 2px 4px; border-radius: 3px; }
+    .preview .math-display {
+      background: var(--bg-3); border: 1px solid var(--line);
+      padding: 12px; border-radius: var(--r-sm); margin: 6px 0;
+      text-align: center; overflow-x: auto;
+    }
+
+    /* keypoints editor */
+    .repeater { display: flex; flex-direction: column; gap: 6px; }
+    .repeater .row { display: flex; gap: 6px; }
+    .repeater .row input { flex: 1; }
+    .repeater .row button {
+      background: transparent; border: 1px solid var(--line-2); color: var(--text-3);
+      width: 32px; border-radius: var(--r-sm); cursor: pointer; font-size: 14px;
+    }
+    .repeater .row button:hover { color: var(--red); border-color: var(--red); }
+    .repeater .add {
+      align-self: flex-start;
+      background: transparent; border: 1px dashed var(--line-3); color: var(--text-3);
+      padding: 4px 10px; border-radius: var(--r-sm); cursor: pointer; font-size: 12px;
+      font-family: inherit;
+    }
+    .repeater .add:hover { color: var(--blue); border-color: var(--blue); }
+
+    /* modal */
+    .modal-back {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.6);
+      display: none; align-items: center; justify-content: center;
+      padding: 32px;
+    }
+    .modal-back.open { display: flex; }
+    .modal {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      max-width: 900px; width: 100%;
+      max-height: 90vh;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .modal-head .right { margin-left: auto; }
+    .modal-body { padding: 24px; overflow-y: auto; }
+
+    /* toast */
+    .toast-wrap {
+      position: fixed; bottom: 24px; right: 24px; z-index: 200;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      animation: toast-in 0.2s ease;
+    }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+    @keyframes toast-in {
+      from { transform: translateY(8px); opacity: 0; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+
+    /* responsive */
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .editor-meta { grid-template-columns: 1fr; }
+      .two-col { grid-template-columns: 1fr; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 1px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">R</span> Recall
+      <span class="tag">STAFF</span>
+    </a>
+    <div class="right">
+      <span id="userName">…</span>
+      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="layout">
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+    <div class="head">
+      <h2>Catalogue</h2>
+      <div class="actions">
+        <button class="btn-secondary" id="newSubjectBtn" title="New subject">+ Subject</button>
+      </div>
+    </div>
+    <div class="body" id="treeBody">
+      <div style="padding: 24px 16px; color: var(--text-4); font-size: 12.5px; text-align: center;">
+        Loading…
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <main class="main" id="main">
+    <div class="empty-state" id="emptyState">
+      <div>
+        <h2>Lesson creator</h2>
+        <p>Pick a subject, topic, and lesson on the left to start editing. Or create a new one.</p>
+        <div class="actions">
+          <button class="btn-primary" onclick="document.getElementById('newSubjectBtn').click()">+ New subject</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== MODAL (preview) ===== -->
+<div class="modal-back" id="modalBack">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">Preview</h3>
+      <div class="right">
+        <button class="btn-ghost" id="modalCloseBtn">Close</button>
+      </div>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script>
+  // Supabase config (matches dashboard.html).
+  const SUPABASE_URL = 'https://kmpmryrsukrfumuceaqy.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttcG1yeXJzdWtyZnVtdWNlYXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDkzNDUsImV4cCI6MjA5OTI4NTM0NX0.iS4DIK68Ve-igJKtSz83wVkhUwwS8y2nJASK3ts3qRM';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ---------- helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const initials = (name) => {
+    if (!name) return 'R';
+    const p = name.trim().split(/\s+/);
+    return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || 'R';
+  };
+
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  // ---------- minimal markdown (subset: headings, bold, italic, code, lists, blockquote, links, paragraphs) ----------
+  function renderMarkdown(md) {
+    if (!md) return '';
+    // escape first
+    let s = escapeHtml(md);
+    // fenced code
+    s = s.replace(/```([\s\S]*?)```/g, (_, c) => `<pre><code>${c}</code></pre>`);
+    // headings
+    s = s.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    s = s.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    // blockquote
+    s = s.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+    // lists
+    s = s.replace(/(^|\n)((?:- .+(?:\n|$))+)/g, (_, pre, list) => {
+      const items = list.trim().split('\n').map(l => l.replace(/^- /, '')).map(l => `<li>${l}</li>`).join('');
+      return pre + '<ul>' + items + '</ul>';
+    });
+    s = s.replace(/(^|\n)((?:\d+\. .+(?:\n|$))+)/g, (_, pre, list) => {
+      const items = list.trim().split('\n').map(l => l.replace(/^\d+\. /, '')).map(l => `<li>${l}</li>`).join('');
+      return pre + '<ol>' + items + '</ol>';
+    });
+    // inline: bold, italic, code, links
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+    s = s.replace(/\*([^*]+)\*/g, '<i>$1</i>');
+    s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+    s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    // paragraphs (any standalone line that isn't already a block tag)
+    s = s.split(/\n{2,}/).map(p => {
+      p = p.trim();
+      if (!p) return '';
+      if (/^<(h\d|ul|ol|pre|blockquote|img|figure)/.test(p)) return p;
+      return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
+    }).join('\n');
+    return s;
+  }
+
+  // ---------- YouTube / Vimeo URL → embed ----------
+  function videoEmbedUrl(url, provider) {
+    if (!url) return '';
+    if (provider === 'youtube') {
+      let id = '';
+      // youtu.be/<id>  or  youtube.com/watch?v=<id>  or  youtube.com/embed/<id>
+      const m1 = url.match(/youtu\.be\/([\w-]{6,})/);
+      if (m1) id = m1[1];
+      const m2 = url.match(/[?&]v=([\w-]{6,})/);
+      if (!id && m2) id = m2[1];
+      const m3 = url.match(/embed\/([\w-]{6,})/);
+      if (!id && m3) id = m3[1];
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}`;
+    }
+    if (provider === 'vimeo') {
+      const m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+      if (!m) return '';
+      return `https://player.vimeo.com/video/${m[1]}`;
+    }
+    return '';
+  }
+
+  // ---------- block renderers (used in preview + future student viewer) ----------
+  const BLOCK_DEFS = {
+    heading: {
+      label: 'Heading',
+      defaults: () => ({ level: 2, text: 'New heading' }),
+      render: (b) => {
+        const lvl = b.data.level === 3 ? 3 : 2;
+        return `<h${lvl}>${escapeHtml(b.data.text || '')}</h${lvl}>`;
+      }
+    },
+    text: {
+      label: 'Text',
+      defaults: () => ({ markdown: 'Write your explanation here.' }),
+      render: (b) => renderMarkdown(b.data.markdown || '')
+    },
+    callout: {
+      label: 'Callout',
+      defaults: () => ({ tone: 'tip', markdown: 'A quick tip for the student.' }),
+      render: (b) => {
+        const tone = ['tip','warning','definition'].includes(b.data.tone) ? b.data.tone : 'tip';
+        const icon = tone === 'tip' ? '💡' : tone === 'warning' ? '⚠️' : '📖';
+        return `<div class="callout ${tone}"><div class="icon">${icon}</div><div class="body">${renderMarkdown(b.data.markdown || '')}</div></div>`;
+      }
+    },
+    image: {
+      label: 'Image',
+      defaults: () => ({ url: '', alt: '', caption: '' }),
+      render: (b) => {
+        if (!b.data.url) return '<p style="color:var(--text-4)">[Image: no URL]</p>';
+        const cap = b.data.caption ? `<figcaption>${escapeHtml(b.data.caption)}</figcaption>` : '';
+        return `<figure><img src="${escapeHtml(b.data.url)}" alt="${escapeHtml(b.data.alt || '')}" />${cap}</figure>`;
+      }
+    },
+    video: {
+      label: 'Video',
+      defaults: () => ({ provider: 'youtube', url: '' }),
+      render: (b) => {
+        const src = videoEmbedUrl(b.data.url, b.data.provider);
+        if (!src) return '<p style="color:var(--text-4)">[Video: paste a valid URL]</p>';
+        return `<div class="video-frame"><iframe src="${escapeHtml(src)}" allowfullscreen loading="lazy"></iframe></div>`;
+      }
+    },
+    math: {
+      label: 'Math',
+      defaults: () => ({ latex: 'E = mc^2', display: true }),
+      render: (b) => {
+        const tex = b.data.latex || '';
+        try {
+          const html = window.katex.renderToString(tex, {
+            displayMode: !!b.data.display, throwOnError: false
+          });
+          return b.data.display
+            ? `<div class="math-display">${html}</div>`
+            : `<span class="math-inline">${html}</span>`;
+        } catch (e) {
+          return '<p style="color:var(--red)">[Math: invalid LaTeX]</p>';
+        }
+      }
+    },
+    keypoints: {
+      label: 'Key points',
+      defaults: () => ({ items: ['First key point', 'Second key point'] }),
+      render: (b) => {
+        const items = (b.data.items || []).filter(i => i && i.trim());
+        if (!items.length) return '<p style="color:var(--text-4)">[Key points: empty]</p>';
+        return `<div class="keypoints"><ul>${items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul></div>`;
+      }
+    },
+    worked_example: {
+      label: 'Worked example',
+      defaults: () => ({ question: 'Solve x² = 9.', steps: [{ label: 'Step 1', body: 'Take the square root of both sides.' }], answer: 'x = ±3' }),
+      render: (b) => {
+        const steps = b.data.steps || [];
+        return `<div class="worked">
+          <div class="q">${escapeHtml(b.data.question || '')}</div>
+          ${steps.map(s => `<div class="step"><b>${escapeHtml(s.label || '')}</b><div>${renderMarkdown(s.body || '')}</div></div>`).join('')}
+          ${b.data.answer ? `<div class="ans">${escapeHtml(b.data.answer)}</div>` : ''}
+        </div>`;
+      }
+    },
+    reveal: {
+      label: 'Reveal',
+      defaults: () => ({ prompt: 'What is the capital of France?', explanation: 'Paris. The largest city in France, on the river Seine.' }),
+      render: (b) => {
+        // The reveal block on the student side is interactive; for the staff
+        // preview we render the prompt only with a "Show" button so staff
+        // can verify the answer is hidden by default.
+        return `<div class="reveal" onclick="this.classList.toggle('open')">
+          <div class="prompt">${escapeHtml(b.data.prompt || '')}</div>
+          <button class="toggle">Show answer</button>
+          <div class="answer">${renderMarkdown(b.data.explanation || '')}</div>
+        </div>`;
+      }
+    },
+    flashcard: {
+      label: 'Flashcard',
+      defaults: () => ({ front: 'Photosynthesis', back: 'The process by which green plants use sunlight to synthesise food from CO₂ and water.' }),
+      render: (b) => {
+        return `<div class="flashcard" onclick="this.classList.toggle('flipped')">
+          <div class="flashcard-inner">
+            <div class="flashcard-face flashcard-front">${escapeHtml(b.data.front || '')}</div>
+            <div class="flashcard-face flashcard-back">${escapeHtml(b.data.back || '')}</div>
+          </div>
+        </div>`;
+      }
+    }
+  };
+
+  function renderBlock(b) {
+    const def = BLOCK_DEFS[b.kind];
+    if (!def) return `<p style="color:var(--red)">[Unknown block: ${escapeHtml(b.kind)}]</p>`;
+    return def.render(b);
+  }
+
+  // ---------- app state ----------
+  const state = {
+    user: null,
+    profile: null,
+    subjects: [],          // [{ id, name, exam_board, level, color_key, topics: [{ id, name, lessons: [{ id, title, duration_min }] }] }]
+    currentLesson: null,   // { id, title, duration_min, order_index, topic_id, blocks: [{...} | {__new:true}] }
+    currentTopic: null,    // { id, name, subject_id }
+    currentSubject: null,  // { id, name }
+    dirty: false,
+  };
+
+  // ---------- boot ----------
+  async function boot() {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (error || !data || !data.user) {
+      renderGate('Sign-in required', 'Sign in to use the lesson creator.', 'signin');
+      return;
+    }
+    state.user = data.user;
+    const meta = state.user.user_metadata || {};
+
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id, full_name, role')
+      .eq('id', state.user.id)
+      .maybeSingle();
+
+    if (!profile || profile.role !== 'staff') {
+      renderGate(
+        'Staff access only',
+        'Your account is signed in, but it does not have staff permissions. Ask an admin to run:\n\nupdate profiles set role = \'staff\' where id = \'' + state.user.id + '\';',
+        'noaccess',
+        meta.full_name || state.user.email
+      );
+      return;
+    }
+
+    state.profile = profile;
+    $('userName').textContent = profile.full_name || state.user.email;
+    $('signOutBtn').hidden = false;
+
+    await loadTree();
+  }
+
+  function renderGate(title, msg, kind, name) {
+    const main = $('main');
+    main.innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-link" href="index.html">← Back to home</a></p>
+      </div>
+    `;
+    // Hide the sidebar and the top-nav brand so the gate fills the page.
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) sidebar.style.display = 'none';
+    $('userName').textContent = name || '';
+  }
+
+  $('signOutBtn').addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = 'login.html';
+  });
+
+  // ---------- tree loading ----------
+  async function loadTree() {
+    const [subjectsRes, topicsRes, lessonsRes] = await Promise.all([
+      supabaseClient.from('subjects').select('*').order('sort_order').order('name'),
+      supabaseClient.from('topics').select('*').order('order_index'),
+      supabaseClient.from('lessons').select('*').order('order_index'),
+    ]);
+
+    const subjects = subjectsRes.data || [];
+    const topics   = topicsRes.data   || [];
+    const lessons  = lessonsRes.data  || [];
+
+    // nest
+    for (const t of topics)  t.lessons = [];
+    for (const l of lessons) {
+      const t = topics.find(x => x.id === l.topic_id);
+      if (t) t.lessons.push(l);
+    }
+    for (const s of subjects) s.topics = topics.filter(t => t.subject_id === s.id);
+
+    state.subjects = subjects;
+    renderTree();
+  }
+
+  function renderTree() {
+    const body = $('treeBody');
+    if (!state.subjects.length) {
+      body.innerHTML = `
+        <div style="padding: 24px 16px; color: var(--text-4); font-size: 12.5px; text-align: center;">
+          No subjects yet.<br><br>
+          <button class="btn-secondary" onclick="openSubjectModal()">+ Create the first one</button>
+        </div>`;
+      return;
+    }
+    body.innerHTML = state.subjects.map(s => renderSubjectNode(s)).join('');
+  }
+
+  function renderSubjectNode(s) {
+    const isOpen = state.currentSubject && state.currentSubject.id === s.id;
+    return `
+      <div class="tree-subject ${isOpen ? 'open' : ''}" data-subj-id="${s.id}">
+        <div class="tree-subject-head" onclick="toggleSubject('${s.id}')">
+          <span class="caret">▶</span>
+          <span class="dot ${s.color_key}"></span>
+          <span class="name">${escapeHtml(s.name)}</span>
+          <span class="meta">${escapeHtml(s.exam_board)}</span>
+          <button class="row-btn" title="Rename" onclick="event.stopPropagation(); openSubjectModal('${s.id}')">✎</button>
+          <button class="row-btn" title="Delete" onclick="event.stopPropagation(); deleteSubject('${s.id}')">🗑</button>
+        </div>
+        <div class="tree-children">
+          ${(s.topics || []).map(t => renderTopicNode(t)).join('')}
+          <div class="tree-add">
+            <button onclick="openTopicModal('${s.id}')">+ Topic</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTopicNode(t) {
+    const isOpen = state.currentTopic && state.currentTopic.id === t.id;
+    return `
+      <div class="tree-topic ${isOpen ? 'open' : ''}" data-topic-id="${t.id}">
+        <div class="tree-topic-head" onclick="toggleTopic('${t.id}')">
+          <span class="caret">▶</span>
+          <span class="name">${escapeHtml(t.name)}</span>
+          <button class="row-btn" title="Rename" onclick="event.stopPropagation(); openTopicModal('${t.id}')">✎</button>
+          <button class="row-btn" title="Delete" onclick="event.stopPropagation(); deleteTopic('${t.id}')">🗑</button>
+        </div>
+        <div class="tree-lessons">
+          ${(t.lessons || []).map(l => renderLessonNode(t, l)).join('')}
+          <div class="tree-add">
+            <button onclick="openLessonModal('${t.id}')">+ Lesson</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderLessonNode(topic, l) {
+    const isActive = state.currentLesson && state.currentLesson.id === l.id;
+    return `
+      <div class="tree-lesson ${isActive ? 'active' : ''}" data-lesson-id="${l.id}" onclick="openLesson('${l.id}')">
+        <span class="name">${escapeHtml(l.title)}</span>
+        <button class="row-btn" title="Rename" onclick="event.stopPropagation(); openLessonModal('${topic.id}', '${l.id}')">✎</button>
+        <button class="row-btn" title="Delete" onclick="event.stopPropagation(); deleteLesson('${l.id}')">🗑</button>
+      </div>
+    `;
+  }
+
+  window.toggleSubject = (id) => {
+    const el = document.querySelector(`.tree-subject[data-subj-id="${id}"]`);
+    if (el) el.classList.toggle('open');
+  };
+  window.toggleTopic = (id) => {
+    const el = document.querySelector(`.tree-topic[data-topic-id="${id}"]`);
+    if (el) el.classList.toggle('open');
+  };
+
+  // ---------- modal (shared) ----------
+  function openModal(title, bodyHtml) {
+    $('modalTitle').textContent = title;
+    $('modalBody').innerHTML = bodyHtml;
+    $('modalBack').classList.add('open');
+  }
+  function closeModal() { $('modalBack').classList.remove('open'); }
+  $('modalCloseBtn').addEventListener('click', closeModal);
+  $('modalBack').addEventListener('click', (e) => { if (e.target === $('modalBack')) closeModal(); });
+
+  // ---------- subject / topic / lesson CRUD modals ----------
+  window.openSubjectModal = (id) => {
+    const s = id ? state.subjects.find(x => x.id === id) : null;
+    openModal(s ? 'Rename subject' : 'New subject', `
+      <form id="subjForm" class="editor">
+        <div class="form-row">
+          <label>Name</label>
+          <input name="name" required value="${escapeHtml(s?.name || '')}" placeholder="e.g. Mathematics" />
+        </div>
+        <div class="form-row">
+          <label>Exam board</label>
+          <select name="exam_board">
+            ${['AQA','Edexcel','OCR','WJEC','CCEA'].map(b => `<option ${s?.exam_board===b?'selected':''}>${b}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Level</label>
+          <select name="level">
+            <option value="gcse"    ${s?.level==='gcse'?'selected':''}>GCSE</option>
+            <option value="a-level" ${s?.level==='a-level'?'selected':''}>A-level</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Colour key</label>
+          <select name="color_key">
+            ${['maths','eng','bio','chem','phys','hist','geog','psych'].map(c => `<option ${s?.color_key===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+          <span class="hint">Matches the coloured dot in the dashboard.</span>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px;">
+          <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-primary">${s ? 'Save' : 'Create'}</button>
+        </div>
+      </form>
+    `);
+    $('subjForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const payload = {
+        name: fd.get('name'),
+        exam_board: fd.get('exam_board'),
+        level: fd.get('level'),
+        color_key: fd.get('color_key'),
+      };
+      if (s) {
+        const { error } = await supabaseClient.from('subjects').update(payload).eq('id', s.id);
+        if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+        toast('Subject updated', 'success');
+      } else {
+        const { data, error } = await supabaseClient.from('subjects').insert(payload).select().single();
+        if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+        toast('Subject created', 'success');
+      }
+      closeModal();
+      await loadTree();
+    });
+  };
+
+  window.deleteSubject = async (id) => {
+    if (!confirm('Delete this subject and everything under it (topics, lessons, blocks)? This cannot be undone.')) return;
+    const { error } = await supabaseClient.from('subjects').delete().eq('id', id);
+    if (error) { toast('Delete failed: ' + error.message, 'error'); return; }
+    toast('Subject deleted', 'success');
+    if (state.currentSubject?.id === id) { state.currentSubject = null; state.currentTopic = null; state.currentLesson = null; renderEmpty(); }
+    await loadTree();
+  };
+
+  $('newSubjectBtn').addEventListener('click', () => openSubjectModal());
+
+  window.openTopicModal = (parentId, id) => {
+    // parentId may be a subject id (when + Topic) or a topic id (when renaming)
+    let subjectId, existing;
+    if (id) {
+      existing = findTopic(id);
+      subjectId = existing?.subject_id;
+    } else {
+      subjectId = parentId;
+    }
+    openModal(existing ? 'Rename topic' : 'New topic', `
+      <form id="topicForm" class="editor" style="padding: 0;">
+        <div class="form-row">
+          <label>Name</label>
+          <input name="name" required value="${escapeHtml(existing?.name || '')}" placeholder="e.g. Cell structure" />
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-primary">${existing ? 'Save' : 'Create'}</button>
+        </div>
+      </form>
+    `);
+    $('topicForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = e.target.name.value.trim();
+      if (!name) return;
+      if (existing) {
+        const { error } = await supabaseClient.from('topics').update({ name }).eq('id', existing.id);
+        if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+        toast('Topic updated', 'success');
+      } else {
+        // figure out next order_index
+        const subj = state.subjects.find(s => s.id === subjectId);
+        const next = (subj?.topics || []).length;
+        const { error } = await supabaseClient.from('topics').insert({ name, subject_id: subjectId, order_index: next });
+        if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+        toast('Topic created', 'success');
+      }
+      closeModal();
+      await loadTree();
+    });
+  };
+
+  function findTopic(id) {
+    for (const s of state.subjects) for (const t of (s.topics || [])) if (t.id === id) return t;
+    return null;
+  }
+  function findLesson(id) {
+    for (const s of state.subjects) for (const t of (s.topics || [])) for (const l of (t.lessons || [])) if (l.id === id) return { lesson: l, topic: t, subject: s };
+    return null;
+  }
+
+  window.deleteTopic = async (id) => {
+    if (!confirm('Delete this topic and all its lessons?')) return;
+    const { error } = await supabaseClient.from('topics').delete().eq('id', id);
+    if (error) { toast('Delete failed: ' + error.message, 'error'); return; }
+    toast('Topic deleted', 'success');
+    if (state.currentTopic?.id === id) { state.currentTopic = null; state.currentLesson = null; renderEmpty(); }
+    await loadTree();
+  };
+
+  window.openLessonModal = (topicId, id) => {
+    let existing, parentTopic;
+    if (id) {
+      const found = findLesson(id);
+      existing = found?.lesson;
+      parentTopic = found?.topic;
+      topicId = existing?.topic_id;
+    } else {
+      parentTopic = findTopic(topicId);
+    }
+    openModal(existing ? 'Rename lesson' : 'New lesson', `
+      <form id="lessonForm" class="editor" style="padding: 0;">
+        <div class="form-row">
+          <label>Title</label>
+          <input name="title" required value="${escapeHtml(existing?.title || '')}" placeholder="e.g. Mitochondria" />
+        </div>
+        <div class="form-row">
+          <label>Duration (minutes)</label>
+          <input name="duration_min" type="number" min="1" max="600" value="${existing?.duration_min ?? 20}" />
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-primary">${existing ? 'Save' : 'Create'}</button>
+        </div>
+      </form>
+    `);
+    $('lessonForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        title: e.target.title.value.trim(),
+        duration_min: parseInt(e.target.duration_min.value, 10) || 20,
+      };
+      if (!payload.title) return;
+      if (existing) {
+        const { error } = await supabaseClient.from('lessons').update(payload).eq('id', existing.id);
+        if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+        toast('Lesson updated', 'success');
+      } else {
+        const next = (parentTopic?.lessons || []).length;
+        const { error } = await supabaseClient.from('lessons').insert({ ...payload, topic_id: topicId, order_index: next });
+        if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+        toast('Lesson created', 'success');
+      }
+      closeModal();
+      await loadTree();
+    });
+  };
+
+  window.deleteLesson = async (id) => {
+    if (!confirm('Delete this lesson and all its blocks?')) return;
+    const { error } = await supabaseClient.from('lessons').delete().eq('id', id);
+    if (error) { toast('Delete failed: ' + error.message, 'error'); return; }
+    toast('Lesson deleted', 'success');
+    if (state.currentLesson?.id === id) { state.currentLesson = null; renderEmpty(); }
+    await loadTree();
+  };
+
+  // ---------- lesson editor ----------
+  window.openLesson = async (id) => {
+    if (state.dirty && !confirm('You have unsaved changes. Discard them?')) return;
+
+    const found = findLesson(id);
+    if (!found) { toast('Lesson not found', 'error'); return; }
+    const { lesson, topic, subject } = found;
+
+    state.currentSubject = subject;
+    state.currentTopic = topic;
+
+    const { data: blocks, error } = await supabaseClient
+      .from('lesson_blocks')
+      .select('*')
+      .eq('lesson_id', id)
+      .order('order_index');
+    if (error) { toast('Could not load blocks: ' + error.message, 'error'); return; }
+
+    state.currentLesson = {
+      ...lesson,
+      blocks: blocks || [],
+    };
+    state.dirty = false;
+    renderTree();
+    renderEditor();
+  };
+
+  function renderEmpty() {
+    $('main').innerHTML = `
+      <div class="empty-state" id="emptyState">
+        <div>
+          <h2>Lesson creator</h2>
+          <p>Pick a subject, topic, and lesson on the left to start editing. Or create a new one.</p>
+          <div class="actions">
+            <button class="btn-primary" onclick="document.getElementById('newSubjectBtn').click()">+ New subject</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderEditor() {
+    const L = state.currentLesson;
+    if (!L) { renderEmpty(); return; }
+    const topic = state.currentTopic;
+    const subj  = state.currentSubject;
+
+    $('main').innerHTML = `
+      <div class="topbar">
+        <div class="crumbs">
+          <a href="#" onclick="renderEmpty(); return false;">Catalogue</a>
+          <span class="sep">/</span>
+          <span>${escapeHtml(subj.name)}</span>
+          <span class="sep">/</span>
+          <span>${escapeHtml(topic.name)}</span>
+          <span class="sep">/</span>
+          <span class="current">${escapeHtml(L.title)}</span>
+        </div>
+        <div class="right">
+          <button class="btn-ghost" id="previewBtn">Preview</button>
+          <button class="btn-primary" id="saveBlocksBtn">Save blocks</button>
+        </div>
+      </div>
+      <div class="editor">
+        <div class="editor-meta">
+          <div class="form-row" style="margin: 0;">
+            <label>Lesson title</label>
+            <input id="lessonTitle" value="${escapeHtml(L.title)}" />
+          </div>
+          <div class="form-row" style="margin: 0;">
+            <label>Duration (min)</label>
+            <input id="lessonDuration" type="number" min="1" max="600" value="${L.duration_min ?? 20}" />
+          </div>
+          <div class="form-row" style="margin: 0;">
+            <label>Order</label>
+            <input id="lessonOrder" type="number" value="${L.order_index ?? 0}" />
+          </div>
+        </div>
+        <div class="editor-actions">
+          <span class="${state.dirty ? 'dirty' : 'saved'}">${state.dirty ? '● Unsaved changes' : '✓ All saved'}</span>
+          <span class="spacer"></span>
+          <button class="btn-ghost" id="saveMetaBtn">Save lesson details</button>
+        </div>
+        <div class="blocks" id="blocksList"></div>
+        <div class="block-add" id="blockPicker"></div>
+      </div>
+    `;
+    renderBlocksList();
+    renderBlockPicker();
+
+    document.getElementById('previewBtn').addEventListener('click', openPreview);
+    document.getElementById('saveMetaBtn').addEventListener('click', saveLessonMeta);
+    document.getElementById('saveBlocksBtn').addEventListener('click', saveBlocks);
+    ['lessonTitle','lessonDuration','lessonOrder'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => { state.dirty = true; renderEditorHeader(); });
+    });
+  }
+
+  function renderEditorHeader() {
+    const el = document.querySelector('.editor-actions .saved, .editor-actions .dirty');
+    if (!el) return;
+    el.className = state.dirty ? 'dirty' : 'saved';
+    el.textContent = state.dirty ? '● Unsaved changes' : '✓ All saved';
+  }
+
+  async function saveLessonMeta() {
+    const L = state.currentLesson;
+    if (!L) return;
+    const payload = {
+      title: document.getElementById('lessonTitle').value.trim(),
+      duration_min: parseInt(document.getElementById('lessonDuration').value, 10) || 20,
+      order_index: parseInt(document.getElementById('lessonOrder').value, 10) || 0,
+    };
+    if (!payload.title) { toast('Title is required', 'error'); return; }
+    const { error } = await supabaseClient.from('lessons').update(payload).eq('id', L.id);
+    if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+    Object.assign(L, payload);
+    state.dirty = false;
+    renderEditorHeader();
+    await loadTree();
+    // re-open this lesson in the tree to refresh the title
+    renderTree();
+    // re-mark active
+    const active = document.querySelector(`.tree-lesson[data-lesson-id="${L.id}"]`);
+    if (active) active.classList.add('active');
+    toast('Lesson saved', 'success');
+  }
+
+  function renderBlocksList() {
+    const list = document.getElementById('blocksList');
+    if (!list) return;
+    const L = state.currentLesson;
+    if (!L.blocks.length) {
+      list.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-4); font-size: 13px; background: var(--bg-2); border: 1px dashed var(--line-2); border-radius: var(--r-md);">No blocks yet. Use the picker below to add the first one.</div>`;
+      return;
+    }
+    list.innerHTML = L.blocks.map((b, i) => renderBlockEditor(b, i)).join('');
+  }
+
+  function renderBlockPicker() {
+    const picker = document.getElementById('blockPicker');
+    if (!picker) return;
+    picker.innerHTML = Object.entries(BLOCK_DEFS).map(([kind, def]) =>
+      `<button class="picker-btn" onclick="addBlock('${kind}')">+ ${escapeHtml(def.label)}</button>`
+    ).join('');
+  }
+
+  function renderBlockEditor(b, i) {
+    const def = BLOCK_DEFS[b.kind];
+    const label = def ? def.label : b.kind;
+    const isFirst = i === 0;
+    const isLast  = i === state.currentLesson.blocks.length - 1;
+    return `
+      <div class="block" data-block-id="${b.id || ''}" data-block-index="${i}">
+        <div class="block-head">
+          <span class="kind-label">${escapeHtml(label)}</span>
+          <span style="color: var(--text-4);">#${i + 1}</span>
+          <span class="spacer"></span>
+          <button class="icon-btn" title="Move up"   ${isFirst ? 'disabled' : ''} onclick="moveBlock(${i}, -1)">▲</button>
+          <button class="icon-btn" title="Move down" ${isLast  ? 'disabled' : ''} onclick="moveBlock(${i}, +1)">▼</button>
+          <button class="icon-btn danger" title="Delete" onclick="deleteBlock(${i})">✕</button>
+        </div>
+        <div class="block-body">
+          ${renderBlockEditorBody(b, i)}
+        </div>
+      </div>
+    `;
+  }
+
+  // Per-kind inline editor body. Each editor reads from / writes to
+  // state.currentLesson.blocks[i].data and also marks state.dirty = true.
+  function renderBlockEditorBody(b, i) {
+    switch (b.kind) {
+      case 'heading':
+        return `
+          <div class="form-row inline">
+            <label>Level</label>
+            <select onchange="updateBlock(${i}, {level: parseInt(this.value, 10)})">
+              <option value="2" ${b.data.level===2?'selected':''}>H2</option>
+              <option value="3" ${b.data.level===3?'selected':''}>H3</option>
+            </select>
+            <label style="margin-left:8px;">Text</label>
+            <input value="${escapeHtml(b.data.text||'')}" oninput="updateBlock(${i}, {text: this.value})" placeholder="Heading text" />
+          </div>
+        `;
+      case 'text':
+        return `
+          <div class="two-col">
+            <div class="form-row" style="margin: 0;">
+              <label>Markdown</label>
+              <textarea class="mono" oninput="updateBlock(${i}, {markdown: this.value})">${escapeHtml(b.data.markdown || '')}</textarea>
+            </div>
+            <div class="form-row" style="margin: 0;">
+              <label>Preview</label>
+              <div class="preview">${renderMarkdown(b.data.markdown || '')}</div>
+            </div>
+          </div>
+        `;
+      case 'callout':
+        return `
+          <div class="form-row">
+            <label>Tone</label>
+            <select onchange="updateBlock(${i}, {tone: this.value})">
+              <option value="tip"        ${b.data.tone==='tip'?'selected':''}>💡 Tip</option>
+              <option value="warning"    ${b.data.tone==='warning'?'selected':''}>⚠️ Warning</option>
+              <option value="definition" ${b.data.tone==='definition'?'selected':''}>📖 Definition</option>
+            </select>
+          </div>
+          <div class="two-col">
+            <div class="form-row" style="margin: 0;">
+              <label>Markdown</label>
+              <textarea oninput="updateBlock(${i}, {markdown: this.value})">${escapeHtml(b.data.markdown || '')}</textarea>
+            </div>
+            <div class="form-row" style="margin: 0;">
+              <label>Preview</label>
+              <div class="preview">${renderBlock(b)}</div>
+            </div>
+          </div>
+        `;
+      case 'image':
+        return `
+          <div class="form-row">
+            <label>Image URL</label>
+            <input value="${escapeHtml(b.data.url||'')}" oninput="updateBlock(${i}, {url: this.value})" placeholder="https://…" />
+          </div>
+          <div class="form-row">
+            <label>Alt text</label>
+            <input value="${escapeHtml(b.data.alt||'')}" oninput="updateBlock(${i}, {alt: this.value})" placeholder="Describe the image for screen readers" />
+          </div>
+          <div class="form-row">
+            <label>Caption (optional)</label>
+            <input value="${escapeHtml(b.data.caption||'')}" oninput="updateBlock(${i}, {caption: this.value})" />
+          </div>
+          <div class="form-row" style="margin: 0;">
+            <label>Preview</label>
+            <div class="preview">${renderBlock(b)}</div>
+          </div>
+        `;
+      case 'video':
+        return `
+          <div class="form-row inline">
+            <label>Provider</label>
+            <select onchange="updateBlock(${i}, {provider: this.value})">
+              <option value="youtube" ${b.data.provider==='youtube'?'selected':''}>YouTube</option>
+              <option value="vimeo"   ${b.data.provider==='vimeo'?'selected':''}>Vimeo</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>URL</label>
+            <input value="${escapeHtml(b.data.url||'')}" oninput="updateBlock(${i}, {url: this.value})" placeholder="https://youtu.be/…" />
+            <span class="hint">Paste a normal YouTube / Vimeo link. We'll convert it to the embed form.</span>
+          </div>
+          <div class="form-row" style="margin: 0;">
+            <label>Preview</label>
+            <div class="preview">${renderBlock(b)}</div>
+          </div>
+        `;
+      case 'math':
+        return `
+          <div class="form-row inline">
+            <label>LaTeX</label>
+            <input class="mono" value="${escapeHtml(b.data.latex||'')}" oninput="updateBlock(${i}, {latex: this.value})" placeholder="E = mc^2" style="flex: 1;" />
+            <label style="margin-left: 8px;">Display</label>
+            <input type="checkbox" ${b.data.display ? 'checked' : ''} onchange="updateBlock(${i}, {display: this.checked})" />
+          </div>
+          <div class="form-row" style="margin: 0;">
+            <label>Preview</label>
+            <div class="preview">${renderBlock(b)}</div>
+          </div>
+        `;
+      case 'keypoints':
+        return `
+          <div class="form-row" style="margin: 0;">
+            <label>Items</label>
+            <div class="repeater">
+              ${(b.data.items || []).map((it, j) => `
+                <div class="row">
+                  <input value="${escapeHtml(it)}" oninput="updateKPI(${i}, ${j}, this.value)" placeholder="Key point" />
+                  <button onclick="removeKPI(${i}, ${j})">✕</button>
+                </div>
+              `).join('')}
+              <button class="add" onclick="addKPI(${i})">+ Add point</button>
+            </div>
+          </div>
+        `;
+      case 'worked_example':
+        return `
+          <div class="form-row">
+            <label>Question</label>
+            <input value="${escapeHtml(b.data.question||'')}" oninput="updateBlock(${i}, {question: this.value})" />
+          </div>
+          <div class="form-row">
+            <label>Steps</label>
+            <div class="repeater">
+              ${(b.data.steps || []).map((s, j) => `
+                <div class="row" style="flex-direction: column; align-items: stretch; gap: 4px;">
+                  <div style="display: flex; gap: 6px;">
+                    <input value="${escapeHtml(s.label||'')}" oninput="updateStep(${i}, ${j}, 'label', this.value)" placeholder="Step 1" style="flex: 0 0 110px;" />
+                    <input value="${escapeHtml(s.body||'')}" oninput="updateStep(${i}, ${j}, 'body', this.value)" placeholder="Step body" style="flex: 1;" />
+                    <button onclick="removeStep(${i}, ${j})">✕</button>
+                  </div>
+                </div>
+              `).join('')}
+              <button class="add" onclick="addStep(${i})">+ Add step</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>Answer</label>
+            <input value="${escapeHtml(b.data.answer||'')}" oninput="updateBlock(${i}, {answer: this.value})" placeholder="Final answer" />
+          </div>
+          <div class="form-row" style="margin: 0;">
+            <label>Preview</label>
+            <div class="preview">${renderBlock(b)}</div>
+          </div>
+        `;
+      case 'reveal':
+        return `
+          <div class="form-row">
+            <label>Prompt</label>
+            <input value="${escapeHtml(b.data.prompt||'')}" oninput="updateBlock(${i}, {prompt: this.value})" />
+          </div>
+          <div class="form-row">
+            <label>Explanation (hidden until clicked)</label>
+            <textarea oninput="updateBlock(${i}, {explanation: this.value})">${escapeHtml(b.data.explanation || '')}</textarea>
+          </div>
+          <div class="form-row" style="margin: 0;">
+            <label>Preview (click to reveal)</label>
+            <div class="preview">${renderBlock(b)}</div>
+          </div>
+        `;
+      case 'flashcard':
+        return `
+          <div class="two-col">
+            <div class="form-row" style="margin: 0;">
+              <label>Front</label>
+              <input value="${escapeHtml(b.data.front||'')}" oninput="updateBlock(${i}, {front: this.value})" />
+            </div>
+            <div class="form-row" style="margin: 0;">
+              <label>Back</label>
+              <input value="${escapeHtml(b.data.back||'')}" oninput="updateBlock(${i}, {back: this.value})" />
+            </div>
+          </div>
+          <div class="form-row" style="margin: 12px 0 0;">
+            <label>Preview (click to flip)</label>
+            <div class="preview">${renderBlock(b)}</div>
+          </div>
+        `;
+      default:
+        return `<p style="color: var(--red)">No editor for kind: ${escapeHtml(b.kind)}</p>`;
+    }
+  }
+
+  // block state mutations
+  window.updateBlock = (i, patch) => {
+    Object.assign(state.currentLesson.blocks[i].data, patch);
+    state.dirty = true;
+    renderEditorHeader();
+    // For text/callout/image/video/math/worked/reveal/flashcard, refresh the
+    // preview pane inside this block without re-rendering the whole list
+    // (which would lose focus on the textarea the staff is typing in).
+    const block = document.querySelector(`.block[data-block-index="${i}"]`);
+    if (!block) return;
+    const preview = block.querySelector('.preview');
+    if (preview) preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
+  };
+
+  window.addBlock = (kind) => {
+    const def = BLOCK_DEFS[kind];
+    if (!def) return;
+    state.currentLesson.blocks.push({
+      id: null, // null = not yet persisted
+      kind,
+      data: def.defaults(),
+      order_index: state.currentLesson.blocks.length,
+    });
+    state.dirty = true;
+    renderBlocksList();
+    renderEditorHeader();
+    // scroll to the new block
+    const list = document.getElementById('blocksList');
+    if (list) list.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  window.deleteBlock = (i) => {
+    if (!confirm('Delete this block?')) return;
+    state.currentLesson.blocks.splice(i, 1);
+    state.dirty = true;
+    renderBlocksList();
+    renderEditorHeader();
+  };
+
+  window.moveBlock = (i, dir) => {
+    const j = i + dir;
+    if (j < 0 || j >= state.currentLesson.blocks.length) return;
+    const arr = state.currentLesson.blocks;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    state.dirty = true;
+    renderBlocksList();
+    renderEditorHeader();
+  };
+
+  // keypoints + worked-example helpers
+  window.updateKPI = (i, j, val) => {
+    if (!state.currentLesson.blocks[i].data.items) state.currentLesson.blocks[i].data.items = [];
+    state.currentLesson.blocks[i].data.items[j] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addKPI = (i) => {
+    if (!state.currentLesson.blocks[i].data.items) state.currentLesson.blocks[i].data.items = [];
+    state.currentLesson.blocks[i].data.items.push('');
+    renderBlocksList(); renderEditorHeader();
+  };
+  window.removeKPI = (i, j) => {
+    state.currentLesson.blocks[i].data.items.splice(j, 1);
+    renderBlocksList(); renderEditorHeader();
+  };
+  window.updateStep = (i, j, field, val) => {
+    if (!state.currentLesson.blocks[i].data.steps) state.currentLesson.blocks[i].data.steps = [];
+    if (!state.currentLesson.blocks[i].data.steps[j]) state.currentLesson.blocks[i].data.steps[j] = { label: '', body: '' };
+    state.currentLesson.blocks[i].data.steps[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+    // refresh the worked-example preview
+    const block = document.querySelector(`.block[data-block-index="${i}"]`);
+    const preview = block?.querySelector('.preview');
+    if (preview && state.currentLesson.blocks[i].kind === 'worked_example') preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
+  };
+  window.addStep = (i) => {
+    if (!state.currentLesson.blocks[i].data.steps) state.currentLesson.blocks[i].data.steps = [];
+    state.currentLesson.blocks[i].data.steps.push({ label: 'Step ' + (state.currentLesson.blocks[i].data.steps.length + 1), body: '' });
+    renderBlocksList(); renderEditorHeader();
+  };
+  window.removeStep = (i, j) => {
+    state.currentLesson.blocks[i].data.steps.splice(j, 1);
+    renderBlocksList(); renderEditorHeader();
+  };
+
+  // ---------- save blocks ----------
+  async function saveBlocks() {
+    const L = state.currentLesson;
+    if (!L) return;
+    // Plan: for each block, if id is null → insert; else update. For deletes
+    // we diff against the most recently loaded set (state._serverBlocks).
+    const server = L._serverBlocks || (L._serverBlocks = await fetchServerBlocks(L.id));
+    const current = L.blocks;
+
+    const currentIds = new Set(current.filter(b => b.id).map(b => b.id));
+    const toDelete = server.filter(b => !currentIds.has(b.id)).map(b => b.id);
+    if (toDelete.length) {
+      const { error } = await supabaseClient.from('lesson_blocks').delete().in('id', toDelete);
+      if (error) { toast('Delete failed: ' + error.message, 'error'); return; }
+    }
+
+    // Insert + update in parallel
+    const inserts = current.filter(b => !b.id).map((b, idx) => ({
+      lesson_id: L.id,
+      kind: b.kind,
+      data: b.data,
+      order_index: current.indexOf(b),
+    }));
+    if (inserts.length) {
+      const { error } = await supabaseClient.from('lesson_blocks').insert(inserts);
+      if (error) { toast('Insert failed: ' + error.message, 'error'); return; }
+    }
+    // Updates: only need to send if data or order_index changed
+    const updates = current.filter(b => b.id).map((b) => {
+      const before = server.find(s => s.id === b.id);
+      const newOrder = current.indexOf(b);
+      const dataChanged = !before || JSON.stringify(before.data) !== JSON.stringify(b.data);
+      const orderChanged = !before || before.order_index !== newOrder;
+      return (dataChanged || orderChanged) ? { id: b.id, data: b.data, order_index: newOrder } : null;
+    }).filter(Boolean);
+    for (const u of updates) {
+      const { error } = await supabaseClient.from('lesson_blocks').update({ data: u.data, order_index: u.order_index }).eq('id', u.id);
+      if (error) { toast('Update failed: ' + error.message, 'error'); return; }
+    }
+
+    // Reload to get the canonical state (ids, order).
+    L._serverBlocks = await fetchServerBlocks(L.id);
+    L.blocks = L._serverBlocks;
+    state.dirty = false;
+    renderBlocksList();
+    renderEditorHeader();
+    toast('Blocks saved', 'success');
+  }
+
+  async function fetchServerBlocks(lessonId) {
+    const { data, error } = await supabaseClient
+      .from('lesson_blocks')
+      .select('*')
+      .eq('lesson_id', lessonId)
+      .order('order_index');
+    if (error) { toast('Could not load blocks: ' + error.message, 'error'); return []; }
+    return data || [];
+  }
+
+  // ---------- preview modal ----------
+  function openPreview() {
+    const L = state.currentLesson;
+    if (!L) return;
+    const body = `
+      <article style="font-size: 14.5px; line-height: 1.6; color: var(--text);">
+        <h1 style="font-size: 26px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.02em;">${escapeHtml(L.title)}</h1>
+        <p style="color: var(--text-3); font-size: 13px; margin: 0 0 20px;">
+          ${escapeHtml(state.currentSubject?.name || '')} · ${escapeHtml(state.currentTopic?.name || '')} · ${L.duration_min ?? 20} min
+        </p>
+        ${L.blocks.map(renderBlock).join('\n') || '<p style="color: var(--text-4)">No blocks yet.</p>'}
+      </article>
+    `;
+    openModal('Preview — ' + L.title, body);
+  }
+
+  // ---------- go ----------
+  boot();
+</script>
+</body>
+</html>
