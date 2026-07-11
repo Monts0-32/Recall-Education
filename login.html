@@ -191,7 +191,39 @@
       cursor: pointer;
     }
     .check input { accent-color: var(--blue); width: 14px; height: 14px; margin: 0; }
-    .forgot { color: var(--blue); font-size: 13px; }
+    .forgot { color: var(--blue); font-size: 13px; background: transparent; border: 0; padding: 0; cursor: pointer; font-family: inherit; }
+    .forgot:hover { text-decoration: underline; }
+
+    /* Forgot-password sub-form. Inline status messages below the panel. */
+    .reset-panel {
+      margin: -6px 0 18px;
+      padding: 14px;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+    }
+    .reset-panel .field { margin-bottom: 10px; }
+    .reset-panel .field input { padding: 8px 11px; font-size: 13px; }
+    .reset-panel .actions {
+      display: flex; gap: 8px; justify-content: flex-end;
+      margin: 0;
+    }
+    .reset-panel .actions .btn-ghost {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 7px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      cursor: pointer;
+    }
+    .reset-panel .actions .btn-ghost:hover { background: var(--bg-4); }
+    .reset-msg {
+      margin-top: 10px;
+      font-size: 12.5px;
+      border-radius: var(--r-sm);
+      padding: 8px 10px;
+    }
+    .reset-msg.ok    { background: rgba(63,185,80,0.08);  border: 1px solid rgba(63,185,80,0.4);  color: #7EE787; }
+    .reset-msg.error { background: rgba(248,81,73,0.10);  border: 1px solid rgba(248,81,73,0.4);  color: #FFA198; }
 
     .btn-primary {
       width: 100%;
@@ -353,7 +385,19 @@
             <input type="checkbox" name="remember" />
             <span>Keep me signed in</span>
           </label>
-          <a class="forgot" href="#">Forgot password?</a>
+          <button type="button" class="forgot" id="forgotBtn">Forgot password?</button>
+        </div>
+
+        <div class="reset-panel" id="resetPanel" hidden>
+          <div class="field">
+            <label for="resetEmail">Your email</label>
+            <input type="email" id="resetEmail" name="resetEmail" placeholder="you@school.ac.uk" autocomplete="email" />
+          </div>
+          <div class="actions">
+            <button type="button" class="btn-ghost" id="resetCancelBtn">Cancel</button>
+            <button type="button" class="btn-primary" id="resetSendBtn" style="width: auto; padding: 7px 14px;">Send reset link</button>
+          </div>
+          <div class="reset-msg" id="resetMsg" hidden></div>
         </div>
 
         <button type="submit" class="btn-primary">Sign in</button>
@@ -431,12 +475,13 @@
   const errBanner = document.getElementById('err');
   const errMsg = errBanner.querySelector('span');
   const submitBtn = form.querySelector('button[type="submit"]');
+  const emailInput = document.getElementById('email');
 
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
     errBanner.classList.remove('show');
 
-    const email = document.getElementById('email').value.trim();
+    const email = emailInput.value.trim();
     const password = document.getElementById('password').value;
 
     if (!email.includes('@')) {
@@ -472,6 +517,88 @@
       errBanner.classList.add('show');
       submitBtn.disabled = false;
       submitBtn.textContent = originalText;
+    }
+  });
+
+  // ---------- Forgot password ----------
+  // Supabase's resetPasswordForEmail always returns 200 to avoid letting
+  // attackers enumerate which emails are registered, so we always show
+  // the same success message regardless of whether the account exists.
+  const forgotBtn     = document.getElementById('forgotBtn');
+  const resetPanel    = document.getElementById('resetPanel');
+  const resetEmail    = document.getElementById('resetEmail');
+  const resetCancel   = document.getElementById('resetCancelBtn');
+  const resetSend     = document.getElementById('resetSendBtn');
+  const resetMsg      = document.getElementById('resetMsg');
+
+  function showResetMsg(text, kind) {
+    resetMsg.textContent = text;
+    resetMsg.className = 'reset-msg ' + (kind || '');
+    resetMsg.hidden = false;
+  }
+  function hideResetMsg() {
+    resetMsg.hidden = true;
+    resetMsg.textContent = '';
+    resetMsg.className = 'reset-msg';
+  }
+
+  forgotBtn.addEventListener('click', () => {
+    hideResetMsg();
+    // Pre-fill from the main email field so the user doesn't retype.
+    if (emailInput.value.trim()) resetEmail.value = emailInput.value.trim();
+    resetPanel.hidden = false;
+    resetEmail.focus();
+  });
+
+  resetCancel.addEventListener('click', () => {
+    resetPanel.hidden = true;
+    hideResetMsg();
+  });
+
+  // Auto-open the panel if the URL has #forgot (so reset-password.html
+  // can deep-link back to "request a new link" without the user having
+  // to click anything).
+  if (window.location.hash === '#forgot') {
+    forgotBtn.click();
+  }
+
+  resetSend.addEventListener('click', async () => {
+    hideResetMsg();
+    const email = resetEmail.value.trim();
+    if (!email.includes('@')) {
+      showResetMsg('Enter a valid email address.', 'error');
+      return;
+    }
+    resetSend.disabled = true;
+    const original = resetSend.textContent;
+    resetSend.textContent = 'Sending…';
+    try {
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password.html'
+      });
+      if (error) {
+        // Network / rate-limit / etc. We still don't leak whether the
+        // email exists; just surface the technical message.
+        showResetMsg(explainAuthError(error.message) || 'Could not send reset link. Try again in a minute.', 'error');
+      } else {
+        showResetMsg('Check ' + email + ' for a reset link. It expires in 1 hour.', 'ok');
+        // Throttle the send button for 30s to discourage spam.
+        let remaining = 30;
+        const tick = setInterval(() => {
+          remaining--;
+          if (remaining <= 0) {
+            clearInterval(tick);
+            resetSend.disabled = false;
+            resetSend.textContent = original;
+          } else {
+            resetSend.textContent = 'Resend in ' + remaining + 's';
+          }
+        }, 1000);
+      }
+    } catch (err) {
+      showResetMsg('Network error. Check your connection and try again.', 'error');
+      resetSend.disabled = false;
+      resetSend.textContent = original;
     }
   });
 </script>

@@ -738,17 +738,51 @@
 
   function setIdentity(name, yearGroup) {
     const display = name || 'Recall student';
-    const first = (display.split(/\s+/)[0]) || 'there';
     $('userName').textContent = display;
     $('userAvatar').textContent = initials(display);
     $('userMeta').textContent = yearGroup ? `${yearGroup} · Year group` : 'Signed in';
-    $('welcomeTitle').textContent = name ? `Welcome back, ${first}` : 'Welcome to Recall';
+    $('welcomeTitle').textContent = name ? pickGreeting(name) : 'Welcome to Recall';
     $('welcomeSub').textContent = name
       ? "Pick up where you left off, or start something new."
       : "Your dashboard is being set up. Sign in or confirm your email to get started.";
     $('dashBarPill').textContent = yearGroup || 'Y12';
     $('navName').textContent = name || '';
     $('signOutBtn').hidden = !name;
+  }
+
+  // Time-of-day greeting. Pools keyed by hour, deterministically indexed
+  // by the current minute so the same load gives the same greeting (no
+  // flicker on re-render). Falls back to "there" if no name is set.
+  function pickGreeting(name) {
+    const h = new Date().getHours();
+    const first = (name || '').trim().split(/\s+/)[0] || 'there';
+    const pools = {
+      morning: [
+        `Good morning, ${first}!`,
+        `Morning, ${first} — let's get into it.`,
+        `Top of the morning, ${first}.`
+      ],
+      afternoon: [
+        `Good afternoon, ${first}!`,
+        `Afternoon, ${first} — ready for a session?`,
+        `Hey ${first}, good to see you back.`
+      ],
+      evening: [
+        `Good evening, ${first}!`,
+        `Evening, ${first} — a quick revision before bed?`,
+        `Hey ${first}, nice to see you.`
+      ],
+      night: [
+        `Burning the midnight oil, ${first}?`,
+        `Up late, ${first} — keep it short.`
+      ]
+    };
+    let bucket = 'morning';
+    if (h >= 12 && h < 17)      bucket = 'afternoon';
+    else if (h >= 17 && h < 24) bucket = 'evening';
+    else if (h >= 0 && h < 5)   bucket = 'night';
+    const pool = pools[bucket];
+    return pool[new Date().getMinutes() % pool.length];
   }
 
   // ---------- state ----------
@@ -979,18 +1013,12 @@
     `;
   }
 
-  async function load() {
-    const { data, error } = await supabaseClient.auth.getUser();
-
-    if (error || !data || !data.user) {
-      renderSignedOut();
-      return;
-    }
-
-    const user = data.user;
+  // The shared "we have a user, go render their dashboard" path. Pulled
+  // out so the URL-hash signin and the no-hash signin can both reach it.
+  async function loadWithUser(user) {
     const meta = user.user_metadata || {};
 
-    // Try to read year_group from profiles; not fatal if it fails.
+    // Try to read year_group + consent from profiles; not fatal if it fails.
     let yearGroup = meta.year_group || null;
     try {
       const { data: profile } = await supabaseClient
@@ -1010,12 +1038,43 @@
     await loadDashboard(user.id);
   }
 
+  // Two ways the user can land here with a session:
+  //   1. They came in with no URL hash, already signed in (e.g. they
+  //      refreshed the page). getSession() finds the persisted session.
+  //   2. They just clicked the email-confirmation link, which puts an
+  //      access_token in the URL hash. supabase-js processes the hash
+  //      asynchronously and emits SIGNED_IN. We listen for that.
+  let dashboardLoaded = false;
+
+  supabaseClient.auth.getSession().then(({ data, error }) => {
+    if (dashboardLoaded) return;
+    const session = data?.session;
+    if (error || !session || !session.user) {
+      renderSignedOut();
+      return;
+    }
+    dashboardLoaded = true;
+    loadWithUser(session.user);
+  });
+
+  const { data: authSub } = supabaseClient.auth.onAuthStateChange(
+    (event, session) => {
+      // INITIAL_SESSION fires once after the lib parses the URL hash
+      // (or once on init if no hash). SIGNED_IN fires when the recovery
+      // / confirmation flow sets the session. Both are "we have a user
+      // now, render their dashboard" signals.
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user && !dashboardLoaded) {
+        dashboardLoaded = true;
+        authSub?.subscription?.unsubscribe();
+        loadWithUser(session.user);
+      }
+    }
+  );
+
   $('signOutBtn').addEventListener('click', async function () {
     await supabaseClient.auth.signOut();
     window.location.href = 'index.html';
   });
-
-  load();
 </script>
 </body>
 </html>
