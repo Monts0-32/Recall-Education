@@ -202,7 +202,9 @@
 <script>
   const SUPABASE_URL = 'https://kmpmryrsukrfumuceaqy.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttcG1yeXJzdWtyZnVtdWNlYXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDkzNDUsImV4cCI6MjA5OTI4NTM0NX0.iS4DIK68Ve-igJKtSz83wVkhUwwS8y2nJASK3ts3qRM';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Use a local name; `const supabase` would collide with the `var supabase`
+  // the @supabase UMD bundle declares at top level.
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
@@ -229,7 +231,7 @@
       return showError('Missing consent token. Open the link from the consent email.');
     }
 
-    const { data, error } = await supabase.rpc('peek_consent', { consent_token: token });
+    const { data, error } = await supabaseClient.rpc('peek_consent', { consent_token: token });
 
     loading.hidden = true;
 
@@ -275,7 +277,7 @@
     const originalText = decision === 'granted' ? 'I consent' : 'I do not consent';
     (decision === 'granted' ? grantBtn : denyBtn).textContent = 'Working…';
 
-    const { data, error } = await supabase.rpc('grant_consent', {
+    const { data, error } = await supabaseClient.rpc('grant_consent', {
       consent_token: token,
       decision: decision
     });
