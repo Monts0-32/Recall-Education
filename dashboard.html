@@ -82,6 +82,38 @@
     }
     .btn-ghost:hover { background: var(--bg-2); }
 
+    /* ---------- SHARED BUTTONS + EMPTY STATE ---------- */
+    /* Used by the signed-out state and any future "you have nothing here
+       yet" card. Visual language matches staff.html / signup.html. */
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      padding: 8px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      border: 1px solid var(--blue);
+      cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-secondary {
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid var(--line-2);
+      padding: 7px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 500;
+      cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    .btn-secondary:hover { background: var(--bg-4); border-color: var(--line-3); text-decoration: none; }
+    .empty-state {
+      display: grid; place-items: center;
+      text-align: center;
+      padding: 80px 24px;
+      color: var(--text-3);
+    }
+    .empty-state h2 {
+      font-size: 20px; font-weight: 600;
+      color: var(--text); margin: 0 0 6px;
+    }
+    .empty-state p { margin: 0 0 18px; max-width: 44ch; }
+    .empty-state .actions { display: flex; gap: 8px; justify-content: center; }
+
     /* ---------- LAYOUT ---------- */
     .layout {
       max-width: 1280px; margin: 0 auto;
@@ -398,10 +430,10 @@
   <!-- ============ SIDEBAR ============ -->
   <aside class="sidebar">
     <div class="user-block">
-      <div class="avatar" id="userAvatar">R</div>
+      <div class="avatar" id="userAvatar">—</div>
       <div class="who">
-        <span class="name" id="userName">Recall student</span>
-        <span class="meta" id="userMeta">Signed out</span>
+        <span class="name" id="userName">Signed out</span>
+        <span class="meta" id="userMeta">&nbsp;</span>
       </div>
     </div>
 
@@ -441,10 +473,10 @@
     <div class="streak-card">
       <div class="flame">
         <span>🔥</span>
-        <b id="streakNum">14</b>
+        <b id="streakNum">0</b>
         <span>day streak</span>
       </div>
-      <div class="lbl">You've studied every day for two weeks. Keep going.</div>
+      <div class="lbl" id="streakLbl">Sign in and start a session to begin your streak.</div>
       <div class="bar" id="streakBar" aria-label="Last 14 days"></div>
     </div>
   </aside>
@@ -459,14 +491,14 @@
         <span class="current">Dashboard</span>
       </span>
       <div class="right">
-        <span class="streak" id="dashBarStreak">🔥 14 day streak</span>
-        <span class="pill" id="dashBarPill">Y12</span>
+        <span class="streak" id="dashBarStreak">🔥 Start a streak today</span>
+        <span class="pill" id="dashBarPill">—</span>
       </div>
     </div>
 
     <section class="welcome">
       <h1 id="welcomeTitle">Welcome to Recall</h1>
-      <p class="sub" id="welcomeSub">Pick up where you left off, or start something new.</p>
+      <p class="sub" id="welcomeSub">Sign in to see your dashboard.</p>
     </section>
 
     <div class="state info" id="state"></div>
@@ -696,6 +728,9 @@
     $('dashBarStreak').textContent = count > 0
       ? `🔥 ${count} day${count === 1 ? '' : 's'} streak`
       : '🔥 Start a streak today';
+    $('streakLbl').textContent = count > 0
+      ? `You've studied every day for ${count} day${count === 1 ? '' : 's'}. Keep going.`
+      : 'Sign in and start a session to begin your streak.';
     $('streakBar').innerHTML = last14
       .map(d => `<i class="${d ? 'on' : ''}"></i>`)
       .join('');
@@ -812,7 +847,7 @@
     const lastDelta = lastActivityAt ? `Last activity ${timeAgo(lastActivityAt)}` : 'No activity yet';
     return [
       { lbl: 'Enrolled subjects',    num: String(enrollmentCount), delta: lastDelta, dir: enrollmentCount ? 'up' : 'flat' },
-      { lbl: 'Lessons completed',    num: String(completedLessons), delta: 'All time', dir: completedLessons ? 'up' : 'flat' },
+      { lbl: 'Lessons completed',    num: String(completedLessons), delta: completedLessons ? 'All time' : 'Complete a lesson to begin', dir: completedLessons ? 'up' : 'flat' },
       { lbl: 'Average score',        num: String(quizAvg), small: '%', delta: quizAvg ? 'Across all quizzes' : 'Take a quiz to see your average', dir: quizAvg ? 'up' : 'flat' },
       { lbl: 'Study time this week', num: (studyMinThisWeek / 60).toFixed(1), small: 'hrs', delta: 'Last 7 days', dir: studyMinThisWeek ? 'up' : 'flat' }
     ];
@@ -925,11 +960,30 @@
   setIdentity(null, null);
   renderEmpty();
 
+  // Render a clean signed-out state — replaces the whole .main column. We
+  // don't use the soft #state banner for this because a first-time visitor
+  // who lands on dashboard.html by mistake needs a clear "go sign in"
+  // affordance, not a thin info bar in an otherwise-empty page.
+  function renderSignedOut() {
+    $('main').innerHTML = `
+      <div class="empty-state" id="emptyState">
+        <div>
+          <h2>Sign in to see your dashboard</h2>
+          <p>Pick up where you left off, or start something new.</p>
+          <div class="actions">
+            <a class="btn-primary" href="login.html">Sign in</a>
+            <a class="btn-secondary" href="signup.html">Create account</a>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   async function load() {
     const { data, error } = await supabaseClient.auth.getUser();
 
     if (error || !data || !data.user) {
-      showState('Not signed in. Check your email for a confirmation link, or sign in.');
+      renderSignedOut();
       return;
     }
 

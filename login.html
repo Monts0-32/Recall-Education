@@ -333,7 +333,7 @@
       <p class="sub">Welcome back. Continue your revision.</p>
 
       <div class="error-banner" id="err">
-        <b>Couldn't sign you in.</b> Check your email and password and try again.
+        <b>Couldn't sign you in.</b> <span>Check your email and password and try again.</span>
       </div>
 
       <form id="loginForm" novalidate>
@@ -395,20 +395,84 @@
 
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // Demo: toggle error banner on submit so the styling can be inspected.
-  document.getElementById('loginForm').addEventListener('submit', function (e) {
+  // Supabase client — same project as signup.html / dashboard.html / staff.html.
+  // The anon key is designed to be public; RLS on the DB enforces who can
+  // read/write what. Don't put the service_role key here.
+  const SUPABASE_URL = 'https://kmpmryrsukrfumuceaqy.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttcG1yeXJzdWtyZnVtdWNlYXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDkzNDUsImV4cCI6MjA5OTI4NTM0NX0.iS4DIK68Ve-igJKtSz83wVkhUwwS8y2nJASK3ts3qRM';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Translate Supabase's auth error messages into something a student can act on.
+  // Mirrors the same shape used in signup.html so messages stay consistent.
+  function explainAuthError(message) {
+    if (!message) return 'Something went wrong. Please try again.';
+    const m = message.toLowerCase();
+    if (m.includes('invalid login') || m.includes('invalid credentials')) {
+      return 'Email or password is incorrect.';
+    }
+    if (m.includes('email not confirmed')) {
+      return 'Confirm your email first — check your inbox for the link.';
+    }
+    if (m.includes('rate limit') || m.includes('too many')) {
+      return 'Too many attempts. Wait a moment and try again.';
+    }
+    if (m.includes('valid email') || m.includes('email is invalid')) {
+      return 'Enter a valid email address.';
+    }
+    if (m.includes('user not found')) {
+      return 'No account with that email. Try signing up instead.';
+    }
+    return message;
+  }
+
+  const form = document.getElementById('loginForm');
+  const errBanner = document.getElementById('err');
+  const errMsg = errBanner.querySelector('span');
+  const submitBtn = form.querySelector('button[type="submit"]');
+
+  form.addEventListener('submit', async function (e) {
     e.preventDefault();
-    const email = document.getElementById('email').value;
-    const pwd = document.getElementById('password').value;
-    const err = document.getElementById('err');
-    if (!email.includes('@') || pwd.length < 4) {
-      err.classList.add('show');
+    errBanner.classList.remove('show');
+
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!email.includes('@')) {
+      errMsg.textContent = 'Enter a valid email address.';
+      errBanner.classList.add('show');
       return;
     }
-    err.classList.remove('show');
-    this.querySelector('button').textContent = 'Signing in…';
-    setTimeout(() => { this.querySelector('button').textContent = 'Sign in'; }, 1200);
+    if (!password) {
+      errMsg.textContent = 'Enter your password.';
+      errBanner.classList.add('show');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Signing in…';
+
+    try {
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) {
+        errMsg.textContent = explainAuthError(error.message);
+        errBanner.classList.add('show');
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        return;
+      }
+      // Success — land on the dashboard. The dashboard's load() will read
+      // the session and either render personalised data or a 'check your
+      // email' state (for under-16s still waiting on parental consent).
+      window.location.href = 'dashboard.html';
+    } catch (err) {
+      errMsg.textContent = 'Network error. Check your connection and try again.';
+      errBanner.classList.add('show');
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
   });
 </script>
 </body>
