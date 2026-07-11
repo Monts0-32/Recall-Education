@@ -528,46 +528,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  const SUPABASE_URL = 'https://jdfimuncooatyuavswjs.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkZmltdW5jb29hdHl1YXZzd2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5Mjk2NDAsImV4cCI6MjA5ODUwNTY0MH0.nyzxqzeazFaCzWM1MV00zTIxxikMIdnRylAJ71q6NKs';
+  const SUPABASE_URL = 'https://kmpmryrsukrfumuceaqy.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttcG1yeXJzdWtyZnVtdWNlYXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDkzNDUsImV4cCI6MjA5OTI4NTM0NX0.iS4DIK68Ve-igJKtSz83wVkhUwwS8y2nJASK3ts3qRM';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  // ---------- mock data ----------
-  const MOCK = {
-    kpis: [
-      { lbl: 'Enrolled subjects',  num: '8',  delta: '+1 this term', dir: 'up'   },
-      { lbl: 'Lessons completed',  num: '47', delta: '+6 this week',  dir: 'up'   },
-      { lbl: 'Average score',      num: '78', small: '%',  delta: '+4 pts vs last month', dir: 'up'   },
-      { lbl: 'Study time this week', num: '4.2', small: 'hrs', delta: 'On track', dir: 'flat' },
-    ],
-    continue: [
-      { id: 'bio',  dot: 'bio',   name: 'Biology',     exam: 'AQA · A-level', chapter: 'Cell structure', prog: 64, last: '2 hours ago', continue: true,  cta: 'Continue' },
-      { id: 'mat',  dot: 'maths', name: 'Maths',       exam: 'Edexcel · GCSE', chapter: 'Algebra · quadratics', prog: 38, last: 'Yesterday',  continue: false, cta: 'Resume' },
-    ],
-    subjects: [
-      { id: 'mat',  dot: 'maths', name: 'Maths',         exam: 'Edexcel · GCSE',   prog: 62, last: 'Yesterday' },
-      { id: 'eng',  dot: 'eng',   name: 'English Lit.',  exam: 'AQA · GCSE',       prog: 54, last: '2 days ago' },
-      { id: 'bio',  dot: 'bio',   name: 'Biology',       exam: 'AQA · A-level',    prog: 71, last: '2 hours ago' },
-      { id: 'chem', dot: 'chem',  name: 'Chemistry',     exam: 'OCR · A-level',    prog: 28, last: '3 days ago' },
-      { id: 'phys', dot: 'phys',  name: 'Physics',       exam: 'AQA · GCSE',       prog: 45, last: '5 days ago' },
-      { id: 'hist', dot: 'hist',  name: 'History',       exam: 'Edexcel · GCSE',   prog: 33, last: '1 week ago' },
-      { id: 'geog', dot: 'geog',  name: 'Geography',     exam: 'AQA · GCSE',       prog: 49, last: '4 days ago' },
-      { id: 'psy',  dot: 'psych', name: 'Psychology',    exam: 'OCR · A-level',    prog: 18, last: '2 weeks ago' },
-    ],
-    upcoming: [
-      { day: '12', mon: 'May', title: 'Biology mock · Paper 1',          meta: 'Cell structure · Cell transport', in: 4  },
-      { day: '18', mon: 'May', title: 'Maths homework · Quadratics set 3', meta: '8 questions · auto-graded',     in: 10 },
-      { day: '22', mon: 'May', title: 'Live lesson · Chemistry bonding', meta: 'Dr. Patel · 4:30pm',              in: 14 },
-      { day: '03', mon: 'Jun', title: 'GCSE English Lit · Macbeth essay', meta: 'Final draft · 1500 words',       in: 26 },
-    ],
-    activity: [
-      { kind: 't', glyph: '✓', text: 'You completed <b>Cell structure · Mitochondria</b> in Biology.', time: '2 hours ago' },
-      { kind: 'q', glyph: '?', text: 'Scored <b>9/10</b> on the Quadratics quick check.', time: 'Yesterday, 7:14pm' },
-      { kind: 's', glyph: '◐', text: 'Studied for <b>32 minutes</b> — longest session this week.', time: 'Yesterday' },
-      { kind: 'b', glyph: '!', text: 'Biology mock in <b>4 days</b>. 71% of the syllabus covered.', time: 'Today' },
-    ],
-    streakDays: [1,1,1,1,1,0,1,1,1,1,1,0,1,1],
-  };
 
   // ---------- helpers ----------
   const $ = (id) => document.getElementById(id);
@@ -578,12 +541,60 @@
     return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || 'R';
   }
 
-  function renderKPIs() {
-    $('kpis').innerHTML = MOCK.kpis.map(k => `
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // Format an ISO timestamp as "2 hours ago" / "Yesterday" / "12 May".
+  function timeAgo(iso) {
+    if (!iso) return '';
+    const then = new Date(iso);
+    const now = new Date();
+    const diffMs = now - then;
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1)    return 'Just now';
+    if (mins < 60)   return `${mins} min${mins === 1 ? '' : 's'} ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24)    return `${hrs} hour${hrs === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hrs / 24);
+    if (days === 1)  return 'Yesterday';
+    if (days < 7)    return `${days} days ago`;
+    if (days < 14)   return '1 week ago';
+    if (days < 30)   return `${Math.floor(days / 7)} weeks ago`;
+    return then.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  }
+
+  // Format a future date as "in 4 days" / "today" / "tomorrow" / "12 May".
+  function timeUntil(iso) {
+    if (!iso) return '';
+    const then = new Date(iso);
+    const now = new Date();
+    const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diffDays = Math.round((startOfDay(then) - startOfDay(now)) / 86400000);
+    if (diffDays < 0)  return 'overdue';
+    if (diffDays === 0) return 'today';
+    if (diffDays === 1) return 'tomorrow';
+    if (diffDays < 60)  return `in ${diffDays} days`;
+    return then.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  }
+
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function dayMonth(iso) {
+    const d = new Date(iso);
+    return { day: String(d.getDate()), mon: MONTHS[d.getMonth()] };
+  }
+
+  const ACTIVITY_GLYPH = { lesson: '✓', quiz: '?', session: '◐', assignment: '!', mock: '!' };
+
+  // ---------- renderers ----------
+  function renderKPIs(kpis) {
+    $('kpis').innerHTML = kpis.map(k => `
       <div class="kpi">
-        <div class="lbl">${k.lbl}</div>
-        <div class="num">${k.num}${k.small ? `<small>${k.small}</small>` : ''}</div>
-        <div class="delta ${k.dir}">${k.delta}</div>
+        <div class="lbl">${escapeHtml(k.lbl)}</div>
+        <div class="num">${escapeHtml(k.num)}${k.small ? `<small>${escapeHtml(k.small)}</small>` : ''}</div>
+        <div class="delta ${k.dir}">${escapeHtml(k.delta)}</div>
       </div>
     `).join('');
   }
@@ -592,56 +603,98 @@
     return `
       <div class="subj-row${opts.continue ? ' continue' : ''}">
         <span class="dot ${s.dot}"></span>
-        <div class="name">${s.name}<span class="exam">${s.exam}</span></div>
+        <div class="name">${escapeHtml(s.name)}<span class="exam">${escapeHtml(s.exam)}</span></div>
         <div class="prog-wrap">
           <div class="prog"><i style="width:${s.prog}%"></i></div>
           <span class="prog-pct">${s.prog}%</span>
         </div>
-        <div class="last">${opts.continue ? s.chapter : s.last}</div>
+        <div class="last">${escapeHtml(opts.continue ? s.chapter : s.last)}</div>
         <div class="action">
-          <button type="button">${opts.continue ? s.cta : 'Open'}</button>
+          <button type="button">${escapeHtml(opts.continue ? s.cta : 'Open')}</button>
         </div>
       </div>
     `;
   }
 
-  function renderContinue() {
-    $('continueList').innerHTML = MOCK.continue.map(s => renderSubjRow(s, { continue: true })).join('');
+  function renderContinue(items) {
+    if (!items.length) {
+      $('continueList').innerHTML = `
+        <div class="subj-row" style="grid-template-columns: 1fr; color: var(--text-3); padding: 24px 18px;">
+          You haven't started any lessons yet. Pick a subject to begin.
+        </div>`;
+      $('continueSub').textContent = 'Once you start a lesson, it will show up here.';
+      return;
+    }
+    $('continueSub').textContent = 'Picked up from your last session.';
+    $('continueList').innerHTML = items.map(s => renderSubjRow(s, { continue: true })).join('');
   }
 
-  function renderSubjects() {
-    $('subjectsList').innerHTML = MOCK.subjects.map(s => renderSubjRow(s)).join('');
+  function renderSubjects(items) {
+    if (!items.length) {
+      $('subjectsList').innerHTML = `
+        <div class="subj-row" style="grid-template-columns: 1fr; color: var(--text-3); padding: 24px 18px;">
+          You're not enrolled in any subjects yet. Browse the catalogue to get started.
+        </div>`;
+      $('subjectsSub').textContent = 'No subjects yet — add one to begin.';
+      return;
+    }
+    $('subjectsList').innerHTML = items.map(s => renderSubjRow(s)).join('');
   }
 
-  function renderUpcoming() {
-    $('upcomingList').innerHTML = MOCK.upcoming.map(u => `
-      <div class="up-item">
-        <div class="date"><b>${u.day}</b><span>${u.mon}</span></div>
-        <div class="info">
-          <div class="title">${u.title}</div>
-          <div class="meta">${u.meta}</div>
-        </div>
-        <div class="count"><b>${u.in}</b> days</div>
-      </div>
-    `).join('');
+  function renderUpcoming(items) {
+    if (!items.length) {
+      $('upcomingList').innerHTML = `
+        <div class="up-item" style="grid-template-columns: 1fr; color: var(--text-3); padding: 24px 18px;">
+          Nothing due in the next 60 days. Time to get ahead.
+        </div>`;
+      return;
+    }
+    $('upcomingList').innerHTML = items.map(u => {
+      const dm = dayMonth(u.due_at);
+      return `
+        <div class="up-item">
+          <div class="date"><b>${escapeHtml(dm.day)}</b><span>${escapeHtml(dm.mon)}</span></div>
+          <div class="info">
+            <div class="title">${escapeHtml(u.title)}</div>
+            <div class="meta">${escapeHtml(u.meta || '')}</div>
+          </div>
+          <div class="count">${escapeHtml(u.when)}</div>
+        </div>`;
+    }).join('');
   }
 
-  function renderActivity() {
-    $('activityList').innerHTML = MOCK.activity.map(a => `
-      <div class="act-item">
-        <div class="icon ${a.kind}">${a.glyph}</div>
-        <div>
-          <div class="text">${a.text}</div>
-          <div class="time">${a.time}</div>
-        </div>
-      </div>
-    `).join('');
+  function renderActivity(items) {
+    if (!items.length) {
+      $('activityList').innerHTML = `
+        <div class="act-item" style="grid-template-columns: 1fr; color: var(--text-3); padding: 24px 18px;">
+          No activity yet. Complete a lesson to fill this feed.
+        </div>`;
+      return;
+    }
+    $('activityList').innerHTML = items.map(a => {
+      const glyph = ACTIVITY_GLYPH[a.kind] || '·';
+      // activity_log.summary may contain <b>…</b> for emphasis. The DB stores
+      // it as plain text today; treat any embedded tags as intentional. Wrap
+      // in escapeHtml is unsafe for those, so we accept trust and trust the
+      // writer. To be safer, we strip everything but <b> and </b>.
+      const safe = String(a.summary || '').replace(/<(?!\/?b\b)[^>]*>/g, '');
+      return `
+        <div class="act-item">
+          <div class="icon ${a.kind}">${escapeHtml(glyph)}</div>
+          <div>
+            <div class="text">${safe}</div>
+            <div class="time">${escapeHtml(timeAgo(a.created_at))}</div>
+          </div>
+        </div>`;
+    }).join('');
   }
 
-  function renderStreak() {
-    $('streakNum').textContent = '14';
-    $('dashBarStreak').textContent = '🔥 14 day streak';
-    $('streakBar').innerHTML = MOCK.streakDays
+  function renderStreak(count, last14) {
+    $('streakNum').textContent = String(count);
+    $('dashBarStreak').textContent = count > 0
+      ? `🔥 ${count} day${count === 1 ? '' : 's'} streak`
+      : '🔥 Start a streak today';
+    $('streakBar').innerHTML = last14
       .map(d => `<i class="${d ? 'on' : ''}"></i>`)
       .join('');
   }
@@ -668,18 +721,207 @@
     el.classList.add('show');
   }
 
-  // ---------- bootstrap ----------
-  function renderAll() {
-    renderKPIs();
-    renderContinue();
-    renderSubjects();
-    renderUpcoming();
-    renderActivity();
-    renderStreak();
+  // ---------- data shaping ----------
+  function subjectProgressToRow(sp) {
+    const levelLabel = sp.level === 'a-level' ? 'A-level' : 'GCSE';
+    return {
+      id: sp.subject_id,
+      dot: sp.color_key,
+      name: sp.subject_name,
+      exam: `${sp.exam_board} · ${levelLabel}`,
+      prog: sp.pct || 0
+    };
   }
 
-  renderAll();
+  // Walk back from today; count consecutive days with at least one session.
+  // Returns { count, last14 } where last14 is a 14-length array of booleans
+  // aligned to today (index 13) backward.
+  function computeStreak(sessions) {
+    const dayKey = (d) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const today = new Date();
+    const todayKey = dayKey(today);
+    const days = new Set(sessions.map(s => dayKey(new Date(s.started_at))));
+
+    // Build last14 = [13 days ago ... today]
+    const last14 = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      last14.push(days.has(dayKey(d)));
+    }
+
+    // Streak: count consecutive on-days ending today (or yesterday if today is off).
+    let count = 0;
+    let cursor = new Date(today);
+    if (!days.has(dayKey(cursor))) {
+      // Grace: if today is off, count from yesterday so the streak doesn't
+      // visually drop to 0 mid-day before the student has studied.
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    while (days.has(dayKey(cursor))) {
+      count++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return { count, last14 };
+  }
+
+  // "Continue" card: pick the two most-recently-touched subjects, with the
+  // chapter the student is currently on. Falls back to subjects with the
+  // most progress if no lesson_progress rows exist.
+  function buildContinueRows(subjectProgress, lastTouchedBySubject) {
+    if (!subjectProgress.length) return [];
+
+    // Sort: subjects with recent progress first (by last_touched desc),
+    // then by completed_lessons desc as a tiebreaker.
+    const ranked = [...subjectProgress].sort((a, b) => {
+      const ta = lastTouchedBySubject[a.subject_id] || 0;
+      const tb = lastTouchedBySubject[b.subject_id] || 0;
+      if (tb !== ta) return tb - ta;
+      return (b.completed_lessons || 0) - (a.completed_lessons || 0);
+    });
+
+    return ranked.slice(0, 2).map(sp => {
+      const touch = lastTouchedBySubject[sp.subject_id];
+      const last  = touch ? new Date(touch).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
+      return {
+        ...subjectProgressToRow(sp),
+        chapter: touch ? `Last touched ${last}` : `${sp.completed_lessons || 0} of ${sp.total_lessons || 0} lessons`,
+        cta: sp.completed_lessons > 0 ? 'Continue' : 'Start',
+        continue: true
+      };
+    });
+  }
+
+  function buildSubjectRows(subjectProgress) {
+    return subjectProgress
+      .map(sp => ({ ...subjectProgressToRow(sp), last: `${sp.completed_lessons || 0} of ${sp.total_lessons || 0} lessons` }));
+  }
+
+  function buildUpcoming(assignments) {
+    return (assignments || []).map(a => ({
+      due_at: a.due_at,
+      title: a.title,
+      meta: a.description || (a.subject ? a.subject.name : ''),
+      when: timeUntil(a.due_at)
+    }));
+  }
+
+  function buildKpis({ enrollmentCount, completedLessons, quizAvg, studyMinThisWeek, lastActivityAt }) {
+    const lastDelta = lastActivityAt ? `Last activity ${timeAgo(lastActivityAt)}` : 'No activity yet';
+    return [
+      { lbl: 'Enrolled subjects',    num: String(enrollmentCount), delta: lastDelta, dir: enrollmentCount ? 'up' : 'flat' },
+      { lbl: 'Lessons completed',    num: String(completedLessons), delta: 'All time', dir: completedLessons ? 'up' : 'flat' },
+      { lbl: 'Average score',        num: String(quizAvg), small: '%', delta: quizAvg ? 'Across all quizzes' : 'Take a quiz to see your average', dir: quizAvg ? 'up' : 'flat' },
+      { lbl: 'Study time this week', num: (studyMinThisWeek / 60).toFixed(1), small: 'hrs', delta: 'Last 7 days', dir: studyMinThisWeek ? 'up' : 'flat' }
+    ];
+  }
+
+  // ---------- main fetch ----------
+  async function loadDashboard(userId) {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    const sixtyDaysFromNow = new Date(Date.now() + 60 * 86400000).toISOString();
+
+    let results;
+    try {
+      results = await Promise.all([
+        supabase.from('subject_progress').select('*').eq('user_id', userId),
+        supabase.from('enrollments').select('id, started_at, subject:subjects(name, color_key)').eq('user_id', userId).order('started_at', { ascending: false }),
+        supabase.from('assignments').select('id, title, description, due_at, kind, subject:subjects(name)').eq('user_id', userId).gte('due_at', new Date().toISOString()).order('due_at').limit(4),
+        supabase.from('activity_log').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(8),
+        supabase.from('study_sessions').select('started_at, duration_min').eq('user_id', userId).gte('started_at', new Date(Date.now() - 60 * 86400000).toISOString()),
+        supabase.from('lesson_progress').select('lesson_id, status, updated_at, lesson:lessons(id, title, topic:topics(id, name, subject:subjects(id, name, color_key, exam_board, level)))').eq('user_id', userId).order('updated_at', { ascending: false }).limit(20),
+        supabase.from('quiz_attempts').select('score, total').eq('user_id', userId)
+      ]);
+    } catch (err) {
+      // Network or auth error: show a soft state and bail.
+      showState('Could not reach the database. Check your connection and refresh.');
+      renderEmpty();
+      return;
+    }
+
+    const [
+      subjectProgressRes, enrollmentsRes, assignmentsRes,
+      activityRes, sessionsRes, lessonProgressRes, quizRes
+    ] = results;
+
+    // If any of the learning tables are missing, degrade gracefully rather
+    // than blowing up the whole page. The .info state tells the user.
+    const anyMissing = [subjectProgressRes, enrollmentsRes].some(r => r.error);
+    if (anyMissing) {
+      showState('Your dashboard is being set up — the learning tables aren\'t ready yet. The auth tables work; the rest is coming.');
+      // Fall through with empty arrays so the empty states render.
+    }
+
+    const subjectProgress = (subjectProgressRes.data || []);
+    const enrollments     = (enrollmentsRes.data || []);
+    const assignments     = (assignmentsRes.data || []);
+    const activity        = (activityRes.data || []);
+    const sessions        = (sessionsRes.data || []);
+    const lessonProgress  = (lessonProgressRes.data || []);
+    const quizzes         = (quizRes.data || []);
+
+    // Last-touched timestamp per subject, from lesson_progress joined to lesson.
+    const lastTouchedBySubject = {};
+    for (const lp of lessonProgress) {
+      const subj = lp.lesson?.topic?.subject;
+      if (!subj) continue;
+      if (!lastTouchedBySubject[subj.id]) {
+        lastTouchedBySubject[subj.id] = lp.updated_at;
+      }
+    }
+
+    // KPIs.
+    const completedLessons = lessonProgress.filter(lp => lp.status === 'completed').length;
+    const quizAvg = quizzes.length
+      ? Math.round(quizzes.reduce((acc, q) => acc + (q.score / Math.max(q.total, 1)), 0) / quizzes.length * 100)
+      : 0;
+    const studyMinThisWeek = sessions
+      .filter(s => s.started_at >= sevenDaysAgo)
+      .reduce((acc, s) => acc + (s.duration_min || 0), 0);
+    const lastActivityAt = activity.length ? activity[0].created_at : null;
+
+    const kpis = buildKpis({
+      enrollmentCount: enrollments.length,
+      completedLessons,
+      quizAvg,
+      studyMinThisWeek,
+      lastActivityAt
+    });
+
+    // Sub-line for "Your subjects" card.
+    const subjectsSub = enrollments.length
+      ? `${enrollments.length} enrolled · ${lastActivityAt ? 'last activity ' + timeAgo(lastActivityAt) : 'no activity yet'}`
+      : 'No subjects yet — add one to begin.';
+    $('subjectsSub').textContent = subjectsSub;
+
+    const { count, last14 } = computeStreak(sessions);
+
+    renderKPIs(kpis);
+    renderContinue(buildContinueRows(subjectProgress, lastTouchedBySubject));
+    renderSubjects(buildSubjectRows(subjectProgress));
+    renderUpcoming(buildUpcoming(assignments));
+    renderActivity(activity);
+    renderStreak(count, last14);
+  }
+
+  // Empty dashboard when the new tables don't exist yet (e.g. new project).
+  function renderEmpty() {
+    renderKPIs([
+      { lbl: 'Enrolled subjects',    num: '0', delta: '—', dir: 'flat' },
+      { lbl: 'Lessons completed',    num: '0', delta: '—', dir: 'flat' },
+      { lbl: 'Average score',        num: '—', small: '%', delta: '—', dir: 'flat' },
+      { lbl: 'Study time this week', num: '0.0', small: 'hrs', delta: '—', dir: 'flat' }
+    ]);
+    renderContinue([]);
+    renderSubjects([]);
+    renderUpcoming([]);
+    renderActivity([]);
+    renderStreak(0, new Array(14).fill(false));
+  }
+
+  // ---------- bootstrap ----------
   setIdentity(null, null);
+  renderEmpty();
 
   async function load() {
     const { data, error } = await supabase.auth.getUser();
@@ -709,6 +951,7 @@
     } catch (_) { /* profiles table may not be readable in this env; ignore */ }
 
     setIdentity(meta.full_name || user.email, yearGroup);
+    await loadDashboard(user.id);
   }
 
   $('signOutBtn').addEventListener('click', async function () {
