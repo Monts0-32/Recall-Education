@@ -205,6 +205,118 @@
     .dot.geog  { background: #56D4DD; }
     .dot.psych { background: #BC8CFF; }
 
+    /* ---------- CATALOG CARD GRID ---------- */
+    .catalog-head {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; gap: 8px;
+      flex-wrap: wrap;
+    }
+    .catalog-head .crumbs-inline {
+      flex: 1; min-width: 0;
+      color: var(--text-3); font-size: 12.5px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .catalog-head .crumbs-inline a { color: var(--text-3); }
+    .catalog-head .crumbs-inline a:hover { color: var(--text-2); text-decoration: none; }
+    .catalog-head .crumbs-inline .sep { color: var(--text-4); margin: 0 5px; }
+    .catalog-head .crumbs-inline .current { color: var(--text); font-weight: 600; }
+    .catalog-head .add-btn {
+      background: var(--bg-3); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 4px 9px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 11.5px; font-weight: 500;
+      cursor: pointer;
+    }
+    .catalog-head .add-btn:hover { background: var(--bg-4); border-color: var(--line-3); color: var(--text); }
+    .catalog-head .add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .catalog-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      padding: 14px;
+    }
+    .catalog-card {
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 14px 12px;
+      cursor: pointer;
+      position: relative;
+      min-height: 84px;
+      display: flex; flex-direction: column; gap: 4px;
+      transition: border-color 0.1s ease, background 0.1s ease;
+    }
+    .catalog-card:hover { border-color: var(--blue); background: var(--bg-4); }
+    .catalog-card .name {
+      font-weight: 600; font-size: 13.5px; color: var(--text);
+      overflow: hidden; text-overflow: ellipsis;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    .catalog-card .meta {
+      color: var(--text-4); font-size: 11.5px;
+    }
+    .catalog-card .kebab {
+      position: absolute; top: 6px; right: 6px;
+      background: transparent; border: 0; color: var(--text-4);
+      font-size: 14px; padding: 2px 6px; border-radius: 4px; cursor: pointer;
+      line-height: 1; opacity: 0;
+    }
+    .catalog-card:hover .kebab { opacity: 1; }
+    .catalog-card .kebab:hover { background: var(--bg-2); color: var(--text); }
+    .catalog-empty {
+      padding: 32px 16px; color: var(--text-4); font-size: 12.5px;
+      text-align: center;
+    }
+    .catalog-empty button {
+      margin-top: 12px;
+      background: var(--bg-3); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 6px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12px; font-weight: 500;
+      cursor: pointer;
+    }
+    .catalog-empty button:hover { background: var(--bg-4); color: var(--text); }
+
+    /* At the unit level we keep a compact "open topic" list under the
+       breadcrumb so the right-side editor still works for topics that
+       exist at the year level but don't yet live in a unit. */
+    .catalog-topics {
+      padding: 4px 0 12px;
+      border-top: 1px solid var(--line);
+      margin-top: 4px;
+    }
+    .catalog-topics .topic-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 14px;
+      font-size: 12.5px; color: var(--text-2);
+      cursor: pointer;
+    }
+    .catalog-topics .topic-row:hover { background: var(--bg-3); color: var(--text); }
+    .catalog-topics .topic-row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .catalog-topics .topic-row .row-btn {
+      background: transparent; border: 0; color: var(--text-4);
+      font-size: 12px; padding: 1px 4px; border-radius: 4px; cursor: pointer;
+      line-height: 1; opacity: 0;
+    }
+    .catalog-topics .topic-row:hover .row-btn { opacity: 1; }
+    .catalog-topics .topic-row .row-btn:hover { background: var(--bg-4); color: var(--text); }
+    .catalog-topics .topic-row.active {
+      background: var(--blue-pale);
+      color: var(--blue); font-weight: 600;
+      border-left: 2px solid var(--blue);
+    }
+    .catalog-topics .add-row {
+      padding: 6px 14px;
+    }
+    .catalog-topics .add-row button {
+      background: transparent; border: 0; color: var(--text-4);
+      font-size: 11.5px; padding: 3px 6px; border-radius: 4px; cursor: pointer;
+      font-family: inherit;
+    }
+    .catalog-topics .add-row button:hover { background: var(--bg-3); color: var(--blue); }
+
     /* ---------- MAIN ---------- */
     .main {
       display: flex; flex-direction: column;
@@ -961,6 +1073,7 @@
         <button class="btn-secondary" id="newSubjectBtn" title="New subject">+ Subject</button>
       </div>
     </div>
+    <div class="catalog-head" id="catalogHead"></div>
     <div class="body" id="treeBody">
       <div style="padding: 24px 16px; color: var(--text-4); font-size: 12.5px; text-align: center;">
         Loading…
@@ -1052,9 +1165,22 @@
   const state = {
     user: null,
     profile: null,
-    subjects: [],          // [{ id, name, exam_board, level, color_key, topics: [{ id, name, lessons: [{ id, title, duration_min }] }] }]
+    role: null,
+    canPublish: false,
+    subjects: [],          // [{ id, name, exam_board, level, color_key, topics: [{ id, name, unit_id, lessons: [{ id, title, duration_min }] }] }]
+    boards: [],            // [{ id, name }] from exam_boards
+    years: [],             // [{ id, label, sort_order }] from year_levels
+    units: [],             // [{ id, subject_id, exam_board_id, year_id, name, description, sort_order }] from units
+    boardMap: {},          // id -> exam_boards row, built when boards load
+    yearMap: {},           // id -> year_levels row
+    browsePath: {          // current position in the catalog card grid
+      subject: null,       // { id, name, exam_board, level, color_key }
+      board:   null,       // { id, name }
+      year:    null,       // { id, label, sort_order }
+      unit:    null,       // { id, name, description }
+    },
     currentLesson: null,   // { id, title, duration_min, order_index, topic_id, blocks: [{...} | {__new:true}] }
-    currentTopic: null,    // { id, name, subject_id }
+    currentTopic: null,    // { id, name, subject_id, unit_id }
     currentSubject: null,  // { id, name }
     dirty: false,
   };
@@ -1135,19 +1261,34 @@
     window.location.href = 'login.html';
   });
 
-  // ---------- tree loading ----------
+  // ---------- catalog (card grid) ----------
+  // The left rail is a breadcrumb-driven card grid. Each level is a
+  // .catalog-card on a single grid, with the breadcrumb above letting
+  // the user jump back. The right side lesson editor is unchanged and
+  // still works off state.currentLesson / state.currentTopic /
+  // state.currentSubject — this just changes how staff *get to* a
+  // topic.
   async function loadTree() {
-    const [subjectsRes, topicsRes, lessonsRes] = await Promise.all([
+    const [
+      subjectsRes, topicsRes, lessonsRes,
+      boardsRes, yearsRes, unitsRes,
+    ] = await Promise.all([
       supabaseClient.from('subjects').select('*').order('sort_order').order('name'),
       supabaseClient.from('topics').select('*').order('order_index'),
       supabaseClient.from('lessons').select('*').order('order_index'),
+      supabaseClient.from('exam_boards').select('*').order('name'),
+      supabaseClient.from('year_levels').select('*').order('sort_order'),
+      supabaseClient.from('units').select('*').order('sort_order').order('name'),
     ]);
 
     const subjects = subjectsRes.data || [];
     const topics   = topicsRes.data   || [];
     const lessons  = lessonsRes.data  || [];
+    const boards   = boardsRes.data   || [];
+    const years    = yearsRes.data    || [];
+    const units    = unitsRes.data    || [];
 
-    // nest
+    // nest topics under subjects, lessons under topics
     for (const t of topics)  t.lessons = [];
     for (const l of lessons) {
       const t = topics.find(x => x.id === l.topic_id);
@@ -1156,82 +1297,561 @@
     for (const s of subjects) s.topics = topics.filter(t => t.subject_id === s.id);
 
     state.subjects = subjects;
-    renderTree();
+    state.boards   = boards;
+    state.years    = years;
+    state.units    = units;
+    state.boardMap = Object.fromEntries(boards.map(b => [b.id, b]));
+    state.yearMap  = Object.fromEntries(years.map(y => [y.id, y]));
+
+    renderCatalog();
   }
 
-  function renderTree() {
-    const body = $('treeBody');
-    if (!state.subjects.length) {
-      body.innerHTML = `
-        <div style="padding: 24px 16px; color: var(--text-4); font-size: 12.5px; text-align: center;">
-          No subjects yet.<br><br>
-          <button class="btn-secondary" onclick="openSubjectModal()">+ Create the first one</button>
-        </div>`;
-      return;
+  // ---- breadcrumb / path helpers ----
+  function goToSubject() {
+    state.browsePath = { subject: null, board: null, year: null, unit: null };
+    renderCatalog();
+  }
+  function goToBoard() {
+    state.browsePath.year = null;
+    state.browsePath.unit = null;
+    renderCatalog();
+  }
+  function goToYear() {
+    state.browsePath.unit = null;
+    renderCatalog();
+  }
+  function goUp() {
+    if (state.browsePath.unit) goToYear();
+    else if (state.browsePath.year) goToBoard();
+    else if (state.browsePath.board) goToSubject();
+  }
+
+  // Convert a subject → its first/only board for backfill. Most subjects
+  // in the existing seed have exactly one (subject.exam_board matches one
+  // row in exam_boards). If a subject ever has no matching board we skip
+  // gracefully so the UI doesn't blow up.
+  function boardForSubject(s) {
+    return state.boards.find(b => b.name === s.exam_board) || null;
+  }
+  // Auto-pick a year for new units in a subject: GCSE → Year 10,
+  // A-level → Year 12. If we don't know, fall back to whatever year
+  // exists for that (subject, board) pair.
+  function defaultYearFor(s) {
+    if (s.level === 'gcse') {
+      return state.years.find(y => y.label === 'Year 10')
+          || state.years.find(y => y.label === 'GCSE')
+          || state.years[0]
+          || null;
     }
-    body.innerHTML = state.subjects.map(s => renderSubjectNode(s)).join('');
+    if (s.level === 'a-level') {
+      return state.years.find(y => y.label === 'Year 12')
+          || state.years.find(y => y.label === 'A-level')
+          || state.years[0]
+          || null;
+    }
+    return state.years[0] || null;
   }
 
-  function renderSubjectNode(s) {
-    const isOpen = state.currentSubject && state.currentSubject.id === s.id;
-    return `
-      <div class="tree-subject ${isOpen ? 'open' : ''}" data-subj-id="${s.id}">
-        <div class="tree-subject-head" onclick="toggleSubject('${s.id}')">
-          <span class="caret">▶</span>
-          <span class="dot ${s.color_key}"></span>
-          <span class="name">${escapeHtml(s.name)}</span>
-          <span class="meta">${escapeHtml(s.exam_board)}</span>
-          <button class="row-btn" title="Rename" onclick="event.stopPropagation(); openSubjectModal('${s.id}')">✎</button>
-          <button class="row-btn" title="Delete" onclick="event.stopPropagation(); deleteSubject('${s.id}')">🗑</button>
-        </div>
-        <div class="tree-children">
-          ${(s.topics || []).map(t => renderTopicNode(t)).join('')}
-          <div class="tree-add">
-            <button onclick="openTopicModal('${s.id}')">+ Topic</button>
-          </div>
-        </div>
-      </div>
-    `;
+  // ---- render ----
+  function renderCatalog() {
+    renderBreadcrumb();
+    const body = $('treeBody');
+    const { subject, board, year, unit } = state.browsePath;
+
+    if (!subject)      return body.innerHTML = renderSubjectLevel();
+    else if (!board)   return body.innerHTML = renderBoardLevel(subject);
+    else if (!year)    return body.innerHTML = renderYearLevel(subject, board);
+    else if (!unit)    return body.innerHTML = renderUnitLevel(subject, board, year);
+    else               return body.innerHTML = renderTopicLevel(subject, board, year, unit);
   }
 
-  function renderTopicNode(t) {
-    const isOpen = state.currentTopic && state.currentTopic.id === t.id;
-    return `
-      <div class="tree-topic ${isOpen ? 'open' : ''}" data-topic-id="${t.id}">
-        <div class="tree-topic-head" onclick="toggleTopic('${t.id}')">
-          <span class="caret">▶</span>
+  function renderBreadcrumb() {
+    const { subject, board, year, unit } = state.browsePath;
+    let html = '<a href="#" onclick="event.preventDefault(); goToSubject(); return false;">Catalogue</a>';
+    if (subject) {
+      html += '<span class="sep">/</span>';
+      html += `<a href="#" onclick="event.preventDefault(); goToSubject(); return false;">${escapeHtml(subject.name)}</a>`;
+    }
+    if (board) {
+      html += '<span class="sep">/</span>';
+      html += `<a href="#" onclick="event.preventDefault(); goToBoard(); return false;">${escapeHtml(board.name)}</a>`;
+    }
+    if (year) {
+      html += '<span class="sep">/</span>';
+      html += `<a href="#" onclick="event.preventDefault(); goToYear(); return false;">${escapeHtml(year.label)}</a>`;
+    }
+    if (unit) {
+      html += '<span class="sep">/</span>';
+      html += `<span class="current">${escapeHtml(unit.name)}</span>`;
+    }
+
+    // Add-button on the right of the breadcrumb — context-aware.
+    const isAdmin = state.role === 'admin';
+    let addBtn = '';
+    if (!subject) {
+      // At the top level: "+ New subject" (always allowed; uses the
+      // existing supabaseClient.from('subjects') insert)
+      addBtn = '<button class="add-btn" onclick="openSubjectModal()">+ Subject</button>';
+    } else if (!board) {
+      // Subject level: only admin can add a new exam board. Staff
+      // authors can still see existing boards for this subject; they
+      // just can't create new ones.
+      addBtn = `<button class="add-btn" ${isAdmin ? '' : 'disabled title="Only admins can add exam boards"'}
+                       onclick="${isAdmin ? 'openAddBoardModal()' : 'return false'}">+ Board</button>`;
+    } else if (!year) {
+      addBtn = `<button class="add-btn" ${isAdmin ? '' : 'disabled title="Only admins can add year levels"'}
+                       onclick="${isAdmin ? 'openAddYearModal()' : 'return false'}">+ Year</button>`;
+    } else if (!unit) {
+      // Year level: any staff role can add a unit.
+      addBtn = '<button class="add-btn" onclick="openAddUnitModal()">+ Unit</button>';
+    } else {
+      // Unit level: any staff role can add a topic to this unit.
+      addBtn = '<button class="add-btn" onclick="openTopicModalForCurrent()">+ Topic</button>';
+    }
+
+    $('catalogHead').innerHTML =
+      `<div class="crumbs-inline">${html}</div>${addBtn}`;
+  }
+
+  // ---- Level 1: subjects ----
+  function renderSubjectLevel() {
+    if (!state.subjects.length) {
+      return `
+        <div class="catalog-empty">
+          No subjects yet.<br>
+          <button onclick="openSubjectModal()">+ Create the first one</button>
+        </div>`;
+    }
+    const cards = state.subjects.map(s => {
+      const board = boardForSubject(s);
+      const yearCount = new Set(
+        state.units
+          .filter(u => u.subject_id === s.id && (!board || u.exam_board_id === board.id))
+          .map(u => u.year_id)
+      ).size;
+      const unitCount = state.units.filter(u => u.subject_id === s.id).length;
+      const meta = board
+        ? `${escapeHtml(s.exam_board)} · ${unitCount} unit${unitCount === 1 ? '' : 's'}`
+        : `${unitCount} unit${unitCount === 1 ? '' : 's'}`;
+      return `
+        <div class="catalog-card" onclick="enterSubject('${s.id}')">
+          <button class="kebab" title="Rename" onclick="event.stopPropagation(); openSubjectModal('${s.id}')">✎</button>
+          <div class="name">${escapeHtml(s.name)}</div>
+          <div class="meta">${meta}</div>
+        </div>`;
+    }).join('');
+    return `<div class="catalog-grid">${cards}</div>`;
+  }
+
+  // ---- Level 2: boards for a subject ----
+  function renderBoardLevel(subject) {
+    // Distinct exam boards that actually have at least one unit for
+    // this subject.
+    const boardsForSubj = state.boards.filter(b =>
+      state.units.some(u => u.subject_id === subject.id && u.exam_board_id === b.id)
+    );
+    if (!boardsForSubj.length) {
+      return `
+        <div class="catalog-empty">
+          No exam boards for ${escapeHtml(subject.name)} yet.<br>
+          ${state.role === 'admin'
+            ? '<button onclick="openAddBoardModal()">+ Add the first board</button>'
+            : '<div style="margin-top:8px;font-size:11.5px;">Only admins can add exam boards.</div>'}
+        </div>`;
+    }
+    const cards = boardsForSubj.map(b => {
+      const unitCount = state.units.filter(u =>
+        u.subject_id === subject.id && u.exam_board_id === b.id
+      ).length;
+      const yearCount = new Set(state.units
+        .filter(u => u.subject_id === subject.id && u.exam_board_id === b.id)
+        .map(u => u.year_id)).size;
+      return `
+        <div class="catalog-card" onclick="enterBoard('${b.id}')">
+          <button class="kebab" title="Rename" onclick="event.stopPropagation(); openRenameBoardModal('${b.id}')">✎</button>
+          <div class="name">${escapeHtml(b.name)}</div>
+          <div class="meta">${yearCount} year${yearCount === 1 ? '' : 's'} · ${unitCount} unit${unitCount === 1 ? '' : 's'}</div>
+        </div>`;
+    }).join('');
+    return `<div class="catalog-grid">${cards}</div>`;
+  }
+
+  // ---- Level 3: years for (subject, board) ----
+  function renderYearLevel(subject, board) {
+    const yearsForPair = state.years.filter(y =>
+      state.units.some(u =>
+        u.subject_id === subject.id && u.exam_board_id === board.id && u.year_id === y.id
+      )
+    );
+    if (!yearsForPair.length) {
+      return `
+        <div class="catalog-empty">
+          No years for ${escapeHtml(subject.name)} / ${escapeHtml(board.name)} yet.
+          <div style="margin-top:8px;font-size:11.5px;">Add a year (admin) or a unit in the GCSE / A-level year.</div>
+        </div>`;
+    }
+    const cards = yearsForPair.map(y => {
+      const unitCount = state.units.filter(u =>
+        u.subject_id === subject.id && u.exam_board_id === board.id && u.year_id === y.id
+      ).length;
+      return `
+        <div class="catalog-card" onclick="enterYear('${y.id}')">
+          <div class="name">${escapeHtml(y.label)}</div>
+          <div class="meta">${unitCount} unit${unitCount === 1 ? '' : 's'}</div>
+        </div>`;
+    }).join('');
+    return `<div class="catalog-grid">${cards}</div>`;
+  }
+
+  // ---- Level 4: units for (subject, board, year) ----
+  function renderUnitLevel(subject, board, year) {
+    const unitsForTriple = state.units.filter(u =>
+      u.subject_id === subject.id && u.exam_board_id === board.id && u.year_id === year.id
+    );
+    if (!unitsForTriple.length) {
+      return `
+        <div class="catalog-empty">
+          No units in ${escapeHtml(subject.name)} / ${escapeHtml(board.name)} / ${escapeHtml(year.label)} yet.<br>
+          <button onclick="openAddUnitModal()">+ Add the first unit</button>
+        </div>`;
+    }
+    const cards = unitsForTriple.map(u => {
+      const topicCount = state.subjects
+        .find(s => s.id === subject.id)
+        .topics.filter(t => t.unit_id === u.id).length;
+      const lessonCount = state.subjects
+        .find(s => s.id === subject.id)
+        .topics
+        .filter(t => t.unit_id === u.id)
+        .reduce((acc, t) => acc + (t.lessons || []).length, 0);
+      return `
+        <div class="catalog-card" onclick="enterUnit('${u.id}')">
+          <button class="kebab" title="Rename" onclick="event.stopPropagation(); openRenameUnitModal('${u.id}')">✎</button>
+          <button class="kebab" title="Delete" onclick="event.stopPropagation(); confirmDeleteUnit('${u.id}')" style="right:28px;">🗑</button>
+          <div class="name">${escapeHtml(u.name)}</div>
+          <div class="meta">${topicCount} topic${topicCount === 1 ? '' : 's'} · ${lessonCount} lesson${lessonCount === 1 ? '' : 's'}</div>
+        </div>`;
+    }).join('');
+    return `<div class="catalog-grid">${cards}</div>`;
+  }
+
+  // ---- Level 5: topics + lessons inside a unit (right editor unchanged) ----
+  function renderTopicLevel(subject, board, year, unit) {
+    const topicsInUnit = state.subjects
+      .find(s => s.id === subject.id)
+      .topics.filter(t => t.unit_id === unit.id);
+
+    const topicRows = topicsInUnit.map(t => {
+      const isActive = state.currentTopic && state.currentTopic.id === t.id;
+      return `
+        <div class="topic-row ${isActive ? 'active' : ''}" onclick="enterTopic('${t.id}')">
           <span class="name">${escapeHtml(t.name)}</span>
+          ${(t.lessons || []).length
+            ? `<span style="color:var(--text-4); font-size:11px;">${t.lessons.length}</span>`
+            : ''}
           <button class="row-btn" title="Rename" onclick="event.stopPropagation(); openTopicModal('${t.id}')">✎</button>
           <button class="row-btn" title="Delete" onclick="event.stopPropagation(); deleteTopic('${t.id}')">🗑</button>
         </div>
-        <div class="tree-lessons">
-          ${(t.lessons || []).map(l => renderLessonNode(t, l)).join('')}
-          <div class="tree-add">
-            <button onclick="openLessonModal('${t.id}')">+ Lesson</button>
-          </div>
+        ${(t.lessons || []).map(l => renderLessonRow(t, l)).join('')}`;
+    }).join('');
+
+    return `
+      <div class="catalog-topics">
+        ${topicRows || '<div class="catalog-empty" style="padding:18px 14px;">No topics in this unit yet. Add the first one.</div>'}
+        <div class="add-row">
+          <button onclick="openTopicModalForCurrent()">+ Topic</button>
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
-  function renderLessonNode(topic, l) {
+  function renderLessonRow(topic, l) {
     const isActive = state.currentLesson && state.currentLesson.id === l.id;
     return `
-      <div class="tree-lesson ${isActive ? 'active' : ''}" data-lesson-id="${l.id}" onclick="openLesson('${l.id}')">
+      <div class="topic-row ${isActive ? 'active' : ''}"
+           style="padding-left:28px; font-size:12px; color:var(--text-3);"
+           onclick="openLesson('${l.id}')">
         <span class="name">${escapeHtml(l.title)}</span>
+        <span style="color:var(--text-4); font-size:11px;">${l.duration_min ?? 20}m</span>
         <button class="row-btn" title="Rename" onclick="event.stopPropagation(); openLessonModal('${topic.id}', '${l.id}')">✎</button>
         <button class="row-btn" title="Delete" onclick="event.stopPropagation(); deleteLesson('${l.id}')">🗑</button>
-      </div>
-    `;
+      </div>`;
   }
 
-  window.toggleSubject = (id) => {
-    const el = document.querySelector(`.tree-subject[data-subj-id="${id}"]`);
-    if (el) el.classList.toggle('open');
+  // ---- navigation entrypoints (click a card) ----
+  window.enterSubject = (id) => {
+    const s = state.subjects.find(x => x.id === id);
+    if (!s) return;
+    state.browsePath = { subject: s, board: null, year: null, unit: null };
+    state.currentSubject = s;
+    renderCatalog();
   };
-  window.toggleTopic = (id) => {
-    const el = document.querySelector(`.tree-topic[data-topic-id="${id}"]`);
-    if (el) el.classList.toggle('open');
+  window.enterBoard = (id) => {
+    const b = state.boardMap[id];
+    if (!b) return;
+    state.browsePath.board = b;
+    state.browsePath.year = null;
+    state.browsePath.unit = null;
+    renderCatalog();
+  };
+  window.enterYear = (id) => {
+    const y = state.yearMap[id];
+    if (!y) return;
+    state.browsePath.year = y;
+    state.browsePath.unit = null;
+    renderCatalog();
+  };
+  window.enterUnit = (id) => {
+    const u = state.units.find(x => x.id === id);
+    if (!u) return;
+    state.browsePath.unit = u;
+    renderCatalog();
+  };
+  window.enterTopic = (id) => {
+    const found = findTopic(id);
+    if (!found) return;
+    state.currentSubject = state.subjects.find(s => s.id === found.subject_id);
+    state.currentTopic = found;
+    renderCatalog();
+  };
+  window.goToSubject = goToSubject;
+  window.goToBoard = goToBoard;
+  window.goToYear = goToYear;
+  window.goUp = goUp;
+
+  // ---------- unit / board / year modals ----------
+  // All write through SECURITY DEFINER RPCs from supabase_units.sql.
+  // Client-side role checks here are cosmetic (for the disabled state
+  // and tooltip) — the RPCs are the source of truth.
+
+  // ---- exam boards ----
+  window.openAddBoardModal = () => {
+    openModal('New exam board', `
+      <form id="boardForm" class="editor" style="padding:0;">
+        <div class="form-row">
+          <label>Board name</label>
+          <input name="name" required placeholder="e.g. AQA" autofocus />
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Create</button>
+        </div>
+      </form>`);
+    $('boardForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = e.target.name.value.trim();
+      if (!name) return;
+      const { error } = await supabaseClient.rpc('create_exam_board', { p_name: name });
+      if (error) { toast('Create failed: ' + error.message, 'error'); return; }
+      toast('Exam board created', 'success');
+      closeModal();
+      await loadTree();
+    });
+  };
+
+  window.openRenameBoardModal = (id) => {
+    const b = state.boardMap[id];
+    if (!b) return;
+    openModal('Rename exam board', `
+      <form id="boardForm" class="editor" style="padding:0;">
+        <div class="form-row">
+          <label>Board name</label>
+          <input name="name" required value="${escapeHtml(b.name)}" autofocus />
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Save</button>
+        </div>
+      </form>`);
+    $('boardForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = e.target.name.value.trim();
+      if (!name) return;
+      const { error } = await supabaseClient.rpc('rename_exam_board', { p_id: id, p_name: name });
+      if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+      toast('Exam board renamed', 'success');
+      closeModal();
+      await loadTree();
+    });
+  };
+
+  // ---- years ----
+  window.openAddYearModal = () => {
+    openModal('New year level', `
+      <form id="yearForm" class="editor" style="padding:0;">
+        <div class="form-row">
+          <label>Label</label>
+          <input name="label" required placeholder="e.g. Year 10, GCSE, A-level" autofocus />
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Create</button>
+        </div>
+      </form>`);
+    $('yearForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const label = e.target.label.value.trim();
+      if (!label) return;
+      const { error } = await supabaseClient.rpc('create_year', { p_label: label });
+      if (error) { toast('Create failed: ' + error.message, 'error'); return; }
+      toast('Year created', 'success');
+      closeModal();
+      await loadTree();
+    });
+  };
+
+  window.openRenameYearModal = (id) => {
+    const y = state.yearMap[id];
+    if (!y) return;
+    openModal('Rename year level', `
+      <form id="yearForm" class="editor" style="padding:0;">
+        <div class="form-row">
+          <label>Label</label>
+          <input name="label" required value="${escapeHtml(y.label)}" autofocus />
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Save</button>
+        </div>
+      </form>`);
+    $('yearForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const label = e.target.label.value.trim();
+      if (!label) return;
+      const { error } = await supabaseClient.rpc('rename_year', { p_id: id, p_label: label });
+      if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+      toast('Year renamed', 'success');
+      closeModal();
+      await loadTree();
+    });
+  };
+
+  // ---- units ----
+  // openAddUnitModal is called from the year level — it needs the
+  // current (subject, board, year) triple. We capture it from
+  // state.browsePath at modal-open time so the form doesn't get
+  // confused if the user navigates while it's open.
+  window.openAddUnitModal = () => {
+    const { subject, board, year } = state.browsePath;
+    if (!subject || !board || !year) {
+      toast('Pick a subject, board, and year first', 'error');
+      return;
+    }
+    const subjectId = subject.id, boardId = board.id, yearId = year.id;
+    openModal('New unit', `
+      <form id="unitForm" class="editor" style="padding:0;">
+        <div class="form-row">
+          <label>Unit name</label>
+          <input name="name" required placeholder="e.g. Cell structure" autofocus />
+        </div>
+        <div class="form-row">
+          <label>Description <span style="color:var(--text-4);">(optional)</span></label>
+          <textarea name="description" rows="3" placeholder="What this unit covers."></textarea>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Create</button>
+        </div>
+      </form>`);
+    $('unitForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const name = (fd.get('name') || '').toString().trim();
+      if (!name) return;
+      const { error } = await supabaseClient.rpc('create_unit', {
+        p_subject_id: subjectId,
+        p_exam_board_id: boardId,
+        p_year_id: yearId,
+        p_name: name,
+      });
+      if (error) { toast('Create failed: ' + error.message, 'error'); return; }
+      toast('Unit created', 'success');
+      closeModal();
+      await loadTree();
+    });
+  };
+
+  window.openRenameUnitModal = (id) => {
+    const u = state.units.find(x => x.id === id);
+    if (!u) return;
+    openModal('Rename unit', `
+      <form id="unitForm" class="editor" style="padding:0;">
+        <div class="form-row">
+          <label>Unit name</label>
+          <input name="name" required value="${escapeHtml(u.name)}" autofocus />
+        </div>
+        <div class="form-row">
+          <label>Description <span style="color:var(--text-4);">(optional)</span></label>
+          <textarea name="description" rows="3">${escapeHtml(u.description || '')}</textarea>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Save</button>
+        </div>
+      </form>`);
+    $('unitForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = e.target.name.value.trim();
+      if (!name) return;
+      const { error } = await supabaseClient.rpc('rename_unit', { p_id: id, p_name: name });
+      if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+      toast('Unit renamed', 'success');
+      closeModal();
+      await loadTree();
+    });
+  };
+
+  window.confirmDeleteUnit = async (id) => {
+    const u = state.units.find(x => x.id === id);
+    if (!u) return;
+    if (!confirm(`Delete unit "${u.name}"? Topics in it will become orphan (not deleted) and can be re-attached to another unit.`)) return;
+    const { error } = await supabaseClient.rpc('delete_unit', { p_id: id });
+    if (error) { toast('Delete failed: ' + error.message, 'error'); return; }
+    toast('Unit deleted', 'success');
+    if (state.browsePath.unit?.id === id) state.browsePath.unit = null;
+    await loadTree();
+  };
+
+  // ---- topic create inside a unit ----
+  // Replaces the old "+ Topic" button that targeted a subject. Now
+  // topics always live in (subject, board, year, unit), and we use
+  // the current browse path to know where to put it.
+  window.openTopicModalForCurrent = () => {
+    const { subject, board, year, unit } = state.browsePath;
+    if (!subject || !board || !year || !unit) {
+      toast('Navigate to a unit first', 'error');
+      return;
+    }
+    const subjectId = subject.id, unitId = unit.id;
+    openModal('New topic', `
+      <form id="topicForm" class="editor" style="padding:0;">
+        <div class="form-row">
+          <label>Topic name</label>
+          <input name="name" required placeholder="e.g. Cell structure" autofocus />
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+          <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Create</button>
+        </div>
+      </form>`);
+    $('topicForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = e.target.name.value.trim();
+      if (!name) return;
+      // Order within the unit
+      const next = state.subjects
+        .find(s => s.id === subjectId)
+        .topics.filter(t => t.unit_id === unitId).length;
+      const { error } = await supabaseClient.from('topics').insert({
+        name,
+        subject_id: subjectId,
+        unit_id: unitId,
+        order_index: next,
+      });
+      if (error) { toast('Create failed: ' + error.message, 'error'); return; }
+      toast('Topic created', 'success');
+      closeModal();
+      await loadTree();
+    });
   };
 
   // ---------- modal (shared) ----------
@@ -1461,7 +2081,7 @@
       blocks: blocks || [],
     };
     state.dirty = false;
-    renderTree();
+    renderCatalog();
     renderEditor();
   };
 
@@ -1470,7 +2090,7 @@
       <div class="empty-state" id="emptyState">
         <div>
           <h2>Lesson creator</h2>
-          <p>Pick a subject, topic, and lesson on the left to start editing. Or create a new one.</p>
+          <p>Pick a subject, exam board, year, unit, and topic on the left to start editing. Or create a new one.</p>
           <div class="actions">
             <button class="btn-primary" onclick="document.getElementById('newSubjectBtn').click()">+ New subject</button>
           </div>
@@ -1485,17 +2105,37 @@
     const topic = state.currentTopic;
     const subj  = state.currentSubject;
 
+    // Build the breadcrumb for the editor topbar. When the editor was
+    // opened from a unit (i.e. the browse path is set), include the
+    // board → year → unit path. The unit/board/year links jump back
+    // to the corresponding catalog level.
+    let breadcrumb = `
+      <a href="#" onclick="renderEmpty(); goToSubject(); return false;">Catalogue</a>
+      <span class="sep">/</span>
+      <span>${escapeHtml(subj.name)}</span>`;
+    const unit = state.browsePath.unit;
+    const year = state.browsePath.year;
+    const board = state.browsePath.board;
+    if (board) {
+      breadcrumb += `<span class="sep">/</span><span>${escapeHtml(board.name)}</span>`;
+    }
+    if (year) {
+      breadcrumb += `<span class="sep">/</span><span>${escapeHtml(year.label)}</span>`;
+    }
+    if (unit) {
+      breadcrumb += `<span class="sep">/</span><span>${escapeHtml(unit.name)}</span>`;
+    }
+    breadcrumb += `
+      <span class="sep">/</span>
+      <span>${escapeHtml(topic.name)}</span>
+      <span class="sep">/</span>
+      <span class="current">${escapeHtml(L.title)}</span>
+      <span class="status-pill ${L.status || 'draft'}" id="lessonStatusPill">${L.status === 'published' ? 'Published' : 'Draft'}</span>`;
+
     $('main').innerHTML = `
       <div class="topbar">
         <div class="crumbs">
-          <a href="#" onclick="renderEmpty(); return false;">Catalogue</a>
-          <span class="sep">/</span>
-          <span>${escapeHtml(subj.name)}</span>
-          <span class="sep">/</span>
-          <span>${escapeHtml(topic.name)}</span>
-          <span class="sep">/</span>
-          <span class="current">${escapeHtml(L.title)}</span>
-          <span class="status-pill ${L.status || 'draft'}" id="lessonStatusPill">${L.status === 'published' ? 'Published' : 'Draft'}</span>
+          ${breadcrumb}
         </div>
         <div class="right">
           <button class="btn-ghost" id="previewBtn">Preview</button>
@@ -1611,11 +2251,8 @@
     state.dirty = false;
     renderEditorHeader();
     await loadTree();
-    // re-open this lesson in the tree to refresh the title
-    renderTree();
-    // re-mark active
-    const active = document.querySelector(`.tree-lesson[data-lesson-id="${L.id}"]`);
-    if (active) active.classList.add('active');
+    // re-mark active (the new card grid highlights state.currentLesson via re-render)
+    renderCatalog();
     toast('Lesson saved', 'success');
   }
 
