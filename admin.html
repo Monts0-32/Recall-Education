@@ -724,6 +724,7 @@
     }
     state.role = role;
     $('userName').textContent = data.user.user_metadata?.full_name || data.user.email;
+    $('gate').classList.add('hidden');
     $('app').classList.remove('hidden');
     showSection('dashboard');
   }
@@ -802,30 +803,26 @@
   async function loadStaff() {
     const tbody = $('staffRows');
     tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Loading…</td></tr>';
-    const { data, error } = await supabaseClient
-      .from('profiles')
-      .select('id, full_name, role, created_at, last_sign_in_at')
-      .in('role', ['staff_author', 'staff_reviewer', 'admin'])
-      .order('created_at', { ascending: true });
+    // profiles doesn't have last_sign_in_at (that's on auth.users),
+    // and auth.users isn't RLS-open. The list_staff RPC joins them
+    // and is the only way to get the "last sign-in" column for the
+    // table.
+    const { data, error } = await supabaseClient.rpc('list_staff');
     if (error) {
       tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Error: ${escapeHtml(error.message)}</td></tr>`;
       return;
     }
-    $('staffCount').textContent = data.length;
-    if (!data.length) {
+    const rows = data || [];
+    $('staffCount').textContent = rows.length;
+    if (!rows.length) {
       tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No staff accounts yet.</td></tr>';
       return;
     }
-    // We also want emails, which live on auth.users. The profiles
-    // table doesn't denormalise email. We don't have a SECURITY
-    // DEFINER RPC for "list staff with emails", so for now the
-    // email column shows "—". The "change role" and "revoke"
-    // actions work off the profile id alone.
-    tbody.innerHTML = data.map((p) => `
+    tbody.innerHTML = rows.map((p) => `
       <tr data-uid="${escapeHtml(p.id)}">
         <td>
           <div style="font-weight: 500;">${escapeHtml(p.full_name || '(no name)')}</div>
-          <div class="meta" id="email-${escapeHtml(p.id)}">—</div>
+          <div class="meta">${escapeHtml(p.email || '')}</div>
         </td>
         <td><span class="role-pill ${escapeHtml(p.role)}">${roleLabel(p.role)}</span></td>
         <td class="meta">${fmtDate(p.last_sign_in_at)}</td>

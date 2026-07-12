@@ -868,6 +868,35 @@ $$;
 
 grant execute on function public.current_role() to authenticated;
 
+-- list_staff: returns profile rows for all staff users, joined to
+-- auth.users for email and last sign-in timestamp. The auth.users
+-- table isn't RLS-open for the authenticated role, so we need a
+-- SECURITY DEFINER RPC to do the join. Used by the admin.html
+-- Staff panel.
+create or replace function public.list_staff()
+returns table (
+  id              uuid,
+  full_name       text,
+  role            text,
+  email           text,
+  last_sign_in_at timestamptz,
+  created_at      timestamptz
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select p.id, p.full_name, p.role, u.email::text,
+         u.last_sign_in_at, p.created_at
+    from public.profiles p
+    join auth.users u on u.id = p.id
+   where p.role in ('staff_author', 'staff_reviewer', 'admin')
+   order by p.created_at asc;
+$$;
+
+grant execute on function public.list_staff() to authenticated;
+
 -- ============================================================================
 -- DONE. After running this:
 --   1. Re-enable the Custom Access Token hook in the Supabase dashboard
