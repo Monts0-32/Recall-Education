@@ -654,17 +654,20 @@
       const originalText = submitBtn.textContent;
       submitBtn.textContent = 'Creating account…';
 
-      // After signUp, Supabase's `send_email` auth hook fires our Edge
-      // Function, which sends the confirmation email via Resend and (for
-      // under-16s) emails the parent a consent request. The student just
-      // waits for the email. The `emailRedirectTo` below is the page the
-      // user lands on AFTER clicking the link in the email — that's why it
-      // points at /auth/confirmed.html, not /dashboard.html (which would
-      // be immediately bounced for under-16s by check_parental_consent).
+      // The `emailRedirectTo` below is the page the user lands on AFTER
+      // clicking the link in the confirmation email — it points at
+      // /auth/confirmed.html, not /dashboard.html (which would be
+      // immediately bounced for under-16s by check_parental_consent).
+      // Supabase sends the confirmation email itself (using whichever
+      // template is configured in Auth → Email Templates). For under-16s
+      // we ALSO call our send-consent-email Edge Function to email the
+      // parent a one-time consent link — that function is the only way
+      // the parent gets contacted, since we no longer have an auth hook
+      // firing on signup.
       const redirectTo = window.location.origin + '/auth/confirmed.html';
 
       try {
-        const { error } = await supabaseClient.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
           email: email.value.trim(),
           password: password.value,
           options: {
@@ -684,11 +687,44 @@
           return showError(explainAuthError(error.message));
         }
 
-        // Account is created. The Edge Function handles emailing the
-        // student (and the parent, if under 16). We do NOT show the consent
-        // link in the banner — anyone who saw the page could grab it. The
-        // parent gets a real email from hello@recalleducation.co.uk.
+        const newUserId = data && data.user && data.user.id;
+        if (!newUserId) {
+          // Supabase returned a successful response but no user — that
+          // shouldn't happen, but if it does we don't want to silently
+          // succeed without a confirmation flow.
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+          return showError('Account was created but something went wrong contacting the server. Please try signing in.');
+        }
+
+        // For under-16s, fire the consent email to the parent. This
+        // doesn't gate the success message — if the email fails, the
+        // student can re-trigger it from the dashboard (future feature).
+        // We don't show the consent link in the banner; the parent gets
+        // a real email from hello@recalleducation.co.uk.
         if (needsConsent) {
+          try {
+            const { error: fnErr } = await supabaseClient.functions.invoke(
+              'send-consent-email',
+              {
+                body: {
+                  student_user_id: newUserId,
+                  parent_email: parentEmail.value.trim(),
+                  student_name: name.value.trim(),
+                  origin: window.location.origin,
+                },
+              }
+            );
+            if (fnErr) {
+              // Non-fatal: the account exists, the student can confirm
+              // their email and log in. The parent just won't get the
+              // email automatically — they can re-request it later.
+              console.error('send-consent-email invoke failed:', fnErr);
+            }
+          } catch (err) {
+            console.error('send-consent-email threw:', err);
+          }
+
           showOk(
             'We sent a confirmation link to ' + email.value.trim() +
             ' and a consent link to ' + parentEmail.value.trim() +

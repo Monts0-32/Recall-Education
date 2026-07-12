@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Recall — Auth email templates</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --green:     #3FB950;
+      --yellow:    #D29922;
+      --red:       #F85149;
+      --r-sm: 6px;
+      --r-md: 8px;
+      --maxw: 980px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+      position: sticky; top: 0; z-index: 10;
+    }
+    nav.top .row {
+      max-width: var(--maxw); margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px;
+    }
+    .brand-mark {
+      width: 28px; height: 28px;
+      background: var(--blue); color: #fff;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 14px;
+      border-radius: var(--r-sm);
+    }
+    nav.top .right { font-size: 13px; color: var(--text-3); }
+
+    .page {
+      max-width: var(--maxw); margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px; font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .lede {
+      color: var(--text-2);
+      font-size: 15px;
+      margin: 0 0 32px;
+      max-width: 60ch;
+    }
+
+    .template {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      margin-bottom: 32px;
+      overflow: hidden;
+    }
+    .template-head {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+    }
+    .template-title {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 600; font-size: 15px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      font-size: 11px; font-weight: 600;
+      background: rgba(56,139,253,0.15);
+      color: var(--blue);
+      border-radius: var(--r-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge.warn { background: rgba(210,153,34,0.15); color: var(--yellow); }
+    .badge.err  { background: rgba(248,81,73,0.15); color: var(--red); }
+
+    .meta {
+      padding: 14px 20px;
+      background: rgba(56,139,253,0.05);
+      border-bottom: 1px solid var(--line);
+      font-size: 12.5px; color: var(--text-3);
+    }
+    .meta b { color: var(--text-2); font-weight: 600; }
+    .meta code {
+      font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+      background: var(--bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .template-body {
+      padding: 20px;
+    }
+    .template-body h3 {
+      margin: 0 0 8px;
+      font-size: 13px; font-weight: 600;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .field {
+      margin-bottom: 16px;
+    }
+    .field label {
+      display: block;
+      font-size: 12px; font-weight: 500;
+      color: var(--text-3);
+      margin-bottom: 6px;
+    }
+    .field .copy-row {
+      display: flex; gap: 8px; align-items: stretch;
+    }
+    .field textarea, .field input[type="text"] {
+      width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 10px 12px;
+      font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+      font-size: 12.5px;
+      line-height: 1.5;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .field textarea { min-height: 280px; }
+    .field textarea:focus, .field input[type="text"]:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(56,139,253,0.15);
+    }
+    .field input[type="text"] { min-height: 38px; }
+    .copy-btn {
+      flex: 0 0 auto;
+      background: var(--bg-3);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 0 14px;
+      font-family: inherit;
+      font-size: 12.5px; font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+      white-space: nowrap;
+    }
+    .copy-btn:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .copy-btn.copied {
+      background: rgba(63,185,80,0.15);
+      border-color: rgba(63,185,80,0.4);
+      color: var(--green);
+    }
+    .copy-btn .label-default { display: inline; }
+    .copy-btn .label-done { display: none; }
+    .copy-btn.copied .label-default { display: none; }
+    .copy-btn.copied .label-done { display: inline; }
+
+    .preview {
+      margin-top: 16px;
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      overflow: hidden;
+      background: #FFFFFF;
+    }
+    .preview-label {
+      padding: 6px 12px;
+      background: var(--bg-3);
+      font-size: 11px; font-weight: 500;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .note {
+      padding: 12px 16px;
+      background: rgba(56,139,253,0.08);
+      border-left: 3px solid var(--blue);
+      border-radius: var(--r-sm);
+      font-size: 12.5px;
+      color: var(--text-2);
+      margin-bottom: 16px;
+    }
+    .note b { color: var(--text); font-weight: 600; }
+    .note.warn {
+      background: rgba(210,153,34,0.08);
+      border-left-color: var(--yellow);
+    }
+    .note.err {
+      background: rgba(248,81,73,0.08);
+      border-left-color: var(--red);
+    }
+
+    details {
+      margin-top: 12px;
+    }
+    details summary {
+      cursor: pointer;
+      font-size: 12.5px;
+      color: var(--text-3);
+      padding: 4px 0;
+    }
+    details summary:hover { color: var(--text-2); }
+    details[open] summary { color: var(--text-2); margin-bottom: 8px; }
+    details .vars {
+      font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+      font-size: 12px;
+      color: var(--text-2);
+      background: var(--bg);
+      padding: 10px 12px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--line);
+    }
+    details .vars div { padding: 2px 0; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html"><span class="brand-mark">R</span> Recall</a>
+    <div class="right">Auth email templates for Supabase</div>
+  </div>
+</nav>
+
+<main class="page">
+
+  <h1>Auth email templates</h1>
+  <p class="lede">
+    The HTML for the four Supabase auth email templates — Confirm signup, Password recovery,
+    Magic link, and Email change. Each block has a <b>Subject</b> and a <b>Body (HTML)</b>
+    field. Use the copy buttons to grab the value, then paste it into
+    <a href="https://supabase.com/dashboard/project/hkjiyibpeqdoqzlyqzwz/auth/templates" target="_blank" rel="noopener">Auth → Email Templates</a>
+    in your Supabase dashboard.
+  </p>
+
+  <div class="note">
+    <b>Setup context:</b> these templates are designed for Supabase sending email via
+    <b>Custom SMTP → Resend</b> (configured in
+    <a href="https://supabase.com/dashboard/project/hkjiyibpeqdoqzlyqzwz/settings/auth" target="_blank" rel="noopener">Settings → Auth → SMTP</a>).
+    The <code>{{ .ConfirmationURL }}</code> variable is the magic link Supabase generates —
+    click it and the user lands on the page configured in <b>Site URL</b> /
+    <b>Redirect URLs</b>. We use <code>https://recalleducation.co.uk</code> as the base.
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- TEMPLATE 1: Confirm signup                                          -->
+  <!-- ================================================================== -->
+  <section class="template" id="confirm-signup">
+    <div class="template-head">
+      <div class="template-title">
+        Confirm signup
+        <span class="badge">signup</span>
+      </div>
+      <a class="copy-btn" href="https://supabase.com/dashboard/project/hkjiyibpeqdoqzlyqzwz/auth/templates" target="_blank" rel="noopener">
+        Open in dashboard
+      </a>
+    </div>
+    <div class="meta">
+      <b>Where it goes:</b> Supabase → Auth → Email Templates → <b>Confirm signup</b>.
+      <b>Used when:</b> a new user signs up with email/password and "Confirm email" is enabled.
+    </div>
+    <div class="template-body">
+      <div class="field">
+        <label>Subject</label>
+        <div class="copy-row">
+          <input type="text" readonly value="Confirm your Recall email" data-copy />
+          <button class="copy-btn" type="button" data-copy-btn>
+            <span class="label-default">Copy</span>
+            <span class="label-done">Copied</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Body (HTML)</label>
+        <div class="copy-row">
+          <textarea readonly data-copy>&lt;!doctype html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Confirm your Recall email&lt;/title&gt;&lt;/head&gt;
+&lt;body style="margin:0;padding:0;background:#F6F8FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0D1117;"&gt;
+  &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F6F8FA;padding:32px 16px;"&gt;
+    &lt;tr&gt;&lt;td align="center"&gt;
+      &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#FFFFFF;border:1px solid #D0D7DE;border-radius:8px;overflow:hidden;"&gt;
+        &lt;tr&gt;&lt;td style="background:#1F6FEB;padding:18px 24px;font-size:14px;font-weight:700;color:#FFFFFF;letter-spacing:-0.01em;"&gt;
+          &lt;span style="display:inline-block;background:#FFFFFF;color:#1F6FEB;width:22px;height:22px;line-height:22px;text-align:center;border-radius:4px;margin-right:10px;font-size:12px;font-weight:800;"&gt;R&lt;/span&gt;
+          Recall
+        &lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:28px 24px 8px;font-size:18px;font-weight:600;color:#0D1117;letter-spacing:-0.01em;"&gt;Confirm your email&lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:0 24px 24px;font-size:14px;line-height:1.55;color:#1F2328;"&gt;
+          &lt;p style="margin:0 0 14px;"&gt;Welcome to Recall. Click the button below to confirm your email and finish setting up your account.&lt;/p&gt;
+          &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;"&gt;
+            &lt;tr&gt;&lt;td bgcolor="#1F6FEB" style="border-radius:6px;"&gt;
+              &lt;a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:11px 20px;font-family:inherit;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:6px;"&gt;Confirm email&lt;/a&gt;
+            &lt;/td&gt;&lt;/tr&gt;
+          &lt;/table&gt;
+          &lt;p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#57606A;word-break:break-all;"&gt;
+            If the button doesn't work, paste this link into your browser:&lt;br&gt;
+            &lt;a href="{{ .ConfirmationURL }}" style="color:#1F6FEB;"&gt;{{ .ConfirmationURL }}&lt;/a&gt;
+          &lt;/p&gt;
+          &lt;p style="margin:18px 0 0;font-size:13px;color:#57606A;"&gt;This link expires in 24 hours. If you didn't sign up, you can safely ignore this email.&lt;/p&gt;
+        &lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:14px 24px;border-top:1px solid #D0D7DE;background:#F6F8FA;font-size:12px;color:#57606A;"&gt;
+          Recall Education Ltd &middot; UK &middot;
+          &lt;a href="mailto:hello@recalleducation.co.uk" style="color:#1F6FEB;"&gt;Contact us&lt;/a&gt;
+        &lt;/td&gt;&lt;/tr&gt;
+      &lt;/table&gt;
+    &lt;/td&gt;&lt;/tr&gt;
+  &lt;/table&gt;
+&lt;/body&gt;
+&lt;/html&gt;</textarea>
+          <button class="copy-btn" type="button" data-copy-btn>
+            <span class="label-default">Copy</span>
+            <span class="label-done">Copied</span>
+          </button>
+        </div>
+      </div>
+
+      <details>
+        <summary>Available template variables</summary>
+        <div class="vars">
+          <div><b>{{ .ConfirmationURL }}</b> — magic link (use this in the CTA button)</div>
+          <div><b>{{ .Token }}</b> — 6-digit OTP, also valid as a code</div>
+          <div><b>{{ .TokenHash }}</b> — hashed token (used internally)</div>
+          <div><b>{{ .SiteURL }}</b> — Site URL from your dashboard config</div>
+          <div><b>{{ .Email }}</b> — the user's email address</div>
+          <div><b>{{ .Data }}</b> — full user_metadata blob (from signUp options.data)</div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ================================================================== -->
+  <!-- TEMPLATE 2: Password recovery                                      -->
+  <!-- ================================================================== -->
+  <section class="template" id="password-recovery">
+    <div class="template-head">
+      <div class="template-title">
+        Password recovery
+        <span class="badge warn">recovery</span>
+      </div>
+      <a class="copy-btn" href="https://supabase.com/dashboard/project/hkjiyibpeqdoqzlyqzwz/auth/templates" target="_blank" rel="noopener">
+        Open in dashboard
+      </a>
+    </div>
+    <div class="meta">
+      <b>Where it goes:</b> Supabase → Auth → Email Templates → <b>Reset password</b>.
+      <b>Used when:</b> a user requests a password reset (the link goes to /reset-password.html).
+    </div>
+    <div class="template-body">
+      <div class="field">
+        <label>Subject</label>
+        <div class="copy-row">
+          <input type="text" readonly value="Reset your Recall password" data-copy />
+          <button class="copy-btn" type="button" data-copy-btn>
+            <span class="label-default">Copy</span>
+            <span class="label-done">Copied</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Body (HTML)</label>
+        <div class="copy-row">
+          <textarea readonly data-copy>&lt;!doctype html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Reset your Recall password&lt;/title&gt;&lt;/head&gt;
+&lt;body style="margin:0;padding:0;background:#F6F8FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0D1117;"&gt;
+  &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F6F8FA;padding:32px 16px;"&gt;
+    &lt;tr&gt;&lt;td align="center"&gt;
+      &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#FFFFFF;border:1px solid #D0D7DE;border-radius:8px;overflow:hidden;"&gt;
+        &lt;tr&gt;&lt;td style="background:#1F6FEB;padding:18px 24px;font-size:14px;font-weight:700;color:#FFFFFF;letter-spacing:-0.01em;"&gt;
+          &lt;span style="display:inline-block;background:#FFFFFF;color:#1F6FEB;width:22px;height:22px;line-height:22px;text-align:center;border-radius:4px;margin-right:10px;font-size:12px;font-weight:800;"&gt;R&lt;/span&gt;
+          Recall
+        &lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:28px 24px 8px;font-size:18px;font-weight:600;color:#0D1117;letter-spacing:-0.01em;"&gt;Reset your password&lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:0 24px 24px;font-size:14px;line-height:1.55;color:#1F2328;"&gt;
+          &lt;p style="margin:0 0 14px;"&gt;Someone (hopefully you) asked to reset the password on this Recall account.&lt;/p&gt;
+          &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;"&gt;
+            &lt;tr&gt;&lt;td bgcolor="#1F6FEB" style="border-radius:6px;"&gt;
+              &lt;a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:11px 20px;font-family:inherit;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:6px;"&gt;Reset password&lt;/a&gt;
+            &lt;/td&gt;&lt;/tr&gt;
+          &lt;/table&gt;
+          &lt;p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#57606A;word-break:break-all;"&gt;
+            If the button doesn't work, paste this link into your browser:&lt;br&gt;
+            &lt;a href="{{ .ConfirmationURL }}" style="color:#1F6FEB;"&gt;{{ .ConfirmationURL }}&lt;/a&gt;
+          &lt;/p&gt;
+          &lt;p style="margin:18px 0 0;font-size:13px;color:#57606A;"&gt;This link expires in 1 hour. If you didn't request a reset, you can safely ignore this email &mdash; your password will not change.&lt;/p&gt;
+        &lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:14px 24px;border-top:1px solid #D0D7DE;background:#F6F8FA;font-size:12px;color:#57606A;"&gt;
+          Recall Education Ltd &middot; UK &middot;
+          &lt;a href="mailto:hello@recalleducation.co.uk" style="color:#1F6FEB;"&gt;Contact us&lt;/a&gt;
+        &lt;/td&gt;&lt;/tr&gt;
+      &lt;/table&gt;
+    &lt;/td&gt;&lt;/tr&gt;
+  &lt;/table&gt;
+&lt;/body&gt;
+&lt;/html&gt;</textarea>
+          <button class="copy-btn" type="button" data-copy-btn>
+            <span class="label-default">Copy</span>
+            <span class="label-done">Copied</span>
+          </button>
+        </div>
+      </div>
+
+      <details>
+        <summary>Available template variables</summary>
+        <div class="vars">
+          <div><b>{{ .ConfirmationURL }}</b> — recovery link (lands on /reset-password.html)</div>
+          <div><b>{{ .Token }}</b> — 6-digit OTP</div>
+          <div><b>{{ .SiteURL }}</b> — Site URL</div>
+          <div><b>{{ .Email }}</b> — the user's email</div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ================================================================== -->
+  <!-- TEMPLATE 3: Magic link                                              -->
+  <!-- ================================================================== -->
+  <section class="template" id="magic-link">
+    <div class="template-head">
+      <div class="template-title">
+        Magic link
+        <span class="badge warn">magiclink</span>
+      </div>
+      <a class="copy-btn" href="https://supabase.com/dashboard/project/hkjiyibpeqdoqzlyqzwz/auth/templates" target="_blank" rel="noopener">
+        Open in dashboard
+      </a>
+    </div>
+    <div class="meta">
+      <b>Where it goes:</b> Supabase → Auth → Email Templates → <b>Magic link</b>.
+      <b>Used when:</b> a user requests a magic-link sign-in (the link goes to /auth/confirmed.html).
+    </div>
+    <div class="template-body">
+      <div class="field">
+        <label>Subject</label>
+        <div class="copy-row">
+          <input type="text" readonly value="Your Recall sign-in link" data-copy />
+          <button class="copy-btn" type="button" data-copy-btn>
+            <span class="label-default">Copy</span>
+            <span class="label-done">Copied</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Body (HTML)</label>
+        <div class="copy-row">
+          <textarea readonly data-copy>&lt;!doctype html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Your Recall sign-in link&lt;/title&gt;&lt;/head&gt;
+&lt;body style="margin:0;padding:0;background:#F6F8FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0D1117;"&gt;
+  &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F6F8FA;padding:32px 16px;"&gt;
+    &lt;tr&gt;&lt;td align="center"&gt;
+      &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#FFFFFF;border:1px solid #D0D7DE;border-radius:8px;overflow:hidden;"&gt;
+        &lt;tr&gt;&lt;td style="background:#1F6FEB;padding:18px 24px;font-size:14px;font-weight:700;color:#FFFFFF;letter-spacing:-0.01em;"&gt;
+          &lt;span style="display:inline-block;background:#FFFFFF;color:#1F6FEB;width:22px;height:22px;line-height:22px;text-align:center;border-radius:4px;margin-right:10px;font-size:12px;font-weight:800;"&gt;R&lt;/span&gt;
+          Recall
+        &lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:28px 24px 8px;font-size:18px;font-weight:600;color:#0D1117;letter-spacing:-0.01em;"&gt;Sign in to Recall&lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:0 24px 24px;font-size:14px;line-height:1.55;color:#1F2328;"&gt;
+          &lt;p style="margin:0 0 14px;"&gt;Click the button below to sign in to your Recall account.&lt;/p&gt;
+          &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;"&gt;
+            &lt;tr&gt;&lt;td bgcolor="#1F6FEB" style="border-radius:6px;"&gt;
+              &lt;a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:11px 20px;font-family:inherit;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:6px;"&gt;Sign in&lt;/a&gt;
+            &lt;/td&gt;&lt;/tr&gt;
+          &lt;/table&gt;
+          &lt;p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#57606A;word-break:break-all;"&gt;
+            If the button doesn't work, paste this link into your browser:&lt;br&gt;
+            &lt;a href="{{ .ConfirmationURL }}" style="color:#1F6FEB;"&gt;{{ .ConfirmationURL }}&lt;/a&gt;
+          &lt;/p&gt;
+          &lt;p style="margin:18px 0 0;font-size:13px;color:#57606A;"&gt;This link expires in 1 hour. If you didn't request it, you can safely ignore this email.&lt;/p&gt;
+          &lt;p style="margin:14px 0 0;font-size:13px;color:#57606A;"&gt;Or paste this code if you'd rather type it in: &lt;b style="color:#0D1117;"&gt;{{ .Token }}&lt;/b&gt;&lt;/p&gt;
+        &lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:14px 24px;border-top:1px solid #D0D7DE;background:#F6F8FA;font-size:12px;color:#57606A;"&gt;
+          Recall Education Ltd &middot; UK &middot;
+          &lt;a href="mailto:hello@recalleducation.co.uk" style="color:#1F6FEB;"&gt;Contact us&lt;/a&gt;
+        &lt;/td&gt;&lt;/tr&gt;
+      &lt;/table&gt;
+    &lt;/td&gt;&lt;/tr&gt;
+  &lt;/table&gt;
+&lt;/body&gt;
+&lt;/html&gt;</textarea>
+          <button class="copy-btn" type="button" data-copy-btn>
+            <span class="label-default">Copy</span>
+            <span class="label-done">Copied</span>
+          </button>
+        </div>
+      </div>
+
+      <details>
+        <summary>Available template variables</summary>
+        <div class="vars">
+          <div><b>{{ .ConfirmationURL }}</b> — magic link (lands on /auth/confirmed.html)</div>
+          <div><b>{{ .Token }}</b> — 6-digit OTP, valid as a sign-in code</div>
+          <div><b>{{ .SiteURL }}</b> — Site URL</div>
+          <div><b>{{ .Email }}</b> — the user's email</div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ================================================================== -->
+  <!-- TEMPLATE 4: Email change                                           -->
+  <!-- ================================================================== -->
+  <section class="template" id="email-change">
+    <div class="template-head">
+      <div class="template-title">
+        Email change
+        <span class="badge err">email_change</span>
+      </div>
+      <a class="copy-btn" href="https://supabase.com/dashboard/project/hkjiyibpeqdoqzlyqzwz/auth/templates" target="_blank" rel="noopener">
+        Open in dashboard
+      </a>
+    </div>
+    <div class="meta">
+      <b>Where it goes:</b> Supabase → Auth → Email Templates → <b>Change email address</b>.
+      <b>Used when:</b> a user updates their email address (rare; only fires if you call <code>auth.updateUser({ email })</code>).
+    </div>
+    <div class="template-body">
+      <div class="field">
+        <label>Subject</label>
+        <div class="copy-row">
+          <input type="text" readonly value="Confirm your new Recall email" data-copy />
+          <button class="copy-btn" type="button" data-copy-btn>
+            <span class="label-default">Copy</span>
+            <span class="label-done">Copied</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Body (HTML)</label>
+        <div class="copy-row">
+          <textarea readonly data-copy>&lt;!doctype html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Confirm your new Recall email&lt;/title&gt;&lt;/head&gt;
+&lt;body style="margin:0;padding:0;background:#F6F8FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0D1117;"&gt;
+  &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F6F8FA;padding:32px 16px;"&gt;
+    &lt;tr&gt;&lt;td align="center"&gt;
+      &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#FFFFFF;border:1px solid #D0D7DE;border-radius:8px;overflow:hidden;"&gt;
+        &lt;tr&gt;&lt;td style="background:#1F6FEB;padding:18px 24px;font-size:14px;font-weight:700;color:#FFFFFF;letter-spacing:-0.01em;"&gt;
+          &lt;span style="display:inline-block;background:#FFFFFF;color:#1F6FEB;width:22px;height:22px;line-height:22px;text-align:center;border-radius:4px;margin-right:10px;font-size:12px;font-weight:800;"&gt;R&lt;/span&gt;
+          Recall
+        &lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:28px 24px 8px;font-size:18px;font-weight:600;color:#0D1117;letter-spacing:-0.01em;"&gt;Confirm your new email&lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:0 24px 24px;font-size:14px;line-height:1.55;color:#1F2328;"&gt;
+          &lt;p style="margin:0 0 14px;"&gt;You've asked to change the email on your Recall account. Click the button below to confirm the new address.&lt;/p&gt;
+          &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;"&gt;
+            &lt;tr&gt;&lt;td bgcolor="#1F6FEB" style="border-radius:6px;"&gt;
+              &lt;a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:11px 20px;font-family:inherit;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:6px;"&gt;Confirm new email&lt;/a&gt;
+            &lt;/td&gt;&lt;/tr&gt;
+          &lt;/table&gt;
+          &lt;p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#57606A;word-break:break-all;"&gt;
+            If the button doesn't work, paste this link into your browser:&lt;br&gt;
+            &lt;a href="{{ .ConfirmationURL }}" style="color:#1F6FEB;"&gt;{{ .ConfirmationURL }}&lt;/a&gt;
+          &lt;/p&gt;
+          &lt;p style="margin:18px 0 0;font-size:13px;color:#57606A;"&gt;This link expires in 24 hours. If you didn't request this change, you can safely ignore this email &mdash; your address will not change.&lt;/p&gt;
+        &lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:14px 24px;border-top:1px solid #D0D7DE;background:#F6F8FA;font-size:12px;color:#57606A;"&gt;
+          Recall Education Ltd &middot; UK &middot;
+          &lt;a href="mailto:hello@recalleducation.co.uk" style="color:#1F6FEB;"&gt;Contact us&lt;/a&gt;
+        &lt;/td&gt;&lt;/tr&gt;
+      &lt;/table&gt;
+    &lt;/td&gt;&lt;/tr&gt;
+  &lt;/table&gt;
+&lt;/body&gt;
+&lt;/html&gt;</textarea>
+          <button class="copy-btn" type="button" data-copy-btn>
+            <span class="label-default">Copy</span>
+            <span class="label-done">Copied</span>
+          </button>
+        </div>
+      </div>
+
+      <details>
+        <summary>Available template variables</summary>
+        <div class="vars">
+          <div><b>{{ .ConfirmationURL }}</b> — confirmation link for the new address</div>
+          <div><b>{{ .Token }}</b> — 6-digit OTP</div>
+          <div><b>{{ .Email }}</b> — the NEW email address</div>
+          <div><b>{{ .OldEmail }}</b> — the previous email address (if exposed by template)</div>
+          <div><b>{{ .SiteURL }}</b> — Site URL</div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <div class="note warn" style="margin-top: 32px;">
+    <b>Heads up on the Edge Function:</b> the email templates above are the Supabase
+    dashboard templates &mdash; they run when Supabase sends the email itself (default
+    SMTP or Custom SMTP via Resend). They do <b>not</b> run when the
+    <code>send-auth-email</code> Edge Function is in use. If you re-enable the hook
+    later, you'll want to either (a) keep the hook disabled and rely on these
+    templates, or (b) edit the templates inside the Edge Function's
+    <code>index.ts</code> and re-deploy.
+  </div>
+
+</main>
+
+<script>
+  // Copy-to-clipboard for any element with [data-copy] next to a [data-copy-btn].
+  // Uses the modern Clipboard API where available, falls back to execCommand for
+  // older browsers / file:// previews.
+  (function () {
+    function copyText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+      }
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (_) {}
+      document.body.removeChild(ta);
+      return Promise.resolve();
+    }
+
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-copy-btn]');
+      if (!btn) return;
+      // Find the sibling copy target: input[readonly] or textarea[readonly]
+      var row = btn.parentElement;
+      var target = row && row.querySelector('[data-copy]');
+      if (!target) return;
+      e.preventDefault();
+      copyText(target.value).then(function () {
+        btn.classList.add('copied');
+        setTimeout(function () { btn.classList.remove('copied'); }, 1400);
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>
