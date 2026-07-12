@@ -1169,6 +1169,42 @@
     return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || 'R';
   };
 
+  // Lightweight Markdown for the block previews. Mirrors the
+  // implementation in lesson-render.js (the student-facing player
+  // loads that file). Kept inline here so the editor doesn't have to
+  // fetch a second script for what is just a small preview helper.
+  //   - Input is escaped first, so any user-supplied HTML renders as
+  //     text rather than as DOM.
+  //   - Supports: fenced code, h2/h3, lists (- and 1.), blockquote,
+  //     **bold**, *italic*, `code`, [link](url).
+  function renderMarkdown(md) {
+    if (!md) return '';
+    let s = escapeHtml(md);
+    s = s.replace(/```([\s\S]*?)```/g, (_, c) => `<pre><code>${c}</code></pre>`);
+    s = s.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    s = s.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    s = s.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+    s = s.replace(/(^|\n)((?:- .+(?:\n|$))+)/g, (_, pre, list) => {
+      const items = list.trim().split('\n').map(l => l.replace(/^- /, '')).map(l => `<li>${l}</li>`).join('');
+      return pre + '<ul>' + items + '</ul>';
+    });
+    s = s.replace(/(^|\n)((?:\d+\. .+(?:\n|$))+)/g, (_, pre, list) => {
+      const items = list.trim().split('\n').map(l => l.replace(/^\d+\. /, '')).map(l => `<li>${l}</li>`).join('');
+      return pre + '<ol>' + items + '</ol>';
+    });
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+    s = s.replace(/\*([^*]+)\*/g, '<i>$1</i>');
+    s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+    s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    s = s.split(/\n{2,}/).map(p => {
+      p = p.trim();
+      if (!p) return '';
+      if (/^<(h\d|ul|ol|pre|blockquote|img|figure)/.test(p)) return p;
+      return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
+    }).join('\n');
+    return s;
+  }
+
   function toast(msg, kind = '') {
     const t = document.createElement('div');
     t.className = 'toast ' + kind;
