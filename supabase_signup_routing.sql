@@ -23,8 +23,7 @@
 --      new board didn't show up in the catalog).
 -- ============================================================================
 
--- ---------- 1. WIDEN PROFILES.ROLE + ADD SCHOOL_ID -----------------------
-
+-- ---------- 1. WIDEN PROFILES.ROLE (school_id added in section 2) ---------
 -- Drop the 4-value CHECK (student/staff_author/staff_reviewer/admin)
 -- temporarily so we can add 'teacher'.
 alter table public.profiles drop constraint if exists profiles_role_check;
@@ -35,15 +34,12 @@ alter table public.profiles
   add constraint profiles_role_check
   check (role in ('student', 'teacher', 'staff_author', 'staff_reviewer', 'admin'));
 
-alter table public.profiles
-  add column if not exists school_id uuid references public.schools(id) on delete set null;
-create index if not exists profiles_school_idx on public.profiles (school_id);
-
 -- ---------- 2. SCHOOLS TABLE ----------------------------------------------
 -- One row per school. The `code` is a short, human-typable string that
 -- teachers use at sign-up. It's globally unique. RLS: public read so
 -- the anon-callable lookup RPC can work; writes only via the future
 -- school-admin UI (not implemented in this iteration).
+-- NOTE: created BEFORE profiles.school_id so the FK has a target.
 
 create table if not exists public.schools (
   id          uuid primary key default gen_random_uuid(),
@@ -68,6 +64,11 @@ insert into public.schools (name, code) values
   ('Birmingham Grammar School', 'BIRM-2024'),
   ('Cardiff Sixth Form College', 'CARD-2024')
 on conflict (code) do nothing;
+
+-- Now that public.schools exists, add profiles.school_id with the FK.
+alter table public.profiles
+  add column if not exists school_id uuid references public.schools(id) on delete set null;
+create index if not exists profiles_school_idx on public.profiles (school_id);
 
 -- ---------- 3. TEACHER SIGNUP CODES ---------------------------------------
 -- Optional disposable codes a school admin can issue to specific

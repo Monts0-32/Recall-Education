@@ -1585,7 +1585,10 @@
           <button class="row-btn" title="Rename" onclick="event.stopPropagation(); openTopicModal('${t.id}')">✎</button>
           <button class="row-btn" title="Delete" onclick="event.stopPropagation(); deleteTopic('${t.id}')">🗑</button>
         </div>
-        ${(t.lessons || []).map(l => renderLessonRow(t, l)).join('')}`;
+        ${(t.lessons || []).map(l => renderLessonRow(t, l)).join('')}
+        <div class="add-row" style="padding-left:28px;">
+          <button onclick="event.stopPropagation(); openLessonModal('${t.id}')">+ Lesson</button>
+        </div>`;
     }).join('');
 
     return `
@@ -1644,7 +1647,11 @@
     if (!found) return;
     state.currentSubject = state.subjects.find(s => s.id === found.subject_id);
     state.currentTopic = found;
+    // No lesson selected yet — show the topic empty-state so the
+    // "+ New lesson" CTA is visible.
+    state.currentLesson = null;
     renderCatalog();
+    renderEmpty();
   };
   window.goToSubject = goToSubject;
   window.goToBoard = goToBoard;
@@ -2209,6 +2216,27 @@
   };
 
   function renderEmpty() {
+    // If the user has drilled down to a topic but not yet picked a
+    // lesson, offer a "Create your first lesson" CTA instead of the
+    // generic catalog pitch. Without this, the editor pane is a dead
+    // end at the topic level.
+    if (state.currentTopic) {
+      const t = state.currentTopic;
+      const subj = state.currentSubject;
+      $('main').innerHTML = `
+        <div class="empty-state" id="emptyState">
+          <div>
+            <h2>${escapeHtml(t.name)}</h2>
+            <p>This topic has no lessons yet. Add the first one.</p>
+            <div class="actions">
+              <button class="btn-primary" onclick="openLessonModal('${t.id}')">+ New lesson</button>
+            </div>
+            ${subj ? `<p style="margin-top:18px; font-size:12px; color:var(--text-3);">In ${escapeHtml(subj.name)}</p>` : ''}
+          </div>
+        </div>
+      `;
+      return;
+    }
     $('main').innerHTML = `
       <div class="empty-state" id="emptyState">
         <div>
