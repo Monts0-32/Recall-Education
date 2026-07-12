@@ -45,6 +45,21 @@ alter table public.profiles
 
 -- ---------- 2. LESSONS.STATUS + PUBLISH METADATA -------------------------
 
+-- The lessons table from supabase_tables.sql has no updated_at column,
+-- but the dashboard's "drafts" view, the editor's dirty-tracking, and
+-- this migration's lessons_updated_idx all want one. Add it here so
+-- the rest of the migration can rely on it existing.
+alter table public.lessons
+  add column if not exists updated_at timestamptz not null default now();
+
+-- Trigger: bump updated_at on any UPDATE so the editor's "Updated
+-- just now" labels and the dashboard's "drafts awaiting review" sort
+-- are accurate. Idempotent.
+drop trigger if exists lessons_touch_updated_at on public.lessons;
+create trigger lessons_touch_updated_at
+  before update on public.lessons
+  for each row execute function public.touch_updated_at();
+
 alter table public.lessons
   add column if not exists status text not null default 'draft'
   check (status in ('draft', 'published', 'archived'));
