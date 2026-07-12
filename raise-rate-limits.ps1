@@ -13,7 +13,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$ProjectRef = "kmpmryrsukrfumuceaqy"
+$ProjectRef = "hkjjiyibpeqdoqzlyqzwz"
 $ApiBase    = "https://api.supabase.com/api/v1/projects/$ProjectRef/config/auth"
 $DesiredEmailSent = 60
 $DesiredSignUps   = 30

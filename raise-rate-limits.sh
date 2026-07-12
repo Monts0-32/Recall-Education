@@ -11,7 +11,7 @@
 #        bash raise-rate-limits.sh
 #
 # Then verify in the dashboard:
-#   https://supabase.com/dashboard/project/kmpmryrsukrfumuceaqy/auth/rate-limits
+#   https://supabase.com/dashboard/project/hkjjiyibpeqdoqzlyqzwz/auth/rate-limits
 #
 # What this does:
 #   - rate_limit_email_sent:  2  -> 60  (per hour, per project)
@@ -28,7 +28,7 @@
 
 set -euo pipefail
 
-PROJECT_REF="kmpmryrsukrfumuceaqy"
+PROJECT_REF="hkjjiyibpeqdoqzlyqzwz"
 API="https://api.supabase.com/api/v1/projects/${PROJECT_REF}/config/auth"
 
 # Desired values (per hour)

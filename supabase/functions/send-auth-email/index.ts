@@ -24,7 +24,7 @@
 //
 // Env vars (set with `supabase secrets set`):
 //   RESEND_API_KEY         — Resend dashboard
-//   SUPABASE_URL           — https://kmpmryrsukrfumuceaqy.supabase.co
+//   SUPABASE_URL           — https://hkjjiyibpeqdoqzlyqzwz.supabase.co
 //   SUPABASE_SERVICE_ROLE_KEY — needed to read/write parental_consents
 //   SEND_EMAIL_HOOK_SECRET — the v1,whsec_… secret the hook dashboard gives you
 //   EMAIL_FROM             — optional override; defaults to
