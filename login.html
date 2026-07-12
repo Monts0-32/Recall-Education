@@ -446,7 +446,29 @@
   // read/write what. Don't put the service_role key here.
   const SUPABASE_URL = 'https://kmpmryrsukrfumuceaqy.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttcG1yeXJzdWtyZnVtdWNlYXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3MDkzNDUsImV4cCI6MjA5OTI4NTM0NX0.iS4DIK68Ve-igJKtSz83wVkhUwwS8y2nJASK3ts3qRM';
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // The supabase-js client already sets the `apikey` header on every
+  // request, but privacy-focused browsers and extensions (Brave Shields,
+  // uBlock Origin in strict mode, some corporate firewalls) silently strip
+  // headers that aren't in the CORS-safelisted list. Supabase's gateway
+  // also accepts the apikey as a `?apikey=` URL parameter — we add it as
+  // a fallback so users with Shields / ad-blockers can still sign up and
+  // sign in. The anon key is public by design; embedding it in URLs is
+  // no worse than embedding it in the bundled JS.
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) {
+          return fetch(url, options);
+        }
+      }
+    }
+  });
 
   // Translate Supabase's auth error messages into something a student can act on.
   // Mirrors the same shape used in signup.html so messages stay consistent.
