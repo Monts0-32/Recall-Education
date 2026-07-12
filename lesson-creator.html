@@ -82,6 +82,21 @@
       letter-spacing: 0.02em;
     }
     nav.top .right { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-3); }
+    /* Role pill in the top nav — same colour scheme as the
+       invite-pill / role-pill elsewhere so "Author", "Reviewer",
+       and "Admin" all look consistent across the project. */
+    .rank-pill {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .rank-pill.author   { background: rgba(63,185,80,0.15);  color: #56d364; }
+    .rank-pill.reviewer { background: rgba(210,153,34,0.15); color: #e3b341; }
+    .rank-pill.admin    { background: rgba(248,81,73,0.15);  color: #ff7b72; }
     .btn-ghost {
       background: transparent;
       color: var(--text-2);
@@ -1058,6 +1073,7 @@
       <span class="tag">STAFF</span>
     </a>
     <div class="right">
+      <span id="rankPill" class="rank-pill" hidden></span>
       <span id="userName">…</span>
       <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
     </div>
@@ -1231,6 +1247,18 @@
     state.profile = profile;
     $('userName').textContent = (profile && profile.full_name) || state.user.email;
     $('signOutBtn').hidden = false;
+    // Rank pill in the top nav.
+    const ROLE_PILL = {
+      staff_author:   { label: 'Author',   cls: 'author'   },
+      staff_reviewer: { label: 'Reviewer', cls: 'reviewer' },
+      admin:          { label: 'Admin',    cls: 'admin'    },
+    };
+    const r = ROLE_PILL[state.role];
+    if (r) {
+      $('rankPill').textContent = r.label;
+      $('rankPill').classList.add(r.cls);
+      $('rankPill').hidden = false;
+    }
 
     // Reviewers and admins get a Publish toggle on the editor toolbar.
     // Authors see the lesson in draft state only.
@@ -1466,9 +1494,11 @@
       const yearCount = new Set(state.units
         .filter(u => u.subject_id === subject.id && u.exam_board_id === b.id)
         .map(u => u.year_id)).size;
+      const isAdmin = state.role === 'admin';
       return `
         <div class="catalog-card" onclick="enterBoard('${b.id}')">
           <button class="kebab" title="Rename" onclick="event.stopPropagation(); openRenameBoardModal('${b.id}')">✎</button>
+          ${isAdmin ? `<button class="kebab" title="Delete" style="right:28px;" onclick="event.stopPropagation(); confirmDeleteBoard('${b.id}')">🗑</button>` : ''}
           <div class="name">${escapeHtml(b.name)}</div>
           <div class="meta">${yearCount} year${yearCount === 1 ? '' : 's'} · ${unitCount} unit${unitCount === 1 ? '' : 's'}</div>
         </div>`;
@@ -1494,8 +1524,11 @@
       const unitCount = state.units.filter(u =>
         u.subject_id === subject.id && u.exam_board_id === board.id && u.year_id === y.id
       ).length;
+      const isAdmin = state.role === 'admin';
       return `
         <div class="catalog-card" onclick="enterYear('${y.id}')">
+          ${isAdmin ? `<button class="kebab" title="Rename" onclick="event.stopPropagation(); openRenameYearModal('${y.id}')">✎</button>
+          <button class="kebab" title="Delete" style="right:28px;" onclick="event.stopPropagation(); confirmDeleteYear('${y.id}')">🗑</button>` : ''}
           <div class="name">${escapeHtml(y.label)}</div>
           <div class="meta">${unitCount} unit${unitCount === 1 ? '' : 's'}</div>
         </div>`;
@@ -1624,12 +1657,33 @@
   // and tooltip) — the RPCs are the source of truth.
 
   // ---- exam boards ----
+  // The "+ Add board" modal lives at the subject level. The new board
+  // also needs an anchoring (subject, board, year) units row before
+  // it can appear in the catalog — that's what the year picker is
+  // for. create_board_for_subject_year() (supabase_signup_routing.sql)
+  // creates the exam_boards row + the units row atomically so the
+  // catalog re-render picks it up.
   window.openAddBoardModal = () => {
+    const subject = state.browsePath.subject;
+    if (!subject) { toast('Pick a subject first', 'error'); return; }
+    const subjectId = subject.id;
+
+    const yearOptions = state.years
+      .map(y => `<option value="${y.id}">${escapeHtml(y.label)}</option>`)
+      .join('');
+
     openModal('New exam board', `
       <form id="boardForm" class="editor" style="padding:0;">
         <div class="form-row">
           <label>Board name</label>
           <input name="name" required placeholder="e.g. AQA" autofocus />
+        </div>
+        <div class="form-row">
+          <label>For year</label>
+          <select name="year_id" required>
+            ${yearOptions}
+          </select>
+          <span class="hint">The board will be added to ${escapeHtml(subject.name)} for this year. Staff can rename the auto-created Curriculum unit later.</span>
         </div>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
@@ -1639,10 +1693,15 @@
     $('boardForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = e.target.name.value.trim();
-      if (!name) return;
-      const { error } = await supabaseClient.rpc('create_exam_board', { p_name: name });
+      const yearId = e.target.year_id.value;
+      if (!name || !yearId) return;
+      const { data, error } = await supabaseClient.rpc('create_board_for_subject_year', {
+        p_subject_id: subjectId,
+        p_year_id:    yearId,
+        p_name:       name,
+      });
       if (error) { toast('Create failed: ' + error.message, 'error'); return; }
-      toast('Exam board created', 'success');
+      toast('Exam board added to ' + subject.name, 'success');
       closeModal();
       await loadTree();
     });
@@ -1674,13 +1733,38 @@
     });
   };
 
+  window.confirmDeleteBoard = async (id) => {
+    const b = state.boardMap[id];
+    if (!b) return;
+    if (!confirm(`Delete the ${b.name} exam board? All units for this board will be removed and topics in them will become orphan (not deleted).`)) return;
+    const { error } = await supabaseClient.rpc('delete_exam_board', { p_id: id });
+    if (error) { toast('Delete failed: ' + error.message, 'error'); return; }
+    toast('Exam board deleted', 'success');
+    if (state.browsePath.board?.id === id) {
+      // We're inside this board's tree — go back up.
+      state.browsePath.board = null;
+      state.browsePath.year = null;
+      state.browsePath.unit = null;
+    }
+    await loadTree();
+  };
+
   // ---- years ----
+  // "+ Add year" at the board level creates the year AND an anchoring
+  // Curriculum unit for (current subject, current board, that year).
+  // Without that anchor, the year would exist as a global reference
+  // row but the catalog card grid would never show it for this board.
   window.openAddYearModal = () => {
+    const { subject, board } = state.browsePath;
+    if (!subject || !board) { toast('Pick a subject and board first', 'error'); return; }
+    const subjectId = subject.id, boardId = board.id;
+
     openModal('New year level', `
       <form id="yearForm" class="editor" style="padding:0;">
         <div class="form-row">
           <label>Label</label>
           <input name="label" required placeholder="e.g. Year 10, GCSE, A-level" autofocus />
+          <span class="hint">The year will be added globally and anchored to ${escapeHtml(subject.name)} / ${escapeHtml(board.name)} with a default "Curriculum" unit. Staff can rename the unit later.</span>
         </div>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
@@ -1691,9 +1775,34 @@
       e.preventDefault();
       const label = e.target.label.value.trim();
       if (!label) return;
-      const { error } = await supabaseClient.rpc('create_year', { p_label: label });
-      if (error) { toast('Create failed: ' + error.message, 'error'); return; }
-      toast('Year created', 'success');
+      // 1) Create the year_levels row (or fetch existing).
+      const { data: created, error: yrErr } = await supabaseClient.rpc('create_year', { p_label: label });
+      if (yrErr) { toast('Create failed: ' + yrErr.message, 'error'); return; }
+      // create_year returns the year id when it creates a new one; for
+      // an existing label it returns the existing id.
+      const yearId = created;
+      // 2) Anchor: a Curriculum unit for (subject, board, year). We
+      // use upsert via the units unique constraint, so this is
+      // idempotent. Direct insert (no RPC) is fine — the catalog
+      // render reads from public.units, no audit needed for an
+      // anchoring placeholder.
+      if (yearId) {
+        const { error: unitErr } = await supabaseClient.from('units').insert({
+          subject_id: subjectId,
+          exam_board_id: boardId,
+          year_id: yearId,
+          name: 'Curriculum',
+          sort_order: 0,
+        });
+        // 23505 = unique_violation — already anchored, that's fine.
+        if (unitErr && unitErr.code !== '23505') {
+          toast('Year created but anchor failed: ' + unitErr.message, 'error');
+          closeModal();
+          await loadTree();
+          return;
+        }
+      }
+      toast('Year added to ' + subject.name + ' / ' + board.name, 'success');
       closeModal();
       await loadTree();
     });
@@ -1723,6 +1832,20 @@
       closeModal();
       await loadTree();
     });
+  };
+
+  window.confirmDeleteYear = async (id) => {
+    const y = state.yearMap[id];
+    if (!y) return;
+    if (!confirm(`Delete the ${y.label} year level? All units for this year (across all boards) will be removed and topics in them will become orphan (not deleted).`)) return;
+    const { error } = await supabaseClient.rpc('delete_year', { p_id: id });
+    if (error) { toast('Delete failed: ' + error.message, 'error'); return; }
+    toast('Year deleted', 'success');
+    if (state.browsePath.year?.id === id) {
+      state.browsePath.year = null;
+      state.browsePath.unit = null;
+    }
+    await loadTree();
   };
 
   // ---- units ----

@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Staff sign-up — Recall</title>
+  <meta name="description" content="Sign up for a Recall staff account using the invite code from your admin." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+    }
+    nav.top .row {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand-mark {
+      width: 28px; height: 28px;
+      background: var(--blue); color: #fff;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 14px;
+      border-radius: var(--r-sm);
+    }
+    nav.top .right { font-size: 13px; color: var(--text-3); }
+    nav.top .right a { color: var(--text-2); font-weight: 500; }
+
+    .page {
+      max-width: 540px;
+      margin: 56px auto 80px;
+      padding: 0 24px;
+    }
+    .form-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 32px;
+    }
+    .form-card h2 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+    .form-card .sub {
+      font-size: 13px; color: var(--text-3);
+      margin: 0 0 24px;
+    }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field label { font-size: 13px; font-weight: 500; color: var(--text-2); }
+    .field input {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 9px 12px;
+      font-family: inherit; font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .field input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .field input::placeholder { color: var(--text-4); }
+    .field .hint { font-size: 12px; color: var(--text-3); }
+    .field .hint.ok { color: var(--green); }
+    .field .hint.warn { color: var(--yellow); }
+    .field .hint.error { color: var(--red); }
+    .field input[readonly] { background: var(--bg-3); cursor: not-allowed; }
+
+    .role-pill {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .role-pill.author   { background: rgba(63,185,80,0.15);  color: #56d364; }
+    .role-pill.reviewer { background: rgba(210,153,34,0.15); color: #e3b341; }
+    .role-pill.admin    { background: rgba(248,81,73,0.15);  color: #ff7b72; }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--blue); color: #fff;
+      padding: 10px 18px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      border: 1px solid var(--blue);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 9px 16px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-secondary:hover { background: var(--bg-4); color: var(--text); }
+
+    .error-banner, .ok-banner {
+      display: none;
+      border-radius: var(--r-sm);
+      padding: 10px 12px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .error-banner { background: rgba(248,81,73,0.10); border: 1px solid rgba(248,81,73,0.4); color: #FFA198; }
+    .error-banner.show { display: block; }
+    .error-banner b { color: var(--red); font-weight: 600; }
+    .ok-banner { background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.4); color: #7EE787; }
+    .ok-banner.show { display: block; }
+    .ok-banner b { color: var(--green); font-weight: 600; }
+
+    .step { display: none; }
+    .step.active { display: block; }
+    .foot {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      font-size: 12.5px;
+      color: var(--text-3);
+      text-align: center;
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html"><span class="brand-mark">R</span> Recall</a>
+    <div class="right">Already have an account? <a href="login.html">Sign in</a></div>
+  </div>
+</nav>
+
+<main class="page">
+  <div class="form-card">
+    <h2>Staff sign-up</h2>
+    <p class="sub">Enter the invite code from your admin. We'll check that the code is valid and that your email was invited.</p>
+
+    <div class="error-banner" id="err">
+      <b>We couldn't accept that invite code.</b> <span id="errMsg">Check the code and try again.</span>
+    </div>
+    <div class="ok-banner" id="ok">
+      <b>Almost done.</b> <span id="okMsg">Check your inbox to confirm your email.</span>
+    </div>
+
+    <!-- Step 1: enter the invite code --------------------------------->
+    <div class="step active" id="stepCode">
+      <form id="codeForm" novalidate>
+        <div class="field">
+          <label for="token">Invite code</label>
+          <input type="text" id="token" name="token" required
+                 placeholder="e.g. 7c1a2e29-9a3c-4b3f-9f44-1a1a1a1a1a1a"
+                 autocomplete="off" spellcheck="false"
+                 pattern="[0-9a-fA-F\-]{36}" />
+          <span class="hint" id="tokenHint">A 36-character code from the admin console. Paste the whole thing.</span>
+        </div>
+        <button type="submit" class="btn-primary" id="codeBtn">Check invite</button>
+      </form>
+    </div>
+
+    <!-- Step 2: complete the sign-up form ------------------------------>
+    <div class="step" id="stepForm">
+      <span class="role-pill" id="rolePill">Staff</span>
+      <p class="sub" id="roleSub">Your account will be created with the role above.</p>
+
+      <form id="signupForm" novalidate>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required readonly />
+          <span class="hint">Locked to the invited address.</span>
+        </div>
+        <div class="field">
+          <label for="name">Full name</label>
+          <input type="text" id="name" name="name" required placeholder="Your name" autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required minlength="12" placeholder="At least 12 characters" autocomplete="new-password" />
+          <span class="hint" id="pwdHint">At least 12 characters.</span>
+        </div>
+        <div class="field">
+          <label for="password2">Confirm password</label>
+          <input type="password" id="password2" name="password2" required placeholder="Type your password again" autocomplete="new-password" />
+          <span class="hint" id="pwdMatch"></span>
+        </div>
+        <label class="check" style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--text-2); margin: 4px 0 18px;">
+          <input type="checkbox" id="terms" required style="accent-color:var(--blue); margin-top:2px;" />
+          <span>I agree to the Recall staff terms and code of conduct.</span>
+        </label>
+        <button type="submit" class="btn-primary" id="submitBtn">Create account and accept</button>
+        <div style="margin-top:10px; text-align:center;">
+          <button type="button" class="btn-secondary" id="backBtn">Back</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="foot">
+      Different role? <a href="login.html">Pick a different sign-up</a>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  // ---------- helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+  const ROLE_LABEL = {
+    staff_author:   { label: 'Author',   cls: 'author'   },
+    staff_reviewer: { label: 'Reviewer', cls: 'reviewer' },
+    admin:          { label: 'Admin',    cls: 'admin'    },
+  };
+
+  let pendingInvite = null; // { token, email, role }
+
+  function showError(msg) {
+    $('errMsg').textContent = msg;
+    $('err').classList.add('show');
+    $('ok').classList.remove('show');
+    $('err').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function hideError() { $('err').classList.remove('show'); }
+  function showOk(msg) {
+    $('okMsg').textContent = msg;
+    $('ok').classList.add('show');
+    $('err').classList.remove('show');
+  }
+
+  // If the user came in via accept-invite.html, the URL may already
+  // have ?token=... and ?email=... and ?role=... pre-set. If so, skip
+  // step 1 and go straight to step 2.
+  const params = new URLSearchParams(window.location.search);
+  const presetToken = (params.get('token') || '').trim();
+  const presetEmail = (params.get('email') || '').trim();
+  const presetRole  = (params.get('role')  || '').trim();
+  if (presetToken && /^[0-9a-f-]{36}$/i.test(presetToken)) {
+    $('token').value = presetToken;
+    // Auto-validate on load.
+    setTimeout(() => $('codeForm').requestSubmit(), 50);
+  }
+
+  // ---------- step 1: validate the invite code ----------
+  $('codeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError();
+    const token = $('token').value.trim();
+    if (!/^[0-9a-f-]{36}$/i.test(token)) {
+      showError('That doesn\'t look like a valid invite code. Paste the full 36-character code from the email.');
+      return;
+    }
+    const btn = $('codeBtn');
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = 'Checking…';
+    try {
+      const { data, error } = await supabaseClient.rpc('peek_staff_invite', { p_token: token });
+      if (error) { showError('Couldn\'t check that code: ' + error.message); return; }
+      if (!data || data.ok !== true) {
+        const reason = data && data.reason;
+        if (reason === 'unknown_token')  return showError('We don\'t recognise that invite code. Double-check you pasted the whole thing.');
+        if (reason === 'expired')        return showError('This invitation has expired. Ask whoever sent it to resend from the admin console.');
+        if (reason === 'revoked')        return showError('This invitation was revoked. Ask your admin to send a new one.');
+        if (reason === 'already_accepted') {
+          const label = data && data.role && ROLE_LABEL[data.role] ? ROLE_LABEL[data.role].label : 'staff';
+          return showError('This invitation was already accepted for the ' + label + ' role. If that\'s you, just sign in.');
+        }
+        return showError('That invite code isn\'t valid.');
+      }
+      // Valid — show the form.
+      const info = ROLE_LABEL[data.role] || { label: 'Staff', cls: '' };
+      $('rolePill').textContent = info.label;
+      $('rolePill').classList.add(info.cls);
+      $('roleSub').textContent = 'Your account will be created with the ' + info.label + ' role. The invite is tied to ' + data.email + '.';
+      $('email').value = data.email;
+      pendingInvite = { token, email: data.email, role: data.role };
+      $('stepCode').classList.remove('active');
+      $('stepForm').classList.add('active');
+      $('name').focus();
+    } catch (err) {
+      showError('Network error. Check your connection and try again.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  });
+
+  $('backBtn').addEventListener('click', () => {
+    pendingInvite = null;
+    $('stepForm').classList.remove('active');
+    $('stepCode').classList.add('active');
+    $('token').focus();
+  });
+
+  // ---------- step 2: create the account ----------
+  $('signupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError();
+    if (!pendingInvite) { showError('Start with step 1 — paste your invite code.'); return; }
+    const name = $('name').value.trim();
+    const pw   = $('password').value;
+    const pw2  = $('password2').value;
+    if (!name) return showError('Enter your name.');
+    if (pw.length < 12) return showError('Password must be at least 12 characters.');
+    if (pw !== pw2)     return showError('Passwords do not match.');
+    if (!$('terms').checked) return showError('Please accept the staff terms to continue.');
+
+    const submitBtn = $('submitBtn');
+    submitBtn.disabled = true;
+    const orig = submitBtn.textContent;
+    submitBtn.textContent = 'Creating account…';
+
+    const redirectTo = window.location.origin + '/auth/confirmed.html';
+
+    try {
+      const { data, error } = await supabaseClient.auth.signUp({
+        email: pendingInvite.email,
+        password: pw,
+        options: {
+          emailRedirectTo: redirectTo,
+          data: { full_name: name },
+        },
+      });
+      if (error) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = orig;
+        return showError('Sign-up failed: ' + error.message);
+      }
+      const newUserId = data && data.user && data.user.id;
+      if (!newUserId) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = orig;
+        return showError('Account was created but we couldn\'t finalise the invitation. Please sign in and try again.');
+      }
+      // Accept the invite. Same flow as accept-invite.html: server
+      // re-validates the token, the email, the status, and the
+      // expiry, then stamps the role onto the profile row.
+      try {
+        const { data: acceptData, error: acceptErr } = await supabaseClient.rpc('accept_staff_invite', {
+          p_token: pendingInvite.token, p_decision: 'accepted',
+        });
+        if (acceptErr) {
+          showOk('Account created. We had a problem applying the invitation — sign in and try the invite link again.');
+        } else if (acceptData && acceptData.ok === false) {
+          if (acceptData.reason === 'email_mismatch') {
+            showOk('Account created. The invitation was sent to ' + (acceptData.invited_email || 'a different address') + ' — sign in with that email to accept.');
+          } else {
+            showOk('Account created, but the invitation could not be applied: ' + (acceptData.reason || 'unknown'));
+          }
+        } else {
+          showOk('Account created and invitation accepted. Check ' + pendingInvite.email + ' for a confirmation link, then sign in.');
+        }
+      } catch (err) {
+        showOk('Account created. There was a problem applying the invitation — sign in and try the invite link again.');
+      }
+      Array.from($('signupForm').elements).forEach(el => { el.disabled = true; });
+      submitBtn.textContent = 'Account created';
+    } catch (err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = orig;
+      showError('Network error. Check your connection and try again.');
+    }
+  });
+
+  // Live password strength hint
+  $('password').addEventListener('input', () => {
+    const v = $('password').value;
+    const h = $('pwdHint');
+    if (!v) { h.textContent = 'At least 12 characters.'; h.className = 'hint'; return; }
+    if (v.length < 12) { h.textContent = v.length + ' characters. Needs at least 12.'; h.className = 'hint warn'; }
+    else if (v.length < 16) { h.textContent = v.length + ' characters. Good.'; h.className = 'hint ok'; }
+    else { h.textContent = v.length + ' characters. Strong.'; h.className = 'hint ok'; }
+  });
+  $('password2').addEventListener('input', () => {
+    const h = $('pwdMatch');
+    if (!$('password2').value) { h.textContent = ''; h.className = 'hint'; return; }
+    if ($('password').value === $('password2').value) {
+      h.textContent = 'Passwords match.'; h.className = 'hint ok';
+    } else {
+      h.textContent = 'Passwords do not match.'; h.className = 'hint error';
+    }
+  });
+</script>
+</body>
+</html>

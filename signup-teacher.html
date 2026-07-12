@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Teacher sign-up — Recall</title>
+  <meta name="description" content="Create a Recall teacher account. You'll need a school code from your school administrator." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --red:       #F85149;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+    }
+    nav.top .row {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand-mark {
+      width: 28px; height: 28px;
+      background: var(--blue); color: #fff;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 14px;
+      border-radius: var(--r-sm);
+    }
+    nav.top .right { font-size: 13px; color: var(--text-3); }
+    nav.top .right a { color: var(--text-2); font-weight: 500; }
+
+    .page {
+      max-width: 540px;
+      margin: 56px auto 80px;
+      padding: 0 24px;
+    }
+    .form-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 32px;
+    }
+    .form-card h2 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+    .form-card .sub {
+      font-size: 13px; color: var(--text-3);
+      margin: 0 0 24px;
+    }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field label { font-size: 13px; font-weight: 500; color: var(--text-2); }
+    .field input {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 9px 12px;
+      font-family: inherit; font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .field input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .field input::placeholder { color: var(--text-4); }
+    .field .hint { font-size: 12px; color: var(--text-3); }
+    .field .hint.ok { color: var(--green); }
+    .field .hint.warn { color: var(--yellow); }
+    .field .hint.error { color: var(--red); }
+    .field input[readonly] { background: var(--bg-3); cursor: not-allowed; }
+
+    .school-banner {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--r-sm);
+      background: var(--green-dim);
+      border: 1px solid rgba(63,185,80,0.4);
+      color: #7EE787;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .school-banner .name { color: var(--text); font-weight: 600; }
+    .school-banner.error { background: var(--red-dim); border-color: rgba(248,81,73,0.4); color: #FFA198; }
+    .school-banner.error .name { color: var(--text); font-weight: 600; }
+    .school-banner[hidden] { display: none; }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--blue); color: #fff;
+      padding: 10px 18px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      border: 1px solid var(--blue);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 9px 16px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-secondary:hover { background: var(--bg-4); color: var(--text); }
+
+    .error-banner, .ok-banner {
+      display: none;
+      border-radius: var(--r-sm);
+      padding: 10px 12px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .error-banner { background: rgba(248,81,73,0.10); border: 1px solid rgba(248,81,73,0.4); color: #FFA198; }
+    .error-banner.show { display: block; }
+    .error-banner b { color: var(--red); font-weight: 600; }
+    .ok-banner { background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.4); color: #7EE787; }
+    .ok-banner.show { display: block; }
+    .ok-banner b { color: var(--green); font-weight: 600; }
+
+    .foot {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      font-size: 12.5px;
+      color: var(--text-3);
+      text-align: center;
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html"><span class="brand-mark">R</span> Recall</a>
+    <div class="right">Already have an account? <a href="login.html">Sign in</a></div>
+  </div>
+</nav>
+
+<main class="page">
+  <div class="form-card">
+    <h2>Teacher sign-up</h2>
+    <p class="sub">Create a free teacher account. You'll need a school code from your school administrator — they can issue one from the school admin console.</p>
+
+    <div class="error-banner" id="err">
+      <b>We couldn't create your account.</b> <span id="errMsg">Check the highlighted fields and try again.</span>
+    </div>
+    <div class="ok-banner" id="ok">
+      <b>Almost done.</b> <span id="okMsg">Check your inbox to confirm your email.</span>
+    </div>
+
+    <form id="signupForm" novalidate>
+      <div class="field">
+        <label for="schoolCode">School code</label>
+        <input type="text" id="schoolCode" name="schoolCode" required
+               placeholder="e.g. BIRM-2024" autocomplete="off" spellcheck="false" />
+        <span class="hint" id="schoolCodeHint">Issued by your school administrator. Don't have one? Ask your head of department.</span>
+      </div>
+      <div class="school-banner" id="schoolBanner" hidden>
+        <span>✓</span>
+        <span>Attaching to <span class="name" id="schoolName"></span> (<span id="schoolCodeEcho"></span>)</span>
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="you@school.ac.uk" autocomplete="email" required />
+      </div>
+      <div class="field">
+        <label for="name">Full name</label>
+        <input type="text" id="name" name="name" placeholder="Your name" autocomplete="name" required />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="At least 12 characters" autocomplete="new-password" minlength="12" required />
+        <span class="hint" id="pwdHint">At least 12 characters. Longer is stronger.</span>
+      </div>
+      <div class="field">
+        <label for="password2">Confirm password</label>
+        <input type="password" id="password2" name="password2" placeholder="Type your password again" autocomplete="new-password" required />
+        <span class="hint" id="pwdMatch"></span>
+      </div>
+
+      <label class="check" style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--text-2); margin: 4px 0 18px;">
+        <input type="checkbox" id="terms" required style="accent-color:var(--blue); margin-top:2px;" />
+        <span>I am 16 or older and agree to the Recall teacher terms.</span>
+      </label>
+
+      <button type="submit" class="btn-primary" id="submitBtn" disabled>Create account</button>
+      <p style="text-align:center; font-size:12px; color:var(--text-4); margin: 10px 0 0;">The submit button enables once a valid school code is entered.</p>
+    </form>
+
+    <div class="foot">
+      Different role? <a href="login.html">Pick a different sign-up</a>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  // ---------- state ----------
+  let resolvedSchool = null; // { school_id, school_name, school_code }
+
+  // ---------- helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+  function setSchoolHint(msg, kind) {
+    const h = $('schoolCodeHint');
+    h.textContent = msg;
+    h.className = 'hint' + (kind ? ' ' + kind : '');
+  }
+  function showError(msg) {
+    $('errMsg').textContent = msg;
+    $('err').classList.add('show');
+    $('ok').classList.remove('show');
+    $('err').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function hideError() { $('err').classList.remove('show'); }
+  function showOk(msg) {
+    $('okMsg').textContent = msg;
+    $('ok').classList.add('show');
+    $('err').classList.remove('show');
+  }
+
+  // ---------- school code lookup ----------
+  // Debounced: re-fires 350ms after the user stops typing. The RPC
+  // is anon-callable, so we can run it before sign-up.
+  let lookupTimer = null;
+  $('schoolCode').addEventListener('input', () => {
+    const code = $('schoolCode').value.trim();
+    if (lookupTimer) clearTimeout(lookupTimer);
+    if (!code) {
+      resolvedSchool = null;
+      $('schoolBanner').hidden = true;
+      $('submitBtn').disabled = true;
+      setSchoolHint('Issued by your school administrator. Don\'t have one? Ask your head of department.', null);
+      return;
+    }
+    lookupTimer = setTimeout(() => lookupSchool(code), 350);
+  });
+
+  async function lookupSchool(code) {
+    try {
+      const { data, error } = await supabaseClient.rpc('lookup_school_by_code', { p_code: code });
+      if (error) { setSchoolHint('Couldn\'t check that code: ' + error.message, 'error'); return; }
+      if (!data || data.ok !== true) {
+        resolvedSchool = null;
+        $('schoolBanner').hidden = true;
+        $('submitBtn').disabled = true;
+        if (data && data.reason === 'empty') {
+          setSchoolHint('Type a school code to continue.', null);
+        } else {
+          setSchoolHint('Invalid school code. Ask your school administrator to issue you one.', 'error');
+        }
+        return;
+      }
+      resolvedSchool = { school_id: data.school_id, school_name: data.school_name, school_code: data.school_code };
+      $('schoolName').textContent = data.school_name;
+      $('schoolCodeEcho').textContent = data.school_code;
+      $('schoolBanner').classList.remove('error');
+      $('schoolBanner').hidden = false;
+      $('submitBtn').disabled = false;
+      setSchoolHint('Code looks good. You\'ll be attached to this school.', 'ok');
+    } catch (e) {
+      setSchoolHint('Network error. Try again in a moment.', 'error');
+    }
+  }
+
+  // ---------- password hints ----------
+  $('password').addEventListener('input', () => {
+    const v = $('password').value;
+    const h = $('pwdHint');
+    if (!v) { h.textContent = 'At least 12 characters. Longer is stronger.'; h.className = 'hint'; return; }
+    if (v.length < 12) { h.textContent = v.length + ' characters. Needs at least 12.'; h.className = 'hint warn'; }
+    else if (v.length < 16) { h.textContent = v.length + ' characters. Good.'; h.className = 'hint ok'; }
+    else { h.textContent = v.length + ' characters. Strong.'; h.className = 'hint ok'; }
+    updatePwdMatch();
+  });
+  function updatePwdMatch() {
+    const h = $('pwdMatch');
+    if (!$('password2').value) { h.textContent = ''; h.className = 'hint'; return; }
+    if ($('password').value === $('password2').value) {
+      h.textContent = 'Passwords match.'; h.className = 'hint ok';
+    } else {
+      h.textContent = 'Passwords do not match.'; h.className = 'hint error';
+    }
+  }
+  $('password2').addEventListener('input', updatePwdMatch);
+
+  // ---------- submit ----------
+  $('signupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError();
+    if (!resolvedSchool) { return showError('Enter a valid school code first.'); }
+    const email = $('email').value.trim();
+    const name = $('name').value.trim();
+    const pw   = $('password').value;
+    const pw2  = $('password2').value;
+    if (!email || !email.includes('@')) return showError('Enter a valid email address.');
+    if (!name) return showError('Enter your name.');
+    if (pw.length < 12) return showError('Password must be at least 12 characters.');
+    if (pw !== pw2)     return showError('Passwords do not match.');
+    if (!$('terms').checked) return showError('Please accept the terms to continue.');
+
+    const submitBtn = $('submitBtn');
+    submitBtn.disabled = true;
+    const orig = submitBtn.textContent;
+    submitBtn.textContent = 'Creating account…';
+
+    const redirectTo = window.location.origin + '/auth/confirmed.html';
+
+    try {
+      // 1) Create the auth user.
+      const { data: su, error: suErr } = await supabaseClient.auth.signUp({
+        email,
+        password: pw,
+        options: {
+          emailRedirectTo: redirectTo,
+          data: { full_name: name },
+        },
+      });
+      if (suErr) { submitBtn.disabled = false; submitBtn.textContent = orig; return showError('Sign-up failed: ' + suErr.message); }
+      const newUserId = su && su.user && su.user.id;
+      if (!newUserId) {
+        submitBtn.disabled = false; submitBtn.textContent = orig;
+        return showError('Account was created but we couldn\'t attach it to a school. Please sign in and contact support.');
+      }
+      // 2) Claim the one-time code (if any) and stamp school_id onto
+      // the profile. claim_teacher_signup_code is idempotent for
+      // permanent school codes.
+      const { data: claim, error: claimErr } = await supabaseClient.rpc('claim_teacher_signup_code', { p_code: resolvedSchool.school_code });
+      if (claimErr) console.warn('claim_teacher_signup_code:', claimErr.message);
+      const schoolIdToUse = (claim && claim.ok && claim.school_id) || resolvedSchool.school_id;
+      // 3) Attach: stamps role='teacher' and school_id on the profile.
+      const { error: attachErr } = await supabaseClient.rpc('attach_teacher_to_school', {
+        p_user_id: newUserId, p_school_id: schoolIdToUse,
+      });
+      if (attachErr) console.warn('attach_teacher_to_school:', attachErr.message);
+
+      showOk('Account created. Check ' + email + ' for a confirmation link, then sign in to access your teacher dashboard.');
+      Array.from($('signupForm').elements).forEach(el => { el.disabled = true; });
+      submitBtn.textContent = 'Account created';
+    } catch (err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = orig;
+      showError('Network error. Check your connection and try again.');
+    }
+  });
+</script>
+</body>
+</html>

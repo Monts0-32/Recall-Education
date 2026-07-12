@@ -299,6 +299,69 @@
     .error-banner.show { display: block; }
     .error-banner b { color: var(--red); font-weight: 600; }
 
+    /* ---------- ROLE-PICKER MODAL ---------- */
+    .role-modal-back {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(2px);
+      display: none; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .role-modal-back.open { display: flex; }
+    .role-modal {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      max-width: 640px;
+      width: 100%;
+      padding: 32px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+      position: relative;
+    }
+    .role-modal h2 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+    .role-modal .sub {
+      font-size: 13px;
+      color: var(--text-3);
+      margin: 0 0 22px;
+    }
+    .role-modal .close {
+      position: absolute; top: 14px; right: 14px;
+      background: transparent; border: 0; color: var(--text-3);
+      font-size: 22px; cursor: pointer; line-height: 1;
+      padding: 4px 8px; border-radius: var(--r-sm);
+    }
+    .role-modal .close:hover { color: var(--text); background: var(--bg-3); }
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .role-card {
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 18px 18px 16px;
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      color: var(--text);
+      transition: border-color 0.1s ease, background 0.1s ease;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .role-card:hover { border-color: var(--blue); background: var(--bg-4); }
+    .role-card .icon { font-size: 22px; line-height: 1; }
+    .role-card .label { font-weight: 600; font-size: 15px; }
+    .role-card .meta { font-size: 12px; color: var(--text-3); }
+    .role-card .meta.muted { color: var(--text-4); font-style: italic; }
+    @media (max-width: 540px) {
+      .role-grid { grid-template-columns: 1fr; }
+    }
+
     /* ---------- RESPONSIVE ---------- */
     @media (max-width: 900px) {
       .page { grid-template-columns: 1fr; gap: 32px; padding: 32px 20px 56px; }
@@ -322,7 +385,7 @@
 <nav class="top">
   <div class="row">
 <a class="brand" href="index.html"><span class="brand-mark">R</span> Recall</a>
-    <div class="right">Don't have an account? <a href="signup.html">Sign up</a></div>
+    <div class="right">Don't have an account? <a href="#" id="openRolePicker">Sign up</a></div>
   </div>
 </nav>
 
@@ -421,10 +484,10 @@
       </div>
 
       <div class="foot">
-        New to Recall? <a href="signup.html">Create a free account</a>
+        New to Recall? <a href="#" id="openRolePicker2">Create a free account</a>
       </div>
       <div class="foot" style="margin-top: 10px; padding-top: 0; border: 0;">
-        Staff? <a href="staff.html">Open the lesson creator</a>
+        Staff? <a href="staff-dashboard.html">Open the staff dashboard</a>
       </div>
       <div class="foot" style="margin-top: 10px; padding-top: 0; border: 0;">
         Admin? <a href="admin.html">Open the admin console</a>
@@ -441,6 +504,37 @@
   </section>
 
 </main>
+
+<!-- ===== ROLE-PICKER MODAL ===== -->
+<div class="role-modal-back" id="roleModal" role="dialog" aria-modal="true" aria-labelledby="roleModalTitle">
+  <div class="role-modal">
+    <button type="button" class="close" id="roleModalClose" aria-label="Close">×</button>
+    <h2 id="roleModalTitle">What kind of account are you creating?</h2>
+    <p class="sub">Pick the type of account that matches you. Each one has its own sign-up flow.</p>
+    <div class="role-grid">
+      <button type="button" class="role-card" data-role="student">
+        <span class="icon">🎓</span>
+        <span class="label">I'm a student</span>
+        <span class="meta">Free forever. Two subjects, no card.</span>
+      </button>
+      <button type="button" class="role-card" data-role="teacher">
+        <span class="icon">👩‍🏫</span>
+        <span class="label">I'm a teacher</span>
+        <span class="meta">Requires a school code from your school administrator.</span>
+      </button>
+      <button type="button" class="role-card" data-role="staff">
+        <span class="icon">✍️</span>
+        <span class="label">I'm a Recall staff member</span>
+        <span class="meta">Requires an invite code from the admin team.</span>
+      </button>
+      <button type="button" class="role-card" data-role="school_admin">
+        <span class="icon">🏫</span>
+        <span class="label">I'm a school administrator</span>
+        <span class="meta muted">Coming soon.</span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -533,10 +627,28 @@
         submitBtn.textContent = originalText;
         return;
       }
-      // Success — land on the dashboard. The dashboard's load() will read
-      // the session and either render personalised data or a 'check your
-      // email' state (for under-16s still waiting on parental consent).
-      window.location.href = 'dashboard.html';
+      // Success — read the caller's role to decide where to land.
+      // Staff / reviewer / admin go to the staff dashboard; everyone
+      // else (students, teachers) goes to the student dashboard.
+      // The role is read from the JWT first; if the auth hook hasn't
+      // stamped it yet we fall back to current_role() RPC.
+      let role = null;
+      try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        role = user && user.app_metadata && user.app_metadata.role;
+      } catch (_) { /* ignore */ }
+      if (!role) {
+        try {
+          const r = await supabaseClient.rpc('current_role');
+          if (!r.error && r.data) role = r.data;
+        } catch (_) { /* RPC not installed — fall through */ }
+      }
+      const staffRoles = ['staff_author', 'staff_reviewer', 'admin'];
+      if (role && staffRoles.includes(role)) {
+        window.location.href = 'staff-dashboard.html';
+      } else {
+        window.location.href = 'dashboard.html';
+      }
     } catch (err) {
       errMsg.textContent = 'Network error. Check your connection and try again.';
       errBanner.classList.add('show');
@@ -587,6 +699,13 @@
     forgotBtn.click();
   }
 
+  // Auto-open the role-picker modal if the URL has #signup. The
+  // homepage CTAs (and any external link) can route through
+  // login.html#signup to land on the role-picker.
+  if (window.location.hash === '#signup') {
+    setTimeout(openRoleModal, 0);
+  }
+
   resetSend.addEventListener('click', async () => {
     hideResetMsg();
     const email = resetEmail.value.trim();
@@ -625,6 +744,39 @@
       resetSend.disabled = false;
       resetSend.textContent = original;
     }
+  });
+
+  // ---------- Role-picker modal ----------
+  // Clicking the "Sign up" link in the top nav or the
+  // "Create a free account" footer link opens this modal instead
+  // of going straight to /signup.html. Each card routes to the
+  // role-specific sign-up flow.
+  const roleModal = document.getElementById('roleModal');
+  const roleModalClose = document.getElementById('roleModalClose');
+  function openRoleModal(e) {
+    if (e) e.preventDefault();
+    roleModal.classList.add('open');
+  }
+  function closeRoleModal() {
+    roleModal.classList.remove('open');
+  }
+  document.getElementById('openRolePicker').addEventListener('click', openRoleModal);
+  const openRolePicker2 = document.getElementById('openRolePicker2');
+  if (openRolePicker2) openRolePicker2.addEventListener('click', openRoleModal);
+  roleModalClose.addEventListener('click', closeRoleModal);
+  roleModal.addEventListener('click', (e) => { if (e.target === roleModal) closeRoleModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeRoleModal(); });
+
+  document.querySelectorAll('.role-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const role = card.getAttribute('data-role');
+      const target =
+        role === 'student'      ? 'signup.html' :
+        role === 'teacher'      ? 'signup-teacher.html' :
+        role === 'staff'        ? 'signup-staff.html' :
+        /* school_admin */        'signup-school-admin.html';
+      window.location.href = target;
+    });
   });
 </script>
 </body>

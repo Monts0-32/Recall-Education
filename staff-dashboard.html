@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Staff dashboard — Recall</title>
+  <meta name="description" content="Recall staff hub: jump into the lesson creator, the admin console, or any other tool you have permission to use." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --teal:      #56D4DD;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---------- TOP NAV ---------- */
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+      position: sticky; top: 0; z-index: 50;
+    }
+    nav.top .row {
+      max-width: 100%; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 15px;
+      color: var(--text);
+    }
+    .brand-mark {
+      width: 26px; height: 26px;
+      background: var(--blue); color: #fff;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 13px;
+      border-radius: var(--r-sm);
+    }
+    .brand .tag {
+      font-size: 11px; font-weight: 600;
+      background: var(--blue-dim); color: var(--blue);
+      padding: 2px 8px; border-radius: 999px;
+      margin-left: 6px;
+      letter-spacing: 0.02em;
+    }
+    nav.top .right { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-3); }
+    .rank-pill {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .rank-pill.author   { background: rgba(63,185,80,0.15);  color: #56d364; }
+    .rank-pill.reviewer { background: rgba(210,153,34,0.15); color: #e3b341; }
+    .rank-pill.admin    { background: rgba(248,81,73,0.15);  color: #ff7b72; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 6px 12px;
+      border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+
+    /* ---------- LAYOUT ---------- */
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 0;
+      min-height: calc(100vh - 56px);
+    }
+
+    /* ---------- LEFT RAIL ---------- */
+    .rail {
+      background: var(--bg-2);
+      border-right: 1px solid var(--line);
+      padding: 24px 16px;
+    }
+    .rail h3 {
+      margin: 0 0 8px;
+      padding: 0 8px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-4);
+    }
+    .rail nav { display: flex; flex-direction: column; gap: 2px; margin-bottom: 22px; }
+    .rail nav a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px;
+      border-radius: var(--r-sm);
+      color: var(--text-2);
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.1s ease, color 0.1s ease;
+    }
+    .rail nav a:hover { background: var(--bg-3); color: var(--text); text-decoration: none; }
+    .rail nav a.primary { background: var(--blue-dim); color: var(--blue); }
+    .rail nav a.primary:hover { background: var(--blue-dim); color: var(--blue); }
+    .rail nav a .lock {
+      margin-left: auto;
+      color: var(--text-4);
+      font-size: 11px;
+    }
+    .rail nav a .lock[hidden] { display: none; }
+    .rail nav a[aria-disabled="true"] { color: var(--text-4); cursor: not-allowed; }
+    .rail nav a[aria-disabled="true"]:hover { background: transparent; color: var(--text-4); }
+    .rail nav svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .rail .profile-card {
+      margin-top: 28px;
+      padding: 12px 10px;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+    }
+    .rail .profile-card .name { font-weight: 600; font-size: 13px; color: var(--text); }
+    .rail .profile-card .role { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+
+    /* ---------- MAIN ---------- */
+    .main {
+      padding: 32px 36px 80px;
+      max-width: 980px;
+    }
+    .welcome {
+      margin-bottom: 28px;
+    }
+    .welcome h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+    }
+    .welcome p { margin: 0; color: var(--text-3); font-size: 14px; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .stat {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 16px 18px;
+    }
+    .stat .label {
+      font-size: 11.5px; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+    }
+    .stat .value {
+      font-size: 28px; font-weight: 700;
+      letter-spacing: -0.015em;
+      margin-top: 4px;
+    }
+    .stat .value.dim { color: var(--text-4); }
+    .stat .sub { font-size: 11.5px; color: var(--text-4); margin-top: 2px; }
+
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 20px 22px;
+      margin-bottom: 18px;
+    }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: var(--text);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card h2 .meta { font-size: 11.5px; color: var(--text-4); font-weight: 500; }
+    .card-empty { color: var(--text-4); font-size: 12.5px; padding: 4px 0; }
+
+    .activity { display: flex; flex-direction: column; gap: 8px; }
+    .activity .row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0;
+      border-top: 1px solid var(--line);
+      font-size: 12.5px;
+    }
+    .activity .row:first-of-type { border-top: 0; }
+    .activity .row .when { color: var(--text-4); min-width: 92px; font-variant-numeric: tabular-nums; }
+    .activity .row .who { color: var(--text-2); font-weight: 500; min-width: 140px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .activity .row .what { color: var(--text-3); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .activity .row .badge {
+      font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em;
+      padding: 1px 6px; border-radius: 4px;
+      background: var(--bg-3); color: var(--text-3);
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .activity .row .badge.admin_action  { background: var(--blue-dim); color: var(--blue); }
+    .activity .row .badge.lesson_published { background: var(--green-dim); color: var(--green); }
+    .activity .row .badge.role_changed { background: var(--yellow-dim); color: var(--yellow); }
+
+    .pending-review {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px;
+      background: var(--yellow-dim);
+      border: 1px solid rgba(210,153,34,0.3);
+      border-radius: var(--r-md);
+      margin-bottom: 18px;
+    }
+    .pending-review .num { font-size: 24px; font-weight: 700; color: var(--yellow); }
+    .pending-review .body { flex: 1; }
+    .pending-review .body .title { font-weight: 600; }
+    .pending-review .body .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .pending-review[hidden] { display: none; }
+
+    .cta-row { display: flex; gap: 10px; margin-top: 4px; }
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      padding: 10px 18px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13.5px; font-weight: 600;
+      border: 1px solid var(--blue);
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; color: #fff; }
+    .btn-secondary {
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid var(--line-2);
+      padding: 9px 16px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13.5px; font-weight: 500;
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-secondary:hover { background: var(--bg-4); border-color: var(--line-3); text-decoration: none; color: var(--text); }
+
+    /* ---------- GATE ---------- */
+    .gate {
+      max-width: 520px;
+      margin: 80px auto;
+      padding: 32px;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      text-align: center;
+    }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+    .gate .muted { color: var(--text-4); font-size: 12px; }
+
+    .toast-wrap {
+      position: fixed; bottom: 20px; right: 20px; z-index: 100;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      padding: 10px 14px; color: var(--text-2); font-size: 13px;
+      max-width: 320px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .toast.success { border-color: var(--green); color: var(--green); }
+    .toast.error   { border-color: var(--red);   color: var(--red); }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .rail { border-right: 0; border-bottom: 1px solid var(--line); padding: 16px; }
+      .main { padding: 24px 20px 60px; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+    }
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">R</span> Recall
+      <span class="tag">STAFF</span>
+    </a>
+    <div class="right">
+      <span id="rankPill" class="rank-pill" hidden></span>
+      <span id="userName">…</span>
+      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<!-- The gate is only visible briefly on first load while the role
+     check runs (auth.getUser, then JWT/RPC fallback). If the user
+     isn't signed in or isn't staff, we replace the dashboard with a
+     centred message instead. -->
+<div id="gate" class="gate" hidden>
+  <h1 id="gateTitle">Verifying access…</h1>
+  <p id="gateMsg">One moment.</p>
+  <p class="muted"><a class="btn-link" href="login.html">Sign in</a> · <a class="btn-link" href="index.html">Back to home</a></p>
+</div>
+
+<div class="layout" id="dashLayout" hidden>
+  <!-- ===== LEFT RAIL ===== -->
+  <aside class="rail">
+    <h3>Tools</h3>
+    <nav>
+      <a href="lesson-creator.html" class="primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Lesson creator
+      </a>
+      <a href="dashboard.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        Student dashboard
+      </a>
+      <a href="admin.html" data-requires-role="admin" id="adminLink">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1l3 6 6 1-4.5 4 1 6L12 15l-5.5 3 1-6L3 8l6-1z"/></svg>
+        Admin console
+        <span class="lock" id="adminLock" hidden>🔒</span>
+      </a>
+    </nav>
+
+    <h3>Account</h3>
+    <nav>
+      <a href="javascript:void(0)" id="profileLink" onclick="openProfilePanel(); return false;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Profile
+      </a>
+      <a href="javascript:void(0)" id="signOutLink" onclick="document.getElementById('signOutBtn').click(); return false;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign out
+      </a>
+    </nav>
+
+    <div class="profile-card">
+      <div class="name" id="profileCardName">…</div>
+      <div class="role" id="profileCardRole">…</div>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <main class="main">
+    <div class="welcome">
+      <h1 id="welcomeTitle">Welcome back.</h1>
+      <p id="welcomeSub">Here's what needs your attention.</p>
+    </div>
+
+    <div class="pending-review" id="pendingReview" hidden>
+      <div class="num" id="pendingReviewNum">0</div>
+      <div class="body">
+        <div class="title">Drafts awaiting review</div>
+        <div class="sub" id="pendingReviewSub">No drafts at the moment.</div>
+      </div>
+      <a class="btn-secondary" href="lesson-creator.html">Open lesson creator</a>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="label">Subjects</div>
+        <div class="value" id="statSubjects">—</div>
+      </div>
+      <div class="stat">
+        <div class="label">Units</div>
+        <div class="value" id="statUnits">—</div>
+      </div>
+      <div class="stat">
+        <div class="label">Topics</div>
+        <div class="value" id="statTopics">—</div>
+      </div>
+      <div class="stat">
+        <div class="label">Lessons</div>
+        <div class="value" id="statLessons">—</div>
+        <div class="sub" id="statLessonsSub"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Recent activity <span class="meta" id="activityMeta"></span></h2>
+      <div class="activity" id="activityBody">
+        <div class="card-empty">Loading…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Quick links</h2>
+      <p style="color:var(--text-3); font-size:13px; margin: 0 0 14px;">
+        Jump straight into the parts of the site you use most.
+      </p>
+      <div class="cta-row">
+        <a class="btn-primary" href="lesson-creator.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          Open the lesson creator
+        </a>
+        <a class="btn-secondary" href="dashboard.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+          Student dashboard
+        </a>
+        <a class="btn-secondary" href="admin.html" id="adminQuick" data-requires-role="admin">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M12 1l3 6 6 1-4.5 4 1 6L12 15l-5.5 3 1-6L3 8l6-1z"/></svg>
+          Admin console
+        </a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ---------- Supabase client (matches the other staff / admin pages) ----
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) {
+          return fetch(url, options);
+        }
+      }
+    }
+  });
+
+  // ---------- helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  // ---------- role / rank ----------
+  const ROLE_PILL = {
+    staff_author:   { label: 'Author',   cls: 'author'   },
+    staff_reviewer: { label: 'Reviewer', cls: 'reviewer' },
+    admin:          { label: 'Admin',    cls: 'admin'    },
+  };
+
+  function showGate(title, msg) {
+    $('dashLayout').hidden = true;
+    $('gate').hidden = false;
+    $('gateTitle').textContent = title;
+    $('gateMsg').textContent = msg;
+  }
+
+  function applyRole(role) {
+    // Rank pill
+    const r = ROLE_PILL[role];
+    if (r) {
+      $('rankPill').textContent = r.label;
+      $('rankPill').classList.add(r.cls);
+      $('rankPill').hidden = false;
+    }
+    // Permission-aware links
+    document.querySelectorAll('[data-requires-role]').forEach(a => {
+      const need = a.getAttribute('data-requires-role');
+      if (need === 'admin' && role !== 'admin') {
+        a.setAttribute('aria-disabled', 'true');
+        a.setAttribute('title', 'Admin only');
+        a.addEventListener('click', (e) => { e.preventDefault(); toast('Admin only', 'error'); }, { once: true });
+      } else {
+        a.removeAttribute('aria-disabled');
+        a.removeAttribute('title');
+      }
+    });
+  }
+
+  function showDashboard(user, role, profile) {
+    $('gate').hidden = true;
+    $('dashLayout').hidden = false;
+
+    // Top nav
+    $('userName').textContent = (profile && profile.full_name) || user.email;
+    $('signOutBtn').hidden = false;
+    applyRole(role);
+
+    // Profile card on left rail
+    const name = (profile && profile.full_name) || user.email;
+    const pill = ROLE_PILL[role];
+    $('profileCardName').textContent = name;
+    $('profileCardRole').textContent = pill ? pill.label : 'Staff';
+
+    // Welcome
+    $('welcomeTitle').textContent = 'Welcome back, ' + (name.split(' ')[0] || '') + '.';
+    $('welcomeSub').textContent = pill
+      ? 'You\'re signed in as ' + pill.label + '. Here\'s a quick look at the catalogue.'
+      : 'Here\'s a quick look at the catalogue.';
+
+    loadStats();
+    loadActivity(role);
+    if (role === 'staff_reviewer' || role === 'admin') loadPendingReview();
+  }
+
+  // ---------- stats ----------
+  async function loadStats() {
+    try {
+      const [subjectsRes, unitsRes, topicsRes, lessonsRes] = await Promise.all([
+        supabaseClient.from('subjects').select('id', { count: 'exact', head: true }),
+        supabaseClient.from('units').select('id', { count: 'exact', head: true }),
+        supabaseClient.from('topics').select('id', { count: 'exact', head: true }),
+        supabaseClient.from('lessons').select('id, status', { count: 'exact' }),
+      ]);
+      $('statSubjects').textContent = subjectsRes.count ?? '—';
+      $('statUnits').textContent    = unitsRes.count    ?? '—';
+      $('statTopics').textContent   = topicsRes.count   ?? '—';
+      const lessons = lessonsRes.data || [];
+      const published = lessons.filter(l => l.status === 'published').length;
+      $('statLessons').textContent = lessonsRes.count ?? '—';
+      if (lessonsRes.count != null) {
+        $('statLessonsSub').textContent = published + ' published';
+      } else {
+        $('statLessonsSub').textContent = '';
+      }
+    } catch (e) {
+      console.error('loadStats failed:', e);
+    }
+  }
+
+  // ---------- activity ----------
+  // Authors see their own recent activity; reviewers + admins see
+  // everyone's. Keeps the card useful for every role without dumping
+  // a wall of admin-only actions on a junior author.
+  async function loadActivity(role) {
+    const body = $('activityBody');
+    body.innerHTML = '<div class="card-empty">Loading…</div>';
+    try {
+      let q = supabaseClient
+        .from('staff_audit_log')
+        .select('id, action, resource_type, metadata, created_at, actor_id')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (role === 'staff_author') {
+        q = q.eq('actor_id', (await supabaseClient.auth.getUser()).data.user.id);
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      if (!data || !data.length) {
+        body.innerHTML = '<div class="card-empty">No activity yet.</div>';
+        $('activityMeta').textContent = '';
+        return;
+      }
+      $('activityMeta').textContent = role === 'staff_author' ? 'Your recent edits' : 'Last 10 actions';
+
+      // Resolve actor names in a single follow-up query (audit log
+      // doesn't FK to a public name column, so we look it up).
+      const actorIds = Array.from(new Set(data.map(d => d.actor_id).filter(Boolean)));
+      let actorMap = {};
+      if (actorIds.length) {
+        const { data: profiles } = await supabaseClient
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', actorIds);
+        (profiles || []).forEach(p => { actorMap[p.id] = p.full_name || p.email; });
+      }
+
+      body.innerHTML = data.map(row => {
+        const when = new Date(row.created_at);
+        const whenStr = when.toLocaleString('en-GB', {
+          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+        });
+        const who = actorMap[row.actor_id] || (row.actor_id ? 'Unknown user' : 'System');
+        const what = describeAction(row);
+        const cls = (row.action || '').replace(/[^a-z_]/g, '_');
+        return `
+          <div class="row">
+            <span class="badge ${cls}">${escapeHtml(row.action || 'event')}</span>
+            <span class="who">${escapeHtml(who)}</span>
+            <span class="what">${escapeHtml(what)}</span>
+            <span class="when">${escapeHtml(whenStr)}</span>
+          </div>`;
+      }).join('');
+    } catch (e) {
+      console.error('loadActivity failed:', e);
+      body.innerHTML = '<div class="card-empty">Couldn\'t load activity. Check the console for details.</div>';
+    }
+  }
+
+  function describeAction(row) {
+    const m = row.metadata || {};
+    switch (row.action) {
+      case 'admin_action': {
+        const op = m.op || 'change';
+        const rt = row.resource_type || 'item';
+        if (op === 'create_for_subject_year') {
+          return 'Added ' + rt + ' "' + (m.name || '') + '"';
+        }
+        if (op === 'create') {
+          return 'Created ' + rt + ' "' + (m.name || '') + '"';
+        }
+        if (op === 'rename') {
+          return 'Renamed ' + rt + ' to "' + (m.name || '') + '"';
+        }
+        if (op === 'delete') {
+          return 'Deleted ' + rt;
+        }
+        if (op === 'move_topic_to_unit') {
+          return 'Moved topic to another unit';
+        }
+        return rt + ' ' + op;
+      }
+      case 'lesson_published':    return 'Published a lesson';
+      case 'lesson_unpublished':  return 'Unpublished a lesson';
+      case 'lesson_archived':     return 'Archived a lesson';
+      case 'role_changed':        return 'Changed a staff role';
+      case 'access_revoked':      return 'Revoked staff access';
+      case 'invite_sent':         return 'Sent a staff invitation';
+      case 'invite_revoked':      return 'Revoked a staff invitation';
+      case 'invite_resent':       return 'Resent a staff invitation';
+      case 'admin_login':         return 'Signed in to the admin console';
+      default:                    return row.action || 'event';
+    }
+  }
+
+  // ---------- pending review ----------
+  // Only for reviewers and admins. Counts draft lessons (status='draft').
+  async function loadPendingReview() {
+    try {
+      const { count, error } = await supabaseClient
+        .from('lessons')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'draft');
+      if (error) throw error;
+      const n = count || 0;
+      $('pendingReviewNum').textContent = n;
+      $('pendingReviewSub').textContent = n === 0
+        ? 'Nothing waiting — all caught up.'
+        : (n === 1 ? '1 draft lesson is waiting to be published.' : n + ' draft lessons are waiting to be published.');
+      $('pendingReview').hidden = n === 0;
+    } catch (e) {
+      console.error('loadPendingReview failed:', e);
+    }
+  }
+
+  // ---------- profile (no-op placeholder) ----------
+  // We render a small panel. The full profile editor is a future
+  // feature; today the link just shows a toast.
+  window.openProfilePanel = () => {
+    toast('Profile editing is coming soon.', 'success');
+  };
+
+  // ---------- sign out ----------
+  $('signOutBtn').addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = 'login.html';
+  });
+
+  // ---------- boot ----------
+  async function boot() {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (error || !data || !data.user) {
+      showGate('Sign-in required', 'Sign in to use the staff dashboard.');
+      return;
+    }
+    const user = data.user;
+
+    // Role: read from JWT, fall back to the RPC. The fallback exists
+    // because the auth hook has been observed not to stamp
+    // app_metadata.role for some users on this Supabase project.
+    let role = user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) { /* RPC not installed — fall through */ }
+    }
+    const allowed = ['staff_author', 'staff_reviewer', 'admin'];
+    if (!role || !allowed.includes(role)) {
+      showGate(
+        'Staff access only',
+        'Your account is signed in, but it does not have staff permissions. Ask an admin to invite you from the admin console.'
+      );
+      $('userName').textContent = (user.user_metadata && user.user_metadata.full_name) || user.email;
+      return;
+    }
+
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id, full_name, role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    showDashboard(user, role, profile);
+  }
+
+  boot();
+</script>
+</body>
+</html>
