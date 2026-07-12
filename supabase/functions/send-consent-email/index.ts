@@ -130,7 +130,7 @@ function parentConsentEmail(studentName: string, consentUrl: string) {
       "Your child wants to use Recall",
       `<p style="margin:0 0 14px;">Hello,</p>
        <p style="margin:0 0 14px;"><b>${escapeHtml(studentName)}</b> has signed up for Recall, a UK study app for GCSE and A-level students. UK law (UK-GDPR / Age-Appropriate Design Code) requires us to get a parent or guardian's consent before a child under 16 can use the product.</p>
-       <p style="margin:0 0 14px;">Please review and decide. The link is unique to you and will expire in 7 days.</p>
+       <p style="margin:0 0 14px;">Please review and decide. The link is unique to you and will expire in 3 days &mdash; after that, the account is removed.</p>
        ${ctaButton(consentUrl, "Review and give consent")}
        <p style="margin:18px 0 0;font-size:13px;color:#57606A;">If this wasn't your child, you can safely ignore this email &mdash; no account will be activated.</p>
        <p style="margin:14px 0 0;font-size:13px;color:#57606A;">Questions? Email <a href="mailto:hello@recalleducation.co.uk" style="color:#1F6FEB;">hello@recalleducation.co.uk</a>. You can withdraw consent at any time and we will delete the account.</p>`,
@@ -141,6 +141,8 @@ UK law requires a parent or guardian to consent before a child under 16 can use 
 
 Review and decide:
 ${consentUrl}
+
+This link expires in 3 days — after that, the account is removed.
 
 If this wasn't your child, ignore this email — no account will be activated.
 
@@ -187,14 +189,45 @@ async function ensureConsentToken(
 // ----------------------------------------------------------------------------
 
 Deno.serve(async (req) => {
+  // CORS preflight. supabase-js's `functions.invoke` sends an OPTIONS
+  // request first; without a proper response here the browser blocks the
+  // real POST with the exact error you're seeing:
+  //   "No 'Access-Control-Allow-Origin' header is present on the
+  //    requested resource."
+  //
+  // We allow our own production origin and localhost (for testing the
+  // dashboard tester / local dev). The Authorization header is whitelisted
+  // because supabase-js sends the anon key in it; Content-Type is needed
+  // because the body is application/json.
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": req.headers.get("origin") ?? "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
+        "Access-Control-Max-Age": "86400",
+        "Vary": "Origin",
+      },
+    });
+  }
+
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
 
+  // Echo the CORS headers on the real response too — without these, the
+  // browser accepts the 200 but refuses to let the JS see the body,
+  // which surfaces as a different (more confusing) error.
+  const corsHeaders: Record<string, string> = {
+    "Access-Control-Allow-Origin": req.headers.get("origin") ?? "*",
+    "Vary": "Origin",
+  };
+
   const missing = missingEnv();
   if (missing.length) {
     console.error("send-consent-email: missing env vars:", missing.join(", "));
-    return new Response("server misconfigured", { status: 500 });
+    return new Response("server misconfigured", { status: 500, headers: corsHeaders });
   }
 
   let body: {
@@ -206,21 +239,21 @@ Deno.serve(async (req) => {
   try {
     body = await req.json();
   } catch {
-    return new Response("invalid json", { status: 400 });
+    return new Response("invalid json", { status: 400, headers: corsHeaders });
   }
 
   const { student_user_id, parent_email, student_name, origin } = body;
   if (!student_user_id || !parent_email || !origin) {
-    return new Response("missing required fields", { status: 400 });
+    return new Response("missing required fields", { status: 400, headers: corsHeaders });
   }
 
   // Basic shape validation on the IDs / emails so we don't push garbage
   // through to the database / Resend.
   if (!/^[0-9a-f-]{36}$/i.test(student_user_id)) {
-    return new Response("invalid student_user_id", { status: 400 });
+    return new Response("invalid student_user_id", { status: 400, headers: corsHeaders });
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parent_email)) {
-    return new Response("invalid parent_email", { status: 400 });
+    return new Response("invalid parent_email", { status: 400, headers: corsHeaders });
   }
 
   let appOrigin: string;
@@ -229,11 +262,11 @@ Deno.serve(async (req) => {
     // Only allow http(s) origins — defence against a malicious caller
     // smuggling in `javascript:` or `file:` URLs.
     if (u.protocol !== "https:" && u.protocol !== "http:") {
-      return new Response("invalid origin", { status: 400 });
+      return new Response("invalid origin", { status: 400, headers: corsHeaders });
     }
     appOrigin = u.origin;
   } catch {
-    return new Response("invalid origin", { status: 400 });
+    return new Response("invalid origin", { status: 400, headers: corsHeaders });
   }
 
   const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -242,7 +275,7 @@ Deno.serve(async (req) => {
 
   const token = await ensureConsentToken(sb, student_user_id, parent_email);
   if (!token) {
-    return new Response("could not create consent token", { status: 500 });
+    return new Response("could not create consent token", { status: 500, headers: corsHeaders });
   }
 
   const consentUrl = `${appOrigin}/consent.html?token=${encodeURIComponent(token)}`;
@@ -259,12 +292,12 @@ Deno.serve(async (req) => {
     });
     if (error) {
       console.error("send-consent-email: resend failed:", error);
-      return new Response("email send failed", { status: 500 });
+      return new Response("email send failed", { status: 500, headers: corsHeaders });
     }
   } catch (err) {
     console.error("send-consent-email: resend threw:", (err as Error).message);
-    return new Response("email send failed", { status: 500 });
+    return new Response("email send failed", { status: 500, headers: corsHeaders });
   }
 
-  return Response.json({ ok: true });
+  return Response.json({ ok: true }, { headers: corsHeaders });
 });

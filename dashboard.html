@@ -411,9 +411,139 @@
     a:focus-visible, button:focus-visible {
       outline: 2px solid var(--blue); outline-offset: 2px;
     }
+
+    /* Soft-deleted account full-page overlay. Hides the entire dashboard
+       chrome (sidebar, top bar, etc.) and shows a clean "your account has
+       been removed" page. Triggered by dashboard.js when it sees
+       deleted_at IS NOT NULL on the profile. */
+    .removed-page {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 24px; z-index: 100;
+    }
+    .removed-page.show { display: flex; }
+    .removed-card {
+      max-width: 480px; width: 100%;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 32px;
+      text-align: center;
+    }
+    .removed-card h1 {
+      margin: 0 0 12px;
+      font-size: 22px; font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+    .removed-card p {
+      margin: 0 0 8px;
+      color: var(--text-2);
+      font-size: 14px; line-height: 1.5;
+    }
+    .removed-card .small {
+      font-size: 12px; color: var(--text-3);
+      margin-top: 20px; padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+    .removed-card a {
+      display: inline-block;
+      margin-top: 18px;
+      padding: 10px 18px;
+      background: var(--blue); color: #fff;
+      border-radius: var(--r-sm);
+      font-weight: 600; font-size: 14px;
+      text-decoration: none;
+    }
+    .removed-card a:hover { background: var(--blue-2); text-decoration: none; }
+
+    /* Waiting-for-consent full-page overlay. Same shape as .removed-page
+       but a different colour so the user knows the account is alive, just
+       gated. Shown when requires_parental_consent = true and
+       consent_status != 'granted'. */
+    .consent-page {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 24px; z-index: 100;
+    }
+    .consent-page.show { display: flex; }
+    .consent-card {
+      max-width: 480px; width: 100%;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 32px;
+      text-align: center;
+    }
+    .consent-card h1 {
+      margin: 0 0 12px;
+      font-size: 22px; font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+    .consent-card p {
+      margin: 0 0 8px;
+      color: var(--text-2);
+      font-size: 14px; line-height: 1.5;
+    }
+    .consent-card .small {
+      font-size: 12px; color: var(--text-3);
+      margin-top: 20px; padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+    .consent-card a {
+      display: inline-block;
+      margin-top: 18px;
+      padding: 10px 18px;
+      background: var(--blue); color: #fff;
+      border-radius: var(--r-sm);
+      font-weight: 600; font-size: 14px;
+      text-decoration: none;
+    }
+    .consent-card a:hover { background: var(--blue-2); text-decoration: none; }
+    .consent-card a.ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      margin-left: 8px;
+    }
+    .consent-card a.ghost:hover { background: var(--bg-3); text-decoration: none; }
   </style>
 </head>
 <body>
+
+<!-- Full-page overlay shown when the user's profile has deleted_at set.
+     Hidden by default; dashboard.js toggles the .show class when it
+     detects a soft-deleted account. -->
+<div class="removed-page" id="removedPage" role="alertdialog" aria-labelledby="removedTitle" aria-modal="true">
+  <div class="removed-card">
+    <h1 id="removedTitle">Your account has been removed</h1>
+    <p id="removedReason">This account is no longer active. All of your data has been deleted.</p>
+    <p>You can sign up again at any time with a different email address.</p>
+    <a href="index.html">Back to home</a>
+    <div class="small">
+      Questions? Email <a href="mailto:hello@recalleducation.co.uk" style="color: var(--blue);">hello@recalleducation.co.uk</a>.
+    </div>
+  </div>
+</div>
+
+<!-- Full-page overlay shown when the user is under 16 and waiting for
+     parental consent. Hides the dashboard chrome entirely so they can't
+     poke at the app until their parent has approved. -->
+<div class="consent-page" id="consentPage" role="alertdialog" aria-labelledby="consentTitle" aria-modal="true">
+  <div class="consent-card">
+    <h1 id="consentTitle">Waiting for your parent</h1>
+    <p>Your account is ready, but we need a parent or guardian to confirm before you can use Recall.</p>
+    <p>We sent them a link by email &mdash; it expires in 3 days. Once they click it, you can come back and start learning.</p>
+    <a href="index.html">Back to home</a>
+    <a href="#" id="signOutFromConsent" class="ghost">Sign out</a>
+    <div class="small">
+      Questions? Email <a href="mailto:hello@recalleducation.co.uk" style="color: var(--blue);">hello@recalleducation.co.uk</a>.
+    </div>
+  </div>
+</div>
 
 <nav class="top">
   <div class="row">
@@ -814,6 +944,41 @@
     el.classList.add('show');
   }
 
+  // Full-page overlay for soft-deleted accounts. Hides the dashboard
+  // chrome entirely and shows a short explanation. The reason text
+  // adapts: a denial says "consent was declined", a 3-day expiry says
+  // "consent was not given in time".
+  function showRemoved(reason) {
+    const reasonEl = $('removedReason');
+    if (reasonEl) {
+      if (reason === 'denied') {
+        reasonEl.textContent = 'A parent or guardian did not give consent for this account. All of your data has been deleted.';
+      } else if (reason === 'expired') {
+        reasonEl.textContent = 'A parent or guardian did not respond to the consent request in time. All of your data has been deleted.';
+      } else {
+        reasonEl.textContent = 'This account is no longer active. All of your data has been deleted.';
+      }
+    }
+    const page = $('removedPage');
+    if (page) page.classList.add('show');
+    // Sign the user out so refreshing the page doesn't re-render the
+    // dashboard with stale state.
+    supabaseClient.auth.signOut().catch(() => {});
+  }
+
+  // Full-page overlay for under-16s waiting on parental consent. We
+  // show this in preference to the dashboard so the student can't poke
+  // at the app until their parent has approved. The auth hook lets
+  // the email-confirmation flow through, so this is the gate that
+  // actually stops the under-16 from using the product.
+  function showWaitingForConsent() {
+    const page = $('consentPage');
+    if (page) page.classList.add('show');
+    // Don't sign them out — we want the session to persist so the page
+    // works correctly when the parent consents and the student comes
+    // back. The signOut button on the overlay is their escape hatch.
+  }
+
   // ---------- data shaping ----------
   function subjectProgressToRow(sp) {
     const levelLabel = sp.level === 'a-level' ? 'A-level' : 'GCSE';
@@ -1045,13 +1210,41 @@
     try {
       const { data: profile } = await supabaseClient
         .from('profiles')
-        .select('year_group, consent_status, requires_parental_consent')
+        .select('year_group, consent_status, requires_parental_consent, deleted_at')
         .eq('id', user.id)
         .maybeSingle();
       if (profile) {
+        // Soft-deleted accounts go straight to the removed-page overlay.
+        // We check this BEFORE the consent check because a denied/expired
+        // account is also one that needed consent and didn't get it.
+        if (profile.deleted_at) {
+          // The most-recent parental_consents row tells us whether the
+          // parent denied or whether the 3-day window expired.
+          let reason = 'unknown';
+          try {
+            const { data: lastConsent } = await supabaseClient
+              .from('parental_consents')
+              .select('status')
+              .eq('student_user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (lastConsent && lastConsent.status === 'denied') reason = 'denied';
+            else if (lastConsent && lastConsent.status === 'expired') reason = 'expired';
+          } catch (_) { /* best effort */ }
+          showRemoved(reason);
+          return;
+        }
+
         yearGroup = profile.year_group || yearGroup;
         if (profile.requires_parental_consent && profile.consent_status !== 'granted') {
-          showState('Your account is waiting for parental consent. Ask your parent to check their email.');
+          // Under-16 awaiting consent. The auth hook lets the email-
+          // confirmation flow through (authentication_method =
+          // 'email/signup'), but the dashboard is the real gate. Show
+          // a full-page overlay instead of the dashboard chrome so
+          // the student can't poke at the app.
+          showWaitingForConsent();
+          return;
         }
       }
     } catch (_) { /* profiles table may not be readable in this env; ignore */ }
@@ -1094,6 +1287,14 @@
   );
 
   $('signOutBtn').addEventListener('click', async function () {
+    await supabaseClient.auth.signOut();
+    window.location.href = 'index.html';
+  });
+
+  // Sign-out button on the consent overlay. Same destination as the
+  // main sign-out — back to the home page.
+  $('signOutFromConsent').addEventListener('click', async function (e) {
+    e.preventDefault();
     await supabaseClient.auth.signOut();
     window.location.href = 'index.html';
   });

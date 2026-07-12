@@ -214,7 +214,7 @@
       if (profile && profile.requires_parental_consent && profile.consent_status !== 'granted') {
         $('heading').textContent = 'Almost there';
         $('cardLede').textContent =
-          'Your account is ready, but we need a parent or guardian to confirm before you can sign in. We sent them a link by email — it expires in 7 days.';
+          'Your account is ready, but we need a parent or guardian to confirm before you can sign in. We sent them a link by email — it expires in 3 days.';
         $('ctaBtn').textContent = 'Back to home';
         $('ctaBtn').setAttribute('href', 'index.html');
         showState('Waiting for parental consent.', 'warn');
