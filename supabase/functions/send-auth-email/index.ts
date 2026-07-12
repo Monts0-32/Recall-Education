@@ -75,7 +75,8 @@ interface HookPayload {
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const SUPABASE_SERVICE_ROLE_KEY =
+  Deno.env.get("REACT_SUPABASE_SERVICE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const HOOK_SECRET = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
 const EMAIL_FROM =
   Deno.env.get("EMAIL_FROM") ?? "Recall Education <hello@recalleducation.co.uk>";
@@ -84,7 +85,7 @@ function missingEnv(): string[] {
   const out: string[] = [];
   if (!RESEND_API_KEY) out.push("RESEND_API_KEY");
   if (!SUPABASE_URL) out.push("SUPABASE_URL");
-  if (!SUPABASE_SERVICE_ROLE_KEY) out.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (!SUPABASE_SERVICE_ROLE_KEY) out.push("REACT_SUPABASE_SERVICE_KEY");
   if (!HOOK_SECRET) out.push("SEND_EMAIL_HOOK_SECRET");
   return out;
 }
@@ -264,7 +265,16 @@ Deno.serve(async (req) => {
   //    finds the function URL could POST to it and burn Resend quota.
   let payload: HookPayload;
   try {
-    const wh = new Webhook(HOOK_SECRET!);
+    // The Standard Webhooks spec stores the secret as "v1,whsec_<base64>".
+    // The version prefix and the human-readable "whsec_" marker are NOT
+    // part of the secret — the library only wants the base64 bytes. If
+    // we hand it the whole string, it tries to base64-decode characters
+    // like 'v', '1', 'w', 'h', etc. and fails with "incorrect characters
+    // for decoding".
+    let secret = HOOK_SECRET!;
+    if (secret.startsWith("v1,")) secret = secret.slice(3);
+    if (secret.startsWith("whsec_")) secret = secret.slice(6);
+    const wh = new Webhook(secret);
     const raw = await req.text();
     const headers: Record<string, string> = {};
     req.headers.forEach((v, k) => { headers[k] = v; });

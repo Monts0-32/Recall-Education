@@ -166,7 +166,7 @@
 
     <div id="ready" hidden>
       <div class="actions">
-        <a class="btn-primary" id="ctaBtn" href="dashboard.html">Go to your dashboard</a>
+        <a class="btn-primary" id="ctaBtn" href="../dashboard.html">Go to your dashboard</a>
         <a class="btn-ghost"   href="index.html">Back to home</a>
       </div>
       <p class="small">
@@ -228,14 +228,14 @@
       showReady();
       // Auto-redirect after 2s. The button is still there if they want to
       // click it manually (e.g. assistive tech, slow connection).
-      setTimeout(function () { window.location.href = 'dashboard.html'; }, 2000);
+      setTimeout(function () { window.location.href = '../dashboard.html'; }, 2000);
     } catch (err) {
       // profiles not readable in this env (e.g. dashboard tables not yet
       // created). Optimistically send them to the dashboard anyway — the
       // dashboard's own auth check will redirect them back to /login.html
       // if the session is somehow not valid.
       showReady();
-      setTimeout(function () { window.location.href = 'dashboard.html'; }, 2000);
+      setTimeout(function () { window.location.href = '../dashboard.html'; }, 2000);
     }
   }
 
