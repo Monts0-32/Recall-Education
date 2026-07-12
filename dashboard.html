@@ -312,12 +312,26 @@
       cursor: pointer;
     }
     .subj-row .action button:hover { background: var(--bg-3); color: var(--text); }
+    .subj-row .action .subj-cta {
+      display: inline-block;
+      background: transparent;
+      color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 4px 10px;
+      border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .subj-row .action .subj-cta:hover { background: var(--bg-3); color: var(--text); text-decoration: none; }
     .subj-row.continue { background: var(--blue-pale); }
     .subj-row.continue:hover { background: var(--blue-dim); }
-    .subj-row.continue .action button {
+    .subj-row.continue .action button,
+    .subj-row.continue .action .subj-cta {
       background: var(--blue); color: #fff; border-color: var(--blue);
     }
-    .subj-row.continue .action button:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .subj-row.continue .action button:hover,
+    .subj-row.continue .action .subj-cta:hover { background: var(--blue-2); border-color: var(--blue-2); }
     .subj-row .dot.maths { background: #58A6FF; }
     .subj-row .dot.eng { background: #A371F7; }
     .subj-row .dot.bio { background: #3FB950; }
@@ -786,6 +800,9 @@
   }
 
   function renderSubjRow(s, opts = {}) {
+    const ctaHtml = opts.continue && s.lesson_id
+      ? `<a class="subj-cta" href="lesson.html?lesson=${encodeURIComponent(s.lesson_id)}">${escapeHtml(opts.continue ? s.cta : 'Open')}</a>`
+      : `<button type="button">${escapeHtml(opts.continue ? s.cta : 'Open')}</button>`;
     return `
       <div class="subj-row${opts.continue ? ' continue' : ''}">
         <span class="dot ${s.dot}"></span>
@@ -795,9 +812,7 @@
           <span class="prog-pct">${s.prog}%</span>
         </div>
         <div class="last">${escapeHtml(opts.continue ? s.chapter : s.last)}</div>
-        <div class="action">
-          <button type="button">${escapeHtml(opts.continue ? s.cta : 'Open')}</button>
-        </div>
+        <div class="action">${ctaHtml}</div>
       </div>
     `;
   }
@@ -1026,7 +1041,7 @@
   // "Continue" card: pick the two most-recently-touched subjects, with the
   // chapter the student is currently on. Falls back to subjects with the
   // most progress if no lesson_progress rows exist.
-  function buildContinueRows(subjectProgress, lastTouchedBySubject) {
+  function buildContinueRows(subjectProgress, lastTouchedBySubject, lastLessonBySubject) {
     if (!subjectProgress.length) return [];
 
     // Sort: subjects with recent progress first (by last_touched desc),
@@ -1045,7 +1060,8 @@
         ...subjectProgressToRow(sp),
         chapter: touch ? `Last touched ${last}` : `${sp.completed_lessons || 0} of ${sp.total_lessons || 0} lessons`,
         cta: sp.completed_lessons > 0 ? 'Continue' : 'Start',
-        continue: true
+        continue: true,
+        lesson_id: lastLessonBySubject[sp.subject_id] || null,
       };
     });
   }
@@ -1118,13 +1134,17 @@
     const lessonProgress  = (lessonProgressRes.data || []);
     const quizzes         = (quizRes.data || []);
 
-    // Last-touched timestamp per subject, from lesson_progress joined to lesson.
+    // Last-touched timestamp + lesson_id per subject, from lesson_progress
+    // joined to lesson. We pick the most-recently-updated lesson in the
+    // subject — that's the one the Continue button should open.
     const lastTouchedBySubject = {};
+    const lastLessonBySubject = {};
     for (const lp of lessonProgress) {
       const subj = lp.lesson?.topic?.subject;
       if (!subj) continue;
       if (!lastTouchedBySubject[subj.id]) {
         lastTouchedBySubject[subj.id] = lp.updated_at;
+        if (lp.lesson?.id) lastLessonBySubject[subj.id] = lp.lesson.id;
       }
     }
 
@@ -1155,7 +1175,7 @@
     const { count, last14 } = computeStreak(sessions);
 
     renderKPIs(kpis);
-    renderContinue(buildContinueRows(subjectProgress, lastTouchedBySubject));
+    renderContinue(buildContinueRows(subjectProgress, lastTouchedBySubject, lastLessonBySubject));
     renderSubjects(buildSubjectRows(subjectProgress));
     renderUpcoming(buildUpcoming(assignments));
     renderActivity(activity);

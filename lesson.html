@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lesson — Recall</title>
+  <meta name="description" content="Recall lesson player." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.15);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.15);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.15);
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---------- TOP NAV ---------- */
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: rgba(13,17,23,0.85);
+      backdrop-filter: blur(8px);
+      position: sticky; top: 0; z-index: 50;
+    }
+    nav.top .row {
+      max-width: 1100px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 15px;
+      color: var(--text);
+    }
+    .brand-mark {
+      width: 26px; height: 26px;
+      background: var(--blue); color: #fff;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 13px;
+      border-radius: var(--r-sm);
+    }
+    .nav-right { display: flex; align-items: center; gap: 14px; }
+    .nav-right a, .nav-right button {
+      background: transparent; color: var(--text-3);
+      border: 0; font-family: inherit; font-size: 13px;
+      cursor: pointer; padding: 6px 8px;
+    }
+    .nav-right a:hover, .nav-right button:hover { color: var(--text); text-decoration: none; }
+    .crumb { color: var(--text-4); font-size: 12.5px; }
+
+    /* ---------- LESSON HEADER ---------- */
+    .lesson-head {
+      max-width: 800px; margin: 0 auto;
+      padding: 32px 24px 16px;
+    }
+    .crumb-row {
+      display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+      font-size: 12px; color: var(--text-3);
+      margin-bottom: 14px;
+    }
+    .crumb-row a { color: var(--text-3); }
+    .crumb-row a:hover { color: var(--text); }
+    .subject-dot {
+      display: inline-block; width: 8px; height: 8px;
+      border-radius: 50%; background: var(--blue);
+      margin-right: 6px; vertical-align: middle;
+    }
+    h1.lesson-title {
+      font-size: 30px; font-weight: 700; letter-spacing: -0.02em;
+      margin: 0 0 6px;
+    }
+    .lesson-meta {
+      color: var(--text-3); font-size: 13px; margin: 0 0 14px;
+    }
+    .progress-bar {
+      width: 100%; height: 4px;
+      background: var(--bg-3); border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-bar .fill {
+      height: 100%; background: var(--blue);
+      width: 0%; transition: width 0.4s ease;
+    }
+    .progress-text {
+      font-size: 11.5px; color: var(--text-4);
+      margin-top: 6px; display: flex; justify-content: space-between;
+    }
+
+    /* ---------- MAIN COLUMN ---------- */
+    .lesson-body {
+      max-width: 800px; margin: 0 auto;
+      padding: 24px 24px 120px;
+      color: var(--text-2);
+      font-size: 14.5px; line-height: 1.65;
+    }
+    .lesson-body > div { margin-bottom: 22px; }
+    .lesson-body h2 { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -0.015em; margin: 0 0 8px; }
+    .lesson-body h3 { font-size: 17px; font-weight: 600; color: var(--text); margin: 0 0 6px; }
+    .lesson-body p { margin: 0 0 10px; }
+    .lesson-body a { color: var(--blue); }
+    .lesson-body code {
+      background: var(--bg-3); padding: 1px 5px; border-radius: 3px;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.9em;
+    }
+    .lesson-body pre {
+      background: var(--bg-3); padding: 10px 12px; border-radius: var(--r-sm);
+      overflow: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    }
+    .lesson-body img { max-width: 100%; border-radius: var(--r-sm); display: block; }
+    .lesson-body figure { margin: 0; }
+    .lesson-body figcaption { font-size: 12px; color: var(--text-3); margin-top: 6px; text-align: center; }
+
+    /* callouts */
+    .callout { display: flex; gap: 10px; align-items: flex-start; border-radius: var(--r-sm); padding: 10px 12px; }
+    .callout.tip        { background: var(--green-dim);  border-left: 3px solid var(--green); }
+    .callout.warning    { background: var(--yellow-dim); border-left: 3px solid var(--yellow); }
+    .callout.definition { background: var(--blue-pale);  border-left: 3px solid var(--blue); }
+    .callout .icon { font-size: 16px; line-height: 1; }
+    .callout .body { flex: 1; }
+    .callout .body p:last-child { margin: 0; }
+
+    /* video */
+    .video-frame { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: var(--bg-3); border-radius: var(--r-sm); }
+    .video-frame iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+
+    /* keypoints */
+    .keypoints { background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 12px 14px; }
+    .keypoints ul { margin: 0; padding-left: 18px; }
+    .keypoints li { margin-bottom: 4px; }
+
+    /* worked example */
+    .worked { display: flex; flex-direction: column; gap: 8px; }
+    .worked .q { background: var(--blue-pale); border-left: 3px solid var(--blue); padding: 8px 12px; border-radius: 0 var(--r-sm) var(--r-sm) 0; font-weight: 500; color: var(--text); }
+    .worked .step { background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 10px; }
+    .worked .step b { color: var(--text-2); }
+    .worked .ans { background: var(--green-dim); border-left: 3px solid var(--green); padding: 8px 12px; border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+
+    /* reveal */
+    .reveal { background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px 12px; }
+    .reveal .prompt { font-weight: 500; color: var(--text); }
+    .reveal .answer { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-2); color: var(--text-2); }
+    .reveal.open .answer { display: block; }
+    .reveal .toggle { background: transparent; border: 0; color: var(--blue); font-family: inherit; font-size: 11.5px; cursor: pointer; padding: 4px 0; }
+
+    /* flashcard */
+    .flashcard { perspective: 800px; height: 130px; cursor: pointer; }
+    .flashcard-inner { position: relative; width: 100%; height: 100%; transition: transform 0.5s; transform-style: preserve-3d; }
+    .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+    .flashcard-face {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      backface-visibility: hidden;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      display: grid; place-items: center; text-align: center; padding: 14px;
+    }
+    .flashcard-back { transform: rotateY(180deg); background: var(--blue-pale); border-color: var(--blue); }
+    .math-inline { background: var(--bg-3); padding: 2px 4px; border-radius: 3px; }
+    .math-display { background: var(--bg-3); border: 1px solid var(--line); padding: 12px; border-radius: var(--r-sm); margin: 6px 0; text-align: center; overflow-x: auto; }
+
+    /* ---------- INTERACTIVE PRACTICE ---------- */
+    .practice { display: flex; flex-direction: column; gap: 10px; }
+    .practice .prompt { font-weight: 500; color: var(--text); font-size: 14px; }
+    .practice .options { display: flex; flex-direction: column; gap: 6px; }
+    .practice .opt {
+      display: flex; align-items: flex-start; gap: 8px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 8px 10px;
+      cursor: pointer; font-size: 13px; color: var(--text-2);
+      text-align: left; font-family: inherit; width: 100%;
+    }
+    .practice .opt:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .practice .opt.selected { border-color: var(--blue); background: var(--blue-pale); color: var(--text); }
+    .practice .opt.correct { border-color: var(--green); background: var(--green-dim); color: var(--text); }
+    .practice .opt.wrong { border-color: var(--red); background: var(--red-dim); color: var(--text); }
+    .practice .check-row { display: flex; gap: 8px; align-items: center; }
+    .practice .check-row .check-btn {
+      background: var(--blue); color: #fff; border: 0;
+      padding: 6px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    }
+    .practice .check-row .check-btn:hover { background: var(--blue-2); }
+    .practice .check-row .check-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .practice .check-row .reset-btn {
+      background: transparent; color: var(--text-3); border: 1px solid var(--line-2);
+      padding: 5px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12px; cursor: pointer;
+    }
+    .practice .feedback { border-radius: var(--r-sm); padding: 8px 12px; font-size: 12.5px; }
+    .practice .feedback.ok    { background: var(--green-dim); border-left: 3px solid var(--green); color: var(--text); }
+    .practice .feedback.bad   { background: var(--red-dim);   border-left: 3px solid var(--red);   color: var(--text); }
+    .practice .feedback.info  { background: var(--blue-pale); border-left: 3px solid var(--blue);  color: var(--text); }
+    .practice .feedback b { color: var(--text); }
+    .practice .sa-input, .practice .fb-input {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm); padding: 7px 10px;
+      font-family: inherit; font-size: 13px; outline: none;
+    }
+    .practice .sa-input:focus, .practice .fb-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+    .practice .fb-sentence { line-height: 2.2; font-size: 13.5px; color: var(--text-2); }
+    .practice .fb-sentence .fb-input { display: inline-block; min-width: 100px; max-width: 220px; margin: 0 2px; text-align: center; }
+    .practice .fb-sentence .fb-input.correct { background: var(--green-dim); border-color: var(--green); }
+    .practice .fb-sentence .fb-input.wrong   { background: var(--red-dim);   border-color: var(--red); }
+    .practice .fb-sentence .reveal-line { color: var(--text-3); font-size: 12px; margin-left: 4px; }
+    .practice .match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .practice .match-col { display: flex; flex-direction: column; gap: 6px; }
+    .practice .match-col h5 { margin: 0 0 4px; font-size: 11px; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+    .practice .match-tile {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 7px 10px;
+      cursor: pointer; font-size: 12.5px; color: var(--text-2);
+      text-align: left; font-family: inherit;
+    }
+    .practice .match-tile:hover { background: var(--bg-4); }
+    .practice .match-tile.selected { border-color: var(--blue); background: var(--blue-pale); color: var(--text); }
+    .practice .match-tile.correct { border-color: var(--green); background: var(--green-dim); }
+    .practice .match-tile.wrong   { border-color: var(--red);   background: var(--red-dim); }
+    .practice .match-tile.muted   { opacity: 0.4; }
+    .practice .order-list { display: flex; flex-direction: column; gap: 4px; }
+    .practice .order-item {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 7px 10px;
+      font-size: 13px; color: var(--text-2); cursor: grab;
+      user-select: none;
+    }
+    .practice .order-item:active { cursor: grabbing; }
+    .practice .order-item.dragging { opacity: 0.4; }
+    .practice .order-item .grip { color: var(--text-4); font-size: 14px; }
+    .practice .order-item.correct-pos { border-color: var(--green); background: var(--green-dim); }
+    .practice .order-item.wrong-pos   { border-color: var(--red);   background: var(--red-dim); }
+    .practice .hotspot-wrap { position: relative; display: inline-block; max-width: 100%; }
+    .practice .hotspot-wrap img { display: block; max-width: 100%; border-radius: var(--r-sm); cursor: crosshair; }
+    .practice .hotspot-wrap .dot {
+      position: absolute; width: 18px; height: 18px;
+      border-radius: 50%; transform: translate(-50%, -50%);
+      border: 2px solid var(--blue); background: var(--blue-pale);
+      display: grid; place-items: center;
+      font-size: 10px; color: var(--blue); font-weight: 700;
+    }
+
+    /* ---------- LAYOUT ---------- */
+    .accordion { display: flex; flex-direction: column; gap: 6px; }
+    .accordion .acc-item { background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+    .accordion .acc-head { padding: 8px 12px; cursor: pointer; font-weight: 500; color: var(--text); font-size: 13px; display: flex; align-items: center; gap: 8px; }
+    .accordion .acc-head:hover { background: var(--bg-4); }
+    .accordion .acc-head .caret { color: var(--text-4); font-size: 10px; transition: transform 0.15s ease; }
+    .accordion .acc-item.open .acc-head .caret { transform: rotate(90deg); }
+    .accordion .acc-body { display: none; padding: 8px 14px 12px; border-top: 1px solid var(--line); color: var(--text-2); font-size: 13px; }
+    .accordion .acc-item.open .acc-body { display: block; }
+    .tabs { display: flex; flex-direction: column; gap: 8px; }
+    .tabs .tab-bar { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+    .tabs .tab {
+      background: transparent; border: 0;
+      padding: 7px 12px; cursor: pointer;
+      color: var(--text-3); font-family: inherit; font-size: 12.5px; font-weight: 500;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .tabs .tab:hover { color: var(--text-2); }
+    .tabs .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .tabs .tab-body { color: var(--text-2); font-size: 13px; padding-top: 8px; }
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .compare-grid .col { background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 12px; font-size: 13px; color: var(--text-2); }
+    .compare-grid .col h4 { margin: 0 0 8px; font-size: 12.5px; font-weight: 600; color: var(--text); text-transform: uppercase; letter-spacing: 0.04em; }
+    .timeline { position: relative; padding-left: 22px; }
+    .timeline::before { content: ''; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px; background: var(--line-2); }
+    .timeline .tl-item { position: relative; margin-bottom: 14px; }
+    .timeline .tl-item::before { content: ''; position: absolute; left: -19px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--blue); border: 2px solid var(--bg-2); }
+    .timeline .tl-item .tl-date { font-size: 11px; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+    .timeline .tl-item .tl-title { font-weight: 600; color: var(--text); font-size: 13.5px; margin: 2px 0 4px; }
+    .timeline .tl-item .tl-body { color: var(--text-2); font-size: 13px; }
+
+    /* ---------- STUDY AIDS ---------- */
+    .objectives { display: flex; flex-direction: column; gap: 4px; }
+    .objectives .obj-item {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 6px 8px; border-radius: var(--r-sm);
+      font-size: 13px; color: var(--text-2); cursor: pointer;
+    }
+    .objectives .obj-item:hover { background: var(--bg-3); }
+    .objectives .obj-item input { margin-top: 2px; accent-color: var(--blue); }
+    .objectives .obj-item.done { color: var(--text-4); text-decoration: line-through; }
+    .prereqs { display: flex; flex-direction: column; gap: 4px; }
+    .prereqs .prereq-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px; border-radius: var(--r-sm);
+      font-size: 13px; color: var(--text-2);
+    }
+    .prereqs .prereq-item::before { content: '→'; color: var(--text-4); font-weight: 600; }
+    .glossary { display: flex; flex-direction: column; gap: 4px; }
+    .glossary .gloss-row {
+      display: grid; grid-template-columns: 160px 1fr; gap: 12px;
+      padding: 6px 8px; border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .glossary .gloss-row:last-child { border-bottom: 0; }
+    .glossary .gloss-term { font-weight: 600; color: var(--text); }
+    .glossary .gloss-def  { color: var(--text-2); }
+    .summary-card { background: var(--blue-pale); border: 1px solid var(--blue); border-radius: var(--r-sm); padding: 14px 16px; }
+    .summary-card h4 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--blue); }
+    .summary-card .takeaways { margin: 0 0 12px; padding-left: 18px; }
+    .summary-card .takeaways li { color: var(--text); margin-bottom: 4px; font-size: 13px; }
+    .summary-card .body { color: var(--text-2); font-size: 13px; }
+
+    /* ---------- BOTTOM ACTION BAR ---------- */
+    .action-bar {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      background: rgba(13,17,23,0.92);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid var(--line);
+      padding: 12px 24px;
+      z-index: 40;
+    }
+    .action-bar .row {
+      max-width: 800px; margin: 0 auto;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .action-bar .spacer { flex: 1; }
+    .action-bar .meta-text { font-size: 12px; color: var(--text-3); }
+
+    .btn-primary, .btn-ghost, .btn-success {
+      padding: 8px 16px;
+      border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background 0.15s ease;
+      text-align: center; text-decoration: none; display: inline-block;
+      border: 1px solid transparent;
+    }
+    .btn-primary  { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .btn-primary:hover  { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-success  { background: var(--green); color: #fff; border-color: var(--green); }
+    .btn-success:hover  { background: #2ea043; border-color: #2ea043; text-decoration: none; }
+    .btn-ghost    { background: transparent; color: var(--text); border-color: var(--line-2); }
+    .btn-ghost:hover    { background: var(--bg-3); text-decoration: none; }
+    .btn-primary:disabled, .btn-success:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ---------- GATES / STATES ---------- */
+    .gate {
+      max-width: 480px; margin: 80px auto; text-align: center;
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: var(--r-md); padding: 32px 24px;
+    }
+    .gate h1 { font-size: 20px; font-weight: 600; margin: 0 0 8px; }
+    .gate p  { color: var(--text-2); font-size: 14px; margin: 0 0 16px; }
+    .loading-bar {
+      max-width: 800px; margin: 80px auto; text-align: center;
+      color: var(--text-3); font-size: 13px;
+    }
+    .toast-wrap {
+      position: fixed; top: 80px; right: 20px; z-index: 100;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      padding: 10px 14px; font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      animation: toastIn 0.2s ease-out;
+    }
+    .toast.success { border-left: 3px solid var(--green); }
+    .toast.error   { border-left: 3px solid var(--red); }
+    @keyframes toastIn {
+      from { transform: translateY(-8px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    @media (max-width: 640px) {
+      .lesson-head { padding: 24px 16px 12px; }
+      .lesson-body { padding: 16px 16px 110px; }
+      h1.lesson-title { font-size: 24px; }
+      .compare-grid { grid-template-columns: 1fr; }
+      .glossary .gloss-row { grid-template-columns: 1fr; gap: 2px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="dashboard.html"><span class="brand-mark">R</span> Recall</a>
+    <div class="nav-right">
+      <a href="dashboard.html">Back to dashboard</a>
+      <button id="signOutBtn" type="button">Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="lesson-head" id="head" hidden>
+  <div class="crumb-row" id="crumbRow"></div>
+  <h1 class="lesson-title" id="lessonTitle">…</h1>
+  <p class="lesson-meta" id="lessonMeta"></p>
+  <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
+  <div class="progress-text">
+    <span id="progressText">Loading…</span>
+    <span id="timeText"></span>
+  </div>
+</div>
+
+<div class="loading-bar" id="loadingBar">Loading lesson…</div>
+
+<div class="lesson-body" id="body" hidden></div>
+
+<div class="action-bar" id="actionBar" hidden>
+  <div class="row">
+    <span class="meta-text" id="actionMeta">Time on this lesson: 0:00</span>
+    <span class="spacer"></span>
+    <a class="btn-ghost" href="dashboard.html">Back to dashboard</a>
+    <button class="btn-success" id="markCompleteBtn" type="button">Mark complete</button>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script src="lesson-render.js"></script>
+<script>
+  // ==========================================================================
+  // lesson.html — Student-side player.
+  //
+  //   URL: lesson.html?lesson=<uuid>
+  //
+  //   Flow:
+  //     1. Auth: require a signed-in student. If under-16 awaiting consent,
+  //        show the gate (the dashboard's gate would do this too, but
+  //        students may deep-link here from an email).
+  //     2. Load lesson + blocks from Supabase.
+  //     3. Render each block via LessonRender.renderBlock, then attach
+  //        interactivity (LessonRender.attachInteractivity). When a
+  //        practice block is checked, capture its score in `blockScores`.
+  //     4. Start a 30s heartbeat that calls log_lesson_session with the
+  //        accumulated delta. On beforeunload, send a final beacon so we
+  //        don't lose the last 30s.
+  //     5. "Mark complete" — mark lesson_progress as completed and write a
+  //        'lesson' activity_log row, then redirect to dashboard.
+  // ==========================================================================
+
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const $ = (id) => document.getElementById(id);
+  const L = window.LessonRender;
+
+  // ---------- state ----------
+  const session = {
+    user: null,
+    profile: null,
+    lesson: null,
+    blocks: [],
+    startedAt: Date.now(),
+    lastBeatAt: Date.now(),
+    pendingSeconds: 0,
+    blockScores: new Map(),   // blockId -> { score, total }
+    completed: false,
+    heartTimer: null,
+  };
+
+  // ---------- entry ----------
+  document.addEventListener('DOMContentLoaded', boot);
+
+  async function boot() {
+    const lessonId = new URLSearchParams(location.search).get('lesson');
+    if (!lessonId) return showGate('No lesson specified', 'Open this page from a lesson card on your dashboard.');
+
+    // Sign-in
+    const { data: userData, error: userErr } = await supabaseClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      showGate('Sign in to continue', 'You need to be signed in to study a lesson.', 'signin');
+      return;
+    }
+    session.user = userData.user;
+
+    // Profile — used to enforce parental consent
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id, full_name, requires_parental_consent, consent_status, deleted_at')
+      .eq('id', session.user.id)
+      .maybeSingle();
+    session.profile = profile;
+
+    if (profile?.deleted_at) {
+      showGate('Account removed', 'This account has been removed. Contact support if you think this is a mistake.');
+      return;
+    }
+    if (profile?.requires_parental_consent && profile.consent_status !== 'granted') {
+      showGate(
+        'Waiting for parental consent',
+        'Your account is ready, but a parent or guardian needs to confirm before you can study. We sent them a link by email — it expires in 3 days.'
+      );
+      return;
+    }
+
+    // Load lesson
+    const { data: lesson, error: lessonErr } = await supabaseClient
+      .from('lessons')
+      .select('id, title, duration_min, order_index, topic_id, topic:topics(name, subject:subjects(id, name, color_key, exam_board, level))')
+      .eq('id', lessonId)
+      .single();
+    if (lessonErr || !lesson) {
+      showGate('Lesson not found', 'This lesson may have been deleted or moved. Try going back to your dashboard.');
+      return;
+    }
+    session.lesson = lesson;
+
+    // Load blocks
+    const { data: blocks, error: blocksErr } = await supabaseClient
+      .from('lesson_blocks')
+      .select('id, kind, data, order_index')
+      .eq('lesson_id', lessonId)
+      .order('order_index', { ascending: true });
+    if (blocksErr) {
+      showGate('Could not load this lesson', blocksErr.message || 'Please try again later.');
+      return;
+    }
+    session.blocks = (blocks || []).map(b => ({
+      id: b.id,
+      kind: b.kind,
+      data: b.data || {},
+      order_index: b.order_index,
+    }));
+
+    // Side effects: mark in_progress, auto-enroll, log 'lesson' activity.
+    // These are best-effort: if they fail the page still renders.
+    Promise.allSettled([
+      markInProgress(),
+      autoEnrollInSubject(),
+      logInitialActivity(),
+    ]).catch(() => {});
+
+    render();
+    startHeartbeat();
+  }
+
+  // ---------- rendering ----------
+  function render() {
+    const L0 = session.lesson;
+    const subj = L0.topic?.subject;
+    const dot  = subj?.color_key ? `style="background:${subj.color_key};"` : '';
+    $('crumbRow').innerHTML = `
+      <a href="dashboard.html">Dashboard</a> ›
+      ${subj ? `<a href="dashboard.html">${escapeHtml(subj.name)}</a> ›` : ''}
+      ${L0.topic ? `<span>${escapeHtml(L0.topic.name)}</span> ›` : ''}
+      <span style="color: var(--text-2);">${escapeHtml(L0.title)}</span>
+    `;
+    $('lessonTitle').textContent = L0.title;
+    $('lessonMeta').innerHTML = `
+      <span class="subject-dot" ${dot}></span>
+      ${subj ? escapeHtml(subj.name) : ''}
+      ${L0.topic ? ' · ' + escapeHtml(L0.topic.name) : ''}
+      · ${L0.duration_min ?? 20} min
+    `;
+    $('progressText').textContent = `${session.blocks.length} block${session.blocks.length === 1 ? '' : 's'}`;
+
+    // Render blocks.
+    const body = $('body');
+    body.innerHTML = '';
+    session.blocks.forEach(b => {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = L.renderBlock(b);
+      body.appendChild(wrap.firstElementChild || wrap);
+    });
+
+    // Attach interactivity, capturing scores per block.
+    L.attachInteractivity(session.blocks, body, (blockId, score, total) => {
+      session.blockScores.set(blockId, { score, total });
+      updateProgress();
+    });
+
+    // Reveal everything.
+    $('loadingBar').hidden = true;
+    $('head').hidden = false;
+    $('body').hidden = false;
+    $('actionBar').hidden = false;
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const total = session.blocks.length || 1;
+    const done  = session.blockScores.size;
+    const pct   = Math.round((done / total) * 100);
+    $('progressFill').style.width = pct + '%';
+    $('progressText').textContent = done === 0
+      ? `${total} block${total === 1 ? '' : 's'}`
+      : `${done} of ${total} checked · ${pct}%`;
+  }
+
+  function showGate(title, msg, kind) {
+    $('loadingBar').hidden = true;
+    const g = document.createElement('div');
+    g.className = 'gate';
+    g.innerHTML = `
+      <h1>${escapeHtml(title)}</h1>
+      <p>${escapeHtml(msg)}</p>
+      ${kind === 'signin'
+        ? '<a class="btn-primary" href="auth/login.html">Sign in</a>'
+        : '<a class="btn-ghost" href="dashboard.html">Back to dashboard</a>'}
+    `;
+    document.body.appendChild(g);
+  }
+
+  // ---------- time tracking ----------
+  function startHeartbeat() {
+    // First beat after 30s, then every 30s.
+    session.heartTimer = setInterval(heartbeat, 30000);
+
+    // Final flush on unload. sendBeacon is fire-and-forget; the browser
+    // will deliver it even after the page is closed.
+    window.addEventListener('pagehide', () => {
+      flush(true);
+    });
+    window.addEventListener('beforeunload', () => {
+      flush(true);
+    });
+
+    // Track which practice blocks the student has scrolled past or
+    // interacted with. We just count any block the user has clicked on
+    // inside as "engaged" — fine-grained engagement tracking is out of
+    // scope for this iteration.
+    const onBlockInteract = (e) => {
+      const wrap = e.target.closest('[data-block-id]');
+      if (!wrap) return;
+      const id = wrap.dataset.blockId;
+      if (id) {
+        // mark as 'engaged' implicitly via a Set in pendingSeconds below.
+        session._engaged = session._engaged || new Set();
+        session._engaged.add(id);
+      }
+    };
+    $('body').addEventListener('click', onBlockInteract, true);
+  }
+
+  function heartbeat() {
+    // Don't bother sending a beat if the page hasn't really been used
+    // (less than 5s since last beat).
+    const delta = Math.floor((Date.now() - session.lastBeatAt) / 1000);
+    if (delta < 5) return;
+    session.lastBeatAt = Date.now();
+    session.pendingSeconds += delta;
+    flush(false);
+  }
+
+  async function flush(useBeacon) {
+    if (session.pendingSeconds < 1) return;
+    const seconds = session.pendingSeconds;
+    const activities = buildActivityPayload();
+    session.pendingSeconds = 0;
+    const payload = {
+      p_lesson_id: session.lesson.id,
+      p_duration_seconds: seconds,
+      p_activities: activities,
+      p_completed: false,
+    };
+    if (useBeacon && navigator.sendBeacon) {
+      // sendBeacon takes a Blob; we use text/plain to avoid a CORS preflight.
+      const ok = navigator.sendBeacon(
+        SUPABASE_URL + '/rest/v1/rpc/log_lesson_session',
+        new Blob([JSON.stringify(payload)], { type: 'text/plain' })
+      );
+      // We can't read the response from a beacon; trust the delivery.
+      return;
+    }
+    try {
+      await supabaseClient.rpc('log_lesson_session', payload);
+    } catch (e) {
+      // Re-queue so the next beat can retry.
+      session.pendingSeconds += seconds;
+      console.warn('log_lesson_session failed:', e);
+    }
+    updateTimeText();
+  }
+
+  function buildActivityPayload() {
+    // Include one entry per block the student has scored. Score is a
+    // fraction; the RPC turns it into a `score / total` quiz_attempts row.
+    const out = [];
+    session.blockScores.forEach((v, blockId) => {
+      out.push({
+        block_id: blockId,
+        kind: blockKindFor(blockId),
+        score: v.score,
+        total: v.total || 1,
+      });
+    });
+    return out;
+  }
+
+  function blockKindFor(id) {
+    const b = session.blocks.find(x => x.id === id);
+    return b ? b.kind : 'practice';
+  }
+
+  // ---------- mark complete ----------
+  $('markCompleteBtn').addEventListener('click', async () => {
+    if (session.completed) return;
+    session.completed = true;
+    $('markCompleteBtn').disabled = true;
+    $('markCompleteBtn').textContent = 'Saving…';
+
+    // Drain any pending seconds first, then write the completed flag.
+    await flush(false);
+
+    const payload = {
+      p_lesson_id: session.lesson.id,
+      p_duration_seconds: 0,
+      p_activities: buildActivityPayload(),
+      p_completed: true,
+    };
+    try {
+      await supabaseClient.rpc('log_lesson_session', payload);
+      toast('Lesson marked as complete. Nice work!', 'success');
+      setTimeout(() => { location.href = 'dashboard.html'; }, 800);
+    } catch (e) {
+      session.completed = false;
+      $('markCompleteBtn').disabled = false;
+      $('markCompleteBtn').textContent = 'Mark complete';
+      toast('Could not save — try again.', 'error');
+      console.error(e);
+    }
+  });
+
+  // ---------- side effects ----------
+  async function markInProgress() {
+    // Set lesson_progress.status to 'in_progress' if currently
+    // 'not_started' (so the dashboard's Continue card moves to this
+    // lesson). SECURITY DEFINER lets us write via the RPC; this is just
+    // the simplest path.
+    try {
+      const { error } = await supabaseClient.rpc('log_lesson_session', {
+        p_lesson_id: session.lesson.id,
+        p_duration_seconds: 0,
+        p_activities: [],
+        p_completed: false,
+      });
+      if (error) console.warn('markInProgress:', error.message);
+    } catch (e) { /* non-fatal */ }
+  }
+
+  async function autoEnrollInSubject() {
+    const subj = session.lesson.topic?.subject;
+    if (!subj?.id) return;
+    try {
+      const { error } = await supabaseClient
+        .from('enrollments')
+        .upsert(
+          { user_id: session.user.id, subject_id: subj.id },
+          { onConflict: 'user_id,subject_id', ignoreDuplicates: true }
+        );
+      if (error) console.warn('autoEnrollInSubject:', error.message);
+    } catch (e) { /* non-fatal */ }
+  }
+
+  async function logInitialActivity() {
+    // Write a 'lesson' activity_log row so the dashboard's activity feed
+    // shows "Started X" the moment the page opens.
+    try {
+      await supabaseClient.from('activity_log').insert({
+        user_id: session.user.id,
+        kind: 'lesson',
+        ref_id: session.lesson.id,
+        summary: 'Started ' + session.lesson.title,
+      });
+    } catch (e) { /* non-fatal — log_lesson_session will write a session row anyway */ }
+  }
+
+  // ---------- UI helpers ----------
+  function updateTimeText() {
+    const elapsed = Math.floor((Date.now() - session.startedAt) / 1000);
+    const m = Math.floor(elapsed / 60);
+    const s = elapsed % 60;
+    const str = m + ':' + String(s).padStart(2, '0');
+    $('timeText').textContent = str;
+    $('actionMeta').textContent = 'Time on this lesson: ' + str;
+  }
+  setInterval(updateTimeText, 1000);
+
+  function toast(msg, kind) {
+    const t = document.createElement('div');
+    t.className = 'toast' + (kind ? ' ' + kind : '');
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // ---------- sign out ----------
+  $('signOutBtn').addEventListener('click', async () => {
+    // Best-effort flush so we don't lose a final beat of time.
+    flush(false);
+    await supabaseClient.auth.signOut();
+    location.href = 'auth/login.html';
+  });
+</script>
+</body>
+</html>
