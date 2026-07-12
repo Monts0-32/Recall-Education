@@ -499,6 +499,346 @@
       text-align: center; overflow-x: auto;
     }
 
+    /* ---------- INTERACTIVE PRACTICE PREVIEWS ---------- */
+    .preview .practice {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .preview .practice .prompt {
+      font-weight: 500; color: var(--text); font-size: 14px;
+    }
+    .preview .practice .options {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .preview .practice .opt {
+      display: flex; align-items: flex-start; gap: 8px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 8px 10px;
+      cursor: pointer; font-size: 13px; color: var(--text-2);
+      text-align: left; font-family: inherit; width: 100%;
+    }
+    .preview .practice .opt:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .preview .practice .opt.selected { border-color: var(--blue); background: var(--blue-pale); color: var(--text); }
+    .preview .practice .opt.correct { border-color: var(--green); background: var(--green-dim); color: var(--text); }
+    .preview .practice .opt.wrong { border-color: var(--red); background: var(--red-dim); color: var(--text); }
+    .preview .practice .opt .marker { font-size: 13px; opacity: 0.7; }
+    .preview .practice .check-row { display: flex; gap: 8px; align-items: center; }
+    .preview .practice .check-row .check-btn {
+      background: var(--blue); color: #fff; border: 0;
+      padding: 6px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 600;
+      cursor: pointer;
+    }
+    .preview .practice .check-row .check-btn:hover { background: var(--blue-2); }
+    .preview .practice .check-row .check-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .preview .practice .check-row .reset-btn {
+      background: transparent; color: var(--text-3); border: 1px solid var(--line-2);
+      padding: 5px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12px; cursor: pointer;
+    }
+    .preview .practice .feedback {
+      border-radius: var(--r-sm); padding: 8px 12px; font-size: 12.5px;
+    }
+    .preview .practice .feedback.ok    { background: var(--green-dim); border-left: 3px solid var(--green); color: var(--text); }
+    .preview .practice .feedback.bad   { background: var(--red-dim);   border-left: 3px solid var(--red);   color: var(--text); }
+    .preview .practice .feedback.info  { background: var(--blue-pale); border-left: 3px solid var(--blue);  color: var(--text); }
+    .preview .practice .feedback b { color: var(--text); }
+
+    /* MCQ + true/false + short-answer share .practice above */
+    .preview .practice .sa-input, .preview .practice .fb-input {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm); padding: 7px 10px;
+      font-family: inherit; font-size: 13px; outline: none;
+    }
+    .preview .practice .sa-input:focus, .preview .practice .fb-input:focus {
+      border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .preview .practice .fb-sentence { line-height: 2.2; font-size: 13.5px; color: var(--text-2); }
+    .preview .practice .fb-sentence .fb-input {
+      display: inline-block; min-width: 100px; max-width: 220px;
+      margin: 0 2px; text-align: center;
+    }
+    .preview .practice .fb-sentence .fb-input.correct { background: var(--green-dim); border-color: var(--green); }
+    .preview .practice .fb-sentence .fb-input.wrong   { background: var(--red-dim);   border-color: var(--red); }
+    .preview .practice .reveal-line { color: var(--text-3); font-size: 12px; margin-left: 4px; }
+
+    /* Match */
+    .preview .practice .match-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .preview .practice .match-col { display: flex; flex-direction: column; gap: 6px; }
+    .preview .practice .match-col h5 { margin: 0 0 4px; font-size: 11px; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+    .preview .practice .match-tile {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 7px 10px;
+      cursor: pointer; font-size: 12.5px; color: var(--text-2);
+      text-align: left; font-family: inherit;
+    }
+    .preview .practice .match-tile:hover { background: var(--bg-4); }
+    .preview .practice .match-tile.selected { border-color: var(--blue); background: var(--blue-pale); color: var(--text); }
+    .preview .practice .match-tile.correct { border-color: var(--green); background: var(--green-dim); }
+    .preview .practice .match-tile.wrong   { border-color: var(--red);   background: var(--red-dim); }
+    .preview .practice .match-tile.muted   { opacity: 0.4; }
+
+    /* Ordering */
+    .preview .practice .order-list { display: flex; flex-direction: column; gap: 4px; }
+    .preview .practice .order-item {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 7px 10px;
+      font-size: 13px; color: var(--text-2); cursor: grab;
+      user-select: none;
+    }
+    .preview .practice .order-item:active { cursor: grabbing; }
+    .preview .practice .order-item.dragging { opacity: 0.4; }
+    .preview .practice .order-item .grip { color: var(--text-4); font-size: 14px; }
+    .preview .practice .order-item.correct-pos { border-color: var(--green); background: var(--green-dim); }
+    .preview .practice .order-item.wrong-pos   { border-color: var(--red);   background: var(--red-dim); }
+
+    /* Hotspot */
+    .preview .practice .hotspot-wrap {
+      position: relative; display: inline-block; max-width: 100%;
+    }
+    .preview .practice .hotspot-wrap img {
+      display: block; max-width: 100%; border-radius: var(--r-sm);
+      cursor: crosshair;
+    }
+    .preview .practice .hotspot-wrap .dot {
+      position: absolute; width: 18px; height: 18px;
+      border-radius: 50%; transform: translate(-50%, -50%);
+      border: 2px solid var(--blue); background: var(--blue-pale);
+      display: grid; place-items: center;
+      font-size: 10px; color: var(--blue); font-weight: 700;
+    }
+
+    /* ---------- LAYOUT PREVIEWS ---------- */
+    .preview .accordion { display: flex; flex-direction: column; gap: 6px; }
+    .preview .accordion .acc-item {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); overflow: hidden;
+    }
+    .preview .accordion .acc-head {
+      padding: 8px 12px; cursor: pointer;
+      font-weight: 500; color: var(--text); font-size: 13px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .preview .accordion .acc-head:hover { background: var(--bg-4); }
+    .preview .accordion .acc-head .caret { color: var(--text-4); font-size: 10px; transition: transform 0.15s ease; }
+    .preview .accordion .acc-item.open .acc-head .caret { transform: rotate(90deg); }
+    .preview .accordion .acc-body { display: none; padding: 8px 14px 12px; border-top: 1px solid var(--line); color: var(--text-2); font-size: 13px; }
+    .preview .accordion .acc-item.open .acc-body { display: block; }
+
+    .preview .tabs { display: flex; flex-direction: column; gap: 8px; }
+    .preview .tabs .tab-bar {
+      display: flex; gap: 4px; border-bottom: 1px solid var(--line);
+    }
+    .preview .tabs .tab {
+      background: transparent; border: 0;
+      padding: 7px 12px; cursor: pointer;
+      color: var(--text-3); font-family: inherit; font-size: 12.5px; font-weight: 500;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .preview .tabs .tab:hover { color: var(--text-2); }
+    .preview .tabs .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .preview .tabs .tab-body { color: var(--text-2); font-size: 13px; }
+
+    .preview .compare-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .preview .compare-grid .col {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 12px; font-size: 13px; color: var(--text-2);
+    }
+    .preview .compare-grid .col h4 {
+      margin: 0 0 8px; font-size: 12.5px; font-weight: 600; color: var(--text);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+
+    .preview .timeline { position: relative; padding-left: 22px; }
+    .preview .timeline::before {
+      content: ''; position: absolute; left: 8px; top: 6px; bottom: 6px;
+      width: 2px; background: var(--line-2);
+    }
+    .preview .timeline .tl-item { position: relative; margin-bottom: 14px; }
+    .preview .timeline .tl-item::before {
+      content: ''; position: absolute; left: -19px; top: 6px;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--blue); border: 2px solid var(--bg-2);
+    }
+    .preview .timeline .tl-item .tl-date {
+      font-size: 11px; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+    }
+    .preview .timeline .tl-item .tl-title { font-weight: 600; color: var(--text); font-size: 13.5px; margin: 2px 0 4px; }
+    .preview .timeline .tl-item .tl-body { color: var(--text-2); font-size: 13px; }
+
+    /* ---------- STUDY AID PREVIEWS ---------- */
+    .preview .objectives { display: flex; flex-direction: column; gap: 4px; }
+    .preview .objectives .obj-item {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 6px 8px; border-radius: var(--r-sm);
+      font-size: 13px; color: var(--text-2); cursor: pointer;
+    }
+    .preview .objectives .obj-item:hover { background: var(--bg-3); }
+    .preview .objectives .obj-item input { margin-top: 2px; accent-color: var(--blue); }
+    .preview .objectives .obj-item.done { color: var(--text-4); text-decoration: line-through; }
+
+    .preview .prereqs { display: flex; flex-direction: column; gap: 4px; }
+    .preview .prereqs .prereq-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px; border-radius: var(--r-sm);
+      font-size: 13px; color: var(--text-2);
+    }
+    .preview .prereqs .prereq-item::before {
+      content: '→'; color: var(--text-4); font-weight: 600;
+    }
+    .preview .prereqs .prereq-item a { color: var(--blue); }
+
+    .preview .glossary { display: flex; flex-direction: column; gap: 4px; }
+    .preview .glossary .gloss-row {
+      display: grid; grid-template-columns: 160px 1fr; gap: 12px;
+      padding: 6px 8px; border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .preview .glossary .gloss-row:last-child { border-bottom: 0; }
+    .preview .glossary .gloss-term { font-weight: 600; color: var(--text); }
+    .preview .glossary .gloss-def  { color: var(--text-2); }
+
+    .preview .summary-card {
+      background: var(--blue-pale); border: 1px solid var(--blue);
+      border-radius: var(--r-sm); padding: 14px 16px;
+    }
+    .preview .summary-card h4 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--blue); }
+    .preview .summary-card .takeaways { margin: 0 0 12px; padding-left: 18px; }
+    .preview .summary-card .takeaways li { color: var(--text); margin-bottom: 4px; font-size: 13px; }
+    .preview .summary-card .body { color: var(--text-2); font-size: 13px; }
+
+    /* ---------- EDITOR: PICKER GROUPS + TEMPLATES + UPLOAD ---------- */
+    .block-add-group {
+      display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+      margin-top: 8px;
+    }
+    .block-add-group .group-label {
+      font-size: 11px; color: var(--text-4); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      margin-right: 4px;
+    }
+    .block-add-group .group-sep {
+      width: 1px; height: 18px; background: var(--line-2);
+      margin: 0 4px;
+    }
+    .picker-btn {
+      background: var(--bg-2);
+      border: 1px dashed var(--line-3);
+      color: var(--text-2);
+      padding: 6px 10px;
+      border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12px; font-weight: 500;
+      cursor: pointer;
+    }
+    .picker-btn:hover { background: var(--bg-3); border-color: var(--blue); color: var(--blue); }
+
+    .tpl-pop {
+      position: absolute; z-index: 60;
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: var(--r-md); box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      min-width: 260px; max-width: 340px;
+      padding: 6px;
+    }
+    .tpl-pop .tpl-head {
+      padding: 8px 10px; font-size: 11px; color: var(--text-4);
+      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+    }
+    .tpl-pop .tpl-item {
+      display: block; width: 100%; text-align: left;
+      background: transparent; border: 0;
+      padding: 8px 10px; border-radius: var(--r-sm);
+      color: var(--text-2); font-family: inherit; font-size: 12.5px;
+      cursor: pointer;
+    }
+    .tpl-pop .tpl-item:hover { background: var(--bg-3); color: var(--text); }
+    .tpl-pop .tpl-item .tpl-meta { color: var(--text-4); font-size: 11px; display: block; margin-top: 2px; }
+
+    .upload-btn {
+      background: var(--bg-3); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 6px 10px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12px; font-weight: 500;
+      cursor: pointer;
+    }
+    .upload-btn:hover { background: var(--bg-4); color: var(--text); border-color: var(--line-3); }
+    .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ---------- EDITOR: DRAG AND DROP ---------- */
+    .block[draggable="true"] { cursor: grab; }
+    .block.dragging { opacity: 0.4; }
+    .block.drop-above { box-shadow: 0 -2px 0 var(--blue); }
+    .block.drop-below { box-shadow: 0 2px 0 var(--blue); }
+
+    /* ---------- EDITOR: SHORTCUT HINT + DUPLICATE ICON ---------- */
+    .editor-actions .shortcuts {
+      font-size: 11.5px; color: var(--text-4); font-family: 'JetBrains Mono', monospace;
+    }
+    .editor-actions .shortcuts kbd {
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      border-radius: 3px; padding: 1px 5px; font-size: 10.5px;
+      color: var(--text-2);
+    }
+
+    /* ---------- MISC EDITOR ---------- */
+    .opt-row, .pair-row, .gloss-row, .tl-row, .acc-row, .tab-row, .order-row {
+      display: flex; gap: 6px; align-items: center;
+    }
+    .opt-row .correct-mark, .pair-row .correct-mark {
+      width: 26px; height: 26px; flex: 0 0 26px;
+      display: grid; place-items: center;
+      background: transparent; border: 1px solid var(--line-2); color: var(--text-3);
+      border-radius: 4px; cursor: pointer; font-size: 13px;
+    }
+    .opt-row .correct-mark.on, .pair-row .correct-mark.on {
+      background: var(--green-dim); border-color: var(--green); color: var(--green);
+    }
+    .opt-row input[type="text"], .pair-row input[type="text"] { flex: 1; }
+    .opt-row .fb-input, .pair-row .fb-input { flex: 1; }
+    .opt-row .del, .pair-row .del, .gloss-row .del, .tl-row .del, .acc-row .del, .tab-row .del, .order-row .del {
+      background: transparent; border: 1px solid var(--line-2); color: var(--text-3);
+      width: 28px; border-radius: var(--r-sm); cursor: pointer; font-size: 13px;
+    }
+    .opt-row .del:hover, .pair-row .del:hover, .gloss-row .del:hover,
+    .tl-row .del:hover, .acc-row .del:hover, .tab-row .del:hover, .order-row .del:hover {
+      color: var(--red); border-color: var(--red);
+    }
+    .hs-row { display: grid; grid-template-columns: 1fr 70px 70px 32px; gap: 6px; }
+    .hs-row input[type="number"] { text-align: right; }
+
+    .fb-line {
+      display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 8px 10px;
+    }
+    .fb-line .fb-head { display: flex; gap: 6px; align-items: center; }
+    .fb-line .fb-head code {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3);
+    }
+    .fb-line .fb-head input { flex: 1; }
+
+    .check-row-editor { display: flex; gap: 8px; align-items: center; }
+    .check-row-editor .opt-multi {
+      display: flex; align-items: center; gap: 6px; color: var(--text-3); font-size: 12px;
+    }
+
+    .practice-3col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .practice-3col .preview { min-height: 120px; }
+
+    /* picker-btn reset for inside .block-add-group */
+    .block-add .picker-btn { margin: 0; }
+    .block-add { position: relative; }
+
+    /* responsive tweak for new editors */
+    @media (max-width: 900px) {
+      .practice-3col { grid-template-columns: 1fr; }
+      .preview .compare-grid { grid-template-columns: 1fr; }
+    }
+
     /* keypoints editor */
     .repeater { display: flex; flex-direction: column; gap: 6px; }
     .repeater .row { display: flex; gap: 6px; }
@@ -827,13 +1167,784 @@
           </div>
         </div>`;
       }
+    },
+
+    // ============================================================
+    // INTERACTIVE PRACTICE
+    // ============================================================
+
+    mcq: {
+      label: 'Multiple choice',
+      defaults: () => ({
+        prompt: 'Which organelle is the powerhouse of the cell?',
+        multi: false,
+        options: [
+          { text: 'Nucleus',  correct: false, feedback: 'The nucleus stores DNA, but it is not the energy producer.' },
+          { text: 'Mitochondrion', correct: true,  feedback: 'Correct — mitochondria carry out aerobic respiration, producing ATP.' },
+          { text: 'Ribosome', correct: false, feedback: 'Ribosomes synthesise proteins, not ATP.' },
+          { text: 'Golgi apparatus', correct: false, feedback: 'The Golgi packages and ships proteins.' }
+        ],
+        explanation: 'Mitochondria are often called the powerhouse of the cell because they generate most of the cell\'s ATP through aerobic respiration.'
+      }),
+      render: (b) => renderMCQ(b)
+    },
+
+    truefalse: {
+      label: 'True / False',
+      defaults: () => ({
+        prompt: 'The Earth orbits the Sun once every 365.25 days.',
+        answer: true,
+        explanation: 'A sidereal year is approximately 365.256 days; the .25 is why we add a leap day every four years.'
+      }),
+      render: (b) => renderTrueFalse(b)
+    },
+
+    shortanswer: {
+      label: 'Short answer',
+      defaults: () => ({
+        prompt: 'What is the chemical symbol for gold?',
+        answers: ['Au', 'au'],
+        explanation: 'Gold\'s symbol comes from its Latin name, *aurum*.'
+      }),
+      render: (b) => renderShortAnswer(b)
+    },
+
+    fillblank: {
+      label: 'Fill in the blank',
+      defaults: () => ({
+        text: 'Photosynthesis converts carbon ___ and water into glucose and ___ using sunlight.',
+        blanks: [
+          { answer: 'dioxide' },
+          { answer: 'oxygen' }
+        ],
+        explanation: 'The general equation is 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂.'
+      }),
+      render: (b) => renderFillBlank(b)
+    },
+
+    match: {
+      label: 'Match pairs',
+      defaults: () => ({
+        prompt: 'Match each scientist to their discovery.',
+        pairs: [
+          { left: 'Newton',  right: 'Laws of motion' },
+          { left: 'Darwin',  right: 'Natural selection' },
+          { left: 'Mendel',  right: 'Inheritance' },
+          { left: 'Curie',   right: 'Radioactivity' }
+        ]
+      }),
+      render: (b) => renderMatch(b)
+    },
+
+    ordering: {
+      label: 'Order steps',
+      defaults: () => ({
+        prompt: 'Put these steps of the scientific method in the correct order.',
+        items: [
+          { id: 'a', text: 'Form a hypothesis' },
+          { id: 'b', text: 'Make an observation' },
+          { id: 'c', text: 'Analyse the data' },
+          { id: 'd', text: 'Draw a conclusion' }
+        ],
+        // The 'correct' order is given by the original items array above.
+        explanation: 'A typical scientific method: observe → hypothesise → experiment → analyse → conclude.'
+      }),
+      render: (b) => renderOrdering(b)
+    },
+
+    hotspot: {
+      label: 'Image hotspot',
+      defaults: () => ({
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/640px-Cat03.jpg',
+        alt: 'A cat',
+        hotspots: [
+          { x: 50, y: 40, label: 'Ear', correct: true },
+          { x: 30, y: 70, label: 'Whiskers', correct: false }
+        ]
+      }),
+      render: (b) => renderHotspot(b)
+    },
+
+    // ============================================================
+    // LAYOUT & STRUCTURE
+    // ============================================================
+
+    accordion: {
+      label: 'Accordion',
+      defaults: () => ({
+        items: [
+          { title: 'What is mitosis?',  markdown: 'Mitosis is the process of cell division that produces two genetically identical daughter cells.' },
+          { title: 'What is meiosis?', markdown: 'Meiosis produces four non-identical gametes, halving the chromosome number.' }
+        ]
+      }),
+      render: (b) => renderAccordion(b)
+    },
+
+    tabs: {
+      label: 'Tabs',
+      defaults: () => ({
+        items: [
+          { label: 'Definition', markdown: 'A **vector** is a quantity with both magnitude and direction.' },
+          { label: 'Example',    markdown: 'Velocity is a vector — 30 m/s north is different from 30 m/s east.' },
+          { label: 'In equations', markdown: 'We write vectors in **bold** (e.g. **v**) or with an arrow (\\vec{v}).' }
+        ]
+      }),
+      render: (b) => renderTabs(b)
+    },
+
+    compare: {
+      label: 'Compare',
+      defaults: () => ({
+        leftTitle: 'Mitosis',
+        rightTitle: 'Meiosis',
+        leftMarkdown: '• Produces 2 daughter cells\n• Genetically identical\n• One division',
+        rightMarkdown: '• Produces 4 daughter cells\n• Genetically unique\n• Two divisions'
+      }),
+      render: (b) => {
+        const lt = b.data.leftTitle || 'Left';
+        const rt = b.data.rightTitle || 'Right';
+        return `<div class="compare-grid">
+          <div class="col"><h4>${escapeHtml(lt)}</h4>${renderMarkdown(b.data.leftMarkdown || '')}</div>
+          <div class="col"><h4>${escapeHtml(rt)}</h4>${renderMarkdown(b.data.rightMarkdown || '')}</div>
+        </div>`;
+      }
+    },
+
+    timeline: {
+      label: 'Timeline',
+      defaults: () => ({
+        items: [
+          { date: '1939', title: 'War begins', markdown: 'Germany invades Poland; Britain and France declare war.' },
+          { date: '1941', title: 'Operation Barbarossa', markdown: 'Germany invades the Soviet Union.' },
+          { date: '1944', title: 'D-Day', markdown: 'Allied forces land on the beaches of Normandy.' },
+          { date: '1945', title: 'War ends', markdown: 'Germany surrenders in May; Japan in September after the atomic bombings.' }
+        ]
+      }),
+      render: (b) => renderTimeline(b)
+    },
+
+    // ============================================================
+    // STUDY AIDS
+    // ============================================================
+
+    objectives: {
+      label: 'Objectives',
+      defaults: () => ({
+        items: [
+          { text: 'Describe the structure of a mitochondrion' },
+          { text: 'Explain the role of ATP in cells' },
+          { text: 'Compare aerobic and anaerobic respiration' }
+        ]
+      }),
+      render: (b) => renderObjectives(b)
+    },
+
+    prerequisites: {
+      label: 'Prerequisites',
+      defaults: () => ({
+        items: [
+          { text: 'You should be comfortable with the structure of an animal cell.' },
+          { text: 'You should know what enzymes are and how they speed up reactions.' }
+        ]
+      }),
+      render: (b) => {
+        const items = (b.data.items || [])
+          .map(t => typeof t === 'string' ? t : (t && t.text) || '')
+          .filter(t => t && t.trim());
+        if (!items.length) return '<p style="color:var(--text-4)">[Prerequisites: empty]</p>';
+        return `<div class="prereqs">${items.map(t => `<div class="prereq-item">${escapeHtml(t)}</div>`).join('')}</div>`;
+      }
+    },
+
+    glossary: {
+      label: 'Glossary',
+      defaults: () => ({
+        items: [
+          { term: 'Atom',     definition: 'The smallest unit of a chemical element.' },
+          { term: 'Molecule', definition: 'Two or more atoms bonded together.' },
+          { term: 'Ion',      definition: 'An atom or molecule with a net electric charge.' }
+        ]
+      }),
+      render: (b) => renderGlossary(b)
+    },
+
+    summary: {
+      label: 'Summary',
+      defaults: () => ({
+        keyTakeaways: [
+          'Mitochondria are the site of aerobic respiration.',
+          'ATP is the universal energy currency of the cell.',
+          'Anaerobic respiration produces lactate in animals.'
+        ],
+        markdown: 'This lesson covered the structure of the mitochondrion, the stages of aerobic respiration (glycolysis, the link reaction, the Krebs cycle, and oxidative phosphorylation), and the difference between aerobic and anaerobic respiration.'
+      }),
+      render: (b) => {
+        const ks = (b.data.keyTakeaways || []).filter(t => t && t.trim());
+        return `<div class="summary-card">
+          <h4>Key takeaways</h4>
+          ${ks.length ? `<ul class="takeaways">${ks.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>` : ''}
+          <div class="body">${renderMarkdown(b.data.markdown || '')}</div>
+        </div>`;
+      }
     }
   };
+
+  // ============================================================
+  // INTERACTIVE BLOCK RENDERERS — each returns the static markup
+  // and (when called from the preview) wires up event listeners.
+  // bindPreview(b) attaches listeners to elements that have a
+  // [data-pbid] attribute we can look up by selector.
+  // ============================================================
+
+  function practiceWrap(content) {
+    return `<div class="practice">${content}</div>`;
+  }
+
+  // MCQ
+  function renderMCQ(b) {
+    const d = b.data;
+    const prompt = d.prompt || '';
+    const opts = d.options || [];
+    const isMulti = !!d.multi;
+    const inputType = isMulti ? 'checkbox' : 'radio';
+    return practiceWrap(`
+      <div class="prompt">${escapeHtml(prompt)}</div>
+      <div class="options" data-pbid="mcq-opts">
+        ${opts.map((o, i) => `
+          <button type="button" class="opt" data-idx="${i}">
+            <input type="${inputType}" disabled style="pointer-events:none;margin-top:2px;accent-color:var(--blue);" />
+            <span>${escapeHtml(o.text || '')}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div class="check-row">
+        <button type="button" class="check-btn" data-pb="check">Check</button>
+        <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
+      </div>
+      <div data-pb="feedback"></div>
+    `);
+  }
+
+  // True / False
+  function renderTrueFalse(b) {
+    const d = b.data;
+    return practiceWrap(`
+      <div class="prompt">${escapeHtml(d.prompt || '')}</div>
+      <div class="options" data-pbid="tf-opts">
+        <button type="button" class="opt" data-idx="t">✓ True</button>
+        <button type="button" class="opt" data-idx="f">✗ False</button>
+      </div>
+      <div class="check-row">
+        <button type="button" class="check-btn" data-pb="check">Check</button>
+        <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
+      </div>
+      <div data-pb="feedback"></div>
+    `);
+  }
+
+  // Short answer
+  function renderShortAnswer(b) {
+    const d = b.data;
+    return practiceWrap(`
+      <div class="prompt">${escapeHtml(d.prompt || '')}</div>
+      <div class="check-row">
+        <input type="text" class="sa-input" data-pbid="sa-input" placeholder="Type your answer…" style="flex:1;" />
+        <button type="button" class="check-btn" data-pb="check">Check</button>
+        <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
+      </div>
+      <div data-pb="feedback"></div>
+    `);
+  }
+
+  // Fill in the blank
+  function renderFillBlank(b) {
+    const d = b.data;
+    const text = d.text || '';
+    const blanks = d.blanks || [];
+    // Split on ___; we don't try to be clever about adjacent blanks.
+    const parts = text.split('___');
+    let html = '<div class="fb-sentence">';
+    parts.forEach((part, i) => {
+      html += escapeHtml(part);
+      if (i < blanks.length) {
+        const len = Math.max(8, (blanks[i].answer || '').length + 2);
+        html += `<input type="text" class="fb-input" data-fb="${i}" style="width:${Math.min(220, len * 8)}px;" />`;
+      }
+    });
+    html += '</div>';
+    return practiceWrap(`
+      <div class="prompt">Fill in the blanks:</div>
+      ${html}
+      <div class="check-row">
+        <button type="button" class="check-btn" data-pb="check">Check</button>
+        <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
+      </div>
+      <div data-pb="feedback"></div>
+    `);
+  }
+
+  // Match pairs
+  function renderMatch(b) {
+    const d = b.data;
+    const pairs = d.pairs || [];
+    if (!pairs.length) return practiceWrap(`<div class="prompt">No pairs to match.</div>`);
+    // Shuffle the right column deterministically by index parity.
+    const rights = pairs.map((p, i) => ({ text: p.right, origIndex: i }));
+    for (let i = rights.length - 1; i > 0; i--) {
+      const j = (i * 7 + 3) % (i + 1);
+      [rights[i], rights[j]] = [rights[j], rights[i]];
+    }
+    return practiceWrap(`
+      <div class="prompt">${escapeHtml(d.prompt || 'Match the pairs.')}</div>
+      <div class="match-grid">
+        <div class="match-col">
+          <h5>Items</h5>
+          ${pairs.map((p, i) => `<button type="button" class="match-tile" data-side="L" data-idx="${i}">${escapeHtml(p.left)}</button>`).join('')}
+        </div>
+        <div class="match-col">
+          <h5>Matches</h5>
+          ${rights.map(r => `<button type="button" class="match-tile" data-side="R" data-idx="${r.origIndex}">${escapeHtml(r.text)}</button>`).join('')}
+        </div>
+      </div>
+      <div class="check-row">
+        <button type="button" class="check-btn" data-pb="check">Check</button>
+        <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
+      </div>
+      <div data-pb="feedback"></div>
+    `);
+  }
+
+  // Ordering
+  function renderOrdering(b) {
+    const d = b.data;
+    const items = d.items || [];
+    if (!items.length) return practiceWrap(`<div class="prompt">No items to order.</div>`);
+    // Shuffle the order. Use a stable shuffle that gives a different result
+    // each call (so the student sees a different starting order).
+    const shuffled = items.map(x => x);
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return practiceWrap(`
+      <div class="prompt">${escapeHtml(d.prompt || 'Put these in the correct order.')}</div>
+      <div class="order-list" data-pbid="order-list">
+        ${shuffled.map(it => `<div class="order-item" draggable="true" data-id="${escapeHtml(it.id)}"><span class="grip">⋮⋮</span><span>${escapeHtml(it.text)}</span></div>`).join('')}
+      </div>
+      <div class="check-row">
+        <button type="button" class="check-btn" data-pb="check">Check</button>
+        <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
+      </div>
+      <div data-pb="feedback"></div>
+    `);
+  }
+
+  // Hotspot
+  function renderHotspot(b) {
+    const d = b.data;
+    if (!d.imageUrl) return practiceWrap(`<div class="prompt">[Hotspot: add an image URL in the editor]</div>`);
+    const hs = d.hotspots || [];
+    return practiceWrap(`
+      <div class="prompt">${escapeHtml('Click on the correct area of the image.')}</div>
+      <div class="hotspot-wrap" data-pbid="hs-wrap">
+        <img src="${escapeHtml(d.imageUrl)}" alt="${escapeHtml(d.alt || '')}" />
+        ${hs.map((h, i) => `<div class="dot" data-hs="${i}" style="left:${h.x}%;top:${h.y}%;display:none;">${i + 1}</div>`).join('')}
+      </div>
+      <div data-pb="feedback"></div>
+    `);
+  }
+
+  // Accordion
+  function renderAccordion(b) {
+    const d = b.data;
+    const items = d.items || [];
+    return `<div class="accordion">${items.map((it, i) => `
+      <div class="acc-item" data-acc="${i}">
+        <div class="acc-head" onclick="this.parentElement.classList.toggle('open')">
+          <span class="caret">▶</span>
+          <span>${escapeHtml(it.title || `Item ${i + 1}`)}</span>
+        </div>
+        <div class="acc-body">${renderMarkdown(it.markdown || '')}</div>
+      </div>
+    `).join('')}</div>`;
+  }
+
+  // Tabs
+  function renderTabs(b) {
+    const d = b.data;
+    const items = d.items || [];
+    if (!items.length) return '<p style="color:var(--text-4)">[Tabs: empty]</p>';
+    return `<div class="tabs" data-pbid="tabs-root">
+      <div class="tab-bar">
+        ${items.map((it, i) => `<button type="button" class="tab ${i === 0 ? 'active' : ''}" data-tab="${i}">${escapeHtml(it.label || `Tab ${i + 1}`)}</button>`).join('')}
+      </div>
+      <div class="tab-body">${renderMarkdown(items[0].markdown || '')}</div>
+    </div>`;
+  }
+
+  function renderTimeline(b) {
+    const d = b.data;
+    const items = d.items || [];
+    return `<div class="timeline">${items.map(it => `
+      <div class="tl-item">
+        <div class="tl-date">${escapeHtml(it.date || '')}</div>
+        <div class="tl-title">${escapeHtml(it.title || '')}</div>
+        <div class="tl-body">${renderMarkdown(it.markdown || '')}</div>
+      </div>
+    `).join('')}</div>`;
+  }
+
+  function renderObjectives(b) {
+    const d = b.data;
+    const items = d.items || [];
+    if (!items.length) return '<p style="color:var(--text-4)">[Objectives: empty]</p>';
+    return `<div class="objectives">${items.map((it, i) => `
+      <label class="obj-item" data-obj="${i}">
+        <input type="checkbox" onclick="this.parentElement.classList.toggle('done', this.checked)" />
+        <span>${escapeHtml(it.text || '')}</span>
+      </label>
+    `).join('')}</div>`;
+  }
+
+  function renderGlossary(b) {
+    const d = b.data;
+    const items = d.items || [];
+    if (!items.length) return '<p style="color:var(--text-4)">[Glossary: empty]</p>';
+    return `<div class="glossary">${items.map(it => `
+      <div class="gloss-row">
+        <div class="gloss-term">${escapeHtml(it.term || '')}</div>
+        <div class="gloss-def">${escapeHtml(it.definition || '')}</div>
+      </div>
+    `).join('')}</div>`;
+  }
+
+  // ============================================================
+  // INTERACTIVITY WIRING — attach event listeners to the rendered
+  // block. Called by renderBlock() so live previews and the final
+  // modal preview are both interactive.
+  // ============================================================
+
+  function bindInteractive(rootEl, b) {
+    if (!rootEl) return;
+    const data = b.data;
+    switch (b.kind) {
+      case 'mcq': bindMCQ(rootEl, data); break;
+      case 'truefalse': bindTrueFalse(rootEl, data); break;
+      case 'shortanswer': bindShortAnswer(rootEl, data); break;
+      case 'fillblank': bindFillBlank(rootEl, data); break;
+      case 'match': bindMatch(rootEl, data); break;
+      case 'ordering': bindOrdering(rootEl, data); break;
+      case 'hotspot': bindHotspot(rootEl, data); break;
+      case 'tabs': bindTabs(rootEl, data); break;
+    }
+  }
+
+  function showFeedback(rootEl, html, kind) {
+    const fb = rootEl.querySelector('[data-pb="feedback"]');
+    if (!fb) return;
+    fb.innerHTML = `<div class="feedback ${kind}">${html}</div>`;
+  }
+  function clearFeedback(rootEl) {
+    const fb = rootEl.querySelector('[data-pb="feedback"]');
+    if (fb) fb.innerHTML = '';
+  }
+  function setCheckEnabled(rootEl, enabled) {
+    const c = rootEl.querySelector('[data-pb="check"]');
+    const r = rootEl.querySelector('[data-pb="reset"]');
+    if (c) c.disabled = !enabled;
+    if (r) r.hidden = enabled;
+  }
+
+  function normText(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+
+  function bindMCQ(rootEl, d) {
+    const opts = rootEl.querySelectorAll('[data-pbid="mcq-opts"] .opt');
+    opts.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.classList.contains('correct') || btn.classList.contains('wrong')) return;
+        if (d.multi) btn.classList.toggle('selected');
+        else opts.forEach(o => o.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
+    const check = rootEl.querySelector('[data-pb="check"]');
+    const reset = rootEl.querySelector('[data-pb="reset"]');
+    check.addEventListener('click', () => {
+      const sel = [...opts].map((o, i) => o.classList.contains('selected') ? i : -1).filter(i => i >= 0);
+      if (!sel.length) { showFeedback(rootEl, 'Pick an option first.', 'info'); return; }
+      const isMulti = !!d.multi;
+      const correctIdxs = (d.options || []).map((o, i) => o.correct ? i : -1).filter(i => i >= 0);
+      const right = isMulti
+        ? sel.length === correctIdxs.length && sel.every(i => correctIdxs.includes(i))
+        : correctIdxs.includes(sel[0]);
+      opts.forEach((o, i) => {
+        const opt = (d.options || [])[i] || {};
+        o.classList.remove('selected');
+        if (opt.correct) o.classList.add('correct');
+        else if (sel.includes(i)) o.classList.add('wrong');
+      });
+      // Per-option feedback: show the first wrong selection's feedback
+      const wrongSel = sel.find(i => !(d.options || [])[i].correct);
+      let extra = '';
+      if (wrongSel) extra = `<div style="margin-top:6px;"><b>${escapeHtml((d.options || [])[wrongSel].text)}:</b> ${escapeHtml((d.options || [])[wrongSel].feedback || '')}</div>`;
+      if (right) {
+        showFeedback(rootEl, `✓ Correct!${d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''}${extra}`, 'ok');
+      } else {
+        showFeedback(rootEl, `✗ Not quite.${d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''}${extra}`, 'bad');
+      }
+      check.disabled = true;
+      reset.hidden = false;
+    });
+    reset.addEventListener('click', () => {
+      opts.forEach(o => o.classList.remove('selected', 'correct', 'wrong'));
+      clearFeedback(rootEl); setCheckEnabled(rootEl, true);
+    });
+  }
+
+  function bindTrueFalse(rootEl, d) {
+    const opts = rootEl.querySelectorAll('[data-pbid="tf-opts"] .opt');
+    opts.forEach(btn => btn.addEventListener('click', () => {
+      if (btn.classList.contains('correct') || btn.classList.contains('wrong')) return;
+      opts.forEach(o => o.classList.remove('selected'));
+      btn.classList.add('selected');
+    }));
+    const check = rootEl.querySelector('[data-pb="check"]');
+    const reset = rootEl.querySelector('[data-pb="reset"]');
+    check.addEventListener('click', () => {
+      const sel = [...opts].find(o => o.classList.contains('selected'));
+      if (!sel) { showFeedback(rootEl, 'Pick true or false first.', 'info'); return; }
+      const expected = d.answer === true ? 't' : 'f';
+      const right = sel.dataset.idx === expected;
+      opts.forEach(o => {
+        o.classList.remove('selected');
+        if (o.dataset.idx === expected) o.classList.add('correct');
+        else o.classList.add('wrong');
+      });
+      showFeedback(rootEl, `${right ? '✓ Correct!' : '✗ Not quite.'}${d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''}`, right ? 'ok' : 'bad');
+      check.disabled = true; reset.hidden = false;
+    });
+    reset.addEventListener('click', () => {
+      opts.forEach(o => o.classList.remove('selected', 'correct', 'wrong'));
+      clearFeedback(rootEl); setCheckEnabled(rootEl, true);
+    });
+  }
+
+  function bindShortAnswer(rootEl, d) {
+    const input = rootEl.querySelector('[data-pbid="sa-input"]');
+    const check = rootEl.querySelector('[data-pb="check"]');
+    const reset = rootEl.querySelector('[data-pb="reset"]');
+    const answers = (d.answers || []).map(normText);
+    check.addEventListener('click', () => {
+      const got = normText(input.value);
+      if (!got) { showFeedback(rootEl, 'Type an answer first.', 'info'); return; }
+      const right = answers.includes(got);
+      showFeedback(rootEl,
+        `${right ? '✓ Correct!' : `✗ Not quite — the answer was <code>${escapeHtml((d.answers || [])[0] || '')}</code>.`}` +
+        (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
+        right ? 'ok' : 'bad'
+      );
+      input.disabled = true; check.disabled = true; reset.hidden = false;
+    });
+    reset.addEventListener('click', () => {
+      input.disabled = false; input.value = '';
+      clearFeedback(rootEl); setCheckEnabled(rootEl, true);
+    });
+  }
+
+  function bindFillBlank(rootEl, d) {
+    const inputs = rootEl.querySelectorAll('[data-fb]');
+    const check = rootEl.querySelector('[data-pb="check"]');
+    const reset = rootEl.querySelector('[data-pb="reset"]');
+    const blanks = d.blanks || [];
+    check.addEventListener('click', () => {
+      const results = [...inputs].map((inp, i) => ({
+        ok: normText(inp.value) === normText((blanks[i] || {}).answer),
+        input: inp
+      }));
+      if (![...inputs].some(i => i.value)) { showFeedback(rootEl, 'Fill in the blanks first.', 'info'); return; }
+      const allRight = results.every(r => r.ok);
+      results.forEach(r => r.input.classList.add(r.ok ? 'correct' : 'wrong'));
+      // Reveal the correct answers next to wrong ones
+      results.forEach((r, i) => {
+        if (!r.ok) {
+          const ans = (blanks[i] || {}).answer;
+          const span = document.createElement('span');
+          span.className = 'reveal-line';
+          span.textContent = ` (${ans})`;
+          r.input.insertAdjacentElement('afterend', span);
+        }
+      });
+      showFeedback(rootEl,
+        `${allRight ? '✓ All correct!' : '✗ Some are wrong — the correct answers are shown.'}` +
+        (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
+        allRight ? 'ok' : 'bad'
+      );
+      inputs.forEach(i => i.disabled = true);
+      check.disabled = true; reset.hidden = false;
+    });
+    reset.addEventListener('click', () => {
+      inputs.forEach(i => { i.disabled = false; i.value = ''; i.classList.remove('correct', 'wrong'); });
+      rootEl.querySelectorAll('.reveal-line').forEach(s => s.remove());
+      clearFeedback(rootEl); setCheckEnabled(rootEl, true);
+    });
+  }
+
+  function bindMatch(rootEl, d) {
+    const pairs = d.pairs || [];
+    const leftBtns = rootEl.querySelectorAll('.match-tile[data-side="L"]');
+    const rightBtns = rootEl.querySelectorAll('.match-tile[data-side="R"]');
+    const check = rootEl.querySelector('[data-pb="check"]');
+    const reset = rootEl.querySelector('[data-pb="reset"]');
+    let pL = null, pR = null;
+    function clearSel() {
+      [...leftBtns, ...rightBtns].forEach(x => x.classList.remove('selected'));
+    }
+    function pairUp() {
+      if (!pL || !pR) return;
+      const l = parseInt(pL.dataset.idx, 10);
+      const r = parseInt(pR.dataset.idx, 10);
+      pL.dataset.paired = String(r);
+      pR.dataset.paired = String(l);
+      clearSel();
+      pL = null; pR = null;
+    }
+    leftBtns.forEach(b => b.addEventListener('click', () => {
+      if (b.classList.contains('correct') || b.classList.contains('wrong')) return;
+      leftBtns.forEach(x => x.classList.remove('selected'));
+      b.classList.add('selected'); pL = b; pairUp();
+    }));
+    rightBtns.forEach(b => b.addEventListener('click', () => {
+      if (b.classList.contains('correct') || b.classList.contains('wrong')) return;
+      rightBtns.forEach(x => x.classList.remove('selected'));
+      b.classList.add('selected'); pR = b; pairUp();
+    }));
+    check.addEventListener('click', () => {
+      let correct = 0;
+      leftBtns.forEach(lb => {
+        const li = parseInt(lb.dataset.idx, 10);
+        const ri = parseInt(lb.dataset.paired || '-1', 10);
+        if (ri === li) { lb.classList.add('correct'); correct++; }
+        else if (lb.dataset.paired !== undefined) lb.classList.add('wrong');
+        else lb.classList.add('muted');
+      });
+      rightBtns.forEach(rb => {
+        const ri = parseInt(rb.dataset.idx, 10);
+        const li = parseInt(rb.dataset.paired || '-1', 10);
+        if (li === ri) rb.classList.add('correct');
+        else if (rb.dataset.paired !== undefined) rb.classList.add('wrong');
+        else rb.classList.add('muted');
+      });
+      const allRight = correct === pairs.length && pairs.length > 0;
+      showFeedback(rootEl, `${allRight ? '✓ All paired correctly!' : `You got ${correct} of ${pairs.length} right.`}`,
+        allRight ? 'ok' : 'bad');
+      check.disabled = true; reset.hidden = false;
+    });
+    reset.addEventListener('click', () => {
+      [...leftBtns, ...rightBtns].forEach(b => {
+        b.classList.remove('selected', 'correct', 'wrong', 'muted');
+        delete b.dataset.paired;
+      });
+      pL = null; pR = null;
+      clearFeedback(rootEl); setCheckEnabled(rootEl, true);
+    });
+  }
+
+  function bindOrdering(rootEl, d) {
+    const list = rootEl.querySelector('[data-pbid="order-list"]');
+    const check = rootEl.querySelector('[data-pb="check"]');
+    const reset = rootEl.querySelector('[data-pb="reset"]');
+    let dragEl = null;
+    list.querySelectorAll('.order-item').forEach(item => {
+      item.addEventListener('dragstart', (e) => {
+        dragEl = item; item.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', item.dataset.id);
+      });
+      item.addEventListener('dragend', () => { item.classList.remove('dragging'); dragEl = null; });
+      item.addEventListener('dragover', (e) => { e.preventDefault(); });
+      item.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (!dragEl || dragEl === item) return;
+        const rect = item.getBoundingClientRect();
+        const after = (e.clientY - rect.top) > rect.height / 2;
+        item.parentNode.insertBefore(dragEl, after ? item.nextSibling : item);
+      });
+    });
+    check.addEventListener('click', () => {
+      const items = [...list.querySelectorAll('.order-item')];
+      const correct = (d.items || []).map(i => i.id);
+      const given = items.map(it => it.dataset.id);
+      const allRight = correct.length === given.length && correct.every((v, i) => v === given[i]);
+      items.forEach((it, i) => {
+        it.classList.add(correct[i] === it.dataset.id ? 'correct-pos' : 'wrong-pos');
+      });
+      showFeedback(rootEl,
+        `${allRight ? '✓ Correct order!' : '✗ Not quite — the correct order is highlighted above.'}` +
+        (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
+        allRight ? 'ok' : 'bad');
+      list.querySelectorAll('.order-item').forEach(i => i.setAttribute('draggable', 'false'));
+      check.disabled = true; reset.hidden = false;
+    });
+    reset.addEventListener('click', () => {
+      // Re-shuffle by re-rendering
+      const fresh = BLOCK_DEFS.ordering.render({ data: d });
+      const tmp = document.createElement('div');
+      tmp.innerHTML = fresh;
+      list.innerHTML = tmp.querySelector('[data-pbid="order-list"]').innerHTML;
+      bindOrdering(rootEl, d);
+    });
+  }
+
+  function bindHotspot(rootEl, d) {
+    const wrap = rootEl.querySelector('[data-pbid="hs-wrap"]');
+    if (!wrap) return;
+    const img = wrap.querySelector('img');
+    const dots = [...wrap.querySelectorAll('.dot')];
+    const hs = d.hotspots || [];
+    wrap.addEventListener('click', (e) => {
+      if (e.target.closest('.dot')) return;
+      const rect = img.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top)  / rect.height) * 100;
+      // Find nearest hotspot within 6% (Euclidean)
+      let best = -1, bestD = 6;
+      hs.forEach((h, i) => {
+        const dx = h.x - x, dy = h.y - y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < bestD) { bestD = dist; best = i; }
+      });
+      dots.forEach((dot, i) => {
+        dot.style.display = '';
+        if (i === best && hs[i].correct) dot.style.background = 'var(--green-dim)';
+        else if (i === best) dot.style.background = 'var(--red-dim)';
+      });
+      const correct = best >= 0 && hs[best].correct;
+      const labels = hs.map((h, i) => `<div><b>${i + 1}.</b> ${escapeHtml(h.label || '')} ${h.correct ? '<span style="color:var(--green);">(correct)</span>' : ''}</div>`).join('');
+      showFeedback(rootEl,
+        (correct ? '✓ Correct!' : '✗ Not quite — here are the hotspots:') + `<div style="margin-top:6px;">${labels}</div>`,
+        correct ? 'ok' : 'bad');
+    });
+  }
+
+  function bindTabs(rootEl, d) {
+    const tabs = rootEl.querySelectorAll('[data-pbid="tabs-root"] .tab');
+    const body = rootEl.querySelector('[data-pbid="tabs-root"] .tab-body');
+    tabs.forEach(t => t.addEventListener('click', () => {
+      tabs.forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      const idx = parseInt(t.dataset.tab, 10);
+      body.innerHTML = renderMarkdown((d.items || [])[idx].markdown || '');
+    }));
+  }
 
   function renderBlock(b) {
     const def = BLOCK_DEFS[b.kind];
     if (!def) return `<p style="color:var(--red)">[Unknown block: ${escapeHtml(b.kind)}]</p>`;
-    return def.render(b);
+    const html = def.render(b);
+    // For interactive blocks, return a wrapper that the caller can attach
+    // listeners to. renderBlock returns a string in all cases; the
+    // bindInteractive helper handles attachment when needed.
+    return html;
   }
 
   // ---------- app state ----------
@@ -1276,6 +2387,7 @@
         <div class="editor-actions">
           <span class="${state.dirty ? 'dirty' : 'saved'}">${state.dirty ? '● Unsaved changes' : '✓ All saved'}</span>
           <span class="spacer"></span>
+          <span class="shortcuts"><kbd>⌘S</kbd> save · <kbd>⌘Z</kbd> undo block</span>
           <button class="btn-ghost" id="saveMetaBtn">Save lesson details</button>
         </div>
         <div class="blocks" id="blocksList"></div>
@@ -1332,15 +2444,158 @@
       return;
     }
     list.innerHTML = L.blocks.map((b, i) => renderBlockEditor(b, i)).join('');
+    // Wire interactivity for any block whose editor body includes a .preview
+    // (callout, image, video, math, worked_example, reveal, flashcard, plus
+    // all the new interactive practice / layout / study-aid kinds).
+    list.querySelectorAll('.block').forEach((blockEl) => {
+      const i = parseInt(blockEl.dataset.blockIndex, 10);
+      if (isNaN(i)) return;
+      const block = L.blocks[i];
+      const preview = blockEl.querySelector('.preview');
+      if (preview && block) bindInteractive(preview, block);
+    });
+    // Wire drag-to-reorder
+    wireDragReorder(list);
   }
+
+  // ---------- block picker (grouped) ----------
+  const BLOCK_GROUPS = {
+    'Text & structure': ['heading', 'text', 'callout', 'image', 'video', 'math', 'keypoints', 'worked_example', 'reveal', 'flashcard'],
+    'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot'],
+    'Layout': ['accordion', 'tabs', 'compare', 'timeline'],
+    'Study aids': ['objectives', 'prerequisites', 'glossary', 'summary'],
+  };
 
   function renderBlockPicker() {
     const picker = document.getElementById('blockPicker');
     if (!picker) return;
-    picker.innerHTML = Object.entries(BLOCK_DEFS).map(([kind, def]) =>
-      `<button class="picker-btn" onclick="addBlock('${kind}')">+ ${escapeHtml(def.label)}</button>`
-    ).join('');
+    const html = Object.entries(BLOCK_GROUPS).map(([group, kinds], gi) => {
+      const sep = gi > 0 ? `<span class="group-sep"></span>` : '';
+      const label = `<span class="group-label">${escapeHtml(group)}</span>`;
+      const btns = kinds.map(k => {
+        if (!BLOCK_DEFS[k]) return '';
+        return `<button class="picker-btn" onclick="addBlock('${k}')" title="${escapeHtml(BLOCK_DEFS[k].label)}">+ ${escapeHtml(BLOCK_DEFS[k].label)}</button>`;
+      }).join('');
+      return `${sep}${label}${btns}`;
+    }).join('');
+    const tplBtn = `<span class="group-sep"></span><span class="group-label">Templates</span><button class="picker-btn" id="tplBtn" onclick="toggleTemplatePop(event)">+ From template…</button>`;
+    picker.innerHTML = html + tplBtn;
   }
+
+  // ---------- template library ----------
+  const TEMPLATES = {
+    'mcq-photosynthesis': {
+      label: 'MCQ — photosynthesis',
+      hint:  'A 4-option MCQ about photosynthesis.',
+      blocks: () => [{ kind: 'mcq', data: BLOCK_DEFS.mcq.defaults() }]
+    },
+    'worked-quadratic': {
+      label: 'Worked example — quadratic equation',
+      hint:  'A step-by-step worked example for (x+3)(x-2)=0.',
+      blocks: () => [{
+        kind: 'worked_example',
+        data: {
+          question: 'Solve (x + 3)(x − 2) = 0.',
+          steps: [
+            { label: 'Step 1', body: 'A product is zero when at least one of its factors is zero.' },
+            { label: 'Step 2', body: 'Set **x + 3 = 0** and **x − 2 = 0**.' },
+            { label: 'Step 3', body: 'Solve each linear equation.' }
+          ],
+          answer: 'x = −3 or x = 2'
+        }
+      }]
+    },
+    'reveal-key-terms-biology': {
+      label: 'Reveal — key terms (biology)',
+      hint:  '5 reveal blocks with cell-biology terms.',
+      blocks: () => {
+        const terms = [
+          ['Mitochondrion', 'The site of aerobic respiration in eukaryotic cells.'],
+          ['Ribosome',       'The site of protein synthesis; found free in the cytoplasm and on the rough ER.'],
+          ['Nucleus',        'Contains the cell\'s DNA and controls its activities.'],
+          ['Cell membrane',  'A phospholipid bilayer that controls what enters and leaves the cell.'],
+          ['Chloroplast',    'The site of photosynthesis in plant cells.']
+        ];
+        return terms.map(([prompt, explanation]) => ({ kind: 'reveal', data: { prompt, explanation } }));
+      }
+    },
+    'compare-mitosis-meiosis': {
+      label: 'Comparison — mitosis vs meiosis',
+      hint:  'A side-by-side compare block.',
+      blocks: () => [{
+        kind: 'compare',
+        data: BLOCK_DEFS.compare.defaults()
+      }]
+    },
+    'timeline-wwii': {
+      label: 'Timeline — World War II',
+      hint:  '4 dated events on a vertical timeline.',
+      blocks: () => [{
+        kind: 'timeline',
+        data: {
+          items: [
+            { date: '1939', title: 'War begins', markdown: 'Germany invades Poland; Britain and France declare war.' },
+            { date: '1941', title: 'Operation Barbarossa', markdown: 'Germany invades the Soviet Union.' },
+            { date: '1944', title: 'D-Day', markdown: 'Allied forces land on the beaches of Normandy.' },
+            { date: '1945', title: 'War ends', markdown: 'Germany surrenders in May; Japan in September after the atomic bombings.' }
+          ]
+        }
+      }]
+    },
+    'glossary-atomic-structure': {
+      label: 'Glossary — atomic structure',
+      hint:  '5 glossary entries.',
+      blocks: () => [{
+        kind: 'glossary',
+        data: {
+          items: [
+            { term: 'Proton', definition: 'A positively charged particle in the nucleus.' },
+            { term: 'Neutron', definition: 'A neutral particle in the nucleus.' },
+            { term: 'Electron', definition: 'A negatively charged particle orbiting the nucleus.' },
+            { term: 'Atomic number', definition: 'The number of protons in the nucleus.' },
+            { term: 'Mass number', definition: 'The total number of protons and neutrons in the nucleus.' }
+          ]
+        }
+      }]
+    }
+  };
+
+  function toggleTemplatePop(e) {
+    e.stopPropagation();
+    const existing = document.getElementById('tplPop');
+    if (existing) { existing.remove(); return; }
+    const pop = document.createElement('div');
+    pop.id = 'tplPop';
+    pop.className = 'tpl-pop';
+    pop.style.top = (e.target.getBoundingClientRect().bottom + window.scrollY + 4) + 'px';
+    pop.style.left = Math.min(window.innerWidth - 360, e.target.getBoundingClientRect().left + window.scrollX) + 'px';
+    pop.innerHTML = `
+      <div class="tpl-head">Insert from template</div>
+      ${Object.entries(TEMPLATES).map(([id, t]) => `
+        <button class="tpl-item" onclick="applyTemplate('${id}')">
+          ${escapeHtml(t.label)}
+          <span class="tpl-meta">${escapeHtml(t.hint || '')}</span>
+        </button>
+      `).join('')}
+    `;
+    document.body.appendChild(pop);
+    const closer = (ev) => {
+      if (!pop.contains(ev.target)) { pop.remove(); document.removeEventListener('click', closer); }
+    };
+    setTimeout(() => document.addEventListener('click', closer), 0);
+  }
+  window.applyTemplate = (id) => {
+    const t = TEMPLATES[id];
+    if (!t) return;
+    if (!state.currentLesson) { toast('Open a lesson first', 'error'); return; }
+    const blocks = t.blocks();
+    state.currentLesson.blocks.push(...blocks);
+    state.dirty = true;
+    renderBlocksList();
+    renderEditorHeader();
+    document.getElementById('tplPop')?.remove();
+    toast(`Inserted ${blocks.length} block${blocks.length === 1 ? '' : 's'} from template`, 'success');
+  };
 
   function renderBlockEditor(b, i) {
     const def = BLOCK_DEFS[b.kind];
@@ -1348,13 +2603,15 @@
     const isFirst = i === 0;
     const isLast  = i === state.currentLesson.blocks.length - 1;
     return `
-      <div class="block" data-block-id="${b.id || ''}" data-block-index="${i}">
+      <div class="block" data-block-id="${b.id || ''}" data-block-index="${i}" draggable="true">
         <div class="block-head">
+          <span class="grip" style="color:var(--text-4);cursor:grab;padding:0 4px;font-size:12px;user-select:none;" title="Drag to reorder">⋮⋮</span>
           <span class="kind-label">${escapeHtml(label)}</span>
           <span style="color: var(--text-4);">#${i + 1}</span>
           <span class="spacer"></span>
           <button class="icon-btn" title="Move up"   ${isFirst ? 'disabled' : ''} onclick="moveBlock(${i}, -1)">▲</button>
           <button class="icon-btn" title="Move down" ${isLast  ? 'disabled' : ''} onclick="moveBlock(${i}, +1)">▼</button>
+          <button class="icon-btn" title="Duplicate" onclick="duplicateBlock(${i})">⎘</button>
           <button class="icon-btn danger" title="Delete" onclick="deleteBlock(${i})">✕</button>
         </div>
         <div class="block-body">
@@ -1418,7 +2675,12 @@
         return `
           <div class="form-row">
             <label>Image URL</label>
-            <input value="${escapeHtml(b.data.url||'')}" oninput="updateBlock(${i}, {url: this.value})" placeholder="https://…" />
+            <div style="display:flex;gap:6px;">
+              <input id="imgUrl-${i}" value="${escapeHtml(b.data.url||'')}" oninput="updateBlock(${i}, {url: this.value})" placeholder="https://…" style="flex:1;" />
+              <button class="upload-btn" onclick="uploadImage(${i})" title="Upload to lesson-images bucket">↑ Upload</button>
+              <input type="file" id="imgFile-${i}" accept="image/*" hidden onchange="handleImageUpload(${i}, this)" />
+            </div>
+            <span class="hint">Paste a URL or upload a file (≤ 8 MB). Uploads go to the <code>lesson-images</code> bucket.</span>
           </div>
           <div class="form-row">
             <label>Alt text</label>
@@ -1542,10 +2804,687 @@
             <div class="preview">${renderBlock(b)}</div>
           </div>
         `;
-      default:
+      default: {
+        // New kinds (added in the BLOCK_DEFS extension) are dispatched
+        // via the EDITOR_DISPATCH table below.
+        if (EDITOR_DISPATCH[b.kind]) return EDITOR_DISPATCH[b.kind](b, i);
         return `<p style="color: var(--red)">No editor for kind: ${escapeHtml(b.kind)}</p>`;
+      }
     }
   }
+
+  // ============================================================
+  // EDITOR HELPERS for the new kinds. Each helper writes a control
+  // panel on the left and a live preview on the right, mirroring
+  // the pattern in the existing two-col editors.
+  // ============================================================
+
+  // Generic helper: render the small "list of {label, fields...}" editor
+  // used by accordion, tabs, timeline, objectives, glossary, etc.
+  function editorList(i, items, columns, rowHtml, onAdd) {
+    return `
+      <div class="repeater">
+        ${items.map((_, j) => rowHtml(j)).join('')}
+        <button class="add" onclick="${onAdd}">+ Add item</button>
+      </div>
+    `;
+  }
+
+  // ----- MCQ editor -----
+  function renderMCQEditor(b, i) {
+    const opts = b.data.options || [];
+    return `
+      <div class="form-row">
+        <label>Prompt</label>
+        <input value="${escapeHtml(b.data.prompt||'')}" oninput="updateBlock(${i}, {prompt: this.value})" placeholder="The question" />
+      </div>
+      <div class="check-row-editor">
+        <label class="opt-multi"><input type="checkbox" ${b.data.multi ? 'checked' : ''} onchange="updateBlock(${i}, {multi: this.checked})" /> Allow multiple correct</label>
+      </div>
+      <div class="form-row">
+        <label>Options</label>
+        <div class="repeater">
+          ${opts.map((o, j) => `
+            <div class="opt-row">
+              <button type="button" class="correct-mark ${o.correct ? 'on' : ''}" onclick="toggleMCQCorrect(${i}, ${j})" title="Mark correct">${o.correct ? '✓' : ''}</button>
+              <input type="text" value="${escapeHtml(o.text||'')}" oninput="updateMCQOpt(${i}, ${j}, 'text', this.value)" placeholder="Option text" />
+              <input type="text" class="fb-input" value="${escapeHtml(o.feedback||'')}" oninput="updateMCQOpt(${i}, ${j}, 'feedback', this.value)" placeholder="Why this is right/wrong" />
+              <button class="del" onclick="removeMCQOpt(${i}, ${j})">✕</button>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addMCQOpt(${i})">+ Add option</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Explanation (shown after checking)</label>
+        <textarea oninput="updateBlock(${i}, {explanation: this.value})">${escapeHtml(b.data.explanation || '')}</textarea>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview (click options, then Check)</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.toggleMCQCorrect = (i, j) => {
+    const data = state.currentLesson.blocks[i].data;
+    const opts = data.options || [];
+    if (!opts[j]) return;
+    opts[j].correct = !opts[j].correct;
+    // If single-answer, ensure only one is correct
+    if (!data.multi) opts.forEach((o, k) => { if (k !== j) o.correct = false; });
+    state.dirty = true; renderBlocksList();
+  };
+  window.updateMCQOpt = (i, j, field, val) => {
+    const opts = state.currentLesson.blocks[i].data.options || [];
+    if (!opts[j]) opts[j] = { text: '', correct: false, feedback: '' };
+    opts[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addMCQOpt = (i) => {
+    if (!state.currentLesson.blocks[i].data.options) state.currentLesson.blocks[i].data.options = [];
+    state.currentLesson.blocks[i].data.options.push({ text: '', correct: false, feedback: '' });
+    renderBlocksList();
+  };
+  window.removeMCQOpt = (i, j) => {
+    state.currentLesson.blocks[i].data.options.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- True/False editor -----
+  function renderTFEditor(b, i) {
+    return `
+      <div class="form-row">
+        <label>Statement</label>
+        <input value="${escapeHtml(b.data.prompt||'')}" oninput="updateBlock(${i}, {prompt: this.value})" />
+      </div>
+      <div class="form-row">
+        <label>Correct answer</label>
+        <select onchange="updateBlock(${i}, {answer: this.value === 'true'})">
+          <option value="true"  ${b.data.answer === true  ? 'selected' : ''}>True</option>
+          <option value="false" ${b.data.answer === false ? 'selected' : ''}>False</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Explanation (shown after checking)</label>
+        <textarea oninput="updateBlock(${i}, {explanation: this.value})">${escapeHtml(b.data.explanation || '')}</textarea>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+
+  // ----- Short answer editor -----
+  function renderSAEditor(b, i) {
+    const answers = b.data.answers || [];
+    return `
+      <div class="form-row">
+        <label>Prompt</label>
+        <input value="${escapeHtml(b.data.prompt||'')}" oninput="updateBlock(${i}, {prompt: this.value})" />
+      </div>
+      <div class="form-row">
+        <label>Accepted answers (case-insensitive, one per line)</label>
+        <textarea oninput="updateBlock(${i}, {answers: this.value.split('\\n').map(s => s.trim()).filter(Boolean)})">${escapeHtml((answers || []).join('\n'))}</textarea>
+      </div>
+      <div class="form-row">
+        <label>Explanation (shown after checking)</label>
+        <textarea oninput="updateBlock(${i}, {explanation: this.value})">${escapeHtml(b.data.explanation || '')}</textarea>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+
+  // ----- Fill-in-the-blank editor -----
+  function renderFBEditor(b, i) {
+    const blanks = b.data.blanks || [];
+    return `
+      <div class="form-row">
+        <label>Sentence (use <code>___</code> for each blank)</label>
+        <textarea oninput="updateFBText(${i}, this.value)">${escapeHtml(b.data.text || '')}</textarea>
+      </div>
+      <div class="form-row">
+        <label>Answers (in order)</label>
+        <div class="repeater">
+          ${blanks.map((bl, j) => `
+            <div class="fb-line">
+              <div class="fb-head">
+                <code>blank ${j + 1}</code>
+                <input type="text" value="${escapeHtml(bl.answer || '')}" oninput="updateFBBlank(${i}, ${j}, this.value)" placeholder="Answer" />
+                <button class="del" onclick="removeFBBlank(${i}, ${j})">✕</button>
+              </div>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addFBBlank(${i})">+ Add blank</button>
+        </div>
+        <span class="hint">The number of <code>___</code> placeholders in the sentence should match the number of answers. Use the Sync button if they differ.</span>
+      </div>
+      <div class="form-row">
+        <button class="btn-ghost" onclick="syncFBBlanks(${i})">Sync blanks to text</button>
+      </div>
+      <div class="form-row">
+        <label>Explanation (shown after checking)</label>
+        <textarea oninput="updateBlock(${i}, {explanation: this.value})">${escapeHtml(b.data.explanation || '')}</textarea>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateFBText = (i, val) => {
+    const data = state.currentLesson.blocks[i].data;
+    data.text = val;
+    // Auto-extend/trim blanks array to match ___ count
+    const count = (val.match(/___/g) || []).length;
+    if (!data.blanks) data.blanks = [];
+    while (data.blanks.length < count) data.blanks.push({ answer: '' });
+    if (data.blanks.length > count) data.blanks.length = count;
+    state.dirty = true; renderEditorHeader();
+    // Re-render just the blanks list inside this block
+    const block = document.querySelector(`.block[data-block-index="${i}"]`);
+    if (!block) return;
+    const preview = block.querySelector('.preview');
+    if (preview) {
+      preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
+      bindInteractive(preview, state.currentLesson.blocks[i]);
+    }
+  };
+  window.updateFBBlank = (i, j, val) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.blanks[j]) data.blanks[j] = { answer: '' };
+    data.blanks[j].answer = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addFBBlank = (i) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.blanks) data.blanks = [];
+    data.blanks.push({ answer: '' });
+    // Also add a ___ placeholder at the end
+    data.text = (data.text || '') + ' ___';
+    renderBlocksList();
+  };
+  window.removeFBBlank = (i, j) => {
+    const data = state.currentLesson.blocks[i].data;
+    data.blanks.splice(j, 1);
+    // Remove the n-th ___ occurrence
+    const parts = (data.text || '').split('___');
+    if (parts.length > 1) {
+      parts.splice(j, 1);
+      data.text = parts.join('___');
+    }
+    renderBlocksList();
+  };
+  window.syncFBBlanks = (i) => {
+    const data = state.currentLesson.blocks[i].data;
+    const count = ((data.text || '').match(/___/g) || []).length;
+    if (!data.blanks) data.blanks = [];
+    while (data.blanks.length < count) data.blanks.push({ answer: '' });
+    if (data.blanks.length > count) data.blanks.length = count;
+    renderBlocksList();
+  };
+
+  // ----- Match editor -----
+  function renderMatchEditor(b, i) {
+    const pairs = b.data.pairs || [];
+    return `
+      <div class="form-row">
+        <label>Prompt</label>
+        <input value="${escapeHtml(b.data.prompt||'')}" oninput="updateBlock(${i}, {prompt: this.value})" />
+      </div>
+      <div class="form-row">
+        <label>Pairs (the right column is shuffled for the student)</label>
+        <div class="repeater">
+          ${pairs.map((p, j) => `
+            <div class="pair-row">
+              <input type="text" value="${escapeHtml(p.left||'')}" oninput="updateMatchPair(${i}, ${j}, 'left', this.value)" placeholder="Left item" />
+              <input type="text" value="${escapeHtml(p.right||'')}" oninput="updateMatchPair(${i}, ${j}, 'right', this.value)" placeholder="Right item" />
+              <button class="del" onclick="removeMatchPair(${i}, ${j})">✕</button>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addMatchPair(${i})">+ Add pair</button>
+        </div>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateMatchPair = (i, j, field, val) => {
+    const pairs = state.currentLesson.blocks[i].data.pairs || [];
+    if (!pairs[j]) pairs[j] = { left: '', right: '' };
+    pairs[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addMatchPair = (i) => {
+    if (!state.currentLesson.blocks[i].data.pairs) state.currentLesson.blocks[i].data.pairs = [];
+    state.currentLesson.blocks[i].data.pairs.push({ left: '', right: '' });
+    renderBlocksList();
+  };
+  window.removeMatchPair = (i, j) => {
+    state.currentLesson.blocks[i].data.pairs.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Ordering editor -----
+  function renderOrderingEditor(b, i) {
+    const items = b.data.items || [];
+    return `
+      <div class="form-row">
+        <label>Prompt</label>
+        <input value="${escapeHtml(b.data.prompt||'')}" oninput="updateBlock(${i}, {prompt: this.value})" />
+      </div>
+      <div class="form-row">
+        <label>Items (in the correct order — they'll be shuffled for the student)</label>
+        <div class="repeater">
+          ${items.map((it, j) => `
+            <div class="order-row">
+              <input type="text" value="${escapeHtml(it.text||'')}" oninput="updateOrderingItem(${i}, ${j}, this.value)" placeholder="Step ${j + 1}" />
+              <button class="del" onclick="removeOrderingItem(${i}, ${j})">✕</button>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addOrderingItem(${i})">+ Add step</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Explanation (shown after checking)</label>
+        <textarea oninput="updateBlock(${i}, {explanation: this.value})">${escapeHtml(b.data.explanation || '')}</textarea>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateOrderingItem = (i, j, val) => {
+    const items = state.currentLesson.blocks[i].data.items;
+    if (items[j]) items[j].text = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addOrderingItem = (i) => {
+    const items = state.currentLesson.blocks[i].data.items;
+    if (!state.currentLesson.blocks[i].data.items) state.currentLesson.blocks[i].data.items = [];
+    state.currentLesson.blocks[i].data.items.push({ id: 'k' + Date.now() + Math.random().toString(36).slice(2, 6), text: '' });
+    renderBlocksList();
+  };
+  window.removeOrderingItem = (i, j) => {
+    state.currentLesson.blocks[i].data.items.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Hotspot editor -----
+  function renderHotspotEditor(b, i) {
+    const hs = b.data.hotspots || [];
+    return `
+      <div class="form-row">
+        <label>Image URL</label>
+        <input value="${escapeHtml(b.data.imageUrl||'')}" oninput="updateBlock(${i}, {imageUrl: this.value})" placeholder="https://…" />
+      </div>
+      <div class="form-row">
+        <label>Alt text</label>
+        <input value="${escapeHtml(b.data.alt||'')}" oninput="updateBlock(${i}, {alt: this.value})" />
+      </div>
+      <div class="form-row">
+        <label>Hotspots (x and y are 0–100 percentages of the image; "correct" is the one the student should click)</label>
+        <div class="repeater">
+          ${hs.map((h, j) => `
+            <div class="hs-row">
+              <input type="text" value="${escapeHtml(h.label||'')}" oninput="updateHotspot(${i}, ${j}, 'label', this.value)" placeholder="Label" />
+              <input type="number" min="0" max="100" step="0.1" value="${h.x}" oninput="updateHotspot(${i}, ${j}, 'x', parseFloat(this.value) || 0)" placeholder="x %" />
+              <input type="number" min="0" max="100" step="0.1" value="${h.y}" oninput="updateHotspot(${i}, ${j}, 'y', parseFloat(this.value) || 0)" placeholder="y %" />
+              <button class="correct-mark ${h.correct ? 'on' : ''}" onclick="toggleHotspotCorrect(${i}, ${j})" title="Mark correct">${h.correct ? '✓' : ''}</button>
+              <button class="del" onclick="removeHotspot(${i}, ${j})">✕</button>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addHotspot(${i})">+ Add hotspot</button>
+        </div>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview (click the image to test)</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateHotspot = (i, j, field, val) => {
+    const hs = state.currentLesson.blocks[i].data.hotspots;
+    if (!hs[j]) hs[j] = { x: 50, y: 50, label: '', correct: false };
+    hs[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.toggleHotspotCorrect = (i, j) => {
+    const hs = state.currentLesson.blocks[i].data.hotspots;
+    if (!hs[j]) return;
+    hs[j].correct = !hs[j].correct;
+    renderBlocksList();
+  };
+  window.addHotspot = (i) => {
+    if (!state.currentLesson.blocks[i].data.hotspots) state.currentLesson.blocks[i].data.hotspots = [];
+    state.currentLesson.blocks[i].data.hotspots.push({ x: 50, y: 50, label: '', correct: false });
+    renderBlocksList();
+  };
+  window.removeHotspot = (i, j) => {
+    state.currentLesson.blocks[i].data.hotspots.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Accordion editor -----
+  function renderAccordionEditor(b, i) {
+    const items = b.data.items || [];
+    return `
+      <div class="form-row">
+        <label>Items</label>
+        <div class="repeater">
+          ${items.map((it, j) => `
+            <div class="acc-row" style="flex-direction:column;align-items:stretch;gap:6px;">
+              <div style="display:flex;gap:6px;">
+                <input type="text" value="${escapeHtml(it.title||'')}" oninput="updateAccItem(${i}, ${j}, 'title', this.value)" placeholder="Title" />
+                <button class="del" onclick="removeAccItem(${i}, ${j})">✕</button>
+              </div>
+              <textarea oninput="updateAccItem(${i}, ${j}, 'markdown', this.value)" placeholder="Body (markdown)">${escapeHtml(it.markdown || '')}</textarea>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addAccItem(${i})">+ Add item</button>
+        </div>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateAccItem = (i, j, field, val) => {
+    const items = state.currentLesson.blocks[i].data.items;
+    if (!items[j]) items[j] = { title: '', markdown: '' };
+    items[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addAccItem = (i) => {
+    if (!state.currentLesson.blocks[i].data.items) state.currentLesson.blocks[i].data.items = [];
+    state.currentLesson.blocks[i].data.items.push({ title: 'New item', markdown: '' });
+    renderBlocksList();
+  };
+  window.removeAccItem = (i, j) => {
+    state.currentLesson.blocks[i].data.items.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Tabs editor -----
+  function renderTabsEditor(b, i) {
+    const items = b.data.items || [];
+    return `
+      <div class="form-row">
+        <label>Tabs</label>
+        <div class="repeater">
+          ${items.map((it, j) => `
+            <div class="tab-row" style="flex-direction:column;align-items:stretch;gap:6px;">
+              <div style="display:flex;gap:6px;">
+                <input type="text" value="${escapeHtml(it.label||'')}" oninput="updateTabItem(${i}, ${j}, 'label', this.value)" placeholder="Tab label" />
+                <button class="del" onclick="removeTabItem(${i}, ${j})">✕</button>
+              </div>
+              <textarea oninput="updateTabItem(${i}, ${j}, 'markdown', this.value)" placeholder="Body (markdown)">${escapeHtml(it.markdown || '')}</textarea>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addTabItem(${i})">+ Add tab</button>
+        </div>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateTabItem = (i, j, field, val) => {
+    const items = state.currentLesson.blocks[i].data.items;
+    if (!items[j]) items[j] = { label: '', markdown: '' };
+    items[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addTabItem = (i) => {
+    if (!state.currentLesson.blocks[i].data.items) state.currentLesson.blocks[i].data.items = [];
+    state.currentLesson.blocks[i].data.items.push({ label: 'New tab', markdown: '' });
+    renderBlocksList();
+  };
+  window.removeTabItem = (i, j) => {
+    state.currentLesson.blocks[i].data.items.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Compare editor -----
+  function renderCompareEditor(b, i) {
+    return `
+      <div class="two-col">
+        <div class="form-row" style="margin: 0;">
+          <label>Left title</label>
+          <input value="${escapeHtml(b.data.leftTitle||'')}" oninput="updateBlock(${i}, {leftTitle: this.value})" />
+          <label style="margin-top:8px;">Left body (markdown)</label>
+          <textarea oninput="updateBlock(${i}, {leftMarkdown: this.value})">${escapeHtml(b.data.leftMarkdown || '')}</textarea>
+        </div>
+        <div class="form-row" style="margin: 0;">
+          <label>Right title</label>
+          <input value="${escapeHtml(b.data.rightTitle||'')}" oninput="updateBlock(${i}, {rightTitle: this.value})" />
+          <label style="margin-top:8px;">Right body (markdown)</label>
+          <textarea oninput="updateBlock(${i}, {rightMarkdown: this.value})">${escapeHtml(b.data.rightMarkdown || '')}</textarea>
+        </div>
+      </div>
+      <div class="form-row" style="margin: 12px 0 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+
+  // ----- Timeline editor -----
+  function renderTimelineEditor(b, i) {
+    const items = b.data.items || [];
+    return `
+      <div class="form-row">
+        <label>Events</label>
+        <div class="repeater">
+          ${items.map((it, j) => `
+            <div class="tl-row" style="flex-direction:column;align-items:stretch;gap:6px;">
+              <div style="display:flex;gap:6px;">
+                <input type="text" value="${escapeHtml(it.date||'')}" oninput="updateTLItem(${i}, ${j}, 'date', this.value)" placeholder="Date / year" style="flex:0 0 100px;" />
+                <input type="text" value="${escapeHtml(it.title||'')}" oninput="updateTLItem(${i}, ${j}, 'title', this.value)" placeholder="Title" style="flex:1;" />
+                <button class="del" onclick="removeTLItem(${i}, ${j})">✕</button>
+              </div>
+              <textarea oninput="updateTLItem(${i}, ${j}, 'markdown', this.value)" placeholder="Description (markdown)">${escapeHtml(it.markdown || '')}</textarea>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addTLItem(${i})">+ Add event</button>
+        </div>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateTLItem = (i, j, field, val) => {
+    const items = state.currentLesson.blocks[i].data.items;
+    if (!items[j]) items[j] = { date: '', title: '', markdown: '' };
+    items[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addTLItem = (i) => {
+    if (!state.currentLesson.blocks[i].data.items) state.currentLesson.blocks[i].data.items = [];
+    state.currentLesson.blocks[i].data.items.push({ date: '', title: '', markdown: '' });
+    renderBlocksList();
+  };
+  window.removeTLItem = (i, j) => {
+    state.currentLesson.blocks[i].data.items.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Objectives editor -----
+  function renderObjectivesEditor(b, i) {
+    const items = b.data.items || [];
+    return `
+      <div class="form-row">
+        <label>By the end of this lesson, you will be able to…</label>
+        <div class="repeater">
+          ${items.map((it, j) => `
+            <div class="order-row">
+              <input type="text" value="${escapeHtml(it.text||'')}" oninput="updateObjItem(${i}, ${j}, this.value)" placeholder="Objective" />
+              <button class="del" onclick="removeObjItem(${i}, ${j})">✕</button>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addObjItem(${i})">+ Add objective</button>
+        </div>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateObjItem = (i, j, val) => {
+    const items = state.currentLesson.blocks[i].data.items;
+    if (!items[j]) items[j] = { text: '' };
+    items[j].text = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addObjItem = (i) => {
+    if (!state.currentLesson.blocks[i].data.items) state.currentLesson.blocks[i].data.items = [];
+    state.currentLesson.blocks[i].data.items.push({ text: '' });
+    renderBlocksList();
+  };
+  window.removeObjItem = (i, j) => {
+    state.currentLesson.blocks[i].data.items.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Prerequisites editor -----
+  function renderPrereqEditor(b, i) {
+    const items = b.data.items || [];
+    return `
+      <div class="form-row">
+        <label>You should already know…</label>
+        <div class="repeater">
+          ${items.map((it, j) => `
+            <div class="order-row">
+              <input type="text" value="${escapeHtml(typeof it === 'string' ? it : it.text || '')}" oninput="updatePrereqItem(${i}, ${j}, this.value)" placeholder="Prerequisite (or paste a link)" />
+              <button class="del" onclick="removePrereqItem(${i}, ${j})">✕</button>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addPrereqItem(${i})">+ Add prerequisite</button>
+        </div>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updatePrereqItem = (i, j, val) => {
+    const items = state.currentLesson.blocks[i].data.items;
+    if (typeof items[j] === 'string') items[j] = { text: items[j] };
+    if (!items[j]) items[j] = { text: '' };
+    items[j].text = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addPrereqItem = (i) => {
+    if (!state.currentLesson.blocks[i].data.items) state.currentLesson.blocks[i].data.items = [];
+    state.currentLesson.blocks[i].data.items.push({ text: '' });
+    renderBlocksList();
+  };
+  window.removePrereqItem = (i, j) => {
+    state.currentLesson.blocks[i].data.items.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Glossary editor -----
+  function renderGlossaryEditor(b, i) {
+    const items = b.data.items || [];
+    return `
+      <div class="form-row">
+        <label>Terms &amp; definitions</label>
+        <div class="repeater">
+          ${items.map((it, j) => `
+            <div class="gloss-row" style="display:grid;grid-template-columns:160px 1fr 32px;gap:6px;">
+              <input type="text" value="${escapeHtml(it.term||'')}" oninput="updateGlossItem(${i}, ${j}, 'term', this.value)" placeholder="Term" />
+              <input type="text" value="${escapeHtml(it.definition||'')}" oninput="updateGlossItem(${i}, ${j}, 'definition', this.value)" placeholder="Definition" />
+              <button class="del" onclick="removeGlossItem(${i}, ${j})">✕</button>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addGlossItem(${i})">+ Add term</button>
+        </div>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateGlossItem = (i, j, field, val) => {
+    const items = state.currentLesson.blocks[i].data.items;
+    if (!items[j]) items[j] = { term: '', definition: '' };
+    items[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addGlossItem = (i) => {
+    if (!state.currentLesson.blocks[i].data.items) state.currentLesson.blocks[i].data.items = [];
+    state.currentLesson.blocks[i].data.items.push({ term: '', definition: '' });
+    renderBlocksList();
+  };
+  window.removeGlossItem = (i, j) => {
+    state.currentLesson.blocks[i].data.items.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Summary editor -----
+  function renderSummaryEditor(b, i) {
+    const ks = b.data.keyTakeaways || [];
+    return `
+      <div class="form-row">
+        <label>Key takeaways (3–4 bullets)</label>
+        <div class="repeater">
+          ${ks.map((t, j) => `
+            <div class="order-row">
+              <input type="text" value="${escapeHtml(t||'')}" oninput="updateTakeaway(${i}, ${j}, this.value)" placeholder="Takeaway" />
+              <button class="del" onclick="removeTakeaway(${i}, ${j})">✕</button>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addTakeaway(${i})">+ Add takeaway</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Recap (markdown)</label>
+        <textarea oninput="updateBlock(${i}, {markdown: this.value})">${escapeHtml(b.data.markdown || '')}</textarea>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateTakeaway = (i, j, val) => {
+    const ks = state.currentLesson.blocks[i].data.keyTakeaways;
+    if (ks) ks[j] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addTakeaway = (i) => {
+    if (!state.currentLesson.blocks[i].data.keyTakeaways) state.currentLesson.blocks[i].data.keyTakeaways = [];
+    state.currentLesson.blocks[i].data.keyTakeaways.push('');
+    renderBlocksList();
+  };
+  window.removeTakeaway = (i, j) => {
+    state.currentLesson.blocks[i].data.keyTakeaways.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ============================================================
+  // DISPATCH: route the new kinds to their editor renderers
+  // by handling them in the switch below.
+  // ============================================================
+  // Patch the existing renderBlockEditorBody switch by re-defining
+  // it. The existing function declaration above only handles the
+  // original 10 kinds; this version adds the 15 new kinds and falls
+  // through to the same default. We rebind by wrapping the original
+  // behaviour in a switch that consults the extra table first.
 
   // block state mutations
   window.updateBlock = (i, patch) => {
@@ -1558,7 +3497,10 @@
     const block = document.querySelector(`.block[data-block-index="${i}"]`);
     if (!block) return;
     const preview = block.querySelector('.preview');
-    if (preview) preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
+    if (preview) {
+      preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
+      bindInteractive(preview, state.currentLesson.blocks[i]);
+    }
   };
 
   window.addBlock = (kind) => {
@@ -1577,6 +3519,187 @@
     const list = document.getElementById('blocksList');
     if (list) list.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
+
+  window.duplicateBlock = (i) => {
+    const src = state.currentLesson.blocks[i];
+    if (!src) return;
+    // Deep clone the data via JSON round-trip (safe for our jsonb shapes;
+    // ordering items have ids but we let them get fresh ids on save).
+    const clone = JSON.parse(JSON.stringify({ kind: src.kind, data: src.data }));
+    state.currentLesson.blocks.splice(i + 1, 0, {
+      id: null, kind: clone.kind, data: clone.data, order_index: i + 1
+    });
+    state.dirty = true;
+    renderBlocksList();
+    renderEditorHeader();
+    // Scroll the duplicated block into view
+    const newEl = document.querySelector(`.block[data-block-index="${i + 1}"]`);
+    if (newEl) newEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  // ---------- drag-to-reorder ----------
+  function wireDragReorder(list) {
+    if (!list) return;
+    let dragSrc = null;
+    list.querySelectorAll('.block[draggable="true"]').forEach((el) => {
+      el.addEventListener('dragstart', (e) => {
+        dragSrc = el;
+        el.classList.add('dragging');
+        // Without setData Firefox refuses to start the drag
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', el.dataset.blockIndex || '');
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+        list.querySelectorAll('.block').forEach(b => b.classList.remove('drop-above', 'drop-below'));
+        dragSrc = null;
+      });
+      el.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (!dragSrc || dragSrc === el) return;
+        const rect = el.getBoundingClientRect();
+        const after = (e.clientY - rect.top) > rect.height / 2;
+        list.querySelectorAll('.block').forEach(b => b.classList.remove('drop-above', 'drop-below'));
+        el.classList.add(after ? 'drop-below' : 'drop-above');
+      });
+      el.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (!dragSrc || dragSrc === el) return;
+        const rect = el.getBoundingClientRect();
+        const after = (e.clientY - rect.top) > rect.height / 2;
+        const srcIdx = parseInt(dragSrc.dataset.blockIndex, 10);
+        const dstIdx = parseInt(el.dataset.blockIndex, 10);
+        if (isNaN(srcIdx) || isNaN(dstIdx) || srcIdx === dstIdx) return;
+        const arr = state.currentLesson.blocks;
+        const [moved] = arr.splice(srcIdx, 1);
+        // After splicing, the destination index may have shifted
+        const newDst = srcIdx < dstIdx ? dstIdx : dstIdx;
+        arr.splice(after ? newDst + 1 : newDst, 0, moved);
+        state.dirty = true;
+        renderBlocksList();
+        renderEditorHeader();
+      });
+    });
+  }
+
+  // ---------- image upload (Supabase Storage) ----------
+  window.uploadImage = (i) => {
+    const fileInput = document.getElementById(`imgFile-${i}`);
+    if (fileInput) fileInput.click();
+  };
+  window.handleImageUpload = async (i, fileInput) => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) { toast('Image too large (max 8 MB).', 'error'); fileInput.value = ''; return; }
+    if (!state.currentLesson) { toast('Open a lesson first.', 'error'); return; }
+    const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+    const path = `lessons/${state.currentLesson.id}/${crypto.randomUUID()}.${ext}`;
+    const btn = fileInput.previousElementSibling;
+    if (btn) btn.disabled = true;
+    const { error } = await supabaseClient.storage
+      .from('lesson-images')
+      .upload(path, file, { upsert: false, contentType: file.type });
+    if (error) { toast('Upload failed: ' + error.message, 'error'); if (btn) btn.disabled = false; fileInput.value = ''; return; }
+    const { data: pub } = supabaseClient.storage.from('lesson-images').getPublicUrl(path);
+    if (pub && pub.publicUrl) {
+      state.currentLesson.blocks[i].data.url = pub.publicUrl;
+      state.dirty = true;
+      renderBlocksList();
+      renderEditorHeader();
+      toast('Image uploaded', 'success');
+    }
+    if (btn) btn.disabled = false;
+    fileInput.value = '';
+  };
+
+  // ---------- per-block undo (Cmd/Ctrl+Z) ----------
+  // Coalesces rapid keystrokes into a single undo chunk. After 800ms of
+  // no further changes to the same block, the next change starts a new
+  // chunk. This makes Cmd+Z feel natural for typing (undo a word) rather
+  // than per-character.
+  const _undoStack = new Map();   // block index -> array of data snapshots
+  const _undoLastAt = new Map();  // block index -> timestamp of last push
+  const _undoChunkMs = 800;
+
+  function pushUndo(i) {
+    const data = state.currentLesson.blocks[i]?.data;
+    if (!data) return;
+    const now = Date.now();
+    if (_undoLastAt.has(i) && now - _undoLastAt.get(i) < _undoChunkMs) {
+      _undoLastAt.set(i, now);
+      return; // still in the same edit chunk
+    }
+    _undoLastAt.set(i, now);
+    const snap = JSON.parse(JSON.stringify(data));
+    const stack = _undoStack.get(i) || [];
+    stack.push(snap);
+    if (stack.length > 50) stack.shift();
+    _undoStack.set(i, stack);
+  }
+  window.undoBlock = (i) => {
+    const stack = _undoStack.get(i);
+    if (!stack || !stack.length) { toast('Nothing to undo in this block', 'error'); return; }
+    const prev = stack.pop();
+    state.currentLesson.blocks[i].data = prev;
+    state.dirty = true;
+    // Reset the chunk window so the next change is a fresh edit chunk.
+    _undoLastAt.set(i, 0);
+    renderBlocksList();
+    renderEditorHeader();
+  };
+
+  // ---------- global keyboard shortcuts ----------
+  document.addEventListener('keydown', (e) => {
+    // Esc closes an open modal
+    if (e.key === 'Escape' && $('modalBack').classList.contains('open')) {
+      closeModal();
+      return;
+    }
+    // Cmd/Ctrl+S saves
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      if (state.currentLesson) saveBlocks();
+      return;
+    }
+    // Cmd/Ctrl+Z undoes the active block (only if focus is inside .editor)
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+      const t = e.target;
+      const blockEl = t && t.closest && t.closest('.block');
+      if (blockEl && state.currentLesson) {
+        e.preventDefault();
+        const i = parseInt(blockEl.dataset.blockIndex, 10);
+        if (!isNaN(i)) undoBlock(i);
+      }
+    }
+  });
+
+  // ---------- patch updateBlock to record undo snapshots and trigger autosave ----------
+  const _origUpdateBlock = window.updateBlock;
+  window.updateBlock = (i, patch) => {
+    // Push a snapshot BEFORE the change so Cmd+Z can revert.
+    pushUndo(i);
+    _origUpdateBlock(i, patch);
+    maybeAutosave();
+  };
+
+  // ---------- autosave debounce ----------
+  // Sets a 1.2s timer after the last change; if a save is in flight it
+  // queues a follow-up. Pure convenience — the manual "Save blocks"
+  // button is the source of truth.
+  let _saveTimer = null;
+  let _saveInFlight = false;
+  let _saveQueued = false;
+  async function maybeAutosave() {
+    if (!state.currentLesson || !state.dirty) return;
+    if (_saveTimer) clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(async () => {
+      if (_saveInFlight) { _saveQueued = true; return; }
+      _saveInFlight = true;
+      try { await saveBlocks({ silent: true }); } finally { _saveInFlight = false; }
+      if (_saveQueued) { _saveQueued = false; maybeAutosave(); }
+    }, 1200);
+  }
 
   window.deleteBlock = (i) => {
     if (!confirm('Delete this block?')) return;
@@ -1619,7 +3742,10 @@
     // refresh the worked-example preview
     const block = document.querySelector(`.block[data-block-index="${i}"]`);
     const preview = block?.querySelector('.preview');
-    if (preview && state.currentLesson.blocks[i].kind === 'worked_example') preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
+    if (preview && state.currentLesson.blocks[i].kind === 'worked_example') {
+      preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
+      bindInteractive(preview, state.currentLesson.blocks[i]);
+    }
   };
   window.addStep = (i) => {
     if (!state.currentLesson.blocks[i].data.steps) state.currentLesson.blocks[i].data.steps = [];
@@ -1632,7 +3758,7 @@
   };
 
   // ---------- save blocks ----------
-  async function saveBlocks() {
+  async function saveBlocks(opts = {}) {
     const L = state.currentLesson;
     if (!L) return;
     // Plan: for each block, if id is null → insert; else update. For deletes
@@ -1677,7 +3803,7 @@
     state.dirty = false;
     renderBlocksList();
     renderEditorHeader();
-    toast('Blocks saved', 'success');
+    if (!opts.silent) toast('Blocks saved', 'success');
   }
 
   async function fetchServerBlocks(lessonId) {
@@ -1694,17 +3820,49 @@
   function openPreview() {
     const L = state.currentLesson;
     if (!L) return;
+    const blocksHtml = (L.blocks || []).map((b, i) =>
+      `<div class="preview-block" data-bidx="${i}" style="margin-bottom:14px;">${renderBlock(b)}</div>`
+    ).join('') || '<p style="color: var(--text-4)">No blocks yet.</p>';
     const body = `
       <article style="font-size: 14.5px; line-height: 1.6; color: var(--text);">
         <h1 style="font-size: 26px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.02em;">${escapeHtml(L.title)}</h1>
         <p style="color: var(--text-3); font-size: 13px; margin: 0 0 20px;">
           ${escapeHtml(state.currentSubject?.name || '')} · ${escapeHtml(state.currentTopic?.name || '')} · ${L.duration_min ?? 20} min
         </p>
-        ${L.blocks.map(renderBlock).join('\n') || '<p style="color: var(--text-4)">No blocks yet.</p>'}
+        ${blocksHtml}
       </article>
     `;
     openModal('Preview — ' + L.title, body);
+    // Wire interactivity for any interactive blocks in the preview.
+    const article = $('modalBody').querySelector('article');
+    if (article) {
+      article.querySelectorAll('.preview-block').forEach((wrap, i) => {
+        bindInteractive(wrap, L.blocks[i]);
+      });
+    }
   }
+
+  // ============================================================
+  // EDITOR DISPATCH — maps new block kinds to their editor renderers.
+  // Defined last so the helper functions above are in scope.
+  // ============================================================
+  const EDITOR_DISPATCH = {
+    mcq:           (b, i) => renderMCQEditor(b, i),
+    truefalse:     (b, i) => renderTFEditor(b, i),
+    shortanswer:   (b, i) => renderSAEditor(b, i),
+    fillblank:     (b, i) => renderFBEditor(b, i),
+    match:         (b, i) => renderMatchEditor(b, i),
+    ordering:      (b, i) => renderOrderingEditor(b, i),
+    hotspot:       (b, i) => renderHotspotEditor(b, i),
+    accordion:     (b, i) => renderAccordionEditor(b, i),
+    tabs:          (b, i) => renderTabsEditor(b, i),
+    compare:       (b, i) => renderCompareEditor(b, i),
+    timeline:      (b, i) => renderTimelineEditor(b, i),
+    objectives:    (b, i) => renderObjectivesEditor(b, i),
+    prerequisites: (b, i) => renderPrereqEditor(b, i),
+    glossary:      (b, i) => renderGlossaryEditor(b, i),
+    summary:       (b, i) => renderSummaryEditor(b, i),
+  };
 
   // ---------- go ----------
   boot();
