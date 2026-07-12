@@ -1069,15 +1069,21 @@
     state.user = data.user;
     const meta = state.user.user_metadata || {};
 
-    // Role check: read from the JWT instead of a DB round-trip.
-    // check_parental_consent (the auth hook) stamps app_metadata.role
-    // onto every token, so the value here is always current with
-    // whatever the profile row says. A reviewer / admin can publish
-    // lessons; an author can only edit their own drafts.
+    // Role check: read from the JWT first (the normal path — the
+    // auth hook stamps app_metadata.role on every token), and fall
+    // back to the public.current_role() RPC if the claim is missing.
+    // The RPC fallback exists because the auth hook has been observed
+    // not to fire for some users on this Supabase project (Jul 2026);
+    // reading from the DB is one extra round-trip but bulletproof.
     //
-    // We still load the profile for the user's display name — the
-    // role claim on the JWT is the source of truth for the gate.
-    const role = state.user.app_metadata?.role;
+    // We still load the profile for the user's display name.
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) { /* RPC not installed — fall through */ }
+    }
     const allowedRoles = ['staff_author', 'staff_reviewer', 'admin'];
     if (!role || !allowedRoles.includes(role)) {
       renderGate(

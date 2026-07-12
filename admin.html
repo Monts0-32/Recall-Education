@@ -688,11 +688,14 @@
 
   // ----- Boot: verify admin role, then load ---------------------------------
 
-  // We read role from the JWT (app_metadata.role) — no DB round-trip.
-  // check_parental_consent stamps the role on every token; if it's
-  // not 'admin' we show the gate. The very first owner is bootstrapped
-  // by running the SQL one-liner in supabase_admin.sql and signing in
-  // again (to get a fresh JWT with the new role claim).
+  // We read the role from the database via the public.current_role()
+  // RPC, NOT from the JWT. The custom access token hook would normally
+  // stamp app_metadata.role onto the JWT, but on this Supabase project
+  // the hook is not currently firing for some users — we hit a real
+  // instance of this in July 2026. Reading the role from the DB on
+  // every page load is one extra round-trip, but it's bulletproof:
+  // RLS doesn't apply (the function is SECURITY DEFINER), and the
+  // value is always the current role from the profile row.
   let state = { user: null, role: null, section: 'dashboard', inviteTab: 'pending', lessonTab: 'draft' };
 
   async function boot() {
@@ -702,7 +705,15 @@
       return;
     }
     state.user = data.user;
-    const role = data.user.app_metadata?.role;
+    // Look up the role directly from the DB. Falls back to the JWT
+    // claim if the RPC isn't installed (e.g. you ran an older version
+    // of the migration), so admin.html keeps working either way.
+    let role = null;
+    try {
+      const r = await supabaseClient.rpc('current_role');
+      if (!r.error && r.data) role = r.data;
+    } catch (_) { /* fall through to JWT check */ }
+    if (!role) role = data.user.app_metadata?.role;
     if (role !== 'admin') {
       showGate(
         'Admin access only',

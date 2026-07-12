@@ -1324,13 +1324,20 @@
   );
 
   // Reveal the Staff tools sidebar links based on the user's role.
-  // The role is stamped onto the JWT by check_parental_consent (the
-  // auth hook), so we can read it from session.user.app_metadata.role
-  // without a DB round-trip. If the user is a student (or the role
-  // claim is missing for any reason) the section stays hidden — the
-  // links simply don't appear.
-  function revealStaffTools(session) {
-    const role = session?.user?.app_metadata?.role;
+  // Reads the role from the JWT first (the normal path — the auth
+  // hook stamps app_metadata.role on every token), and falls back to
+  // the public.current_role() RPC if the claim is missing. The RPC
+  // fallback exists because on this Supabase project the auth hook
+  // was observed not to fire for some users (Jul 2026); the fallback
+  // keeps the sidebar working either way.
+  async function revealStaffTools(session) {
+    let role = session?.user?.app_metadata?.role;
+    if (!role && session) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) { /* RPC not installed — fall through */ }
+    }
     const isStaff = role === 'staff_author' || role === 'staff_reviewer' || role === 'admin';
     if (!isStaff) return;
     $('staffToolsLabel').hidden = false;

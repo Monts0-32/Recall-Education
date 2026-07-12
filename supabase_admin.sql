@@ -19,6 +19,11 @@
 --      the JWT so client code can read role from session.user.app_metadata
 --      and RLS policies can read it from auth.jwt() — no DB round-trip.
 --   7. Updates existing RLS policies to accept the new role values.
+--   8. Adds public.current_role() — a tiny SECURITY DEFINER helper
+--      that reads the caller's role straight from profiles. Used as
+--      a fallback by admin.html / dashboard.html / staff.html when
+--      the auth hook isn't firing (which has been observed in the
+--      wild — the JWT can be issued without the role claim).
 -- ============================================================================
 
 -- ---------- 1. WIDEN PROFILES.ROLE ---------------------------------------
@@ -842,6 +847,26 @@ end;
 $$;
 
 grant execute on function public.check_parental_consent(jsonb) to supabase_auth_admin;
+
+-- ---------- 12. CURRENT_ROLE FALLBACK -------------------------------------
+-- Reads the caller's role straight from profiles. Used as a fallback
+-- by the admin / dashboard / staff pages when the auth hook isn't
+-- stamping app_metadata.role onto the JWT. The hook should normally
+-- be the path (it avoids a round-trip on every page load), but
+-- Supabase has been observed to skip the hook for some users in
+-- some configs — the fallback keeps the app working regardless.
+
+create or replace function public.current_role()
+returns text
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select role from public.profiles where id = auth.uid();
+$$;
+
+grant execute on function public.current_role() to authenticated;
 
 -- ============================================================================
 -- DONE. After running this:
