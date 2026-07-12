@@ -221,6 +221,27 @@
     .crumbs a:hover { color: var(--text-2); text-decoration: none; }
     .crumbs .sep { color: var(--text-4); margin: 0 6px; }
     .crumbs .current { color: var(--text); font-weight: 600; }
+    .status-pill {
+      display: inline-block;
+      margin-left: 10px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+    .status-pill.draft {
+      background: rgba(210, 153, 34, 0.12);
+      color: #e3b341;
+      border: 1px solid rgba(210, 153, 34, 0.3);
+    }
+    .status-pill.published {
+      background: rgba(63, 185, 80, 0.12);
+      color: #56d364;
+      border: 1px solid rgba(63, 185, 80, 0.3);
+    }
     .main .topbar .right { margin-left: auto; display: flex; gap: 8px; }
 
     .editor {
@@ -1048,25 +1069,42 @@
     state.user = data.user;
     const meta = state.user.user_metadata || {};
 
+    // Role check: read from the JWT instead of a DB round-trip.
+    // check_parental_consent (the auth hook) stamps app_metadata.role
+    // onto every token, so the value here is always current with
+    // whatever the profile row says. A reviewer / admin can publish
+    // lessons; an author can only edit their own drafts.
+    //
+    // We still load the profile for the user's display name — the
+    // role claim on the JWT is the source of truth for the gate.
+    const role = state.user.app_metadata?.role;
+    const allowedRoles = ['staff_author', 'staff_reviewer', 'admin'];
+    if (!role || !allowedRoles.includes(role)) {
+      renderGate(
+        'Staff access only',
+        'Your account is signed in, but it does not have staff permissions. Ask an admin to invite you from the admin console.',
+        'noaccess',
+        meta.full_name || state.user.email
+      );
+      return;
+    }
+    state.role = role;
+
     const { data: profile } = await supabaseClient
       .from('profiles')
       .select('id, full_name, role')
       .eq('id', state.user.id)
       .maybeSingle();
 
-    if (!profile || profile.role !== 'staff') {
-      renderGate(
-        'Staff access only',
-        'Your account is signed in, but it does not have staff permissions. Ask an admin to run:\n\nupdate profiles set role = \'staff\' where id = \'' + state.user.id + '\';',
-        'noaccess',
-        meta.full_name || state.user.email
-      );
-      return;
-    }
-
     state.profile = profile;
-    $('userName').textContent = profile.full_name || state.user.email;
+    $('userName').textContent = (profile && profile.full_name) || state.user.email;
     $('signOutBtn').hidden = false;
+
+    // Reviewers and admins get a Publish toggle on the editor toolbar.
+    // Authors see the lesson in draft state only.
+    if (role === 'staff_reviewer' || role === 'admin') {
+      state.canPublish = true;
+    }
 
     await loadTree();
   }
@@ -1368,7 +1406,15 @@
         toast('Lesson updated', 'success');
       } else {
         const next = (parentTopic?.lessons || []).length;
-        const { error } = await supabaseClient.from('lessons').insert({ ...payload, topic_id: topicId, order_index: next });
+        // Stamp author_id so the audit log can show "Sarah created
+        // this draft" later. New rows default to status='draft' in
+        // the DB (see supabase_admin.sql).
+        const { error } = await supabaseClient.from('lessons').insert({
+          ...payload,
+          topic_id: topicId,
+          order_index: next,
+          author_id: state.user.id,
+        });
         if (error) { toast('Save failed: ' + error.message, 'error'); return; }
         toast('Lesson created', 'success');
       }
@@ -1443,6 +1489,7 @@
           <span>${escapeHtml(topic.name)}</span>
           <span class="sep">/</span>
           <span class="current">${escapeHtml(L.title)}</span>
+          <span class="status-pill ${L.status || 'draft'}" id="lessonStatusPill">${L.status === 'published' ? 'Published' : 'Draft'}</span>
         </div>
         <div class="right">
           <button class="btn-ghost" id="previewBtn">Preview</button>
@@ -1468,6 +1515,11 @@
           <span class="${state.dirty ? 'dirty' : 'saved'}">${state.dirty ? '● Unsaved changes' : '✓ All saved'}</span>
           <span class="spacer"></span>
           <span class="shortcuts"><kbd>⌘S</kbd> save · <kbd>⌘Z</kbd> undo block</span>
+          ${state.canPublish ? `
+            <button class="btn-ghost" id="publishBtn" data-publishing="${L.status === 'published' ? 'true' : 'false'}">
+              ${L.status === 'published' ? 'Unpublish' : 'Publish'}
+            </button>
+          ` : ''}
           <button class="btn-ghost" id="saveMetaBtn">Save lesson details</button>
         </div>
         <div class="blocks" id="blocksList"></div>
@@ -1480,9 +1532,55 @@
     document.getElementById('previewBtn').addEventListener('click', openPreview);
     document.getElementById('saveMetaBtn').addEventListener('click', saveLessonMeta);
     document.getElementById('saveBlocksBtn').addEventListener('click', saveBlocks);
+    // The publish button is only rendered for reviewers / admins, so
+    // the element is optional. Wire it up if present.
+    const publishBtn = document.getElementById('publishBtn');
+    if (publishBtn) publishBtn.addEventListener('click', togglePublish);
     ['lessonTitle','lessonDuration','lessonOrder'].forEach(id => {
       document.getElementById(id).addEventListener('input', () => { state.dirty = true; renderEditorHeader(); });
     });
+  }
+
+  // Publish / unpublish. The publish_lesson RPC is SECURITY DEFINER
+  // and refuses to run for users whose role isn't reviewer / admin.
+  // The button is only visible to those users, but a curious author
+  // who hand-crafts the RPC call still gets denied on the server.
+  async function togglePublish() {
+    const L = state.currentLesson;
+    if (!L) return;
+    const btn = document.getElementById('publishBtn');
+    if (!btn) return;
+    const wasPublished = L.status === 'published';
+    const wantPublish = !wasPublished;
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = wantPublish ? 'Publishing…' : 'Unpublishing…';
+    try {
+      const { data, error } = await supabaseClient.rpc('publish_lesson', {
+        p_lesson_id: L.id, p_publish: wantPublish,
+      });
+      if (error) {
+        toast('Publish failed: ' + error.message, 'error');
+        btn.disabled = false;
+        btn.textContent = original;
+        return;
+      }
+      if (data && data.ok === false) {
+        toast('Publish failed: ' + (data.reason || 'unknown'), 'error');
+        btn.disabled = false;
+        btn.textContent = original;
+        return;
+      }
+      L.status = wantPublish ? 'published' : 'draft';
+      L.published_at = wantPublish ? new Date().toISOString() : null;
+      toast(wantPublish ? 'Lesson published' : 'Lesson unpublished', 'success');
+      // Re-render the editor so the pill + button text update.
+      renderEditor();
+    } catch (err) {
+      toast('Publish failed: ' + (err?.message || err), 'error');
+      btn.disabled = false;
+      btn.textContent = original;
+    }
   }
 
   function renderEditorHeader() {

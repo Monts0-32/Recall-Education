@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Accept your invitation — Recall Education</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <style>
+    /* Brand-consistent dark theme shared with login.html / signup.html.
+       Kept inline (no external stylesheet) so the page is one round-trip
+       and renders correctly even if the CDN is down. */
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #1f6feb;
+      --accent-hover: #388bfd;
+      --danger: #f85149;
+      --ok: #3fb950;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-hover); text-decoration: underline; }
+    .top {
+      padding: 22px 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text);
+    }
+    .brand .logo {
+      width: 24px; height: 24px;
+      background: var(--accent);
+      border-radius: 5px;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+    .card {
+      width: 100%;
+      max-width: 460px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+    }
+    h1 {
+      font-size: 20px;
+      margin: 0 0 6px;
+      letter-spacing: -0.01em;
+    }
+    .lede {
+      color: var(--muted);
+      font-size: 14px;
+      margin: 0 0 18px;
+    }
+    .pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(31, 111, 235, 0.15);
+      color: var(--accent-hover);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      margin-bottom: 12px;
+    }
+    .pill.author   { background: rgba(63, 185, 80, 0.12); color: #56d364; }
+    .pill.reviewer { background: rgba(210, 153, 34, 0.15); color: #e3b341; }
+    .pill.admin    { background: rgba(248, 81, 73, 0.15); color: #ff7b72; }
+    .email {
+      color: var(--text);
+      font-weight: 600;
+      word-break: break-all;
+    }
+    .btns {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .btn {
+      display: inline-block;
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      text-align: center;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn:hover { background: #1c2128; text-decoration: none; }
+    .btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .err {
+      background: rgba(248, 81, 73, 0.1);
+      border: 1px solid rgba(248, 81, 73, 0.4);
+      color: #ff9a93;
+      padding: 12px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-top: 14px;
+    }
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .skel {
+      color: var(--muted);
+      font-style: italic;
+    }
+    .actions-inline {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .actions-inline .btn { flex: 1; }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/">
+      <span class="logo">R</span>
+      Recall
+    </a>
+  </header>
+
+  <main class="wrap">
+    <section class="card" id="card">
+      <p class="skel">Loading invitation…</p>
+    </section>
+  </main>
+
+  <!-- Supabase JS client. Pinned to a known-good version; matches the
+       version used elsewhere in the project so the cookie/session
+       domain is identical and sign-in persists across pages. -->
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+
+    // The anon key is intentionally public — Supabase anon keys are
+    // designed to live in client code. RLS on every table is the
+    // actual access control.
+    const SUPABASE_URL = "https://hkjiyibpeqdoqzlyqzwz.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU";
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+      // Mirrors the apikey-fallback used in signup.html / login.html —
+      // privacy extensions that strip the `apikey` header can still
+      // call the gateway when the key is also passed as a query
+      // parameter. The anon key is public anyway.
+      global: {
+        fetch: (url, options = {}) => {
+          try {
+            const u = new URL(url, window.location.href);
+            if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+              u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+            }
+            return fetch(u.toString(), options);
+          } catch (_) {
+            return fetch(url, options);
+          }
+        }
+      }
+    });
+
+    const card = document.getElementById("card");
+
+    // --- role display helpers ---------------------------------------------
+    const ROLE_LABEL = {
+      staff_author:   { label: "Author",  pillClass: "author",   verb: "write lessons" },
+      staff_reviewer: { label: "Reviewer", pillClass: "reviewer", verb: "review and publish lessons" },
+      admin:          { label: "Admin",   pillClass: "admin",    verb: "manage staff and run the platform" },
+    };
+
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    // --- error / state renderers ------------------------------------------
+
+    function renderError(title, body) {
+      card.innerHTML = `
+        <h1>${escapeHtml(title)}</h1>
+        <p class="lede">${body}</p>
+        <div class="actions-inline">
+          <a class="btn" href="login.html">Go to sign in</a>
+          <a class="btn primary" href="index.html">Back to homepage</a>
+        </div>`;
+    }
+
+    function renderExpired(role, email) {
+      const label = role && ROLE_LABEL[role] ? ROLE_LABEL[role].label : "staff";
+      card.innerHTML = `
+        <h1>This invitation has expired</h1>
+        <p class="lede">
+          The invitation sent to <span class="email">${escapeHtml(email || "(unknown)")}</span>
+          to join Recall as <b>${escapeHtml(label)}</b> has expired.
+        </p>
+        <p class="lede">Ask whoever sent it to resend from the admin console, and you'll get a fresh link.</p>
+        <div class="actions-inline">
+          <a class="btn primary" href="login.html">Sign in</a>
+        </div>`;
+    }
+
+    function renderAlreadyAccepted(role, email) {
+      const label = role && ROLE_LABEL[role] ? ROLE_LABEL[role].label : "staff";
+      card.innerHTML = `
+        <h1>This invitation was already accepted</h1>
+        <p class="lede">
+          The invitation to <span class="email">${escapeHtml(email || "(unknown)")}</span>
+          to join as <b>${escapeHtml(label)}</b> has already been used.
+        </p>
+        <p class="lede">If that's you, just sign in &mdash; your account already has the role.</p>
+        <div class="actions-inline">
+          <a class="btn primary" href="login.html">Sign in</a>
+        </div>`;
+    }
+
+    function renderUnknown() {
+      renderError(
+        "We couldn't find that invitation",
+        `<p>The link looks invalid or has been removed. Double-check you copied the whole URL, or ask whoever sent it to resend.</p>`,
+      );
+    }
+
+    function renderActive(role, email, token) {
+      const info = ROLE_LABEL[role] || { label: "Staff", pillClass: "", verb: "use the staff tools" };
+      // Two CTAs:
+      //   - "I have an account" -> /login.html, which on success redirects back here
+      //     (this page reads ?token= again and calls accept_staff_invite if the
+      //     user is signed in).
+      //   - "Create an account" -> /signup.html with the invite + email + role
+      //     pre-filled. signup.html handles the rest.
+      const loginHref  = `login.html?next=${encodeURIComponent("accept-invite.html?token=" + token)}`;
+      const signupHref = `signup.html?invite=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}&role=${encodeURIComponent(role)}`;
+      card.innerHTML = `
+        <span class="pill ${escapeHtml(info.pillClass)}">${escapeHtml(info.label)}</span>
+        <h1>You've been invited to join Recall</h1>
+        <p class="lede">
+          <span class="email">${escapeHtml(email)}</span> has been invited to <b>${escapeHtml(info.verb)}</b>.
+        </p>
+        <p class="lede">Sign in to accept, or create a new account. The invite is tied to this email, so the account you sign in with must use <b>${escapeHtml(email)}</b>.</p>
+        <div class="btns">
+          <a class="btn primary" href="${loginHref}">I have an account</a>
+          <a class="btn" href="${signupHref}">Create an account</a>
+        </div>
+        <p class="muted">This invitation expires in 14 days. After that, ask whoever sent it to resend.</p>`;
+    }
+
+    // --- main flow --------------------------------------------------------
+
+    // Read ?token= from the URL. The peek RPC is anon-callable, so we
+    // don't need to be signed in to inspect the invite.
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+
+    if (!token) {
+      renderError(
+        "Missing invitation token",
+        `<p>The link doesn't include a token. Make sure you clicked the full link in the email, or paste it into your address bar if you copy-pasted.</p>`,
+      );
+    } else if (!/^[0-9a-f-]{36}$/i.test(token)) {
+      renderUnknown();
+    } else {
+      // Already-signed-in flow: if the user is in a session AND the
+      // token is valid, we can offer to accept in-place rather than
+      // kicking them to /login or /signup first.
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const { data, error } = await supabase.rpc("peek_staff_invite", { p_token: token });
+      if (error) {
+        console.error("peek_staff_invite failed:", error.message);
+        renderError(
+          "Something went wrong",
+          `<p>Couldn't read the invitation. Please try again in a moment.</p><p style="font-size:12px;color:var(--muted);margin-top:6px;">${escapeHtml(error.message)}</p>`,
+        );
+      } else if (!data || data.ok === false) {
+        const reason = data && data.reason;
+        if (reason === "expired")         renderExpired(data.role, data.email);
+        else if (reason === "already_accepted") renderAlreadyAccepted(data.role, data.email);
+        else if (reason === "revoked")    renderError("This invitation was revoked", "<p>Ask whoever sent it to issue a new one.</p>");
+        else                              renderUnknown();
+      } else {
+        // Valid invite. If the user is already signed in, offer an
+        // in-place accept. Otherwise show the two CTAs.
+        if (session && session.user) {
+          const me = await supabase.auth.getUser();
+          const callerEmail = me.data?.user?.email?.toLowerCase();
+          if (callerEmail && callerEmail === data.email.toLowerCase()) {
+            const info = ROLE_LABEL[data.role] || { label: "Staff", pillClass: "", verb: "use the staff tools" };
+            card.innerHTML = `
+              <span class="pill ${escapeHtml(info.pillClass)}">${escapeHtml(info.label)}</span>
+              <h1>Accept your invitation</h1>
+              <p class="lede">
+                You're signed in as <span class="email">${escapeHtml(callerEmail)}</span>.
+                Accepting will give your account the <b>${escapeHtml(info.label)}</b> role.
+              </p>
+              <div class="btns">
+                <button class="btn primary" id="accept-btn">Accept invitation</button>
+                <a class="btn" href="dashboard.html">Not now, go to dashboard</a>
+              </div>`;
+            document.getElementById("accept-btn").addEventListener("click", async () => {
+              const btn = document.getElementById("accept-btn");
+              btn.disabled = true;
+              btn.textContent = "Accepting…";
+              const { data: r, error: e } = await supabase.rpc("accept_staff_invite", {
+                p_token: token, p_decision: "accepted",
+              });
+              if (e) {
+                btn.disabled = false;
+                btn.textContent = "Accept invitation";
+                card.querySelector(".err")?.remove();
+                const err = document.createElement("div");
+                err.className = "err";
+                err.textContent = e.message;
+                card.appendChild(err);
+                return;
+              }
+              if (r && r.ok === false) {
+                if (r.reason === "email_mismatch") {
+                  card.innerHTML = `
+                    <h1>This invite was sent to a different email</h1>
+                    <p class="lede">The invite was for <span class="email">${escapeHtml(r.invited_email)}</span> but you're signed in as <span class="email">${escapeHtml(callerEmail)}</span>.</p>
+                    <p class="lede">Sign out and sign in with the right address, or contact whoever sent the invite.</p>
+                    <div class="actions-inline">
+                      <a class="btn primary" href="dashboard.html">Back to dashboard</a>
+                    </div>`;
+                } else {
+                  btn.disabled = false;
+                  btn.textContent = "Accept invitation";
+                  const err = document.createElement("div");
+                  err.className = "err";
+                  err.textContent = "Couldn't accept: " + (r.reason || "unknown");
+                  card.appendChild(err);
+                }
+                return;
+              }
+              // Success — role updated. The JWT doesn't have the new
+              // claim yet, so we have to refresh before sending the
+              // user into a role-gated page.
+              await supabase.auth.refreshSession();
+              window.location.href = "dashboard.html?welcome=staff";
+            });
+            return;
+          }
+        }
+        renderActive(data.role, data.email, token);
+      }
+    }
+  </script>
+</body>
+</html>

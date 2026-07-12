@@ -258,6 +258,32 @@
     .ok-banner.show { display: block; }
     .ok-banner b { color: var(--green); font-weight: 600; }
 
+    .invite-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--r-sm);
+      background: rgba(56, 139, 253, 0.08);
+      border: 1px solid rgba(56, 139, 253, 0.3);
+      color: var(--text-2);
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .invite-banner .invite-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      background: var(--blue);
+      color: #fff;
+    }
+    .invite-banner .invite-pill.author   { background: #238636; }
+    .invite-banner .invite-pill.reviewer { background: #9e6a03; }
+    .invite-banner .invite-pill.admin    { background: #b62324; }
+
     @media (max-width: 900px) {
       .page { grid-template-columns: 1fr; gap: 32px; padding: 32px 20px 56px; }
       .pitch { order: 2; }
@@ -316,8 +342,18 @@
 
   <section>
     <div class="form-card">
-      <h2>Create your account</h2>
-      <p class="sub">Free forever. Two subjects, no card.</p>
+      <h2 id="formTitle">Create your account</h2>
+      <p class="sub" id="formSub">Free forever. Two subjects, no card.</p>
+
+      <!-- Staff-invite banner. Hidden by default. When the URL has
+           ?invite=...&role=... we replace the form title/sub with
+           role-specific copy and show this banner. The banner is
+           pure presentation — the actual accept happens after signUp
+           in the JS. -->
+      <div class="invite-banner" id="inviteBanner" hidden>
+        <span class="invite-pill" id="invitePill">Staff</span>
+        <span id="inviteText">You've been invited to join as staff.</span>
+      </div>
 
       <div class="error-banner" id="err">
         <b>We couldn't create your account.</b> <span id="errMsg">Check the highlighted fields and try again.</span>
@@ -461,6 +497,76 @@
     const ok = document.getElementById('ok');
     const okMsg = document.getElementById('okMsg');
     const submitBtn = document.getElementById('submitBtn');
+
+    // ----- Staff-invite handling ----------------------------------------
+    // When this page is reached via accept-invite.html, the URL has
+    //   ?invite=<token>&email=<email>&role=<role>
+    // We:
+    //   * lock down the student-only fields (year, dob, parent email,
+    //     terms copy) — staff are adults, those don't apply
+    //   * show a banner + relabel the submit button so the form feels
+    //     appropriate
+    //   * pre-fill the email and lock it
+    //   * after signUp, call accept_staff_invite so the role is set
+    //     before the user confirms their email and lands on the
+    //     dashboard
+    //
+    // The role check is client-side UX only. accept_staff_invite is a
+    // SECURITY DEFINER RPC that re-validates the token, the email, the
+    // status, and the expiry — nothing about the user's role can be
+    // smuggled in by the client.
+    const inviteParams = new URLSearchParams(window.location.search);
+    const inviteToken = inviteParams.get('invite');
+    const inviteEmail = inviteParams.get('email');
+    const inviteRole  = inviteParams.get('role');
+    const validRoles  = { staff_author: 'Author', staff_reviewer: 'Reviewer', admin: 'Admin' };
+    const isInvite = inviteToken && /^[0-9a-f-]{36}$/i.test(inviteToken) && validRoles[inviteRole];
+
+    if (isInvite) {
+      // Pre-fill + lock email. The accept RPC re-checks the email
+      // matches, so even if someone tampered with the value here, the
+      // server would refuse to grant the role.
+      if (inviteEmail && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(inviteEmail)) {
+        email.value = inviteEmail;
+        email.readOnly = true;
+        email.style.background = 'var(--bg-3)';
+        email.style.cursor = 'not-allowed';
+      }
+
+      // Staff are adults. Hide / disable the student-only fields.
+      const yearField = document.getElementById('year').closest('.field');
+      const dobField  = document.getElementById('dob').closest('.field');
+      yearField.hidden = true;
+      dobField.hidden  = true;
+      // year/dob are still `required` in HTML; remove the attribute
+      // so the browser's built-in validation doesn't trip on the
+      // hidden inputs.
+      document.getElementById('year').required = false;
+      document.getElementById('dob').required  = false;
+      // Parent consent is also irrelevant — staff are not students.
+      parentField.hidden = true;
+      parentEmail.required = false;
+
+      // The terms text talks about "I'm 16 or older" which fits staff
+      // (they're definitely adults), so the existing copy works fine.
+
+      // Banner + form copy.
+      const banner  = document.getElementById('inviteBanner');
+      const pill    = document.getElementById('invitePill');
+      const inviteText = document.getElementById('inviteText');
+      pill.textContent = validRoles[inviteRole];
+      pill.classList.add(inviteRole === 'staff_author' ? 'author'
+                      : inviteRole === 'staff_reviewer' ? 'reviewer'
+                      : 'admin');
+      inviteText.textContent = 'Joining Recall as ' + validRoles[inviteRole]
+        + '. The invite is tied to ' + (inviteEmail || 'this email') + '.';
+      banner.hidden = false;
+
+      document.getElementById('formTitle').textContent = 'Accept your invitation';
+      document.getElementById('formSub').textContent =
+        'Create an account to join the Recall team.';
+      submitBtn.textContent = 'Create account and accept';
+    }
 
     function ageOn(d, ref) {
       let a = ref.getFullYear() - d.getFullYear();
@@ -623,27 +729,33 @@
       if (password.value !== password2.value) {
         return showError('Passwords do not match.');
       }
-      if (!year.value) {
-        return showError('Select your year group.');
-      }
-      if (!dob.value) {
-        return showError('Enter your date of birth.');
-      }
-      const d = new Date(dob.value);
-      const a = ageOn(d, new Date());
-      if (isNaN(a) || a < 11) {
-        return showError('Recall is for students aged 11 and over.');
-      }
-      if (a > 19) {
-        return showError('This product is for secondary students. Contact hello@recalleducation.co.uk for the adult plan.');
-      }
-      const needsConsent = a <= 15;
-      if (needsConsent) {
-        if (!parentEmail.value || !parentEmail.value.includes('@')) {
-          return showError('Enter a parent or guardian email — required for under-16s.');
+      // Student-only fields. Staff-invite signups skip these — the
+      // year/dob/parent fields are hidden for staff because they're
+      // adults joining the team, not secondary-school students.
+      let needsConsent = false;
+      if (!isInvite) {
+        if (!year.value) {
+          return showError('Select your year group.');
         }
-        if (parentEmail.value.trim().toLowerCase() === email.value.trim().toLowerCase()) {
-          return showError('Parent email must be different from your email.');
+        if (!dob.value) {
+          return showError('Enter your date of birth.');
+        }
+        const d = new Date(dob.value);
+        const a = ageOn(d, new Date());
+        if (isNaN(a) || a < 11) {
+          return showError('Recall is for students aged 11 and over.');
+        }
+        if (a > 19) {
+          return showError('This product is for secondary students. Contact hello@recalleducation.co.uk for the adult plan.');
+        }
+        needsConsent = a <= 15;
+        if (needsConsent) {
+          if (!parentEmail.value || !parentEmail.value.includes('@')) {
+            return showError('Enter a parent or guardian email — required for under-16s.');
+          }
+          if (parentEmail.value.trim().toLowerCase() === email.value.trim().toLowerCase()) {
+            return showError('Parent email must be different from your email.');
+          }
         }
       }
       if (!terms.checked) {
@@ -672,12 +784,14 @@
           password: password.value,
           options: {
             emailRedirectTo: redirectTo,
-            data: {
-              full_name: name.value.trim(),
-              year_group: year.value,
-              dob: dob.value,
-              parent_email: needsConsent ? parentEmail.value.trim() : null
-            }
+            data: isInvite
+              ? { full_name: name.value.trim() }
+              : {
+                  full_name: name.value.trim(),
+                  year_group: year.value,
+                  dob: dob.value,
+                  parent_email: needsConsent ? parentEmail.value.trim() : null
+                }
           }
         });
 
@@ -695,6 +809,55 @@
           submitBtn.disabled = false;
           submitBtn.textContent = originalText;
           return showError('Account was created but something went wrong contacting the server. Please try signing in.');
+        }
+
+        // Staff-invite path: accept the invite immediately. We do
+        // this right after signUp (before the user clicks the email
+        // confirmation link) so the profile row already has the right
+        // role set when the auth hook stamps the JWT on confirmation.
+        // If accept fails (e.g. email_mismatch), we still let the
+        // account exist — the admin can re-invite and the user can
+        // re-accept, or the user can sign in with the right email.
+        if (isInvite) {
+          try {
+            const { data: acceptData, error: acceptErr } = await supabaseClient.rpc(
+              'accept_staff_invite',
+              { p_token: inviteToken, p_decision: 'accepted' }
+            );
+            if (acceptErr) {
+              console.error('accept_staff_invite failed:', acceptErr);
+              showOk(
+                'Account created. We had a problem applying the invitation — '
+                + 'sign in and try the invite link again, or contact the admin '
+                + 'who sent it.'
+              );
+            } else if (acceptData && acceptData.ok === false) {
+              let msg = 'Account created, but the invitation could not be applied: '
+                      + (acceptData.reason || 'unknown');
+              if (acceptData.reason === 'email_mismatch') {
+                msg = 'Account created. The invitation was sent to '
+                    + (acceptData.invited_email || 'a different address')
+                    + ' — sign in with that email to accept.';
+              }
+              showOk(msg);
+            } else {
+              showOk(
+                'Account created and invitation accepted. '
+                + 'Check ' + email.value.trim() + ' for a confirmation link, '
+                + 'then sign in to access the staff tools.'
+              );
+            }
+          } catch (err) {
+            console.error('accept_staff_invite threw:', err);
+            showOk(
+              'Account created. There was a problem applying the invitation — '
+              + 'sign in and try the invite link again.'
+            );
+          }
+          // Lock the form.
+          Array.from(form.elements).forEach(el => { el.disabled = true; });
+          submitBtn.textContent = 'Account created';
+          return;
         }
 
         // For under-16s, fire the consent email to the parent. This

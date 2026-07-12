@@ -1,0 +1,1188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin console — Recall Education</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-pale: rgba(56,139,253,0.08);
+      --blue-dim:  rgba(56,139,253,0.15);
+      --green:     #3FB950;
+      --yellow:    #D29922;
+      --red:       #F85149;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100vh; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hidden { display: none !important; }
+
+    /* ---------- Top nav ---------- */
+    .top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+      position: sticky; top: 0; z-index: 5;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px;
+      color: var(--text);
+    }
+    .brand:hover { text-decoration: none; }
+    .brand .logo {
+      width: 26px; height: 26px;
+      background: var(--blue); color: #fff;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 13px;
+      border-radius: var(--r-sm);
+    }
+    .admin-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: rgba(248, 81, 73, 0.15);
+      color: #ff9a93;
+      border: 1px solid rgba(248, 81, 73, 0.4);
+    }
+    .top .right {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 14px;
+      font-size: 13px;
+      color: var(--text-3);
+    }
+    .top .right .me { color: var(--text-2); font-weight: 500; }
+    .top .right a { color: var(--text-2); }
+    .top .right a:hover { color: var(--blue); }
+
+    /* ---------- Layout ---------- */
+    .layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: calc(100vh - 60px);
+    }
+    .side {
+      border-right: 1px solid var(--line);
+      padding: 20px 12px;
+      background: var(--bg);
+    }
+    .side button {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: var(--r-sm);
+      background: transparent;
+      border: 0;
+      color: var(--text-2);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13.5px;
+      text-align: left;
+    }
+    .side button:hover { background: var(--bg-2); color: var(--text); }
+    .side button.active { background: var(--blue-dim); color: var(--blue); }
+    .side button .count {
+      margin-left: auto;
+      font-size: 11px;
+      background: var(--bg-3);
+      color: var(--text-3);
+      padding: 1px 7px;
+      border-radius: 999px;
+      min-width: 22px;
+      text-align: center;
+    }
+    .side button.active .count { background: var(--blue); color: #fff; }
+    .side .section-label {
+      padding: 14px 12px 6px;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-4);
+    }
+
+    /* ---------- Main panel ---------- */
+    main {
+      padding: 28px 32px 64px;
+      max-width: 1100px;
+    }
+    .page-head {
+      display: flex; align-items: baseline; gap: 12px;
+      margin-bottom: 20px;
+    }
+    .page-head h1 {
+      font-size: 22px; font-weight: 600;
+      letter-spacing: -0.015em;
+      margin: 0;
+    }
+    .page-head .desc { color: var(--text-3); font-size: 13.5px; }
+    .page-head .right { margin-left: auto; }
+    .page-head .right button {
+      background: var(--blue); color: #fff;
+      border: 1px solid var(--blue);
+      padding: 7px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer;
+    }
+    .page-head .right button:hover { background: var(--blue-2); border-color: var(--blue-2); }
+
+    /* ---------- KPIs ---------- */
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .kpi {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 18px 18px 16px;
+    }
+    .kpi .label {
+      font-size: 12px;
+      color: var(--text-3);
+      letter-spacing: 0.02em;
+      margin-bottom: 6px;
+    }
+    .kpi .num {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .kpi .sub { font-size: 12px; color: var(--text-4); margin-top: 4px; }
+
+    /* ---------- Tables ---------- */
+    .table-wrap {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line-2);
+      background: var(--bg-3);
+      font-weight: 600;
+    }
+    tbody td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+      font-size: 13.5px;
+    }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: var(--bg-3); }
+    .empty-row td {
+      padding: 24px;
+      text-align: center;
+      color: var(--text-4);
+      font-style: italic;
+    }
+    .role-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+    .role-pill.student        { background: var(--bg-3); color: var(--text-3); }
+    .role-pill.staff_author   { background: rgba(63, 185, 80, 0.12); color: #56d364; }
+    .role-pill.staff_reviewer { background: rgba(210, 153, 34, 0.15); color: #e3b341; }
+    .role-pill.admin          { background: rgba(248, 81, 73, 0.15); color: #ff9a93; }
+
+    .status-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+    .status-pill.pending    { background: rgba(210, 153, 34, 0.15); color: #e3b341; }
+    .status-pill.accepted   { background: rgba(63, 185, 80, 0.12); color: #56d364; }
+    .status-pill.revoked    { background: rgba(248, 81, 73, 0.15); color: #ff9a93; }
+    .status-pill.expired    { background: var(--bg-3); color: var(--text-4); }
+
+    /* ---------- Tabs ---------- */
+    .tabs {
+      display: flex; gap: 4px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--line-2);
+    }
+    .tabs button {
+      background: transparent; border: 0;
+      color: var(--text-3);
+      font-family: inherit; font-size: 13.5px; font-weight: 500;
+      padding: 9px 14px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .tabs button:hover { color: var(--text-2); }
+    .tabs button.active {
+      color: var(--text);
+      border-bottom-color: var(--blue);
+    }
+
+    /* ---------- Buttons / inputs ---------- */
+    .btn {
+      background: var(--bg-3);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      padding: 6px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 500;
+      cursor: pointer;
+    }
+    .btn:hover { background: var(--bg-4); }
+    .btn.primary {
+      background: var(--blue); border-color: var(--blue); color: #fff;
+    }
+    .btn.primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .btn.danger {
+      background: rgba(248, 81, 73, 0.12);
+      color: #ff9a93;
+      border-color: rgba(248, 81, 73, 0.4);
+    }
+    .btn.danger:hover {
+      background: rgba(248, 81, 73, 0.2);
+      border-color: rgba(248, 81, 73, 0.6);
+    }
+    .btn.small { padding: 4px 9px; font-size: 12px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    input, select, textarea {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 8px 11px;
+      font-family: inherit;
+      font-size: 13.5px;
+      outline: none;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .row-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+    select { appearance: none; -webkit-appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='%238B949E' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 11px center;
+      padding-right: 30px;
+    }
+
+    /* ---------- Modal ---------- */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 100;
+      display: grid; place-items: center;
+      padding: 24px;
+    }
+    .modal {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      width: 100%; max-width: 440px;
+      padding: 24px;
+    }
+    .modal h2 {
+      margin: 0 0 4px;
+      font-size: 18px; font-weight: 600;
+    }
+    .modal .desc { color: var(--text-3); font-size: 13px; margin-bottom: 18px; }
+    .modal .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .modal .field label { font-size: 12.5px; color: var(--text-2); font-weight: 500; }
+    .modal .actions {
+      display: flex; gap: 8px; justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    /* ---------- Toast ---------- */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      z-index: 200;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 10px 14px;
+      font-size: 13.5px;
+      max-width: 340px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+    .toast.success { border-color: rgba(63, 185, 80, 0.5); }
+    .toast.error   { border-color: rgba(248, 81, 73, 0.5); color: #ff9a93; }
+
+    /* ---------- Gate ---------- */
+    .gate {
+      max-width: 480px; margin: 80px auto;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 32px;
+      text-align: center;
+    }
+    .gate h1 { font-size: 20px; margin: 0 0 8px; }
+    .gate p { color: var(--text-3); font-size: 14px; margin: 0 0 18px; }
+    .gate a.btn { display: inline-block; }
+
+    /* ---------- Misc ---------- */
+    .meta { color: var(--text-4); font-size: 12px; }
+    code {
+      background: var(--bg-3);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--text-2);
+      word-break: break-all;
+    }
+    pre.code-block {
+      background: var(--bg-3);
+      padding: 10px 12px;
+      border-radius: var(--r-sm);
+      font-size: 12.5px;
+      color: var(--text-2);
+      word-break: break-all;
+      white-space: pre-wrap;
+      margin: 6px 0 0;
+    }
+    .expandable {
+      cursor: pointer;
+      color: var(--blue);
+    }
+    .expandable:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div class="top">
+  <a class="brand" href="dashboard.html">
+    <span class="logo">R</span>
+    Recall
+  </a>
+  <span class="admin-pill">Admin</span>
+  <div class="right">
+    <span class="me" id="userName">—</span>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="#" id="signOutBtn">Sign out</a>
+  </div>
+</div>
+
+<!-- =========================================================
+     GATE. Shown until we've verified the user has role='admin'.
+     For reviewers (a future enhancement) we'd show a "Limited
+     access" message that hides the Invites and Staff panels.
+     ========================================================= -->
+<div id="gate" class="gate">
+  <h1>Verifying access…</h1>
+  <p>One moment.</p>
+</div>
+
+<!-- =========================================================
+     APP. Shown once the user is confirmed as admin. Has a
+     left-rail navigation and a single main panel that swaps
+     based on which section is active. Keeping it as one big
+     <main> (rather than one HTML file per panel) means we
+     share state cleanly — e.g. the staff list updates the
+     dashboard KPIs without a re-fetch.
+     ========================================================= -->
+<div id="app" class="layout hidden">
+
+  <aside class="side">
+    <button data-section="dashboard" class="active">
+      <span>Dashboard</span>
+    </button>
+    <button data-section="staff">
+      <span>Staff</span>
+      <span class="count" id="staffCount">0</span>
+    </button>
+    <button data-section="invites">
+      <span>Invites</span>
+      <span class="count" id="inviteCount">0</span>
+    </button>
+    <button data-section="lessons">
+      <span>Lessons</span>
+      <span class="count" id="lessonCount">0</span>
+    </button>
+    <button data-section="audit">
+      <span>Audit log</span>
+    </button>
+  </aside>
+
+  <main>
+    <!-- DASHBOARD PANEL -->
+    <section id="sec-dashboard">
+      <div class="page-head">
+        <div>
+          <h1>Dashboard</h1>
+          <div class="desc">Overview of staff, invites, and recent activity.</div>
+        </div>
+      </div>
+      <div class="kpis" id="dashKpis">
+        <div class="kpi"><div class="label">Admins</div><div class="num" id="kpiAdmins">0</div></div>
+        <div class="kpi"><div class="label">Reviewers</div><div class="num" id="kpiReviewers">0</div></div>
+        <div class="kpi"><div class="label">Authors</div><div class="num" id="kpiAuthors">0</div></div>
+        <div class="kpi"><div class="label">Pending invites</div><div class="num" id="kpiInvites">0</div></div>
+        <div class="kpi"><div class="label">Drafts awaiting review</div><div class="num" id="kpiDrafts">0</div></div>
+      </div>
+      <h2 style="font-size: 14px; font-weight: 600; color: var(--text-3); letter-spacing: 0.04em; text-transform: uppercase; margin: 24px 0 12px;">Your last 5 admin actions</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>When</th><th>Action</th><th>Details</th></tr></thead>
+          <tbody id="recentActions"><tr class="empty-row"><td colspan="3">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- STAFF PANEL -->
+    <section id="sec-staff" class="hidden">
+      <div class="page-head">
+        <div>
+          <h1>Staff</h1>
+          <div class="desc">Everyone with a staff role. Change roles or revoke access here.</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name / email</th>
+              <th>Role</th>
+              <th>Last sign-in</th>
+              <th>Joined</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="staffRows"><tr class="empty-row"><td colspan="5">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- INVITES PANEL -->
+    <section id="sec-invites" class="hidden">
+      <div class="page-head">
+        <div>
+          <h1>Invites</h1>
+          <div class="desc">Send and track invitations to new staff.</div>
+        </div>
+        <div class="right">
+          <button id="newInviteBtn">+ New invite</button>
+        </div>
+      </div>
+      <div class="tabs">
+        <button data-tab="pending"  class="active">Pending</button>
+        <button data-tab="accepted">Accepted</button>
+        <button data-tab="revoked">Revoked</button>
+        <button data-tab="expired">Expired</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Invited by</th>
+              <th>Expires</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="inviteRows"><tr class="empty-row"><td colspan="5">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- LESSONS PANEL -->
+    <section id="sec-lessons" class="hidden">
+      <div class="page-head">
+        <div>
+          <h1>Lessons</h1>
+          <div class="desc">Drafts awaiting review. Publish to make them visible to students.</div>
+        </div>
+      </div>
+      <div class="tabs">
+        <button data-lessontab="draft"     class="active">Drafts</button>
+        <button data-lessontab="published">Published</button>
+        <button data-lessontab="archived">Archived</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Author</th>
+              <th>Updated</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="lessonRows"><tr class="empty-row"><td colspan="4">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- AUDIT PANEL -->
+    <section id="sec-audit" class="hidden">
+      <div class="page-head">
+        <div>
+          <h1>Audit log</h1>
+          <div class="desc">Every staff action is recorded here. Most recent first.</div>
+        </div>
+        <div class="right">
+          <select id="auditFilter" style="width: auto; min-width: 200px;">
+            <option value="">All actions</option>
+            <option value="invite_sent">Invite sent</option>
+            <option value="invite_resent">Invite resent</option>
+            <option value="invite_revoked">Invite revoked</option>
+            <option value="role_changed">Role changed</option>
+            <option value="access_revoked">Access revoked</option>
+            <option value="lesson_published">Lesson published</option>
+            <option value="lesson_unpublished">Lesson unpublished</option>
+            <option value="lesson_archived">Lesson archived</option>
+            <option value="admin_action">Admin action</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Actor</th>
+              <th>Action</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody id="auditRows"><tr class="empty-row"><td colspan="4">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  // ----- Utilities ----------------------------------------------------------
+
+  const $ = (id) => document.getElementById(id);
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  function fmtDate(s) {
+    if (!s) return '<span class="meta">—</span>';
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return '<span class="meta">—</span>';
+    const now = new Date();
+    const diff = (now - d) / 1000;
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    if (diff < 86400 * 7) return Math.floor(diff / 86400) + 'd ago';
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function fmtDateTime(s) {
+    if (!s) return '—';
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+  function toast(msg, kind) {
+    const t = document.createElement('div');
+    t.className = 'toast' + (kind ? ' ' + kind : '');
+    t.textContent = msg;
+    $('toast').appendChild(t);
+    setTimeout(() => t.remove(), 4500);
+  }
+  function modal(html) {
+    const root = $('modalRoot');
+    root.innerHTML = `<div class="modal-backdrop"><div class="modal">${html}</div></div>`;
+    root.querySelector('.modal-backdrop').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeModal();
+    });
+  }
+  function closeModal() { $('modalRoot').innerHTML = ''; }
+
+  // ----- Section navigation -------------------------------------------------
+
+  function showSection(name) {
+    document.querySelectorAll('.side button').forEach((b) => {
+      b.classList.toggle('active', b.dataset.section === name);
+    });
+    ['dashboard', 'staff', 'invites', 'lessons', 'audit'].forEach((s) => {
+      $('sec-' + s).classList.toggle('hidden', s !== name);
+    });
+    // Refresh the section we just showed so the data is always live.
+    if (name === 'dashboard') loadDashboard();
+    if (name === 'staff')     loadStaff();
+    if (name === 'invites')   loadInvites();
+    if (name === 'lessons')   loadLessons();
+    if (name === 'audit')     loadAudit();
+  }
+  document.querySelectorAll('.side button').forEach((b) => {
+    b.addEventListener('click', () => showSection(b.dataset.section));
+  });
+
+  // ----- Boot: verify admin role, then load ---------------------------------
+
+  // We read role from the JWT (app_metadata.role) — no DB round-trip.
+  // check_parental_consent stamps the role on every token; if it's
+  // not 'admin' we show the gate. The very first owner is bootstrapped
+  // by running the SQL one-liner in supabase_admin.sql and signing in
+  // again (to get a fresh JWT with the new role claim).
+  let state = { user: null, role: null, section: 'dashboard', inviteTab: 'pending', lessonTab: 'draft' };
+
+  async function boot() {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (error || !data?.user) {
+      showGate('Sign-in required', 'Sign in to use the admin console.', 'signin');
+      return;
+    }
+    state.user = data.user;
+    const role = data.user.app_metadata?.role;
+    if (role !== 'admin') {
+      showGate(
+        'Admin access only',
+        'Your account is signed in, but it does not have admin permissions. Ask an existing admin to promote you.',
+        'noaccess'
+      );
+      return;
+    }
+    state.role = role;
+    $('userName').textContent = data.user.user_metadata?.full_name || data.user.email;
+    $('app').classList.remove('hidden');
+    showSection('dashboard');
+  }
+
+  function showGate(title, body, kind) {
+    $('gate').innerHTML = `
+      <h1>${escapeHtml(title)}</h1>
+      <p>${escapeHtml(body)}</p>
+      <a class="btn primary" href="login.html?next=admin.html">Sign in</a>
+    `;
+  }
+
+  $('signOutBtn').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await supabaseClient.auth.signOut();
+    window.location.href = 'index.html';
+  });
+
+  // =========================================================================
+  // DASHBOARD PANEL
+  // =========================================================================
+  async function loadDashboard() {
+    // Pull all the counts in parallel — five small RPCs would be
+    // overkill, so we just do raw selects on the relevant tables.
+    // staff_audit_log and staff_invites are RLS-locked for non-admins,
+    // but the supabase client uses the JWT's role claim, which IS
+    // admin here. The staff_audit_log read policy allows any staff
+    // role; the staff_invites table is deny-all-client (so we can't
+    // read it from here). For invite counts we use a tiny RPC — see
+    // below. Counts on staff come from a select on profiles.
+    try {
+      const [authors, reviewers, admins, drafts, recent] = await Promise.all([
+        supabaseClient.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'staff_author'),
+        supabaseClient.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'staff_reviewer'),
+        supabaseClient.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'admin'),
+        supabaseClient.from('lessons').select('id', { count: 'exact', head: true }).eq('status', 'draft'),
+        supabaseClient.from('staff_audit_log')
+          .select('id, action, resource_type, resource_id, metadata, created_at')
+          .order('created_at', { ascending: false })
+          .limit(5),
+      ]);
+      $('kpiAuthors').textContent   = authors.count   ?? 0;
+      $('kpiReviewers').textContent = reviewers.count ?? 0;
+      $('kpiAdmins').textContent    = admins.count    ?? 0;
+      $('kpiDrafts').textContent    = drafts.count    ?? 0;
+
+      // Pending invite count: read via the count_staff_invites RPC
+      // (the staff_invites table is RLS-deny-all-client, so we can't
+      // .count() it directly). The RPC is granted to any staff role
+      // since the count itself isn't sensitive.
+      const inviteCount = await supabaseClient.rpc('count_staff_invites', { p_status: 'pending' });
+      $('kpiInvites').textContent = (inviteCount.data ?? 0);
+
+      const recentTbody = $('recentActions');
+      const rows = recent.data || [];
+      if (!rows.length) {
+        recentTbody.innerHTML = '<tr class="empty-row"><td colspan="3">No admin actions yet.</td></tr>';
+      } else {
+        recentTbody.innerHTML = rows.map((r) => `
+          <tr>
+            <td>${fmtDate(r.created_at)}</td>
+            <td><code>${escapeHtml(r.action)}</code></td>
+            <td>${escapeHtml(JSON.stringify(r.metadata || {}))}</td>
+          </tr>
+        `).join('');
+      }
+    } catch (err) {
+      console.error('loadDashboard failed:', err);
+      toast('Failed to load dashboard: ' + (err?.message || err), 'error');
+    }
+  }
+
+  // =========================================================================
+  // STAFF PANEL
+  // =========================================================================
+  async function loadStaff() {
+    const tbody = $('staffRows');
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Loading…</td></tr>';
+    const { data, error } = await supabaseClient
+      .from('profiles')
+      .select('id, full_name, role, created_at, last_sign_in_at')
+      .in('role', ['staff_author', 'staff_reviewer', 'admin'])
+      .order('created_at', { ascending: true });
+    if (error) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Error: ${escapeHtml(error.message)}</td></tr>`;
+      return;
+    }
+    $('staffCount').textContent = data.length;
+    if (!data.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No staff accounts yet.</td></tr>';
+      return;
+    }
+    // We also want emails, which live on auth.users. The profiles
+    // table doesn't denormalise email. We don't have a SECURITY
+    // DEFINER RPC for "list staff with emails", so for now the
+    // email column shows "—". The "change role" and "revoke"
+    // actions work off the profile id alone.
+    tbody.innerHTML = data.map((p) => `
+      <tr data-uid="${escapeHtml(p.id)}">
+        <td>
+          <div style="font-weight: 500;">${escapeHtml(p.full_name || '(no name)')}</div>
+          <div class="meta" id="email-${escapeHtml(p.id)}">—</div>
+        </td>
+        <td><span class="role-pill ${escapeHtml(p.role)}">${roleLabel(p.role)}</span></td>
+        <td class="meta">${fmtDate(p.last_sign_in_at)}</td>
+        <td class="meta">${fmtDate(p.created_at)}</td>
+        <td>
+          <div class="row-actions">
+            <button class="btn small" data-act="role" data-uid="${escapeHtml(p.id)}" data-role="${escapeHtml(p.role)}">Change role</button>
+            ${p.id !== state.user.id ? `<button class="btn small danger" data-act="revoke" data-uid="${escapeHtml(p.id)}">Revoke</button>` : ''}
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    tbody.querySelectorAll('button[data-act]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const uid = b.dataset.uid;
+        if (b.dataset.act === 'role') promptChangeRole(uid, b.dataset.role);
+        if (b.dataset.act === 'revoke') promptRevoke(uid);
+      });
+    });
+  }
+
+  function promptChangeRole(uid, currentRole) {
+    modal(`
+      <h2>Change role</h2>
+      <p class="desc">Pick the new role for this user.</p>
+      <div class="field">
+        <label>Role</label>
+        <select id="newRole">
+          <option value="staff_author"   ${currentRole === 'staff_author'   ? 'selected' : ''}>Author</option>
+          <option value="staff_reviewer" ${currentRole === 'staff_reviewer' ? 'selected' : ''}>Reviewer</option>
+          <option value="admin"          ${currentRole === 'admin'          ? 'selected' : ''}>Admin</option>
+          <option value="student"        ${currentRole === 'student'        ? 'selected' : ''}>Student (demote)</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn primary" id="confirmRoleBtn">Save</button>
+      </div>
+    `);
+    $('confirmRoleBtn').addEventListener('click', async () => {
+      const newRole = $('newRole').value;
+      $('confirmRoleBtn').disabled = true;
+      const { data, error } = await supabaseClient.rpc('change_staff_role', {
+        p_target_user_id: uid, p_new_role: newRole,
+      });
+      $('confirmRoleBtn').disabled = false;
+      if (error) { toast('Change failed: ' + error.message, 'error'); return; }
+      if (data && data.ok === false) { toast('Change refused: ' + (data.reason || 'unknown'), 'error'); return; }
+      toast('Role updated', 'success');
+      closeModal();
+      loadStaff();
+      loadDashboard();
+    });
+  }
+
+  function promptRevoke(uid) {
+    modal(`
+      <h2>Revoke access</h2>
+      <p class="desc">This demotes the user to student and soft-deletes their account. They will be signed out and unable to sign back in.</p>
+      <div class="actions">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn danger" id="confirmRevokeBtn">Revoke access</button>
+      </div>
+    `);
+    $('confirmRevokeBtn').addEventListener('click', async () => {
+      $('confirmRevokeBtn').disabled = true;
+      const { data, error } = await supabaseClient.rpc('revoke_staff_access', { p_target_user_id: uid });
+      $('confirmRevokeBtn').disabled = false;
+      if (error) { toast('Revoke failed: ' + error.message, 'error'); return; }
+      if (data && data.ok === false) { toast('Revoke refused: ' + (data.reason || 'unknown'), 'error'); return; }
+      toast('Access revoked', 'success');
+      closeModal();
+      loadStaff();
+      loadDashboard();
+    });
+  }
+
+  // =========================================================================
+  // INVITES PANEL
+  // =========================================================================
+  document.querySelectorAll('[data-tab]').forEach((b) => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-tab]').forEach((x) => x.classList.toggle('active', x === b));
+      state.inviteTab = b.dataset.tab;
+      loadInvites();
+    });
+  });
+  $('newInviteBtn').addEventListener('click', promptNewInvite);
+
+  // The staff_invites table is RLS deny-all for the client. All
+  // reads/writes go through SECURITY DEFINER RPCs.
+  // To render the panel, we add tiny "list" RPCs.
+  //   list_staff_invites(p_status text) returns table (...)
+  //   get_invite_email(p_invite_id uuid) returns text
+  // Without them, the panel is empty. We call them by name and
+  // gracefully render "—" if they don't exist yet.
+  async function loadInvites() {
+    const tbody = $('inviteRows');
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Loading…</td></tr>';
+    const { data, error } = await supabaseClient.rpc('list_staff_invites', { p_status: state.inviteTab });
+    if (error) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Error: ${escapeHtml(error.message)}</td></tr>`;
+      return;
+    }
+    const rows = data || [];
+    if (state.inviteTab === 'pending') $('inviteCount').textContent = rows.length;
+    if (!rows.length) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="5">No ${state.inviteTab} invites.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map((r) => `
+      <tr data-invite="${escapeHtml(r.id)}">
+        <td>${escapeHtml(r.email)}</td>
+        <td><span class="role-pill ${escapeHtml(r.role)}">${roleLabel(r.role)}</span></td>
+        <td class="meta">${fmtDate(r.created_at)}</td>
+        <td class="meta">${fmtDate(r.expires_at)}</td>
+        <td>
+          <div class="row-actions">
+            ${state.inviteTab === 'pending' ? `
+              <button class="btn small" data-act="resend" data-id="${escapeHtml(r.id)}">Resend</button>
+              <button class="btn small" data-act="copy"  data-id="${escapeHtml(r.id)}" data-token="${escapeHtml(r.token)}">Copy code</button>
+              <button class="btn small danger" data-act="revoke" data-id="${escapeHtml(r.id)}">Revoke</button>
+            ` : `<span class="meta">${r.decided_at ? 'Decided ' + fmtDate(r.decided_at) : ''}</span>`}
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    tbody.querySelectorAll('button[data-act]').forEach((b) => {
+      b.addEventListener('click', async () => {
+        const id = b.dataset.id;
+        if (b.dataset.act === 'resend')  resendInvite(id, b);
+        if (b.dataset.act === 'revoke')  revokeInvite(id, b);
+        if (b.dataset.act === 'copy')    copyToken(b.dataset.token, b);
+      });
+    });
+  }
+
+  function promptNewInvite() {
+    modal(`
+      <h2>Invite a new staff member</h2>
+      <p class="desc">They'll get an email with a one-time link, valid for 14 days.</p>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="inviteEmail" placeholder="name@example.com" />
+      </div>
+      <div class="field">
+        <label>Role</label>
+        <select id="inviteRole">
+          <option value="staff_author">Author</option>
+          <option value="staff_reviewer">Reviewer</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn primary" id="sendInviteBtn">Send invite</button>
+      </div>
+    `);
+    $('sendInviteBtn').addEventListener('click', async () => {
+      const email = $('inviteEmail').value.trim();
+      const role  = $('inviteRole').value;
+      if (!email || !email.includes('@')) { toast('Enter a valid email.', 'error'); return; }
+      $('sendInviteBtn').disabled = true;
+      const { data, error } = await supabaseClient.rpc('create_staff_invite', {
+        p_email: email, p_role: role,
+      });
+      $('sendInviteBtn').disabled = false;
+      if (error) { toast('Invite failed: ' + error.message, 'error'); return; }
+      if (data && data.ok === false) { toast('Invite refused: ' + (data.reason || 'unknown'), 'error'); return; }
+      // Now fire the email via the Edge Function.
+      const { error: fnErr } = await supabaseClient.functions.invoke('send-staff-invite', {
+        body: { invite_id: data.invite_id, origin: window.location.origin },
+      });
+      if (fnErr) {
+        toast('Invite created but email failed: ' + fnErr.message, 'error');
+      } else {
+        toast('Invite sent to ' + email, 'success');
+      }
+      closeModal();
+      loadInvites();
+      loadDashboard();
+    });
+  }
+
+  async function resendInvite(id, btn) {
+    btn.disabled = true;
+    const { data, error } = await supabaseClient.rpc('resend_staff_invite', { p_invite_id: id });
+    if (error) { toast('Resend failed: ' + error.message, 'error'); btn.disabled = false; return; }
+    if (data && data.ok === false) { toast('Resend refused: ' + (data.reason || 'unknown'), 'error'); btn.disabled = false; return; }
+    // Fire the email. We have a fresh token in data.token, but the
+    // Edge Function re-reads from the DB so we just pass the invite_id.
+    await supabaseClient.functions.invoke('send-staff-invite', {
+      body: { invite_id: id, origin: window.location.origin },
+    });
+    toast('Invite resent', 'success');
+    btn.disabled = false;
+    loadInvites();
+  }
+  async function revokeInvite(id, btn) {
+    if (!confirm('Revoke this invite? The link will stop working.')) return;
+    btn.disabled = true;
+    const { data, error } = await supabaseClient.rpc('revoke_staff_invite', { p_invite_id: id });
+    btn.disabled = false;
+    if (error) { toast('Revoke failed: ' + error.message, 'error'); return; }
+    if (data && data.ok === false) { toast('Revoke refused: ' + (data.reason || 'unknown'), 'error'); return; }
+    toast('Invite revoked', 'success');
+    loadInvites();
+    loadDashboard();
+  }
+  function copyToken(token, btn) {
+    navigator.clipboard?.writeText(window.location.origin + '/accept-invite.html?token=' + token);
+    const orig = btn.textContent;
+    btn.textContent = 'Copied';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  }
+
+  // =========================================================================
+  // LESSONS PANEL
+  // =========================================================================
+  document.querySelectorAll('[data-lessontab]').forEach((b) => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-lessontab]').forEach((x) => x.classList.toggle('active', x === b));
+      state.lessonTab = b.dataset.lessontab;
+      loadLessons();
+    });
+  });
+
+  async function loadLessons() {
+    const tbody = $('lessonRows');
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Loading…</td></tr>';
+    // RLS now lets staff read all lessons (drafts included), so a
+    // plain .select works without an extra RPC.
+    const { data, error } = await supabaseClient
+      .from('lessons')
+      .select('id, title, status, updated_at, author_id, published_at')
+      .eq('status', state.lessonTab)
+      .order('updated_at', { ascending: false })
+      .limit(200);
+    if (error) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="4">Error: ${escapeHtml(error.message)}</td></tr>`;
+      return;
+    }
+    const rows = data || [];
+    if (state.lessonTab === 'draft') $('lessonCount').textContent = rows.length;
+    if (!rows.length) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="4">No ${state.lessonTab} lessons.</td></tr>`;
+      return;
+    }
+    // Look up author names in a single follow-up select. (Less elegant
+    // than a join, but PostgREST auto-join requires the FK declared on
+    // the column — author_id is declared, so we COULD do .select with
+    // embed. We keep it explicit to avoid surprise SELECTs.)
+    const authorIds = [...new Set(rows.map((r) => r.author_id).filter(Boolean))];
+    let authorMap = {};
+    if (authorIds.length) {
+      const { data: authors } = await supabaseClient
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', authorIds);
+      (authors || []).forEach((a) => { authorMap[a.id] = a.full_name; });
+    }
+    tbody.innerHTML = rows.map((r) => `
+      <tr data-lesson="${escapeHtml(r.id)}">
+        <td>
+          <div style="font-weight: 500;">${escapeHtml(r.title)}</div>
+          <div class="meta">${r.published_at ? 'Published ' + fmtDate(r.published_at) : 'Updated ' + fmtDate(r.updated_at)}</div>
+        </td>
+        <td class="meta">${escapeHtml(authorMap[r.author_id] || '—')}</td>
+        <td class="meta">${fmtDate(r.updated_at)}</td>
+        <td>
+          <div class="row-actions">
+            <a class="btn small" href="staff.html" target="_blank" rel="noopener">Edit</a>
+            <button class="btn small" data-act="preview" data-id="${escapeHtml(r.id)}">Preview</button>
+            ${r.status === 'draft'
+              ? `<button class="btn small primary" data-act="publish" data-id="${escapeHtml(r.id)}">Publish</button>`
+              : `<button class="btn small" data-act="unpublish" data-id="${escapeHtml(r.id)}">Unpublish</button>`}
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    tbody.querySelectorAll('button[data-act]').forEach((b) => {
+      b.addEventListener('click', () => {
+        if (b.dataset.act === 'publish')   publishLesson(b.dataset.id, true, b);
+        if (b.dataset.act === 'unpublish') publishLesson(b.dataset.id, false, b);
+        if (b.dataset.act === 'preview')   window.open('lesson.html?lesson=' + b.dataset.id, '_blank');
+      });
+    });
+  }
+
+  async function publishLesson(id, wantPublish, btn) {
+    btn.disabled = true;
+    const { data, error } = await supabaseClient.rpc('publish_lesson', {
+      p_lesson_id: id, p_publish: wantPublish,
+    });
+    btn.disabled = false;
+    if (error) { toast('Publish failed: ' + error.message, 'error'); return; }
+    if (data && data.ok === false) { toast('Publish refused: ' + (data.reason || 'unknown'), 'error'); return; }
+    toast(wantPublish ? 'Lesson published' : 'Lesson unpublished', 'success');
+    loadLessons();
+    loadDashboard();
+  }
+
+  // =========================================================================
+  // AUDIT PANEL
+  // =========================================================================
+  $('auditFilter').addEventListener('change', loadAudit);
+
+  async function loadAudit() {
+    const tbody = $('auditRows');
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Loading…</td></tr>';
+    const filter = $('auditFilter').value;
+    let q = supabaseClient.from('staff_audit_log')
+      .select('id, action, resource_type, resource_id, metadata, created_at, actor_id')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (filter) q = q.eq('action', filter);
+    const { data, error } = await q;
+    if (error) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="4">Error: ${escapeHtml(error.message)}</td></tr>`;
+      return;
+    }
+    const rows = data || [];
+    if (!rows.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No matching actions.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map((r) => {
+      const metaJson = JSON.stringify(r.metadata || {}, null, 0);
+      const meta = metaJson === '{}' ? '<span class="meta">—</span>'
+        : `<span class="expandable" data-json='${escapeHtml(JSON.stringify(r.metadata || {}))}'>view</span>`;
+      return `
+        <tr>
+          <td class="meta" title="${escapeHtml(fmtDateTime(r.created_at))}">${fmtDate(r.created_at)}</td>
+          <td class="meta">${escapeHtml(r.actor_id ? r.actor_id.slice(0, 8) : '—')}</td>
+          <td><code>${escapeHtml(r.action)}</code></td>
+          <td>${meta}</td>
+        </tr>
+      `;
+    }).join('');
+    tbody.querySelectorAll('.expandable').forEach((s) => {
+      s.addEventListener('click', () => {
+        const j = s.dataset.json;
+        modal(`
+          <h2>Action details</h2>
+          <p class="desc">${escapeHtml(j)}</p>
+          <div class="actions"><button class="btn primary" onclick="closeModal()">Close</button></div>
+        `);
+      });
+    });
+  }
+
+  // =========================================================================
+  // helpers
+  // =========================================================================
+  function roleLabel(role) {
+    switch (role) {
+      case 'admin':          return 'Admin';
+      case 'staff_reviewer': return 'Reviewer';
+      case 'staff_author':   return 'Author';
+      case 'student':        return 'Student';
+      default:               return role;
+    }
+  }
+
+  // ----- Boot -----
+  boot();
+</script>
+</body>
+</html>

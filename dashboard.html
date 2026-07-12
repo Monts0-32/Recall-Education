@@ -612,6 +612,23 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
         Settings
       </a>
+
+      <!-- Staff tools section. Hidden by default. The dashboard's
+           boot script unhides it for users whose app_metadata.role is
+           one of the three staff values. The Admin link is further
+           gated to admins only via data-show-when="admin" — reviewers
+           and authors don't see it (they have no business in the
+           admin console). The "Bookmarks" comment reminds future
+           maintainers that this isn't a public link. -->
+      <div class="section-label" id="staffToolsLabel" hidden>Staff tools</div>
+      <a href="staff.html" id="staffAuthorLink" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Author lessons
+      </a>
+      <a href="admin.html" id="staffAdminLink" data-show-when="admin" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1l3 6 6 1-4.5 4 1 6L12 15l-5.5 3 1-6L3 8l6-1z"/></svg>
+        Admin console
+      </a>
     </nav>
 
     <div class="streak-card">
@@ -1305,6 +1322,31 @@
       }
     }
   );
+
+  // Reveal the Staff tools sidebar links based on the user's role.
+  // The role is stamped onto the JWT by check_parental_consent (the
+  // auth hook), so we can read it from session.user.app_metadata.role
+  // without a DB round-trip. If the user is a student (or the role
+  // claim is missing for any reason) the section stays hidden — the
+  // links simply don't appear.
+  function revealStaffTools(session) {
+    const role = session?.user?.app_metadata?.role;
+    const isStaff = role === 'staff_author' || role === 'staff_reviewer' || role === 'admin';
+    if (!isStaff) return;
+    $('staffToolsLabel').hidden = false;
+    $('staffAuthorLink').hidden = false;
+    if (role === 'admin') {
+      $('staffAdminLink').hidden = false;
+    }
+  }
+  // Run for the current session if it exists, and again whenever the
+  // auth state changes (e.g. after the user signs in mid-session).
+  supabaseClient.auth.getSession().then(({ data }) => {
+    if (data?.session) revealStaffTools(data.session);
+  });
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
+    if (session) revealStaffTools(session);
+  });
 
   $('signOutBtn').addEventListener('click', async function () {
     await supabaseClient.auth.signOut();

@@ -24,11 +24,18 @@
 alter table public.lesson_progress
   add column if not exists time_spent_seconds int not null default 0;
 
--- ---------- 2. STUDY_SESSIONS.KIND CHECK ---------------------------------
--- The kind column existed in the schema but had no CHECK. Adding one
--- now prevents the player (or any future client) from inserting
--- garbage values.
+-- ---------- 2. STUDY_SESSIONS.KIND COLUMN + CHECK -------------------------
+-- The kind column didn't exist in supabase_tables.sql — only the RPC and
+-- the dashboard need it (to distinguish "studied for X min" from
+-- "completed a quiz"). Adding both the column and a CHECK in one shot.
+-- Backfill default for any pre-existing rows.
 
+alter table public.study_sessions
+  add column if not exists kind text not null default 'lesson';
+
+-- Drop any old constraint matching the kind column (idempotent), then
+-- add the new one. pg_constraint catalog is the cleanest way to find
+-- the existing CHECK by content rather than by name.
 do $$
 declare
   cname text;
@@ -47,12 +54,6 @@ end $$;
 alter table public.study_sessions
   add constraint study_sessions_kind_check
   check (kind in ('lesson', 'quiz', 'review', 'practice'));
-
--- Allow kind to be nullable for backward compatibility with rows that
--- pre-date the CHECK. New writes go in via the RPC which always sets
--- a value.
-alter table public.study_sessions
-  alter column kind set default 'lesson';
 
 -- ---------- 3. log_lesson_session RPC -------------------------------------
 --
