@@ -4404,12 +4404,25 @@
     // form) when the caller's role is 'staff_author' / 'staff_reviewer'
     // / 'admin' — fixed by running supabase_admin.sql which rewrites
     // the policies. The .select() lets us tell the user what to do.
-    const inserts = current.filter(b => !b.id).map((b, idx) => ({
-      lesson_id: L.id,
-      kind: b.kind,
-      data: b.data,
-      order_index: current.indexOf(b),
-    }));
+    //
+    // We also track the original array index of each to-be-inserted
+    // block, so we can wire the new server-issued ids back onto the
+    // in-memory blocks. This replaces the old "refetch + replace
+    // L.blocks" pattern that was clobbering any edits the user typed
+    // during the in-flight async save.
+    const inserts = [];
+    const insertIndices = [];
+    for (let i = 0; i < current.length; i++) {
+      const b = current[i];
+      if (b.id) continue;
+      inserts.push({
+        lesson_id: L.id,
+        kind: b.kind,
+        data: b.data,
+        order_index: i,
+      });
+      insertIndices.push(i);
+    }
     if (inserts.length) {
       // First, log what we're about to insert so the user can see it in
       // the browser console if something goes wrong. Often the most
@@ -4461,26 +4474,49 @@
         );
         return;
       }
+      // Wire the new server ids back into the in-memory blocks at
+      // their original positions. This is the only mutation we make
+      // to `current` (= L.blocks) inside this save — the in-memory
+      // state remains the source of truth, and any keystrokes the
+      // user typed during the async insert round-trip are preserved.
+      for (let i = 0; i < inserted.length; i++) {
+        const idx = insertIndices[i];
+        if (current[idx]) current[idx].id = inserted[i].id;
+      }
     }
-    // Updates: only need to send if data or order_index changed
-    const updates = current.filter(b => b.id).map((b) => {
+    // Updates: only need to send if data or order_index changed.
+    // Use the loop index `i` rather than `current.indexOf(b)` to
+    // avoid an O(n²) scan; the array order IS the canonical
+    // order_index here.
+    const updates = [];
+    for (let i = 0; i < current.length; i++) {
+      const b = current[i];
+      if (!b.id) continue;
       const before = server.find(s => s.id === b.id);
-      const newOrder = current.indexOf(b);
       const dataChanged = !before || JSON.stringify(before.data) !== JSON.stringify(b.data);
-      const orderChanged = !before || before.order_index !== newOrder;
-      return (dataChanged || orderChanged) ? { id: b.id, data: b.data, order_index: newOrder } : null;
-    }).filter(Boolean);
+      const orderChanged = !before || before.order_index !== i;
+      if (dataChanged || orderChanged) {
+        updates.push({ id: b.id, data: b.data, order_index: i });
+      }
+    }
     for (const u of updates) {
       const { error } = await supabaseClient.from('lesson_blocks').update({ data: u.data, order_index: u.order_index }).eq('id', u.id);
       if (error) { toast('Update failed: ' + error.message, 'error'); return; }
     }
 
-    // Reload to get the canonical state (ids, order).
-    L._serverBlocks = await fetchServerBlocks(L.id);
-    L.blocks = L._serverBlocks;
-    // dirty stays true if the meta path still has unsaved work.
+    // Mirror the in-memory state into _serverBlocks so isBlocksDirty()
+    // returns false. We deliberately do NOT do a server refetch and do
+    // NOT replace L.blocks here. The previous behaviour — refetch and
+    // `L.blocks = L._serverBlocks` — was the cause of the "save keeps
+    // reverting" bug: any keystroke the user typed during the async
+    // save round-trip was overwritten by the server's older snapshot
+    // when the refetch returned, then the editor re-rendered from
+    // that clobbered state. The in-memory L.blocks is the canonical
+    // post-save state; we just snapshot it (via a deep clone so
+    // subsequent in-place edits don't taint the dirty check) for
+    // comparison.
+    L._serverBlocks = JSON.parse(JSON.stringify(L.blocks));
     state.dirty = state.metaDirty || isBlocksDirty();
-    renderBlocksList();
     renderEditorHeader();
     if (!opts.silent) toast('Blocks saved', 'success');
   }
