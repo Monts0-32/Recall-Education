@@ -1052,6 +1052,341 @@
       to   { transform: translateY(0); opacity: 1; }
     }
 
+    /* ---------- STUDENT-STYLE PREVIEW MODAL ----------
+       The "Preview" button opens a modal that mirrors what students see
+       in lesson.html: a wider, more spacious reading column with proper
+       typography, colored callouts, and the full-size interactive
+       practice layouts. The inline .preview (above) is too narrow for
+       the full lesson look — that's for the small per-block previews in
+       the editor body. This .student-preview class is for the
+       full-lesson preview modal. */
+    .student-preview {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px 8px 24px;
+      color: var(--text-2);
+      font-size: 14.5px;
+      line-height: 1.65;
+    }
+    .student-preview-head {
+      padding: 0 0 16px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .student-preview-crumb {
+      display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+      font-size: 12px; color: var(--text-3); margin-bottom: 14px;
+    }
+    .student-preview-crumb a { color: var(--text-3); }
+    .student-preview-crumb a:hover { color: var(--text); }
+    .student-preview-title {
+      font-size: 30px; font-weight: 700; letter-spacing: -0.02em;
+      margin: 0 0 6px; color: var(--text);
+    }
+    .student-preview-meta {
+      color: var(--text-3); font-size: 13px; margin: 0;
+    }
+    .student-preview-body { padding-top: 4px; }
+    .student-preview-body > div { margin-bottom: 22px; }
+    .student-preview-body h2 {
+      font-size: 22px; font-weight: 600; color: var(--text);
+      letter-spacing: -0.015em; margin: 0 0 8px;
+    }
+    .student-preview-body h3 {
+      font-size: 17px; font-weight: 600; color: var(--text);
+      margin: 0 0 6px;
+    }
+    .student-preview-body p { margin: 0 0 10px; }
+    .student-preview-body a { color: var(--blue); }
+    .student-preview-body code {
+      background: var(--bg-3); padding: 1px 5px; border-radius: 3px;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.9em;
+    }
+    .student-preview-body pre {
+      background: var(--bg-3); padding: 10px 12px; border-radius: var(--r-sm);
+      overflow: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    }
+    .student-preview-body img { max-width: 100%; border-radius: var(--r-sm); display: block; }
+    .student-preview-body figure { margin: 0; }
+    .student-preview-body figcaption {
+      font-size: 12px; color: var(--text-3); margin-top: 6px; text-align: center;
+    }
+    /* Push the body left/right a bit to balance the wider modal. */
+    .student-preview-block { margin-bottom: 22px; }
+    .student-preview-block:last-child { margin-bottom: 0; }
+
+    /* callouts in the student-style preview */
+    .student-preview-body .callout {
+      display: flex; gap: 10px; align-items: flex-start;
+      border-radius: var(--r-sm); padding: 10px 12px;
+    }
+    .student-preview-body .callout.tip        { background: var(--green-dim);  border-left: 3px solid var(--green); }
+    .student-preview-body .callout.warning    { background: var(--yellow-dim); border-left: 3px solid var(--yellow); }
+    .student-preview-body .callout.definition { background: var(--blue-pale);  border-left: 3px solid var(--blue); }
+    .student-preview-body .callout .icon { font-size: 16px; line-height: 1; }
+    .student-preview-body .callout .body { flex: 1; }
+    .student-preview-body .callout .body p:last-child { margin: 0; }
+
+    .student-preview-body .video-frame {
+      position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;
+      background: var(--bg-3); border-radius: var(--r-sm);
+    }
+    .student-preview-body .video-frame iframe {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;
+    }
+    .student-preview-body .keypoints {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 12px 14px;
+    }
+    .student-preview-body .keypoints ul { margin: 0; padding-left: 18px; }
+    .student-preview-body .keypoints li { margin-bottom: 4px; }
+
+    .student-preview-body .worked { display: flex; flex-direction: column; gap: 8px; }
+    .student-preview-body .worked .q {
+      background: var(--blue-pale); border-left: 3px solid var(--blue);
+      padding: 8px 12px; border-radius: 0 var(--r-sm) var(--r-sm) 0;
+      font-weight: 500; color: var(--text);
+    }
+    .student-preview-body .worked .step {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 8px 10px;
+    }
+    .student-preview-body .worked .step b { color: var(--text-2); }
+    .student-preview-body .worked .ans {
+      background: var(--green-dim); border-left: 3px solid var(--green);
+      padding: 8px 12px; border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    }
+
+    .student-preview-body .reveal {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 10px 12px;
+    }
+    .student-preview-body .reveal .prompt { font-weight: 500; color: var(--text); }
+    .student-preview-body .reveal .answer {
+      display: none; margin-top: 8px; padding-top: 8px;
+      border-top: 1px solid var(--line-2); color: var(--text-2);
+    }
+    .student-preview-body .reveal.open .answer { display: block; }
+    .student-preview-body .reveal .toggle {
+      background: transparent; border: 0; color: var(--blue);
+      font-family: inherit; font-size: 11.5px; cursor: pointer; padding: 4px 0;
+    }
+
+    .student-preview-body .flashcard { perspective: 800px; height: 130px; cursor: pointer; }
+    .student-preview-body .flashcard-inner {
+      position: relative; width: 100%; height: 100%;
+      transition: transform 0.5s; transform-style: preserve-3d;
+    }
+    .student-preview-body .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+    .student-preview-body .flashcard-face {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      backface-visibility: hidden;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      display: grid; place-items: center; text-align: center; padding: 14px;
+    }
+    .student-preview-body .flashcard-back {
+      transform: rotateY(180deg); background: var(--blue-pale); border-color: var(--blue);
+    }
+    .student-preview-body .math-inline { background: var(--bg-3); padding: 2px 4px; border-radius: 3px; }
+    .student-preview-body .math-display {
+      background: var(--bg-3); border: 1px solid var(--line);
+      padding: 12px; border-radius: var(--r-sm); margin: 6px 0;
+      text-align: center; overflow-x: auto;
+    }
+
+    /* interactive practice in the student-style preview — full size, like lesson.html */
+    .student-preview-body .practice { display: flex; flex-direction: column; gap: 10px; }
+    .student-preview-body .practice .prompt { font-weight: 500; color: var(--text); font-size: 14px; }
+    .student-preview-body .practice .options { display: flex; flex-direction: column; gap: 6px; }
+    .student-preview-body .practice .opt {
+      display: flex; align-items: flex-start; gap: 8px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 8px 10px;
+      cursor: pointer; font-size: 13px; color: var(--text-2);
+      text-align: left; font-family: inherit; width: 100%;
+    }
+    .student-preview-body .practice .opt:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .student-preview-body .practice .opt.selected { border-color: var(--blue); background: var(--blue-pale); color: var(--text); }
+    .student-preview-body .practice .opt.correct { border-color: var(--green); background: var(--green-dim); color: var(--text); }
+    .student-preview-body .practice .opt.wrong   { border-color: var(--red);   background: var(--red-dim);   color: var(--text); }
+    .student-preview-body .practice .check-row { display: flex; gap: 8px; align-items: center; }
+    .student-preview-body .practice .check-row .check-btn {
+      background: var(--blue); color: #fff; border: 0;
+      padding: 6px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    }
+    .student-preview-body .practice .check-row .check-btn:hover { background: var(--blue-2); }
+    .student-preview-body .practice .check-row .check-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .student-preview-body .practice .check-row .reset-btn {
+      background: transparent; color: var(--text-3); border: 1px solid var(--line-2);
+      padding: 5px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12px; cursor: pointer;
+    }
+    .student-preview-body .practice .feedback { border-radius: var(--r-sm); padding: 8px 12px; font-size: 12.5px; }
+    .student-preview-body .practice .feedback.ok    { background: var(--green-dim); border-left: 3px solid var(--green); color: var(--text); }
+    .student-preview-body .practice .feedback.bad   { background: var(--red-dim);   border-left: 3px solid var(--red);   color: var(--text); }
+    .student-preview-body .practice .feedback.info  { background: var(--blue-pale); border-left: 3px solid var(--blue);  color: var(--text); }
+    .student-preview-body .practice .feedback b { color: var(--text); }
+    .student-preview-body .practice .sa-input,
+    .student-preview-body .practice .fb-input {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm); padding: 7px 10px;
+      font-family: inherit; font-size: 13px; outline: none;
+    }
+    .student-preview-body .practice .sa-input:focus,
+    .student-preview-body .practice .fb-input:focus {
+      border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .student-preview-body .practice .fb-sentence { line-height: 2.2; font-size: 13.5px; color: var(--text-2); }
+    .student-preview-body .practice .fb-sentence .fb-input {
+      display: inline-block; min-width: 100px; max-width: 220px;
+      margin: 0 2px; text-align: center;
+    }
+    .student-preview-body .practice .fb-sentence .fb-input.correct { background: var(--green-dim); border-color: var(--green); }
+    .student-preview-body .practice .fb-sentence .fb-input.wrong   { background: var(--red-dim);   border-color: var(--red); }
+    .student-preview-body .practice .fb-sentence .reveal-line { color: var(--text-3); font-size: 12px; margin-left: 4px; }
+    .student-preview-body .practice .match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .student-preview-body .practice .match-col { display: flex; flex-direction: column; gap: 6px; }
+    .student-preview-body .practice .match-col h5 {
+      margin: 0 0 4px; font-size: 11px; color: var(--text-4);
+      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+    }
+    .student-preview-body .practice .match-tile {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 7px 10px;
+      cursor: pointer; font-size: 12.5px; color: var(--text-2);
+      text-align: left; font-family: inherit;
+    }
+    .student-preview-body .practice .match-tile:hover { background: var(--bg-4); }
+    .student-preview-body .practice .match-tile.selected { border-color: var(--blue); background: var(--blue-pale); color: var(--text); }
+    .student-preview-body .practice .match-tile.correct { border-color: var(--green); background: var(--green-dim); }
+    .student-preview-body .practice .match-tile.wrong   { border-color: var(--red);   background: var(--red-dim); }
+    .student-preview-body .practice .match-tile.muted   { opacity: 0.4; }
+    .student-preview-body .practice .order-list { display: flex; flex-direction: column; gap: 4px; }
+    .student-preview-body .practice .order-item {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 7px 10px;
+      font-size: 13px; color: var(--text-2); cursor: grab; user-select: none;
+    }
+    .student-preview-body .practice .order-item:active { cursor: grabbing; }
+    .student-preview-body .practice .order-item.dragging { opacity: 0.4; }
+    .student-preview-body .practice .order-item .grip { color: var(--text-4); font-size: 14px; }
+    .student-preview-body .practice .order-item.correct-pos { border-color: var(--green); background: var(--green-dim); }
+    .student-preview-body .practice .order-item.wrong-pos   { border-color: var(--red);   background: var(--red-dim); }
+    .student-preview-body .practice .hotspot-wrap { position: relative; display: inline-block; max-width: 100%; }
+    .student-preview-body .practice .hotspot-wrap img { display: block; max-width: 100%; border-radius: var(--r-sm); cursor: crosshair; }
+    .student-preview-body .practice .hotspot-wrap .dot {
+      position: absolute; width: 18px; height: 18px;
+      border-radius: 50%; transform: translate(-50%, -50%);
+      border: 2px solid var(--blue); background: var(--blue-pale);
+      display: grid; place-items: center;
+      font-size: 10px; color: var(--blue); font-weight: 700;
+    }
+
+    /* layout blocks in the student-style preview */
+    .student-preview-body .accordion { display: flex; flex-direction: column; gap: 6px; }
+    .student-preview-body .accordion .acc-item {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); overflow: hidden;
+    }
+    .student-preview-body .accordion .acc-head {
+      padding: 8px 12px; cursor: pointer;
+      font-weight: 500; color: var(--text); font-size: 13px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .student-preview-body .accordion .acc-head:hover { background: var(--bg-4); }
+    .student-preview-body .accordion .acc-head .caret {
+      color: var(--text-4); font-size: 10px; transition: transform 0.15s ease;
+    }
+    .student-preview-body .accordion .acc-item.open .acc-head .caret { transform: rotate(90deg); }
+    .student-preview-body .accordion .acc-body {
+      display: none; padding: 8px 14px 12px; border-top: 1px solid var(--line);
+      color: var(--text-2); font-size: 13px;
+    }
+    .student-preview-body .accordion .acc-item.open .acc-body { display: block; }
+    .student-preview-body .tabs { display: flex; flex-direction: column; gap: 8px; }
+    .student-preview-body .tabs .tab-bar {
+      display: flex; gap: 4px; border-bottom: 1px solid var(--line);
+    }
+    .student-preview-body .tabs .tab {
+      background: transparent; border: 0;
+      padding: 7px 12px; cursor: pointer;
+      color: var(--text-3); font-family: inherit; font-size: 12.5px; font-weight: 500;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .student-preview-body .tabs .tab:hover { color: var(--text-2); }
+    .student-preview-body .tabs .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .student-preview-body .tabs .tab-body { color: var(--text-2); font-size: 13px; padding-top: 8px; }
+    .student-preview-body .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .student-preview-body .compare-grid .col {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 12px; font-size: 13px; color: var(--text-2);
+    }
+    .student-preview-body .compare-grid .col h4 {
+      margin: 0 0 8px; font-size: 12.5px; font-weight: 600; color: var(--text);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .student-preview-body .timeline { position: relative; padding-left: 22px; }
+    .student-preview-body .timeline::before {
+      content: ''; position: absolute; left: 8px; top: 6px; bottom: 6px;
+      width: 2px; background: var(--line-2);
+    }
+    .student-preview-body .timeline .tl-item { position: relative; margin-bottom: 14px; }
+    .student-preview-body .timeline .tl-item::before {
+      content: ''; position: absolute; left: -19px; top: 6px;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--blue); border: 2px solid var(--bg-2);
+    }
+    .student-preview-body .timeline .tl-item .tl-date {
+      font-size: 11px; color: var(--text-4); text-transform: uppercase;
+      letter-spacing: 0.04em; font-weight: 600;
+    }
+    .student-preview-body .timeline .tl-item .tl-title { font-weight: 600; color: var(--text); font-size: 13.5px; margin: 2px 0 4px; }
+    .student-preview-body .timeline .tl-item .tl-body { color: var(--text-2); font-size: 13px; }
+
+    /* study aids in the student-style preview */
+    .student-preview-body .objectives { display: flex; flex-direction: column; gap: 4px; }
+    .student-preview-body .objectives .obj-item {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 6px 8px; border-radius: var(--r-sm);
+      font-size: 13px; color: var(--text-2); cursor: pointer;
+    }
+    .student-preview-body .objectives .obj-item:hover { background: var(--bg-3); }
+    .student-preview-body .objectives .obj-item input { margin-top: 2px; accent-color: var(--blue); }
+    .student-preview-body .objectives .obj-item.done { color: var(--text-4); text-decoration: line-through; }
+    .student-preview-body .prereqs { display: flex; flex-direction: column; gap: 4px; }
+    .student-preview-body .prereqs .prereq-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px; border-radius: var(--r-sm);
+      font-size: 13px; color: var(--text-2);
+    }
+    .student-preview-body .prereqs .prereq-item::before { content: '→'; color: var(--text-4); font-weight: 600; }
+    .student-preview-body .glossary { display: flex; flex-direction: column; gap: 4px; }
+    .student-preview-body .glossary .gloss-row {
+      display: grid; grid-template-columns: 160px 1fr; gap: 12px;
+      padding: 6px 8px; border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .student-preview-body .glossary .gloss-row:last-child { border-bottom: 0; }
+    .student-preview-body .glossary .gloss-term { font-weight: 600; color: var(--text); }
+    .student-preview-body .glossary .gloss-def  { color: var(--text-2); }
+    .student-preview-body .summary-card {
+      background: var(--blue-pale); border: 1px solid var(--blue);
+      border-radius: var(--r-sm); padding: 14px 16px;
+    }
+    .student-preview-body .summary-card h4 {
+      margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--blue);
+    }
+    .student-preview-body .summary-card .takeaways { margin: 0 0 12px; padding-left: 18px; }
+    .student-preview-body .summary-card .takeaways li { color: var(--text); margin-bottom: 4px; font-size: 13px; }
+    .student-preview-body .summary-card .body { color: var(--text-2); font-size: 13px; }
+
+    /* Wider modal so the 800px lesson column fits without cramping. */
+    .modal.wide { max-width: 980px; }
+
     /* responsive */
     @media (max-width: 900px) {
       .layout { grid-template-columns: 1fr; }
@@ -2090,7 +2425,13 @@
     $('modalBody').innerHTML = bodyHtml;
     $('modalBack').classList.add('open');
   }
-  function closeModal() { $('modalBack').classList.remove('open'); }
+  function closeModal() {
+    $('modalBack').classList.remove('open');
+    // Strip any "wide" variant the preview modal added so the next
+    // modal (rename, add unit, etc.) renders at the default width.
+    const m = $('modalBack').querySelector('.modal');
+    if (m) m.classList.remove('wide');
+  }
   $('modalCloseBtn').addEventListener('click', closeModal);
   $('modalBack').addEventListener('click', (e) => { if (e.target === $('modalBack')) closeModal(); });
 
@@ -4106,26 +4447,63 @@
     const L = state.currentLesson;
     if (!L) return;
     const blocksHtml = (L.blocks || []).map((b, i) =>
-      `<div class="preview-block" data-bidx="${i}" style="margin-bottom:14px;">${renderBlock(b)}</div>`
+      `<div class="student-preview-block" data-bidx="${i}">${renderBlock(b)}</div>`
     ).join('') || '<p style="color: var(--text-4)">No blocks yet.</p>';
+
+    // Build the breadcrumb shown above the lesson title — mirrors the
+    // student view in lesson.html so staff can see what the lesson will
+    // look like in context (Catalogue › Subject › Topic › Lesson).
+    const isGeneral = !!L.is_general;
+    let crumb;
+    if (isGeneral) {
+      crumb = `
+        <a href="#" onclick="closeModal(); return false;">Catalogue</a>
+        <span>›</span>
+        <span>General</span>
+        <span>›</span>
+        <span style="color: var(--text-2);">${escapeHtml(L.title)}</span>
+      `;
+    } else {
+      const subj = state.currentSubject;
+      const topic = state.currentTopic;
+      crumb = `
+        <a href="#" onclick="closeModal(); return false;">Catalogue</a>
+        ${subj ? `<span>›</span><span>${escapeHtml(subj.name)}</span>` : ''}
+        ${topic ? `<span>›</span><span>${escapeHtml(topic.name)}</span>` : ''}
+        <span>›</span>
+        <span style="color: var(--text-2);">${escapeHtml(L.title)}</span>
+      `;
+    }
+
     const body = `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
         <div style="color:var(--text-3);font-size:12px;">In-staff preview — interactivity works exactly like the student view.</div>
         <a class="btn-primary" id="openStudentViewBtn" target="_blank" rel="noopener" style="text-decoration:none;font-size:12px;padding:6px 12px;">Open student view ↗</a>
       </div>
-      <article style="font-size: 14.5px; line-height: 1.6; color: var(--text);">
-        <h1 style="font-size: 26px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.02em;">${escapeHtml(L.title)}</h1>
-        <p style="color: var(--text-3); font-size: 13px; margin: 0 0 20px;">
-          ${escapeHtml(state.currentSubject?.name || '')} · ${escapeHtml(state.currentTopic?.name || '')} · ${L.duration_min ?? 20} min
-        </p>
-        ${blocksHtml}
-      </article>
+      <div class="student-preview">
+        <div class="student-preview-head">
+          <div class="student-preview-crumb">${crumb}</div>
+          <h1 class="student-preview-title">${escapeHtml(L.title)}</h1>
+          <p class="student-preview-meta">
+            ${escapeHtml(state.currentSubject?.name || 'General')}
+            ${state.currentTopic ? ' · ' + escapeHtml(state.currentTopic.name) : ''}
+            · ${L.duration_min ?? 20} min
+          </p>
+        </div>
+        <div class="student-preview-body">
+          ${blocksHtml}
+        </div>
+      </div>
     `;
+    // Widen the modal so the 800px lesson column fits comfortably —
+    // the default 900px cap is too narrow once you account for the
+    // modal padding and the in-staff banner above the preview.
+    $('modalBack').querySelector('.modal').classList.add('wide');
     openModal('Preview — ' + L.title, body);
     // Wire interactivity for any interactive blocks in the preview.
-    const article = $('modalBody').querySelector('article');
-    if (article) {
-      article.querySelectorAll('.preview-block').forEach((wrap, i) => {
+    const sp = $('modalBody').querySelector('.student-preview');
+    if (sp) {
+      sp.querySelectorAll('.student-preview-block').forEach((wrap, i) => {
         bindInteractive(wrap, L.blocks[i]);
       });
     }
