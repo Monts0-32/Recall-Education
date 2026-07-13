@@ -4385,7 +4385,15 @@
       if (error) { toast('Delete failed: ' + error.message, 'error'); return; }
     }
 
-    // Insert + update in parallel
+    // Insert + update. Use .select() on the insert so we can detect the
+    // silent-RLS-block case: Supabase's JS client returns {data: null,
+    // error: null} when an RLS WITH CHECK fails, so checking .error
+    // alone would let a denied insert appear to succeed. The most
+    // common reason for that on this project is the lesson_blocks RLS
+    // policy still checking role = 'staff' (the old pre-admin-roles
+    // form) when the caller's role is 'staff_author' / 'staff_reviewer'
+    // / 'admin' — fixed by running supabase_admin.sql which rewrites
+    // the policies. The .select() lets us tell the user what to do.
     const inserts = current.filter(b => !b.id).map((b, idx) => ({
       lesson_id: L.id,
       kind: b.kind,
@@ -4393,8 +4401,23 @@
       order_index: current.indexOf(b),
     }));
     if (inserts.length) {
-      const { error } = await supabaseClient.from('lesson_blocks').insert(inserts);
+      const { data: inserted, error } = await supabaseClient
+        .from('lesson_blocks')
+        .insert(inserts)
+        .select();
       if (error) { toast('Insert failed: ' + error.message, 'error'); return; }
+      if (!inserted || inserted.length !== inserts.length) {
+        // Silent RLS denial or other write-skip. Common cause: the
+        // lesson_blocks_staff_write policy is still checking
+        // role = 'staff' (the pre-admin-roles form), so staff_author
+        // accounts get silently filtered out. Tell the user what to do.
+        toast(
+          'Insert was blocked by row-level security. ' +
+          'Re-run supabase_admin.sql to update the policies for the new staff roles.',
+          'error'
+        );
+        return;
+      }
     }
     // Updates: only need to send if data or order_index changed
     const updates = current.filter(b => b.id).map((b) => {
