@@ -10,13 +10,21 @@
         (PLACEMENTS table, picked by pathname)
      4. creates a single <body>-level fixed overlay and spawns the
         bubbles at their deliberate positions
+     5. on scroll, drifts each bubble downward at a per-bubble
+        parallax speed and wraps it back to the top when it leaves
+        the viewport
+     6. on click, pops the bubble (scale up + fade), then teleports
+        it to the next "alt" position and fades it back in
 
-   The bubbles are decorative only:
+   The bubbles are decorative but interactive:
      - all of them use the iridescent (rainbow) variant
-     - they sit at z-index 0 with pointer-events: none
-     - body children are lifted above them via a :where() rule with
-       zero specificity, so any pre-existing z-index still wins
-     - they never move, animate, or respond to clicks
+     - they sit at z-index 0; body children are lifted above them via
+       a :where() rule with zero specificity, so any pre-existing
+       z-index still wins
+     - where a card covers a bubble, the card catches the click
+       (because pointer-events: auto on the bubble + the card's own
+       stacking context = UI wins). Bubbles are clickable in margins.
+     - scroll-driven drift, not per-frame motion — zero idle CPU.
 
    The script is the single source of truth for both the cross-page
    theme and the bubble behaviour. Touching index.html's style isn't
@@ -536,12 +544,14 @@
   `;
 
   // ----- 2. Bubble CSS ---------------------------------------------------
-  // The visual is the same as the previous build: four variants
-  // (glass / cyan / white / iridescent). The overlay z-index is 0
-  // so bubbles sit BEHIND all page content — every page's UI paints
+  // The visual is the same as the previous build: the iridescent
+  // (rainbow) variant for every bubble. The overlay z-index is 0 so
+  // bubbles sit BEHIND all page content — every page's UI paints
   // over them. The host page's content is lifted above via a :where()
-  // rule at the bottom of this block. Bubbles are decorative only:
-  // no click handlers, no pointer-events:auto, no cursor.
+  // rule at the bottom of this block. Bubbles are clickable (they
+  // catch clicks in the margins), but where a card sits on top of a
+  // bubble the card wins the click because the card's own stacking
+  // context (from the :where() lift) is above the bubble field.
   const BUBBLE_CSS = `
     .bubble-field {
       position: fixed;
@@ -556,9 +566,18 @@
       width:  var(--bubble-size, 80px);
       height: var(--bubble-size, 80px);
       border-radius: 50%;
-      pointer-events: none;
+      /* pointer-events: auto so the bubble catches clicks; the field
+         below stays pointer-events: none so empty space passes through.
+         Where a card covers a bubble, the card's own stacking context
+         (from the :where() lift) wins, so the click still hits the UI. */
+      pointer-events: auto;
+      cursor: pointer;
       will-change: transform, opacity;
       transform: translate3d(0, 0, 0);
+      /* No base transition — the scroll handler needs transforms
+         to be instant (otherwise the bubble would lag 350ms behind
+         every scroll). The pop function sets its own transition
+         inline for the duration of the pop animation. */
       background:
         radial-gradient(circle at 30% 28%,
           rgba(255,255,255,0.22) 0%,
@@ -907,7 +926,9 @@
           ? Math.random() * (W * 0.2)
           : W * 0.8 + Math.random() * (W * 0.2);
         const y = Math.random() * H;
-        createBubble(x, y, size);
+        // No alts — the pop handler picks a fresh random margin pos
+        // on click.
+        createBubble(x, y, size, []);
       }
       return;
     }
@@ -917,11 +938,25 @@
       const alts = parseAlts(p.alts, [window.innerWidth, window.innerHeight]);
       const x = alts[0].x;
       const y = alts[0].y;
-      createBubble(x, y, p.size);
+      createBubble(x, y, p.size, p.alts);
     }
   }
 
-  function createBubble(x, y, size) {
+  // ----- 6. Bubble lifecycle: spawn, drift, pop ------------------------
+  // Each bubble has a base position (in viewport px) and a parallax
+  // factor in [0.15, 0.65]. On scroll, the bubble's drawn y is
+  //   y_drawn = baseY + scrollY * factor
+  // so it flows downward as the user scrolls. When y_drawn exits the
+  // bottom of the viewport, the bubble wraps: baseY is decremented by
+  // (viewportHeight + size) and baseX is randomised in the outer 20%
+  // margin, so a fresh bubble appears at the top.
+  //
+  // Click → pop. The pop function animates scale(1.6) + opacity 0,
+  // teleports to the next alt position, then fades back. While the pop
+  // is running, `b.popping` is true and the scroll handler skips the
+  // bubble so the animation isn't clobbered.
+
+  function createBubble(x, y, size, altsData) {
     const el = document.createElement("div");
     // Every bubble is the iridescent (rainbow) variant.
     const sizeClass = SIZE_CLASS[size] || "bubble--md";
@@ -930,9 +965,33 @@
     el.style.transform = `translate3d(${x - size/2}px, ${y - size/2}px, 0)`;
     overlay.appendChild(el);
 
-    bubbles.push({ el, size });
+    // Alts is the raw placement data — viewport-relative percentages.
+    // We re-parse on pop (against the current viewport) so positions
+    // stay correct after rotation. Random-spawn bubbles get an empty
+    // alts list; their pop picks a fresh random margin position.
+    const b = {
+      el,
+      size,
+      baseX: x,
+      baseY: y,
+      factor: 0.15 + Math.random() * 0.5,   // 0.15..0.65 parallax depth
+      alts: altsData || [],
+      altIndex: 0,
+      popping: false,
+    };
+    bubbles.push(b);
 
-    // Fade in
+    // Click → pop. stopPropagation is defensive: the field has
+    // pointer-events: none, so the click can't have come from empty
+    // space, but if any future page wires a click on the bubble
+    // field's parent this prevents it firing too.
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (b.popping) return;
+      popBubble(b);
+    });
+
+    // Fade in.
     el.style.transition = "opacity 0.4s ease";
     requestAnimationFrame(() => {
       el.style.opacity = "1";
@@ -940,16 +999,141 @@
     });
   }
 
+  function applyTransform(b, x, y, scale) {
+    const s = scale == null ? 1 : scale;
+    b.el.style.transform = `translate3d(${x - b.size/2}px, ${y - b.size/2}px, 0) scale(${s})`;
+  }
+
+  // ---- 6a. Pop & regrow ------------------------------------------------
+  const POP_OUT_MS = 350;
+  const POP_IN_MS  = 300;
+
+  function popBubble(b) {
+    b.popping = true;
+    if (reduceMotion.matches) {
+      // Instant teleport — no animation for users who opted out.
+      advanceToNextAlt(b);
+      applyTransform(b, b.baseX, b.baseY, 1);
+      b.popping = false;
+      return;
+    }
+
+    // 1. Pop: scale up + fade out at the current drawn position.
+    const yDrawn = b.baseY + window.scrollY * b.factor;
+    b.el.style.transition = `transform ${POP_OUT_MS}ms cubic-bezier(0.4, 0, 0.2, 1),
+                             opacity   ${POP_OUT_MS}ms ease`;
+    applyTransform(b, b.baseX, yDrawn, 1.6);
+    b.el.style.opacity = "0";
+
+    // 2. When the pop is done, teleport to the next position and fade
+    // back in. The scroll handler is blocked while `popping` is true,
+    // so this transform write sticks.
+    setTimeout(() => {
+      advanceToNextAlt(b);
+      const yDrawn2 = b.baseY + window.scrollY * b.factor;
+      b.el.style.transition = `transform ${POP_IN_MS}ms cubic-bezier(0.4, 0, 0.2, 1),
+                               opacity   ${POP_IN_MS}ms ease`;
+      applyTransform(b, b.baseX, yDrawn2, 1);
+      b.el.style.opacity = "1";
+      setTimeout(() => {
+        b.el.style.transition = "";
+        b.popping = false;
+      }, POP_IN_MS + 50);
+    }, POP_OUT_MS);
+  }
+
+  function advanceToNextAlt(b) {
+    b.altIndex = (b.altIndex + 1) % Math.max(1, b.alts.length);
+
+    // Hand-placed bubble with alts: re-parse the next alt against the
+    // current viewport and write it as the new base position. After
+    // cycling all alts, there's a 50% chance to pick a fresh random
+    // margin position so the page doesn't feel like a strict loop.
+    if (b.alts.length > 0) {
+      const useRandom = b.altIndex === 0 && Math.random() < 0.5;
+      if (useRandom) {
+        pickRandomMarginPos(b);
+        return;
+      }
+      const next = b.alts[b.altIndex];
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      b.baseX = parseCoord(next.x, W);
+      b.baseY = parseCoord(next.y, H);
+      return;
+    }
+
+    // No alts (random-spawn bubble): always pick a fresh margin pos.
+    pickRandomMarginPos(b);
+  }
+
+  function pickRandomMarginPos(b) {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const side = Math.random() < 0.5 ? "left" : "right";
+    b.baseX = side === "left"
+      ? Math.random() * (W * 0.2)
+      : W * 0.8 + Math.random() * (W * 0.2);
+    b.baseY = Math.random() * H;
+  }
+
+  // ---- 6b. Scroll → drift + wrap ---------------------------------------
+  // Passive listener — scroll-driven motion is information about
+  // what's on the page below, so it stays on even with reduce-motion.
+  function onScroll() {
+    const sy = window.scrollY;
+    const vh = window.innerHeight;
+    for (let i = 0; i < bubbles.length; i++) {
+      const b = bubbles[i];
+      if (b.popping) continue;   // don't clobber the pop animation
+      let yDrawn = b.baseY + sy * b.factor;
+      if (yDrawn > vh + b.size) {
+        // Wrap: subtract a full screen so the bubble re-enters from
+        // the top, and randomise x in the outer 20% margin.
+        b.baseY -= vh + b.size;
+        pickRandomMarginX(b);
+        yDrawn = b.baseY + sy * b.factor;
+      }
+      applyTransform(b, b.baseX, yDrawn, 1);
+    }
+  }
+
+  // Like pickRandomMarginPos but only touches x (used during wrap so
+  // the bubble's y is whatever the wrap math produced).
+  function pickRandomMarginX(b) {
+    const W = window.innerWidth;
+    const side = Math.random() < 0.5 ? "left" : "right";
+    b.baseX = side === "left"
+      ? Math.random() * (W * 0.2)
+      : W * 0.8 + Math.random() * (W * 0.2);
+  }
+
+  // Re-parse alts + reposition under the new viewport. We keep each
+  // bubble's current conceptual position (the alt at altIndex, or the
+  // bubble's current baseX/baseY if it has no alts).
+  let resizeTimer = 0;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      for (const b of bubbles) {
+        if (b.alts.length > 0) {
+          const cur = b.alts[b.altIndex];
+          b.baseX = parseCoord(cur.x, W);
+          b.baseY = parseCoord(cur.y, H);
+        }
+        // else: random-spawn bubble — baseX/baseY are already px,
+        // just leave them.
+      }
+      onScroll();   // re-apply transforms
+    }, 200);
+  });
+
+  // ---- 6c. Initial paint -----------------------------------------------
   spawn();
-
-  // ----- 6. No interaction -----------------------------------------------
-  // Bubbles are decorative and never move. They sit behind all page UI
-  // (z-index 0, with a :where() lift on body children) and never receive
-  // pointer events, so they cannot be clicked.
-
-  // ----- 7. Resize ---------------------------------------------------------
-  // Bubble positions are fixed at spawn time. On resize the bubbles stay
-  // where they were placed (which is fine for hand-placed positions on
-  // a fixed layout). A page refresh is the user's escape hatch if a
-  // rotation lands a bubble somewhere it shouldn't be.
+  onScroll();   // set initial transforms (handles both pre-scrollY=0
+                // and the rare case where the page is restored with a
+                // non-zero scroll position on first paint)
+  window.addEventListener("scroll", onScroll, { passive: true });
 })();
