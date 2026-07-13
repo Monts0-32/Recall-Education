@@ -11,12 +11,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     /* ----------------------------------------------------------------------
-       Theme: "bubbley grey" — recoloured to match the Recall logo sphere.
-       The logo's outer halo is a soft cool grey with a cyan/teal primary
-       accent (the dominant arc on the right of the sphere). We pull both
-       into the page: surfaces are a slightly warmer, lifted grey (so they
-       read as inflated/bubble rather than near-black void), corners are
-       rounder, and primary surfaces pick up a faint teal glow.
+       Theme: "bubbley grey" + literal bubbles as a design element.
+       Recalled from the logo sphere: a dark grey body, a soft cyan/teal
+       primary arc, and rounded "bubble" surfaces. The page now also
+       carries actual bubble shapes — translucent spheres with a glassy
+       highlight + soft outer glow — as ambient decoration in the hero,
+       sections, and CTA. Primary actions are solid white with a faint
+       teal halo so they read as the lightest, largest bubble on the page.
        ---------------------------------------------------------------------- */
     :root {
       /* surfaces — warmer, slightly lifted greys. Steps chosen so cards
@@ -33,7 +34,8 @@
       --text-2:    #C9D1D9;
       --text-3:    #9098A4;
       --text-4:    #6B7280;
-      /* primary accent — cyan/teal pulled from the logo's dominant ring. */
+      /* primary accent — cyan/teal pulled from the logo's dominant ring.
+         Now used for accents, not for buttons (which are white). */
       --teal:      #56D4DD;
       --teal-2:    #3FB8C4;
       --teal-soft: #7CE0E8;
@@ -56,7 +58,7 @@
       --r-lg: 24px;
       --r-pill: 999px;
       --maxw: 1240px;
-      /* bubble shadow recipe: short soft drop + faint teal halo on hover. */
+      /* shadows */
       --shadow-sm: 0 2px 6px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.10);
       --shadow-md: 0 8px 24px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.12);
       --shadow-glow: 0 0 0 1px var(--teal-dim), 0 8px 24px rgba(0,0,0,0.22);
@@ -73,12 +75,12 @@
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
-      /* a very faint teal glow in the top-left, echoing the logo's lit
-         side. Sits behind everything; cards paint over it. */
+      /* very faint atmospheric teal, hint of light from the top-left
+         (logo's lit side). Sits behind everything. */
       background-image:
-        radial-gradient(ellipse 1200px 600px at 0% 0%,
-          rgba(86, 212, 221, 0.06), transparent 60%),
-        radial-gradient(ellipse 800px 500px at 100% 30%,
+        radial-gradient(ellipse 1400px 700px at 0% -10%,
+          rgba(86, 212, 221, 0.07), transparent 60%),
+        radial-gradient(ellipse 900px 500px at 100% 20%,
           rgba(86, 212, 221, 0.04), transparent 70%);
       background-attachment: fixed;
     }
@@ -107,15 +109,16 @@
       text-decoration: none;
     }
     .brand:hover { text-decoration: none; }
-    /* Logo is already round-ish from object-fit: cover; keep a soft
-       squircle so it doesn't jar against the now-rounder surfaces. */
+    /* Logo is round-ish from object-fit: cover. The new logo has a
+       white "R" with a strong chromatic ring, so a faint teal halo
+       echoes the ring without competing. */
     .brand-mark {
       width: 30px; height: 30px;
       display: block;
       object-fit: cover;
-      border-radius: 8px;
-      /* faint outer ring to suggest the logo's halo */
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 2px 8px rgba(86,212,221,0.18);
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.04),
+                  0 0 16px rgba(86,212,221,0.18);
     }
     nav.top ul { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; }
     nav.top a.nav-link {
@@ -124,13 +127,15 @@
     }
     nav.top a.nav-link:hover { color: var(--text); background: var(--bg-3); text-decoration: none; }
     .nav-right { display: flex; align-items: center; gap: 8px; }
+    /* Primary button — white. The teal halo keeps it inside the brand
+       palette without making it a coloured button. */
     .nav-cta {
-      background: var(--teal); color: #0B0D0F;
+      background: #FFFFFF; color: #0B0D0F;
       padding: 7px 16px; border-radius: var(--r-pill); font-size: 14px; font-weight: 600;
-      box-shadow: 0 2px 10px var(--teal-glow);
+      box-shadow: 0 2px 10px rgba(255,255,255,0.10), 0 0 24px rgba(86,212,221,0.18);
       transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     }
-    .nav-cta:hover { background: var(--teal-soft); box-shadow: 0 4px 16px var(--teal-glow); text-decoration: none; transform: translateY(-1px); }
+    .nav-cta:hover { background: #F0F2F5; box-shadow: 0 4px 16px rgba(255,255,255,0.16), 0 0 32px rgba(86,212,221,0.28); text-decoration: none; transform: translateY(-1px); }
 
     /* ---------- HERO ---------- */
     .hero { padding: 64px 0 56px; }
@@ -151,13 +156,13 @@
 
     .cta-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .btn-primary {
-      background: var(--teal); color: #0B0D0F;
+      background: #FFFFFF; color: #0B0D0F;
       padding: 11px 20px; border-radius: var(--r-pill); font-size: 14px; font-weight: 600;
       display: inline-flex; align-items: center; gap: 8px;
-      box-shadow: 0 4px 16px var(--teal-glow);
+      box-shadow: 0 4px 18px rgba(255,255,255,0.10), 0 0 32px rgba(86,212,221,0.22);
       transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     }
-    .btn-primary:hover { background: var(--teal-soft); box-shadow: 0 6px 22px var(--teal-glow); text-decoration: none; transform: translateY(-1px); }
+    .btn-primary:hover { background: #F0F2F5; box-shadow: 0 6px 24px rgba(255,255,255,0.16), 0 0 40px rgba(86,212,221,0.32); text-decoration: none; transform: translateY(-1px); }
     .btn-ghost {
       color: var(--text); padding: 11px 16px; font-size: 14px; font-weight: 500;
       display: inline-flex; align-items: center; gap: 6px;
@@ -480,10 +485,10 @@
     }
     .plan .plan-cta:hover { background: var(--bg-4); border-color: var(--line-3); text-decoration: none; }
     .plan.featured-plan .plan-cta {
-      background: var(--teal); color: #0B0D0F; border-color: var(--teal);
-      box-shadow: 0 4px 16px var(--teal-glow);
+      background: #FFFFFF; color: #0B0D0F; border-color: #FFFFFF;
+      box-shadow: 0 4px 18px rgba(255,255,255,0.10), 0 0 32px rgba(86,212,221,0.22);
     }
-    .plan.featured-plan .plan-cta:hover { background: var(--teal-soft); border-color: var(--teal-soft); }
+    .plan.featured-plan .plan-cta:hover { background: #F0F2F5; border-color: #F0F2F5; }
 
     /* ---------- FAQ ---------- */
     .faq-list { max-width: 800px; }
@@ -513,11 +518,14 @@
     /* ---------- CTA STRIP ---------- */
     .cta-strip {
       background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
-      border: 1px solid var(--teal-dim);
+      border: 1px solid var(--line-2);
       border-radius: var(--r-lg);
       padding: 56px 48px;
       margin: 0 24px 80px;
-      box-shadow: 0 0 60px rgba(86, 212, 221, 0.08), var(--shadow-md);
+      box-shadow: 0 0 60px rgba(86, 212, 221, 0.06), var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;  /* so the bubble shadows don't leak out */
     }
     .cta-strip .grid {
       display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: end;
@@ -542,14 +550,14 @@
     .cta-strip input[type=email]:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-pale); }
     .cta-strip input[type=email]::placeholder { color: var(--text-4); }
     .cta-strip button {
-      background: var(--teal); color: #0B0D0F;
-      border: 1px solid var(--teal); padding: 0 18px; border-radius: var(--r-pill);
+      background: #FFFFFF; color: #0B0D0F;
+      border: 1px solid #FFFFFF; padding: 0 18px; border-radius: var(--r-pill);
       font-family: inherit; font-weight: 600; font-size: 14px;
       cursor: pointer;
-      box-shadow: 0 4px 14px var(--teal-glow);
+      box-shadow: 0 4px 18px rgba(255,255,255,0.10), 0 0 28px rgba(86,212,221,0.22);
       transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     }
-    .cta-strip button:hover { background: var(--teal-soft); box-shadow: 0 6px 20px var(--teal-glow); transform: translateY(-1px); }
+    .cta-strip button:hover { background: #F0F2F5; box-shadow: 0 6px 24px rgba(255,255,255,0.16), 0 0 36px rgba(86,212,221,0.30); transform: translateY(-1px); }
     .cta-strip .micro { font-size: 12px; color: var(--text-3); }
 
     /* ---------- FOOTER ---------- */
@@ -570,6 +578,120 @@
     }
     footer .brand-block { max-width: 320px; }
     footer .brand-block p { font-size: 13px; color: var(--text-2); margin: 12px 0 0; line-height: 1.5; }
+
+    /* ---------- BUBBLES (literal spheres) -------------------------------
+       Decorative spheres scattered through the page. Each is a single
+       <div> placed absolutely inside a .bubble-field (or any
+       position:relative parent). The look comes from four stacked
+       effects in one element:
+         1. radial-gradient background — sphere highlight top-left, body
+            tint, falloff to transparent
+         2. inset box-shadow — inner reflection
+         3. outer box-shadow — ambient glow tinted to the variant
+         4. 1px white-alpha border — defines the rim
+       Sizing is set per-bubble with the --bubble-size custom property
+       (defaults to 80px). Variants: --glass (default), --cyan (cool
+       tint), --white (light, hero-spotlight), --iridescent (rainbow
+       ring around the equator using a conic-gradient masked by a
+       radial). Pointer-events:none so they never block clicks. The
+       float animation respects prefers-reduced-motion.
+       ----------------------------------------------------------------- */
+    .bubble-field {
+      position: relative;
+      overflow: hidden;
+      /* bubbles can sit slightly outside their section's box without
+         leaking into neighbours; clipping is per-section. */
+    }
+    .bubble {
+      position: absolute;
+      width:  var(--bubble-size, 80px);
+      height: var(--bubble-size, 80px);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+      /* default: glassy sphere */
+      background:
+        radial-gradient(circle at 30% 28%,
+          rgba(255,255,255,0.22) 0%,
+          rgba(255,255,255,0.08) 18%,
+          rgba(255,255,255,0.02) 40%,
+          transparent 70%);
+      box-shadow:
+        inset 6px 10px 24px rgba(255,255,255,0.10),
+        inset -8px -10px 30px rgba(86,212,221,0.06),
+        0 0 32px rgba(86,212,221,0.10),
+        0 8px 28px rgba(0,0,0,0.20);
+      border: 1px solid rgba(255,255,255,0.06);
+      animation: bubble-float 18s ease-in-out infinite;
+    }
+    .bubble--glass { /* default look — nothing to override */ }
+    .bubble--cyan {
+      background:
+        radial-gradient(circle at 30% 28%,
+          rgba(124,224,232,0.32) 0%,
+          rgba(86,212,221,0.18) 22%,
+          rgba(86,212,221,0.06) 50%,
+          transparent 75%);
+      box-shadow:
+        inset 6px 10px 24px rgba(124,224,232,0.18),
+        inset -8px -10px 30px rgba(86,212,221,0.10),
+        0 0 50px rgba(86,212,221,0.28),
+        0 8px 28px rgba(0,0,0,0.20);
+      border-color: rgba(124,224,232,0.18);
+    }
+    .bubble--white {
+      background:
+        radial-gradient(circle at 30% 28%,
+          rgba(255,255,255,0.40) 0%,
+          rgba(255,255,255,0.16) 25%,
+          rgba(255,255,255,0.04) 55%,
+          transparent 80%);
+      box-shadow:
+        inset 6px 10px 28px rgba(255,255,255,0.28),
+        inset -8px -10px 30px rgba(86,212,221,0.10),
+        0 0 60px rgba(255,255,255,0.10),
+        0 8px 32px rgba(0,0,0,0.22);
+      border-color: rgba(255,255,255,0.10);
+    }
+    /* Iridescent — conic-gradient makes a rainbow ring; the radial
+       overlay dims the centre so the colour only shows around the rim,
+       like a soap bubble. */
+    .bubble--iridescent {
+      background:
+        radial-gradient(circle at 50% 50%, transparent 38%, transparent 100%),
+        conic-gradient(from 200deg,
+          rgba(86,212,221,0.0)  0deg,
+          rgba(86,212,221,0.5)  40deg,
+          rgba(124,224,232,0.6) 80deg,
+          rgba(255,255,255,0.4) 130deg,
+          rgba(216,177,74,0.5)  180deg,
+          rgba(242,107,98,0.5)  230deg,
+          rgba(179,136,248,0.5) 280deg,
+          rgba(86,212,221,0.5)  340deg,
+          rgba(86,212,221,0.0)  360deg);
+      -webkit-mask: radial-gradient(circle, transparent 0%, transparent 50%, #000 70%, #000 100%);
+              mask: radial-gradient(circle, transparent 0%, transparent 50%, #000 70%, #000 100%);
+      box-shadow:
+        inset 6px 10px 24px rgba(255,255,255,0.12),
+        0 0 50px rgba(86,212,221,0.20),
+        0 8px 28px rgba(0,0,0,0.20);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    /* Variant for tiny accent bubbles — slightly stronger highlight. */
+    .bubble--sm { --bubble-size: 32px; }
+    .bubble--md { --bubble-size: 80px; }
+    .bubble--lg { --bubble-size: 160px; }
+    .bubble--xl { --bubble-size: 280px; }
+    @keyframes bubble-float {
+      0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+      50%      { transform: translate3d(0, -10px, 0) scale(1.02); }
+    }
+    /* Stagger the float so neighbouring bubbles don't all bob in sync. */
+    .bubble:nth-child(2n)  { animation-duration: 22s; animation-delay: -4s; }
+    .bubble:nth-child(3n)  { animation-duration: 26s; animation-delay: -8s; }
+    .bubble:nth-child(5n)  { animation-duration: 30s; animation-delay: -2s; }
+    /* Content inside a .bubble-field needs to sit above the bubbles. */
+    .bubble-field > :not(.bubble) { position: relative; z-index: 1; }
 
     /* ---------- RESPONSIVE ---------- */
     @media (max-width: 1000px) {
@@ -619,7 +741,11 @@
 </nav>
 
 <!-- HERO -->
-<header class="hero">
+<header class="hero bubble-field">
+  <div class="bubble" style="top: 18%; left: 4%; --bubble-size: 140px;"></div>
+  <div class="bubble bubble--iridescent" style="top: 8%; right: 6%; --bubble-size: 320px;"></div>
+  <div class="bubble bubble--cyan" style="bottom: 14%; right: 22%; --bubble-size: 60px;"></div>
+  <div class="bubble bubble--glass" style="bottom: 30%; left: 38%; --bubble-size: 36px;"></div>
   <div class="wrap hero-grid">
     <div>
       <h1>Every GCSE and A-level subject, properly taught.</h1>
@@ -727,7 +853,10 @@
 </div>
 
 <!-- SUBJECTS -->
-<section id="subjects">
+<section id="subjects" class="bubble-field">
+  <div class="bubble bubble--white" style="top: 12%; right: 4%; --bubble-size: 110px;"></div>
+  <div class="bubble bubble--cyan" style="bottom: 8%; left: 5%; --bubble-size: 70px;"></div>
+  <div class="bubble bubble--glass" style="top: 40%; right: 12%; --bubble-size: 30px;"></div>
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Subjects</span>
@@ -763,7 +892,10 @@
 </section>
 
 <!-- HOW IT WORKS -->
-<section id="how" style="border-top: 1px solid var(--line);">
+<section id="how" class="bubble-field" style="border-top: 1px solid var(--line);">
+  <div class="bubble bubble--iridescent" style="top: -8%; left: 8%; --bubble-size: 200px;"></div>
+  <div class="bubble bubble--glass" style="bottom: 10%; right: 6%; --bubble-size: 90px;"></div>
+  <div class="bubble bubble--cyan" style="top: 40%; left: 3%; --bubble-size: 40px;"></div>
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">How it works</span>
@@ -797,7 +929,9 @@
 </section>
 
 <!-- FEATURED -->
-<section id="lesson" style="border-top: 1px solid var(--line); padding-top: 80px;">
+<section id="lesson" class="bubble-field" style="border-top: 1px solid var(--line); padding-top: 80px;">
+  <div class="bubble bubble--white" style="top: 30%; right: 4%; --bubble-size: 130px;"></div>
+  <div class="bubble bubble--glass" style="bottom: 8%; left: 6%; --bubble-size: 50px;"></div>
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Inside a subject</span>
@@ -847,7 +981,10 @@
 </section>
 
 <!-- EVIDENCE -->
-<section style="border-top: 1px solid var(--line); padding-top: 80px;">
+<section class="bubble-field" style="border-top: 1px solid var(--line); padding-top: 80px;">
+  <div class="bubble bubble--iridescent" style="top: 5%; right: 8%; --bubble-size: 160px;"></div>
+  <div class="bubble bubble--cyan" style="bottom: 14%; left: 3%; --bubble-size: 80px;"></div>
+  <div class="bubble bubble--glass" style="top: 50%; right: 18%; --bubble-size: 28px;"></div>
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">The evidence</span>
@@ -885,7 +1022,10 @@
 </section>
 
 <!-- PRICING -->
-<section id="pricing" style="border-top: 1px solid var(--line);">
+<section id="pricing" class="bubble-field" style="border-top: 1px solid var(--line);">
+  <div class="bubble bubble--iridescent" style="top: 25%; right: 18%; --bubble-size: 240px;"></div>
+  <div class="bubble bubble--white" style="top: 12%; left: 6%; --bubble-size: 90px;"></div>
+  <div class="bubble bubble--glass" style="bottom: 10%; right: 8%; --bubble-size: 50px;"></div>
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Pricing</span>
@@ -930,7 +1070,10 @@
 </section>
 
 <!-- FAQ -->
-<section id="faq" style="border-top: 1px solid var(--line);">
+<section id="faq" class="bubble-field" style="border-top: 1px solid var(--line);">
+  <div class="bubble bubble--cyan" style="top: 18%; right: 5%; --bubble-size: 110px;"></div>
+  <div class="bubble bubble--glass" style="bottom: 20%; left: 4%; --bubble-size: 60px;"></div>
+  <div class="bubble bubble--white" style="top: 60%; right: 12%; --bubble-size: 30px;"></div>
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">FAQ</span>
@@ -997,7 +1140,10 @@
 </section>
 
 <!-- CTA -->
-<section class="cta-strip" id="start">
+<section class="cta-strip bubble-field" id="start">
+  <div class="bubble bubble--iridescent" style="top: -30%; right: -8%; --bubble-size: 280px;"></div>
+  <div class="bubble bubble--white" style="bottom: -20%; left: 12%; --bubble-size: 160px;"></div>
+  <div class="bubble bubble--cyan" style="top: 30%; right: 30%; --bubble-size: 40px;"></div>
   <div class="grid">
     <div>
       <h2>Start free. Pick a subject tonight.</h2>
