@@ -4367,6 +4367,16 @@
     // we diff against the most recently loaded set (state._serverBlocks).
     const server = L._serverBlocks || (L._serverBlocks = await fetchServerBlocks(L.id));
     const current = L.blocks;
+    try {
+      console.log('[saveBlocks] lesson=%s blocks: current=%d, server=%d, dirty=%s, opts.silent=%s',
+        L.id, current.length, server.length, state.dirty, !!opts.silent);
+      // Dump ids so it's easy to see if the in-memory block lost its id
+      // (e.g. the refetch returned a different row than was inserted).
+      console.log('[saveBlocks] current ids:',
+        current.map(b => b.id || '<null>'));
+      console.log('[saveBlocks] server ids:',
+        server.map(b => b.id || '<null>'));
+    } catch (_) { /* noop */ }
 
     const currentIds = new Set(current.filter(b => b.id).map(b => b.id));
     // Defensive: only pass real, uuid-shaped ids to .delete().in('id', ...).
@@ -4401,19 +4411,52 @@
       order_index: current.indexOf(b),
     }));
     if (inserts.length) {
+      // First, log what we're about to insert so the user can see it in
+      // the browser console if something goes wrong. Often the most
+      // useful debug info when an insert fails is "what was the row?"
+      // — e.g. an unexpected kind string, a null lesson_id, or a
+      // malformed jsonb payload. Print a compact summary, not the full
+      // data (data can be large for image / video / hotspot blocks).
+      try {
+        console.log('[saveBlocks] inserting', inserts.length, 'block(s):',
+          inserts.map(i => ({ kind: i.kind, order_index: i.order_index,
+            data_keys: i.data ? Object.keys(i.data) : null })));
+      } catch (_) { /* noop */ }
       const { data: inserted, error } = await supabaseClient
         .from('lesson_blocks')
         .insert(inserts)
         .select();
-      if (error) { toast('Insert failed: ' + error.message, 'error'); return; }
+      if (error) {
+        console.error('[saveBlocks] insert error:', error);
+        // showFullError: the standard toast truncates at 80 chars which
+        // is fine for the headline but can hide a useful PostgREST
+        // hint. We log the full message to the console so the user
+        // (or the developer helping them) can find it via F12.
+        toast('Insert failed: ' + error.message, 'error');
+        return;
+      }
       if (!inserted || inserted.length !== inserts.length) {
         // Silent RLS denial or other write-skip. Common cause: the
         // lesson_blocks_staff_write policy is still checking
         // role = 'staff' (the pre-admin-roles form), so staff_author
-        // accounts get silently filtered out. Tell the user what to do.
+        // accounts get silently filtered out. We now also dump the
+        // caller's profile.role to the console so the user can see
+        // whether the role migration actually took effect.
+        try {
+          const { data: prof } = await supabaseClient
+            .from('profiles').select('role').eq('id', state.user.id).single();
+          console.error(
+            '[saveBlocks] RLS blocked the insert. Caller role:',
+            prof?.role, '— if this is "staff" (singular), update the row to ' +
+            '"staff_author" in profiles, or re-run supabase_admin.sql to widen ' +
+            'the policy. Requested', inserts.length, 'insert(s), got',
+            inserted ? inserted.length : 0
+          );
+        } catch (_) { /* noop */ }
         toast(
           'Insert was blocked by row-level security. ' +
-          'Re-run supabase_admin.sql to update the policies for the new staff roles.',
+          'Your profile role is not in the policy allowlist — ' +
+          'open the browser console (F12) for the exact role and fix instructions.',
           'error'
         );
         return;
