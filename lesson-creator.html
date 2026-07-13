@@ -4369,7 +4369,17 @@
     const current = L.blocks;
 
     const currentIds = new Set(current.filter(b => b.id).map(b => b.id));
-    const toDelete = server.filter(b => !currentIds.has(b.id)).map(b => b.id);
+    // Defensive: only pass real, uuid-shaped ids to .delete().in('id', ...).
+    // We sometimes see a row in the server fetch whose id is null (transient
+    // state, or a block inserted without a default gen_random_uuid() in a
+    // test/dev environment). Supabase's .in() serialises the array to a
+    // PostgREST URL and PG then chokes on the literal "null" with
+    // "invalid input syntax for type uuid: 'null'". Filtering the bad
+    // ids out here means the delete just skips them — the row will be
+    // cleaned up on the next save once it has a real id.
+    const toDelete = server
+      .filter(b => b.id && !currentIds.has(b.id))
+      .map(b => b.id);
     if (toDelete.length) {
       const { error } = await supabaseClient.from('lesson_blocks').delete().in('id', toDelete);
       if (error) { toast('Delete failed: ' + error.message, 'error'); return; }
