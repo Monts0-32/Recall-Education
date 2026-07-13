@@ -1134,6 +1134,16 @@
   // Supabase config (matches dashboard.html).
   const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  // Pull the shared renderer functions out of window.LessonRender into
+  // local consts. The editor body, list, and live-preview handlers all
+  // call renderBlock(b) directly (see ~line 2678 onward), so we need it
+  // in the local scope — lesson-render.js exposes it under LessonRender
+  // but does not pollute the global namespace beyond BLOCK_DEFS and
+  // bindInteractive.
+  if (!window.LessonRender || !window.LessonRender.renderBlock) {
+    console.error('lesson-render.js failed to load — renderBlock is unavailable.');
+  }
+  const { renderBlock, renderMarkdown: renderMarkdownShared, escapeHtml: escapeHtmlShared, attachInteractivity } = window.LessonRender || {};
   // The supabase-js client already sets the `apikey` header on every
   // request, but privacy-focused browsers and extensions (Brave Shields,
   // uBlock Origin in strict mode, some corporate firewalls) silently strip
