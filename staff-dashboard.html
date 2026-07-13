@@ -412,6 +412,28 @@
     </div>
 
     <div class="card">
+      <h2>Find a lesson</h2>
+      <p style="color:var(--text-3); font-size:13px; margin: 0 0 12px;">
+        Search by code, title, or tag. Toggle between published only and all lessons.
+      </p>
+      <div class="lesson-search" style="position: relative;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input id="lessonSearch" type="search" placeholder="Type a title, paste a code, or #tag…"
+                 autocomplete="off"
+                 style="flex: 1; background: var(--bg-2); border: 1px solid var(--line-2); color: var(--text); padding: 8px 12px; border-radius: var(--r-md); font-size: 13px; outline: none;" />
+          <div class="seg" role="tablist" style="display: flex; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); overflow: hidden;">
+            <button class="seg-btn active" data-mode="published" type="button"
+                    style="padding: 6px 12px; font-size: 12px; background: var(--bg-3); color: var(--text); border: none; cursor: pointer;">Published</button>
+            <button class="seg-btn" data-mode="all" type="button"
+                    style="padding: 6px 12px; font-size: 12px; background: transparent; color: var(--text-3); border: none; cursor: pointer;">All</button>
+          </div>
+        </div>
+        <div id="lessonSearchResults" hidden
+             style="margin-top: 8px; max-height: 360px; overflow-y: auto; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md);"></div>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Recent activity <span class="meta" id="activityMeta"></span></h2>
       <div class="activity" id="activityBody">
         <div class="card-empty">Loading…</div>
@@ -730,6 +752,117 @@
 
     showDashboard(user, role, profile);
   }
+
+  // ============================================================
+  // LESSON SEARCH (staff)
+  // ============================================================
+  // Same shape as the student search but the "All" toggle lets staff
+  // see drafts too, and the click target is lesson-creator.html for
+  // editing (lesson.html for student preview).
+  (function setupStaffLessonSearch() {
+    const input = $('lessonSearch');
+    const out   = $('lessonSearchResults');
+    if (!input || !out) return;
+
+    let timer = null;
+    let lastQuery = null;
+    let mode = 'published'; // 'published' | 'all'
+
+    function showResults(rows) {
+      if (!rows.length) {
+        out.innerHTML = `<div style="padding: 14px; color: var(--text-4); font-size: 13px;">No matches.</div>`;
+        out.hidden = false;
+        return;
+      }
+      out.innerHTML = rows.map(l => {
+        const subjectPath = l.is_general
+          ? `<span style="color: var(--blue);">General</span>`
+          : `${escapeHtml(l.topic?.subject?.name || '')} · ${escapeHtml(l.topic?.name || '')}`;
+        const tags = (l.tags || []).slice(0, 3)
+          .map(t => `<span style="background: var(--bg-3); color: var(--text-3); padding: 1px 6px; border-radius: 999px; font-size: 10.5px; margin-right: 3px;">#${escapeHtml(t)}</span>`)
+          .join('');
+        const status = l.status === 'published'
+          ? `<span style="color: var(--green); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em;">Published</span>`
+          : `<span style="color: var(--text-4); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em;">Draft</span>`;
+        return `
+          <a href="lesson-creator.html"
+             onclick="event.preventDefault(); localStorage.setItem('recall.openLesson', '${l.id}'); window.location.href='lesson-creator.html';"
+             style="display: block; padding: 10px 12px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--text);"
+             onmouseover="this.style.background='var(--bg-3)'"
+             onmouseout="this.style.background='transparent'">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+              <div style="font-size: 13.5px; font-weight: 500;">${escapeHtml(l.title)}</div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                ${l.code ? `<code style="font-family: var(--font-mono); font-size: 11px; color: var(--text-4);">${escapeHtml(l.code)}</code>` : ''}
+                ${status}
+              </div>
+            </div>
+            <div style="font-size: 11.5px; color: var(--text-3); margin-top: 2px;">${subjectPath} · ${l.duration_min ?? 20}m</div>
+            ${tags ? `<div style="margin-top: 4px;">${tags}</div>` : ''}
+          </a>
+        `;
+      }).join('');
+      out.hidden = false;
+    }
+
+    function hide() { out.hidden = true; out.innerHTML = ''; }
+
+    async function runSearch(q) {
+      if (q === lastQuery) return;
+      lastQuery = q;
+      const qUpper = q.toUpperCase();
+      // 1. Exact code match first.
+      const exact = await supabaseClient.from('lessons')
+        .select('id, title, code, status, is_general, tags, duration_min, topic:topics(name, subject:subjects(name))')
+        .eq('code', qUpper)
+        .limit(1);
+      if (q !== lastQuery) return;
+      // 2. Fuzzy title match, scoped by mode.
+      let fuzzyQuery = supabaseClient.from('lessons')
+        .select('id, title, code, status, is_general, tags, duration_min, topic:topics(name, subject:subjects(name))')
+        .ilike('title', `%${q}%`)
+        .limit(7);
+      if (mode === 'published') fuzzyQuery = fuzzyQuery.eq('status', 'published');
+      const fuzzy = await fuzzyQuery;
+      if (q !== lastQuery) return;
+      const exactRow = (exact.data || [])[0];
+      // Drop the exact result from fuzzy if it appears in both.
+      const fuzzyRows = (fuzzy.data || []).filter(r => r.id !== exactRow?.id);
+      showResults([exactRow, ...fuzzyRows].filter(Boolean));
+    }
+
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      const q = input.value.trim();
+      if (!q) { hide(); lastQuery = null; return; }
+      timer = setTimeout(() => runSearch(q), 200);
+    });
+    input.addEventListener('focus', () => {
+      if (input.value.trim()) {
+        lastQuery = null;
+        runSearch(input.value.trim());
+      }
+    });
+    // Mode toggle: clicking "All" / "Published" re-runs the current
+    // search with a new status filter.
+    document.querySelectorAll('.seg-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const m = btn.dataset.mode;
+        if (m === mode) return;
+        mode = m;
+        document.querySelectorAll('.seg-btn').forEach(b => {
+          const active = b.dataset.mode === mode;
+          b.classList.toggle('active', active);
+          b.style.background = active ? 'var(--bg-3)' : 'transparent';
+          b.style.color = active ? 'var(--text)' : 'var(--text-3)';
+        });
+        if (input.value.trim()) {
+          lastQuery = null;
+          runSearch(input.value.trim());
+        }
+      });
+    });
+  })();
 
   boot();
 </script>

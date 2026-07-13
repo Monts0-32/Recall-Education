@@ -1230,6 +1230,7 @@
     role: null,
     canPublish: false,
     subjects: [],          // [{ id, name, exam_board, level, color_key, topics: [{ id, name, unit_id, lessons: [{ id, title, duration_min }] }] }]
+    generalLessons: [],    // [{ id, title, duration_min, code, tags, status, ... }] — lessons with is_general=true, not in any subject
     boards: [],            // [{ id, name }] from exam_boards
     years: [],             // [{ id, label, sort_order }] from year_levels
     units: [],             // [{ id, subject_id, exam_board_id, year_id, name, description, sort_order }] from units
@@ -1244,7 +1245,8 @@
     currentLesson: null,   // { id, title, duration_min, order_index, topic_id, blocks: [{...} | {__new:true}] }
     currentTopic: null,    // { id, name, subject_id, unit_id }
     currentSubject: null,  // { id, name }
-    dirty: false,
+    dirty: false,          // any unsaved change in the lesson (meta or blocks)
+    metaDirty: false,      // subset: the title / duration / order row has unsaved changes
   };
 
   // ---------- boot ----------
@@ -1313,6 +1315,17 @@
     }
 
     await loadTree();
+
+    // If the staff-dashboard search bar linked here with a pending
+    // lesson id, open it. We stash the id in localStorage rather
+    // than the URL so the back button doesn't accumulate search
+    // queries in the history.
+    const pendingId = localStorage.getItem('recall.openLesson');
+    if (pendingId) {
+      localStorage.removeItem('recall.openLesson');
+      // Defer one tick so the catalog tree has been painted.
+      setTimeout(() => { openLesson(pendingId); }, 50);
+    }
   }
 
   function renderGate(title, msg, kind, name) {
@@ -1365,10 +1378,14 @@
     // nest topics under subjects, lessons under topics
     for (const t of topics)  t.lessons = [];
     for (const l of lessons) {
+      if (l.is_general) continue; // general lessons live in their own list
       const t = topics.find(x => x.id === l.topic_id);
       if (t) t.lessons.push(l);
     }
     for (const s of subjects) s.topics = topics.filter(t => t.subject_id === s.id);
+    // General lessons: kept separately so the left rail can render them
+    // outside the subject → board → year → unit → topic hierarchy.
+    state.generalLessons = lessons.filter(l => l.is_general);
 
     state.subjects = subjects;
     state.boards   = boards;
@@ -1432,11 +1449,38 @@
     const body = $('treeBody');
     const { subject, board, year, unit } = state.browsePath;
 
-    if (!subject)      return body.innerHTML = renderSubjectLevel();
-    else if (!board)   return body.innerHTML = renderBoardLevel(subject);
-    else if (!year)    return body.innerHTML = renderYearLevel(subject, board);
-    else if (!unit)    return body.innerHTML = renderUnitLevel(subject, board, year);
-    else               return body.innerHTML = renderTopicLevel(subject, board, year, unit);
+    const tree = !subject      ? renderSubjectLevel()
+              : !board         ? renderBoardLevel(subject)
+              : !year          ? renderYearLevel(subject, board)
+              : !unit          ? renderUnitLevel(subject, board, year)
+              :                   renderTopicLevel(subject, board, year, unit);
+
+    // The General section lives outside the subject tree — it's pinned
+    // at the top of the sidebar so staff can see at a glance that it
+    // exists and find their loose lessons quickly. It's hidden while
+    // a specific subject/topic is being edited to keep the eye on the
+    // tree; the editor breadcrumb is still the canonical way back.
+    const general = (!subject && !board && !year && !unit) ? renderGeneralSection() : '';
+    body.innerHTML = general + tree;
+  }
+
+  // ---- General lessons (loose, not in any subject) ----
+  function renderGeneralSection() {
+    const lessons = state.generalLessons || [];
+    const rows = lessons.length ? lessons.map(l => renderLessonRow(null, l, { general: true })).join('') :
+      `<div style="color: var(--text-4); font-size: 12px; padding: 4px 8px;">No general lessons yet.</div>`;
+    return `
+      <div class="catalog-section" style="border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 8px;">
+        <div class="catalog-section-head" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px;">
+          <div style="display: flex; align-items: center; gap: 6px; color: var(--text-2); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;">
+            <span>General</span>
+            <span style="color: var(--text-4); font-weight: 400; text-transform: none;">${lessons.length}</span>
+          </div>
+          <button class="add-btn" onclick="openGeneralLessonModal()">+ Lesson</button>
+        </div>
+        <div class="catalog-section-body">${rows}</div>
+      </div>
+    `;
   }
 
   function renderBreadcrumb() {
@@ -1646,15 +1690,25 @@
       </div>`;
   }
 
-  function renderLessonRow(topic, l) {
+  // renderLessonRow(topic, l, opts) — one row in the catalogue tree.
+  // opts.general: this row is for a general (loose) lesson, not a
+  //   topic lesson. Suppresses the kebab padding.
+  // The code chip is shown for any lesson that has a code (which is
+  // only published lessons — the publish_lesson RPC generates it).
+  function renderLessonRow(topic, l, opts = {}) {
     const isActive = state.currentLesson && state.currentLesson.id === l.id;
+    const codeChip = l.code
+      ? `<span style="font-family: var(--font-mono); font-size: 10.5px; color: var(--text-4); margin-left: 4px;" title="Share code">${escapeHtml(l.code)}</span>`
+      : '';
+    const topicId = opts.general ? '' : topic.id;
     return `
       <div class="topic-row ${isActive ? 'active' : ''}"
-           style="padding-left:28px; font-size:12px; color:var(--text-3);"
+           style="padding-left:${opts.general ? 8 : 28}px; font-size:12px; color:var(--text-3);"
            onclick="openLesson('${l.id}')">
         <span class="name">${escapeHtml(l.title)}</span>
+        ${codeChip}
         <span style="color:var(--text-4); font-size:11px;">${l.duration_min ?? 20}m</span>
-        <button class="row-btn" title="Rename" onclick="event.stopPropagation(); openLessonModal('${topic.id}', '${l.id}')">✎</button>
+        <button class="row-btn" title="Rename" onclick="event.stopPropagation(); openLessonModal('${topicId}', '${l.id}')">✎</button>
         <button class="row-btn" title="Delete" onclick="event.stopPropagation(); deleteLesson('${l.id}')">🗑</button>
       </div>`;
   }
@@ -2157,6 +2211,10 @@
   }
   function findLesson(id) {
     for (const s of state.subjects) for (const t of (s.topics || [])) for (const l of (t.lessons || [])) if (l.id === id) return { lesson: l, topic: t, subject: s };
+    // Also check general lessons. They don't belong to a topic or
+    // subject, so we synthesise a minimal stub for the breadcrumb.
+    const gl = (state.generalLessons || []).find(l => l.id === id);
+    if (gl) return { lesson: gl, topic: null, subject: { id: null, name: 'General' } };
     return null;
   }
 
@@ -2169,18 +2227,48 @@
     await loadTree();
   };
 
-  window.openLessonModal = (topicId, id) => {
+  window.openLessonModal = (topicId, id, mode = 'topic') => {
+    // mode: 'topic' (default — under a topic) or 'general' (loose, no subject).
+    // For an existing lesson the mode is inferred from the row, not the arg.
     let existing, parentTopic;
     if (id) {
       const found = findLesson(id);
       existing = found?.lesson;
       parentTopic = found?.topic;
       topicId = existing?.topic_id;
+      mode = existing?.is_general ? 'general' : 'topic';
     } else {
       parentTopic = findTopic(topicId);
     }
+
+    // The kind-toggle only shows up on *new* lessons. Editing an
+    // existing lesson keeps its kind — if you created it as general,
+    // you can't retroactively file it under a subject from this modal
+    // (use a different tool for that to avoid silent data loss).
+    const kindToggle = id ? '' : `
+      <div class="form-row" style="margin-bottom: 4px;">
+        <label>Where does this lesson live?</label>
+        <div style="display: flex; gap: 6px; margin-top: 4px;">
+          <label class="btn-ghost" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; border-radius: var(--r-md); border: 1px solid var(--line-2);">
+            <input type="radio" name="kind" value="topic" ${mode === 'topic' ? 'checked' : ''} />
+            In a topic
+          </label>
+          <label class="btn-ghost" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; border-radius: var(--r-md); border: 1px solid var(--line-2);">
+            <input type="radio" name="kind" value="general" ${mode === 'general' ? 'checked' : ''} />
+            General (loose)
+          </label>
+        </div>
+      </div>
+      <div id="kindHelp" style="font-size: 12px; color: var(--text-3); margin: 0 0 12px;">
+        General lessons aren't filed under a subject. Add tags so students can find them by topic.
+      </div>
+    `;
+
+    const tagsValue = (existing?.tags || []).join(', ');
+
     openModal(existing ? 'Rename lesson' : 'New lesson', `
       <form id="lessonForm" class="editor" style="padding: 0;">
+        ${kindToggle}
         <div class="form-row">
           <label>Title</label>
           <input name="title" required value="${escapeHtml(existing?.title || '')}" placeholder="e.g. Mitochondria" />
@@ -2189,34 +2277,59 @@
           <label>Duration (minutes)</label>
           <input name="duration_min" type="number" min="1" max="600" value="${existing?.duration_min ?? 20}" />
         </div>
+        <div class="form-row" id="tagsRow" style="${mode === 'general' || existing?.is_general ? '' : 'display:none;'}">
+          <label>Tags <span style="color: var(--text-4); font-weight: 400; font-size: 12px;">comma-separated, e.g. algebra, gcse-foundation</span></label>
+          <input name="tags" value="${escapeHtml(tagsValue)}" placeholder="algebra, year-10" />
+        </div>
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
           <button type="submit" class="btn-primary">${existing ? 'Save' : 'Create'}</button>
         </div>
       </form>
     `);
-    $('lessonForm').addEventListener('submit', async (e) => {
+    // Show/hide the tags row when the kind toggle changes (new lessons
+    // only — the toggle isn't rendered for existing lessons).
+    const form = $('lessonForm');
+    if (!id) {
+      form.querySelectorAll('input[name="kind"]').forEach(r => {
+        r.addEventListener('change', () => {
+          const isGeneral = form.querySelector('input[name="kind"]:checked').value === 'general';
+          $('tagsRow').style.display = isGeneral ? '' : 'none';
+          $('kindHelp').textContent = isGeneral
+            ? 'General lessons aren\'t filed under a subject. Add tags so students can find them by topic.'
+            : 'This lesson will be filed under the topic you opened this modal from.';
+        });
+      });
+    }
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const payload = {
         title: e.target.title.value.trim(),
         duration_min: parseInt(e.target.duration_min.value, 10) || 20,
+        tags: (e.target.tags?.value || '')
+          .split(',').map(s => s.trim().toLowerCase()).filter(Boolean),
       };
       if (!payload.title) return;
       if (existing) {
-        const { error } = await supabaseClient.from('lessons').update(payload).eq('id', existing.id);
+        const update = { title: payload.title, duration_min: payload.duration_min };
+        // Only the owner (or staff with edit rights) can change tags; the
+        // modal exposes them, so persist them.
+        if (existing.is_general) update.tags = payload.tags;
+        const { error } = await supabaseClient.from('lessons').update(update).eq('id', existing.id);
         if (error) { toast('Save failed: ' + error.message, 'error'); return; }
         toast('Lesson updated', 'success');
       } else {
-        const next = (parentTopic?.lessons || []).length;
-        // Stamp author_id so the audit log can show "Sarah created
-        // this draft" later. New rows default to status='draft' in
-        // the DB (see supabase_admin.sql).
-        const { error } = await supabaseClient.from('lessons').insert({
-          ...payload,
-          topic_id: topicId,
-          order_index: next,
-          author_id: state.user.id,
-        });
+        const kind = form.querySelector('input[name="kind"]:checked')?.value || mode;
+        const insert = { ...payload, author_id: state.user.id };
+        if (kind === 'general') {
+          insert.is_general = true;
+          insert.topic_id   = null;
+        } else {
+          insert.is_general = false;
+          insert.topic_id   = topicId;
+          insert.order_index = (parentTopic?.lessons || []).length;
+        }
+        const { error } = await supabaseClient.from('lessons').insert(insert);
         if (error) { toast('Save failed: ' + error.message, 'error'); return; }
         toast('Lesson created', 'success');
       }
@@ -2224,6 +2337,9 @@
       await loadTree();
     });
   };
+
+  // Shorthand for the left-rail "+ New general lesson" button.
+  window.openGeneralLessonModal = () => openLessonModal(null, null, 'general');
 
   window.deleteLesson = async (id) => {
     if (!confirm('Delete this lesson and all its blocks?')) return;
@@ -2244,6 +2360,13 @@
 
     state.currentSubject = subject;
     state.currentTopic = topic;
+    // General lessons don't belong to a subject, so the catalog
+    // browse path is meaningless for them. Reset to the top so the
+    // "General" section in the left rail is visible after the editor
+    // closes.
+    if (lesson.is_general) {
+      state.browsePath = { subject: null, board: null, year: null, unit: null };
+    }
 
     const { data: blocks, error } = await supabaseClient
       .from('lesson_blocks')
@@ -2255,8 +2378,10 @@
     state.currentLesson = {
       ...lesson,
       blocks: blocks || [],
+      _serverBlocks: blocks || [],
     };
     state.dirty = false;
+    state.metaDirty = false;
     renderCatalog();
     renderEditor();
   };
@@ -2301,33 +2426,48 @@
     if (!L) { renderEmpty(); return; }
     const topic = state.currentTopic;
     const subj  = state.currentSubject;
+    const isGeneral = !!L.is_general;
 
     // Build the breadcrumb for the editor topbar. When the editor was
     // opened from a unit (i.e. the browse path is set), include the
     // board → year → unit path. The unit/board/year links jump back
     // to the corresponding catalog level.
-    let breadcrumb = `
-      <a href="#" onclick="renderEmpty(); goToSubject(); return false;">Catalogue</a>
-      <span class="sep">/</span>
-      <span>${escapeHtml(subj.name)}</span>`;
-    const unit = state.browsePath.unit;
-    const year = state.browsePath.year;
-    const board = state.browsePath.board;
-    if (board) {
-      breadcrumb += `<span class="sep">/</span><span>${escapeHtml(board.name)}</span>`;
+    let breadcrumb;
+    if (isGeneral) {
+      // General lessons have no subject/topic; the breadcrumb is just
+      // Catalogue / General / [title]. The "General" crumb is a link
+      // back to the top of the catalogue where the General section is.
+      breadcrumb = `
+        <a href="#" onclick="renderEmpty(); goToSubject(); return false;">Catalogue</a>
+        <span class="sep">/</span>
+        <a href="#" onclick="renderEmpty(); goToSubject(); return false;">General</a>
+        <span class="sep">/</span>
+        <span class="current">${escapeHtml(L.title)}</span>
+        <span class="status-pill ${L.status || 'draft'}" id="lessonStatusPill">${L.status === 'published' ? 'Published' : 'Draft'}</span>`;
+    } else {
+      breadcrumb = `
+        <a href="#" onclick="renderEmpty(); goToSubject(); return false;">Catalogue</a>
+        <span class="sep">/</span>
+        <span>${escapeHtml(subj.name)}</span>`;
+      const unit = state.browsePath.unit;
+      const year = state.browsePath.year;
+      const board = state.browsePath.board;
+      if (board) {
+        breadcrumb += `<span class="sep">/</span><span>${escapeHtml(board.name)}</span>`;
+      }
+      if (year) {
+        breadcrumb += `<span class="sep">/</span><span>${escapeHtml(year.label)}</span>`;
+      }
+      if (unit) {
+        breadcrumb += `<span class="sep">/</span><span>${escapeHtml(unit.name)}</span>`;
+      }
+      breadcrumb += `
+        <span class="sep">/</span>
+        <span>${escapeHtml(topic.name)}</span>
+        <span class="sep">/</span>
+        <span class="current">${escapeHtml(L.title)}</span>
+        <span class="status-pill ${L.status || 'draft'}" id="lessonStatusPill">${L.status === 'published' ? 'Published' : 'Draft'}</span>`;
     }
-    if (year) {
-      breadcrumb += `<span class="sep">/</span><span>${escapeHtml(year.label)}</span>`;
-    }
-    if (unit) {
-      breadcrumb += `<span class="sep">/</span><span>${escapeHtml(unit.name)}</span>`;
-    }
-    breadcrumb += `
-      <span class="sep">/</span>
-      <span>${escapeHtml(topic.name)}</span>
-      <span class="sep">/</span>
-      <span class="current">${escapeHtml(L.title)}</span>
-      <span class="status-pill ${L.status || 'draft'}" id="lessonStatusPill">${L.status === 'published' ? 'Published' : 'Draft'}</span>`;
 
     $('main').innerHTML = `
       <div class="topbar">
@@ -2353,9 +2493,23 @@
             <label>Order</label>
             <input id="lessonOrder" type="number" value="${L.order_index ?? 0}" />
           </div>
+          ${isGeneral ? `
+            <div class="form-row" style="margin: 0; grid-column: 1 / -1;">
+              <label>Tags <span style="color: var(--text-4); font-weight: 400; font-size: 12px;">comma-separated — these are how students find this lesson</span></label>
+              <input id="lessonTags" value="${escapeHtml((L.tags || []).join(', '))}" placeholder="algebra, gcse-foundation" />
+            </div>
+          ` : ''}
         </div>
         <div class="editor-actions">
           <span class="${state.dirty ? 'dirty' : 'saved'}">${state.dirty ? '● Unsaved changes' : '✓ All saved'}</span>
+          ${L.code ? `
+            <span class="code-chip" title="Share this code to give anyone a direct link to the lesson">
+              <span style="color: var(--text-4); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;">Code</span>
+              <code style="font-family: var(--font-mono); font-size: 13px; color: var(--text); letter-spacing: 0.05em;">${escapeHtml(L.code)}</code>
+              <button class="row-btn" id="copyCodeBtn" title="Copy link">⧉ Copy</button>
+              <a class="row-btn" id="openCodeLink" target="_blank" rel="noopener" href="lesson.html?code=${encodeURIComponent(L.code)}" title="Open as a student">↗ Open</a>
+            </span>
+          ` : ''}
           <span class="spacer"></span>
           <span class="shortcuts"><kbd>⌘S</kbd> save · <kbd>⌘Z</kbd> undo block</span>
           ${state.canPublish ? `
@@ -2375,13 +2529,61 @@
     document.getElementById('previewBtn').addEventListener('click', openPreview);
     document.getElementById('saveMetaBtn').addEventListener('click', saveLessonMeta);
     document.getElementById('saveBlocksBtn').addEventListener('click', saveBlocks);
+    // Copy-code: just puts the share URL on the clipboard. Plain
+    // navigator.clipboard would also work but falls back to nothing
+    // on insecure contexts; execCommand is older but works everywhere.
+    const copyBtn = document.getElementById('copyCodeBtn');
+    if (copyBtn && L.code) {
+      copyBtn.addEventListener('click', () => {
+        const url = `${location.origin}/lesson.html?code=${encodeURIComponent(L.code)}`;
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); toast('Link copied', 'success'); }
+        catch (_) { toast('Copy failed — code: ' + L.code, 'error'); }
+        document.body.removeChild(ta);
+      });
+    }
     // The publish button is only rendered for reviewers / admins, so
     // the element is optional. Wire it up if present.
     const publishBtn = document.getElementById('publishBtn');
     if (publishBtn) publishBtn.addEventListener('click', togglePublish);
-    ['lessonTitle','lessonDuration','lessonOrder'].forEach(id => {
-      document.getElementById(id).addEventListener('input', () => { state.dirty = true; renderEditorHeader(); });
-    });
+    // Wire the three header inputs (title / duration / order) so they
+    // write straight to the lesson object and trigger an autosave
+    // (debounced). Previously these only flipped state.dirty without
+    // persisting — typing a title would survive in the DOM until the
+    // next renderEditor() ran, at which point the input was rebuilt
+    // from the un-persisted L.title and your work vanished. Now: each
+    // keystroke updates L.*, marks the lesson meta-dirty, and a
+    // 800ms-debounced saveLessonMeta() pushes it to the server.
+    const wireMetaInput = (id, key, parser) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      let metaTimer = null;
+      el.addEventListener('input', () => {
+        const v = parser ? parser(el.value) : el.value;
+        L[key] = v;
+        state.dirty = true;
+        state.metaDirty = true;
+        renderEditorHeader();
+        clearTimeout(metaTimer);
+        metaTimer = setTimeout(() => {
+          if (state.currentLesson === L) saveLessonMeta({ silent: true });
+        }, 800);
+      });
+    };
+    wireMetaInput('lessonTitle',    'title',        v => v);
+    wireMetaInput('lessonDuration', 'duration_min', v => parseInt(v, 10) || 20);
+    wireMetaInput('lessonOrder',    'order_index',  v => parseInt(v, 10) || 0);
+    // Tags is a string in the input but an array in L.tags. The parser
+    // does the comma-split + trim + lowercase. Only present for
+    // general lessons.
+    if (L.is_general && document.getElementById('lessonTags')) {
+      wireMetaInput('lessonTags', 'tags', v =>
+        v.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+      );
+    }
   }
 
   // Publish / unpublish. The publish_lesson RPC is SECURITY DEFINER
@@ -2416,9 +2618,19 @@
       }
       L.status = wantPublish ? 'published' : 'draft';
       L.published_at = wantPublish ? new Date().toISOString() : null;
-      toast(wantPublish ? 'Lesson published' : 'Lesson unpublished', 'success');
-      // Re-render the editor so the pill + button text update.
+      // The publish_lesson RPC generates a 5-char share code on the
+      // first publish and returns it. Stash it on L so the code chip
+      // in the editor can render. On re-publish the existing code is
+      // returned too — we update unconditionally.
+      if (data && data.code) L.code = data.code;
+      toast(wantPublish
+        ? (L.code ? `Lesson published · code ${L.code}` : 'Lesson published')
+        : 'Lesson unpublished', 'success');
+      // Re-render the editor so the pill + button text + code chip update.
       renderEditor();
+      // Refresh the catalog so the new code shows next to the title in
+      // the left rail.
+      await loadTree();
     } catch (err) {
       toast('Publish failed: ' + (err?.message || err), 'error');
       btn.disabled = false;
@@ -2433,7 +2645,7 @@
     el.textContent = state.dirty ? '● Unsaved changes' : '✓ All saved';
   }
 
-  async function saveLessonMeta() {
+  async function saveLessonMeta(opts = {}) {
     const L = state.currentLesson;
     if (!L) return;
     const payload = {
@@ -2441,16 +2653,36 @@
       duration_min: parseInt(document.getElementById('lessonDuration').value, 10) || 20,
       order_index: parseInt(document.getElementById('lessonOrder').value, 10) || 0,
     };
-    if (!payload.title) { toast('Title is required', 'error'); return; }
+    // Tags: only meaningful for general lessons (regular lessons are
+    // filed under a topic, so tags would be redundant with the path).
+    // The input only renders for general lessons, so the null-check
+    // protects us in case the user re-saves a topic lesson later.
+    const tagsEl = document.getElementById('lessonTags');
+    if (L.is_general && tagsEl) {
+      payload.tags = tagsEl.value.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    }
+    if (!payload.title) {
+      if (!opts.silent) toast('Title is required', 'error');
+      return;
+    }
     const { error } = await supabaseClient.from('lessons').update(payload).eq('id', L.id);
-    if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+    if (error) {
+      if (!opts.silent) toast('Save failed: ' + error.message, 'error');
+      return;
+    }
     Object.assign(L, payload);
-    state.dirty = false;
+    state.metaDirty = false;
+    // dirty stays true if the blocks path still has unsaved work.
+    state.dirty = state.metaDirty || isBlocksDirty();
     renderEditorHeader();
-    await loadTree();
-    // re-mark active (the new card grid highlights state.currentLesson via re-render)
-    renderCatalog();
-    toast('Lesson saved', 'success');
+    if (!opts.silent) {
+      // Manual click — refresh the catalogue tree so the new title
+      // shows in the left rail. Silent/autosave skips this: reloading
+      // the whole tree on every keystroke is wasteful.
+      await loadTree();
+      renderCatalog();
+      toast('Lesson details saved', 'success');
+    }
   }
 
   function renderBlocksList() {
@@ -3714,9 +3946,20 @@
     _saveTimer = setTimeout(async () => {
       if (_saveInFlight) { _saveQueued = true; return; }
       _saveInFlight = true;
-      try { await saveBlocks({ silent: true }); } finally { _saveInFlight = false; }
+      try { await saveAll({ silent: true }); } finally { _saveInFlight = false; }
       if (_saveQueued) { _saveQueued = false; maybeAutosave(); }
     }, 1200);
+  }
+
+  // saveAll: persist every dirty surface in one go. Used by the
+  // autosave debounce; the manual "Save blocks" / "Save lesson
+  // details" buttons still call their respective functions directly so
+  // a click on one path doesn't surprise the user with a meta save.
+  async function saveAll(opts = {}) {
+    const L = state.currentLesson;
+    if (!L) return;
+    if (state.metaDirty) await saveLessonMeta(opts);
+    if (isBlocksDirty())  await saveBlocks(opts);
   }
 
   window.deleteBlock = (i) => {
@@ -3818,10 +4061,34 @@
     // Reload to get the canonical state (ids, order).
     L._serverBlocks = await fetchServerBlocks(L.id);
     L.blocks = L._serverBlocks;
-    state.dirty = false;
+    // dirty stays true if the meta path still has unsaved work.
+    state.dirty = state.metaDirty || isBlocksDirty();
     renderBlocksList();
     renderEditorHeader();
     if (!opts.silent) toast('Blocks saved', 'success');
+  }
+
+  // isBlocksDirty(): do the in-memory blocks differ from what the
+  // server has? Used by the dirty flag so the "● Unsaved changes"
+  // header doesn't disappear while the user is still editing.
+  // _serverBlocks can be missing right after openLesson() if a save
+  // fired before the initial load completed — treat that as "unknown,
+  // assume dirty".
+  function isBlocksDirty() {
+    const L = state.currentLesson;
+    if (!L) return false;
+    const server = L._serverBlocks;
+    if (!server) return true;
+    if (L.blocks.length !== server.length) return true;
+    const serverById = new Map(server.map(b => [b.id, b]));
+    for (const b of L.blocks) {
+      if (!b.id) return true;                       // new, never persisted
+      const s = serverById.get(b.id);
+      if (!s) return true;                          // server lost it
+      if (JSON.stringify(b.data) !== JSON.stringify(s.data)) return true;
+      if ((b.order_index ?? server.indexOf(s)) !== s.order_index) return true;
+    }
+    return false;
   }
 
   async function fetchServerBlocks(lessonId) {

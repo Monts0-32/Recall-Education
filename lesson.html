@@ -500,7 +500,34 @@
   document.addEventListener('DOMContentLoaded', boot);
 
   async function boot() {
-    const lessonId = new URLSearchParams(location.search).get('lesson');
+    const params = new URLSearchParams(location.search);
+    let lessonId = params.get('lesson');
+    // ?code= is the share-code alternative to ?lesson=. A short code
+    // (e.g. XK4F2) is what we put in the catalogue and chip; it looks
+    // up the lesson id here before the rest of boot runs.
+    if (!lessonId) {
+      const code = (params.get('code') || '').trim().toUpperCase();
+      if (code) {
+        const { data, error } = await supabaseClient
+          .from('lessons')
+          .select('id, status')
+          .eq('code', code)
+          .maybeSingle();
+        if (error) { showGate('Lookup failed', error.message); return; }
+        if (!data) { showGate('No such lesson', `No lesson found for code ${code}.`); return; }
+        if (data.status !== 'published') {
+          showGate('Not available', `Lesson ${code} isn't published yet.`);
+          return;
+        }
+        // Rewrite the URL so the rest of boot (and any back/forward nav)
+        // uses ?lesson= as the canonical form.
+        const next = new URL(location.href);
+        next.searchParams.set('lesson', data.id);
+        next.searchParams.delete('code');
+        history.replaceState(null, '', next.toString());
+        lessonId = data.id;
+      }
+    }
     if (!lessonId) return showGate('No lesson specified', 'Open this page from a lesson card on your dashboard.');
 
     // Sign-in

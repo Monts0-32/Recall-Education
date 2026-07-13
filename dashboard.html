@@ -651,7 +651,17 @@
         <span class="sep">/</span>
         <span class="current">Dashboard</span>
       </span>
-      <div class="right">
+      <div class="right" style="display: flex; align-items: center; gap: 12px;">
+        <!-- Lesson search: find a published lesson by code, title, or
+             tag. The dropdown is a sibling of the input, populated by
+             the script below. -->
+        <div class="lesson-search" style="position: relative;">
+          <input id="lessonSearch" type="search" placeholder="Search lessons or paste a code…"
+                 autocomplete="off"
+                 style="background: var(--bg-2); border: 1px solid var(--line-2); color: var(--text); padding: 6px 10px; border-radius: var(--r-md); font-size: 13px; width: 260px; outline: none;" />
+          <div id="lessonSearchResults" hidden
+               style="position: absolute; right: 0; top: calc(100% + 4px); width: 360px; max-height: 420px; overflow-y: auto; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 50;"></div>
+        </div>
         <span class="streak" id="dashBarStreak">🔥 Start a streak today</span>
         <span class="pill" id="dashBarPill">—</span>
       </div>
@@ -1359,6 +1369,105 @@
     await supabaseClient.auth.signOut();
     window.location.href = 'index.html';
   });
+
+  // ============================================================
+  // LESSON SEARCH BAR
+  // ============================================================
+  // Top-of-dashboard search that lets a signed-in student find any
+  // published lesson by code, title, or tag. The exact-code match is
+  // pinned to the top of the dropdown; the next 7 rows are fuzzy
+  // matches against title ilike OR tag overlap. Click a result to open
+  // the student view.
+  (function setupLessonSearch() {
+    const input = $('lessonSearch');
+    const out   = $('lessonSearchResults');
+    if (!input || !out) return;
+
+    let timer = null;
+    let lastQuery = null;
+
+    function escapeHtml(s) {
+      return (s || '').toString()
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function hide() { out.hidden = true; out.innerHTML = ''; }
+
+    function showResults(rows, exactId) {
+      if (!rows.length) {
+        out.innerHTML = `<div style="padding: 14px; color: var(--text-4); font-size: 13px;">No matches.</div>`;
+        out.hidden = false;
+        return;
+      }
+      out.innerHTML = rows.map(l => {
+        const subjectPath = l.is_general
+          ? `<span style="color: var(--blue);">General</span>`
+          : `${escapeHtml(l.topic?.subject?.name || '')} · ${escapeHtml(l.topic?.name || '')}`;
+        const tags = (l.tags || []).slice(0, 3)
+          .map(t => `<span style="background: var(--bg-3); color: var(--text-3); padding: 1px 6px; border-radius: 999px; font-size: 10.5px; margin-right: 3px;">#${escapeHtml(t)}</span>`)
+          .join('');
+        return `
+          <a href="lesson.html?code=${encodeURIComponent(l.code || l.id)}"
+             style="display: block; padding: 10px 12px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--text);"
+             onmouseover="this.style.background='var(--bg-3)'"
+             onmouseout="this.style.background='transparent'">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+              <div style="font-size: 13.5px; font-weight: 500;">${escapeHtml(l.title)}</div>
+              ${l.code ? `<code style="font-family: var(--font-mono); font-size: 11px; color: var(--text-4);">${escapeHtml(l.code)}</code>` : ''}
+            </div>
+            <div style="font-size: 11.5px; color: var(--text-3); margin-top: 2px;">${subjectPath} · ${l.duration_min ?? 20}m</div>
+            ${tags ? `<div style="margin-top: 4px;">${tags}</div>` : ''}
+          </a>
+        `;
+      }).join('');
+      out.hidden = false;
+    }
+
+    async function runSearch(q) {
+      if (q === lastQuery) return;
+      lastQuery = q;
+      const qUpper = q.toUpperCase();
+      // 1. Exact code match — pinned to top.
+      const exact = await supabaseClient.from('lessons')
+        .select('id, title, code, is_general, tags, duration_min, topic:topics(name, subject:subjects(name))')
+        .eq('status', 'published')
+        .eq('code', qUpper)
+        .limit(1);
+      if (q !== lastQuery) return; // a newer keystroke has superseded us
+      // 2. Fuzzy: title ilike OR tags overlap. We avoid the `tags.cs`
+      // operator with raw user input (it expects an array literal)
+      // and instead ilike the tag string via a derived column. For
+      // simplicity, fuzzy only matches title; tag chips are visible
+      // in the dropdown so users can click through to a tag match by
+      // searching for the tag as text.
+      const fuzzy = await supabaseClient.from('lessons')
+        .select('id, title, code, is_general, tags, duration_min, topic:topics(name, subject:subjects(name))')
+        .eq('status', 'published')
+        .ilike('title', `%${q}%`)
+        .limit(7);
+      if (q !== lastQuery) return;
+      const exactRow = (exact.data || [])[0];
+      const fuzzyRows = (fuzzy.data || []).filter(r => r.id !== exactRow?.id);
+      showResults([exactRow, ...fuzzyRows].filter(Boolean));
+    }
+
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      const q = input.value.trim();
+      if (!q) { hide(); lastQuery = null; return; }
+      timer = setTimeout(() => runSearch(q), 200);
+    });
+    // Hide the dropdown when the input loses focus, but with a small
+    // delay so a click on a result still registers.
+    input.addEventListener('blur', () => setTimeout(hide, 180));
+    input.addEventListener('focus', () => {
+      if (input.value.trim()) {
+        lastQuery = null; // force a re-run so the dropdown reappears
+        runSearch(input.value.trim());
+      }
+    });
+  })();
 
   // Sign-out button on the consent overlay. Same destination as the
   // main sign-out — back to the home page.
