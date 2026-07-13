@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Lesson creator — Recall staff</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
   <meta name="description" content="Author lessons for the Recall catalogue." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -69,9 +70,8 @@
     }
     .brand-mark {
       width: 26px; height: 26px;
-      background: var(--blue); color: #fff;
-      display: grid; place-items: center;
-      font-weight: 800; font-size: 13px;
+      display: block;
+      object-fit: cover;
       border-radius: var(--r-sm);
     }
     .brand .tag {
@@ -1404,7 +1404,7 @@
 <nav class="top">
   <div class="row">
     <a class="brand" href="index.html">
-      <span class="brand-mark">R</span> Recall
+      <img class="brand-mark" src="logo.png" alt="Recall" /> Recall
       <span class="tag">STAFF</span>
     </a>
     <div class="right">

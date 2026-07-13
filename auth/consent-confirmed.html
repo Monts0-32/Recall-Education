@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Consent recorded — Recall</title>
+  <link rel="icon" type="image/png" href="../favicon.png" />
   <meta name="description" content="Thanks — parental consent has been recorded for a Recall account." />
   <!-- Polite redirect to the home page after 5 seconds. The parent can also
        click "Close this tab" — there's no need to go anywhere specific. -->
@@ -60,9 +61,8 @@
     }
     .brand-mark {
       width: 28px; height: 28px;
-      background: var(--blue); color: #fff;
-      display: grid; place-items: center;
-      font-weight: 800; font-size: 14px;
+      display: block;
+      object-fit: cover;
       border-radius: var(--r-sm);
     }
 
@@ -150,7 +150,7 @@
 
 <nav class="top">
   <div class="row">
-    <a class="brand" href="index.html"><span class="brand-mark">R</span> Recall</a>
+    <a class="brand" href="index.html"><img class="brand-mark" src="../logo.png" alt="Recall" /> Recall</a>
   </div>
 </nav>
 

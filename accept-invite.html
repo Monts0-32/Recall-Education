@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Accept your invitation — Recall Education</title>
-  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="favicon.png" />
   <style>
     /* Brand-consistent dark theme shared with login.html / signup.html.
        Kept inline (no external stylesheet) so the page is one round-trip
@@ -51,14 +51,9 @@
     }
     .brand .logo {
       width: 24px; height: 24px;
-      background: var(--accent);
+      display: block;
+      object-fit: cover;
       border-radius: 5px;
-      color: #fff;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 800;
     }
     .wrap {
       flex: 1;
@@ -162,7 +157,7 @@
 <body>
   <header class="top">
     <a class="brand" href="/">
-      <span class="logo">R</span>
+      <img class="logo" src="logo.png" alt="Recall" />
       Recall
     </a>
   </header>

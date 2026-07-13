@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Staff dashboard — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
   <meta name="description" content="Recall staff hub: jump into the lesson creator, the admin console, or any other tool you have permission to use." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -68,9 +69,8 @@
     }
     .brand-mark {
       width: 26px; height: 26px;
-      background: var(--blue); color: #fff;
-      display: grid; place-items: center;
-      font-weight: 800; font-size: 13px;
+      display: block;
+      object-fit: cover;
       border-radius: var(--r-sm);
     }
     .brand .tag {
@@ -316,7 +316,7 @@
 <nav class="top">
   <div class="row">
     <a class="brand" href="index.html">
-      <span class="brand-mark">R</span> Recall
+      <img class="brand-mark" src="logo.png" alt="Recall" /> Recall
       <span class="tag">STAFF</span>
     </a>
     <div class="right">

@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>School admin sign-up — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
   <meta name="description" content="School administrator accounts. Coming soon." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,9 +52,8 @@
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
     .brand-mark {
       width: 28px; height: 28px;
-      background: var(--blue); color: #fff;
-      display: grid; place-items: center;
-      font-weight: 800; font-size: 14px;
+      display: block;
+      object-fit: cover;
       border-radius: var(--r-sm);
     }
     nav.top .right { font-size: 13px; color: var(--text-3); }
@@ -109,7 +109,7 @@
 
 <nav class="top">
   <div class="row">
-    <a class="brand" href="index.html"><span class="brand-mark">R</span> Recall</a>
+    <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
     <div class="right">Already have an account? <a href="login.html">Sign in</a></div>
   </div>
 </nav>
