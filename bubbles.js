@@ -8,9 +8,15 @@
      2. injects the bubble CSS
      3. decides which hand-placed bubble arrangement this page gets
         (PLACEMENTS table, picked by pathname)
-     4. creates a single <body>-level fixed overlay, spawns the bubbles
-     5. click → pop (scale up + fade) → teleport to the next
-        position in the bubble's alts list → fade back in
+     4. creates a single <body>-level fixed overlay and spawns the
+        bubbles at their deliberate positions
+
+   The bubbles are decorative only:
+     - all of them use the iridescent (rainbow) variant
+     - they sit at z-index 0 with pointer-events: none
+     - body children are lifted above them via a :where() rule with
+       zero specificity, so any pre-existing z-index still wins
+     - they never move, animate, or respond to clicks
 
    The script is the single source of truth for both the cross-page
    theme and the bubble behaviour. Touching index.html's style isn't
@@ -531,16 +537,16 @@
 
   // ----- 2. Bubble CSS ---------------------------------------------------
   // The visual is the same as the previous build: four variants
-  // (glass / cyan / white / iridescent). The overlay z-index is now 5
-  // so bubbles sit above content but below sticky nav (z-index 50) and
-  // modals (z-index 100). Each bubble is the only thing in the overlay
-  // with pointer-events:auto, so it catches its own clicks without
-  // blocking form inputs elsewhere.
+  // (glass / cyan / white / iridescent). The overlay z-index is 0
+  // so bubbles sit BEHIND all page content — every page's UI paints
+  // over them. The host page's content is lifted above via a :where()
+  // rule at the bottom of this block. Bubbles are decorative only:
+  // no click handlers, no pointer-events:auto, no cursor.
   const BUBBLE_CSS = `
     .bubble-field {
       position: fixed;
       inset: 0;
-      z-index: 5;
+      z-index: 0;
       overflow: hidden;
       pointer-events: none;
     }
@@ -550,8 +556,7 @@
       width:  var(--bubble-size, 80px);
       height: var(--bubble-size, 80px);
       border-radius: 50%;
-      pointer-events: auto;
-      cursor: pointer;
+      pointer-events: none;
       will-change: transform, opacity;
       transform: translate3d(0, 0, 0);
       background:
@@ -566,36 +571,6 @@
         0 0 32px rgba(86,212,221,0.10),
         0 8px 28px rgba(0,0,0,0.20);
       border: 1px solid rgba(255,255,255,0.06);
-      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-                  opacity 0.35s ease;
-    }
-    .bubble--cyan {
-      background:
-        radial-gradient(circle at 30% 28%,
-          rgba(124,224,232,0.32) 0%,
-          rgba(86,212,221,0.18) 22%,
-          rgba(86,212,221,0.06) 50%,
-          transparent 75%);
-      box-shadow:
-        inset 6px 10px 24px rgba(124,224,232,0.18),
-        inset -8px -10px 30px rgba(86,212,221,0.10),
-        0 0 50px rgba(86,212,221,0.28),
-        0 8px 28px rgba(0,0,0,0.20);
-      border-color: rgba(124,224,232,0.18);
-    }
-    .bubble--white {
-      background:
-        radial-gradient(circle at 30% 28%,
-          rgba(255,255,255,0.40) 0%,
-          rgba(255,255,255,0.16) 25%,
-          rgba(255,255,255,0.04) 55%,
-          transparent 80%);
-      box-shadow:
-        inset 6px 10px 28px rgba(255,255,255,0.28),
-        inset -8px -10px 30px rgba(86,212,221,0.10),
-        0 0 60px rgba(255,255,255,0.10),
-        0 8px 32px rgba(0,0,0,0.22);
-      border-color: rgba(255,255,255,0.10);
     }
     .bubble--iridescent {
       background:
@@ -622,6 +597,14 @@
     .bubble--md { --bubble-size: 80px; }
     .bubble--lg { --bubble-size: 160px; }
     .bubble--xl { --bubble-size: 280px; }
+    /* Lift the host page's content above the overlay so the bubble
+       never sits on top of any UI. Uses :where() so the rule has
+       zero specificity and can't clobber any pre-existing z-index
+       (e.g. nav.top's z-index: 50 still wins). */
+    body > :where(:not(.bubble-field):not(script):not(style):not(link):not(meta)) {
+      position: relative;
+      z-index: 1;
+    }
   `;
 
   // ----- 3. Inject styles ------------------------------------------------
@@ -642,11 +625,16 @@
   //   { x, y, size, variant, alts: [{x,y}, ...] }
   // x/y are pixel positions from the top-left of the viewport. The
   // bubble's centre sits at (x, y). size is 32|80|160|280 (px). variant
-  // is the visual style. alts is the list of positions the bubble
-  // cycles through when popped — first entry is the initial position.
-  // Once the alts are exhausted, the bubble picks a random one.
+  // is the visual style (all bubbles are forced to iridescent on
+  // render, but the field is kept in the data for readability and so
+  // future variants can be re-introduced without a data migration).
+  // alts is the list of candidate positions — we use the first entry
+  // as the bubble's fixed position. (Earlier versions cycled through
+  // alts on click, but bubbles no longer move.)
 
-  // Helper to build a placement.
+  // Helper to build a placement. `variant` is retained in the data
+  // shape so we don't have to rewrite the PLACEMENTS tables, but it
+  // isn't read at render time — every bubble is rendered as iridescent.
   const P = (x, y, size, variant, alts) => ({ x, y, size, variant, alts });
 
   // ---- Landing (24 bubbles, distributed across the page) ----
@@ -881,14 +869,7 @@
     y: parseCoord(p.y, dim[1]),
   }));
 
-  // Variant → CSS class. iridescent/cyan/white are explicit; anything
-  // else is "glass" (the default).
-  const VARIANT_CLASS = {
-    glass:      "",
-    cyan:       "bubble--cyan",
-    white:      "bubble--white",
-    iridescent: "bubble--iridescent",
-  };
+  // Size → CSS class.
   const SIZE_CLASS = {
     32:  "bubble--sm",
     80:  "bubble--md",
@@ -913,8 +894,6 @@
         { p: 0.95, size: 160 },
         { p: 1.00, size: 280 },
       ];
-      const VARIANTS_RAND = ["glass", "glass", "glass", "glass", "cyan", "cyan", "white", "iridescent"];
-      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
       const W = window.innerWidth;
       const H = window.innerHeight;
       for (let i = 0; i < count; i++) {
@@ -922,18 +901,13 @@
         let size = 32;
         let acc = 0;
         for (const s of SIZES_RAND) { acc += s.p; if (r < acc) { size = s.size; break; } }
-        const variant = pick(VARIANTS_RAND);
         // Stay in the outer 20% margins so we don't sit on the main content
         const side = Math.random() < 0.5 ? "left" : "right";
         const x = side === "left"
           ? Math.random() * (W * 0.2)
           : W * 0.8 + Math.random() * (W * 0.2);
         const y = Math.random() * H;
-        const alts = [
-          { x, y },
-          { x: x + (Math.random() - 0.5) * 80, y: y + (Math.random() - 0.5) * 80 },
-        ];
-        createBubble(x, y, size, variant, alts);
+        createBubble(x, y, size);
       }
       return;
     }
@@ -943,27 +917,20 @@
       const alts = parseAlts(p.alts, [window.innerWidth, window.innerHeight]);
       const x = alts[0].x;
       const y = alts[0].y;
-      createBubble(x, y, p.size, p.variant, alts);
+      createBubble(x, y, p.size);
     }
   }
 
-  function createBubble(x, y, size, variant, alts) {
+  function createBubble(x, y, size) {
     const el = document.createElement("div");
-    const variantClass = VARIANT_CLASS[variant] || "";
+    // Every bubble is the iridescent (rainbow) variant.
     const sizeClass = SIZE_CLASS[size] || "bubble--md";
-    el.className = "bubble " + sizeClass + (variantClass ? " " + variantClass : "");
+    el.className = "bubble " + sizeClass + " bubble--iridescent";
     el.style.opacity = "0";
     el.style.transform = `translate3d(${x - size/2}px, ${y - size/2}px, 0)`;
     overlay.appendChild(el);
 
-    bubbles.push({
-      el,
-      size,
-      alts,
-      altIndex: 0,           // current position is alts[altIndex]
-      current: { x, y },     // mirror for fast reads
-      popping: false,
-    });
+    bubbles.push({ el, size });
 
     // Fade in
     el.style.transition = "opacity 0.4s ease";
@@ -975,85 +942,14 @@
 
   spawn();
 
-  // ----- 6. Click → pop → regrow at next position ------------------------
-  // Bubbles are the only pointer-events:auto elements in the overlay,
-  // so a click on the overlay that isn't on empty space must be on a
-  // bubble. (Empty space passes through to the page below.)
-  const POP_OUT_MS = 350;
-  const POP_IN_MS  = 300;
+  // ----- 6. No interaction -----------------------------------------------
+  // Bubbles are decorative and never move. They sit behind all page UI
+  // (z-index 0, with a :where() lift on body children) and never receive
+  // pointer events, so they cannot be clicked.
 
-  overlay.addEventListener("click", (e) => {
-    const b = bubbles.find((bb) => bb.el === e.target);
-    if (!b || b.popping) return;
-    popBubble(b);
-  });
-
-  function popBubble(b) {
-    b.popping = true;
-    if (reduceMotion.matches) {
-      // Instant teleport.
-      advanceToNextAlt(b);
-      b.popping = false;
-      return;
-    }
-
-    // 1. Pop: scale up + fade out at the current position.
-    b.el.style.transition = `transform ${POP_OUT_MS}ms cubic-bezier(0.4, 0, 0.2, 1),
-                             opacity   ${POP_OUT_MS}ms ease`;
-    b.el.style.transform = `translate3d(${b.current.x - b.size/2}px, ${b.current.y - b.size/2}px, 0) scale(1.6)`;
-    b.el.style.opacity = "0";
-
-    // 2. When pop is done, teleport to the next position and fade in.
-    setTimeout(() => {
-      advanceToNextAlt(b);
-      b.el.style.transition = `transform ${POP_IN_MS}ms cubic-bezier(0.4, 0, 0.2, 1),
-                               opacity   ${POP_IN_MS}ms ease`;
-      b.el.style.transform = `translate3d(${b.current.x - b.size/2}px, ${b.current.y - b.size/2}px, 0) scale(1)`;
-      b.el.style.opacity = "1";
-      setTimeout(() => {
-        b.el.style.transition = "";
-        b.popping = false;
-      }, POP_IN_MS + 50);
-    }, POP_OUT_MS);
-  }
-
-  function advanceToNextAlt(b) {
-    b.altIndex = (b.altIndex + 1) % b.alts.length;
-    const next = b.alts[b.altIndex];
-    // If we've cycled all alts, occasionally pick a fresh random position
-    // so the page doesn't feel static after lots of clicks.
-    if (b.altIndex === 0 && Math.random() < 0.5) {
-      const W = window.innerWidth;
-      const H = window.innerHeight;
-      b.current = {
-        x: Math.max(b.size/2, Math.min(W - b.size/2, Math.random() * W)),
-        y: Math.max(b.size/2, Math.min(H - b.size/2, Math.random() * H)),
-      };
-    } else {
-      b.current = { x: next.x, y: next.y };
-    }
-  }
-
-  // ----- 7. Resize: reposition bubbles to track the same percentages ----
-  // The alts are stored as absolute pixel positions once at spawn time.
-  // On resize (e.g. rotating a phone) we recompute them.
-  let resizeTimer = 0;
-  window.addEventListener("resize", () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-      // Re-parse the placements' alts using the new viewport size.
-      // This is the simplest correct behaviour — the bubble's *current*
-      // position is whatever it last was; the alts list is refreshed.
-      if (useExplicit) return;   // random arrangement, no placements to re-parse
-      for (let i = 0; i < bubbles.length; i++) {
-        const b = bubbles[i];
-        const p = arrangements[i];
-        if (!p) continue;
-        const alts = parseAlts(p.alts, [window.innerWidth, window.innerHeight]);
-        b.alts = alts;
-        // Keep the bubble where it currently is — the resize just
-        // refreshes the future-position list. (Snapping would be jarring.)
-      }
-    }, 200);
-  });
+  // ----- 7. Resize ---------------------------------------------------------
+  // Bubble positions are fixed at spawn time. On resize the bubbles stay
+  // where they were placed (which is fine for hand-placed positions on
+  // a fixed layout). A page refresh is the user's escape hatch if a
+  // rotation lands a bubble somewhere it shouldn't be.
 })();
