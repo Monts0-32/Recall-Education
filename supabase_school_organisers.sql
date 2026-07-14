@@ -1073,7 +1073,7 @@ security definer
 set search_path = public
 as $$
 declare
-  v_allowed text[] := array['kpis','continue','subjects','upcoming','activity','school_announce'];
+  v_allowed text[] := array['kpis','quick-actions','school','roster','classes','homework'];
   v_item    jsonb;
   v_id      text;
 begin

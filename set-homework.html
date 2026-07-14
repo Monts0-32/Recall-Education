@@ -235,6 +235,79 @@
     }
     .add-resource:hover { color: var(--blue); border-color: var(--blue); }
 
+    /* ---------- quiz builder ---------- */
+    .quiz-q {
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 12px 14px;
+    }
+    .quiz-q .head {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 8px;
+    }
+    .quiz-q .head .num {
+      font-size: 11px; font-weight: 700;
+      background: var(--blue-dim); color: var(--blue);
+      padding: 2px 8px; border-radius: 999px;
+    }
+    .quiz-q .head .spacer { flex: 1; }
+    .quiz-q .head button.del {
+      background: transparent; border: 0; color: var(--text-3);
+      cursor: pointer; font-size: 14px;
+    }
+    .quiz-q .head button.del:hover { color: var(--red); }
+    .quiz-q .prompt {
+      width: 100%;
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 8px 11px;
+      font-family: inherit; font-size: 13.5px;
+      outline: none; margin-bottom: 8px;
+    }
+    .quiz-q .prompt:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+    .quiz-q .opts { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+    .quiz-q .opt-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .quiz-q .opt-row .marker {
+      width: 24px; height: 24px;
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 11px; font-weight: 700; color: var(--text-3);
+      cursor: pointer;
+    }
+    .quiz-q .opt-row .marker.correct {
+      background: var(--green); color: #fff; border-color: var(--green);
+    }
+    .quiz-q .opt-row input {
+      flex: 1;
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 6px 10px;
+      font-family: inherit; font-size: 13px;
+      outline: none;
+    }
+    .quiz-q .opt-row input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+    .quiz-q .opt-row .add-opt {
+      background: transparent; border: 0; color: var(--blue);
+      font-size: 12px; cursor: pointer; padding: 4px 8px;
+    }
+    .quiz-q .opt-row .add-opt:hover { color: var(--text); }
+    .quiz-q .explain {
+      width: 100%; box-sizing: border-box;
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 6px 10px;
+      font-family: inherit; font-size: 12.5px;
+      outline: none; margin-top: 4px;
+    }
+    .quiz-q .explain:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+
     .error-banner, .ok-banner {
       display: none;
       border-radius: var(--r-sm);
@@ -318,7 +391,13 @@
       <div class="field">
         <label for="kind">Type</label>
         <select id="kind" name="kind">
+          <option value="assignment">Assignment</option>
+          <option value="classwork">Classwork</option>
           <option value="homework">Homework</option>
+          <option value="notice">Notice</option>
+          <option value="quiz">Quiz</option>
+          <option value="class_test">Class test</option>
+          <option value="spelling_test">Spelling test</option>
           <option value="mock">Mock exam</option>
           <option value="exam">Exam</option>
           <option value="live">Live lesson</option>
@@ -346,6 +425,13 @@
           <span>Every student attached to your school will see this.</span>
         </div>
       </label>
+      <label class="target-option" data-value="class">
+        <input type="radio" name="target" value="class" />
+        <div class="copy">
+          <b>A class</b>
+          <span>Send to a class you've already set up in <a href="classes.html" style="color: var(--blue);" onclick="event.stopPropagation();">Classes</a>.</span>
+        </div>
+      </label>
       <label class="target-option" data-value="subject">
         <input type="radio" name="target" value="subject" />
         <div class="copy">
@@ -367,6 +453,13 @@
           <span>Pick a custom list of students.</span>
         </div>
       </label>
+    </div>
+    <div class="target-extra" id="targetExtraClass">
+      <div class="field" style="margin-bottom: 0;">
+        <select id="targetClass">
+          <option value="">— Pick a class —</option>
+        </select>
+      </div>
     </div>
     <div class="target-extra" id="targetExtraSubject">
       <div class="field" style="margin-bottom: 0;">
@@ -390,10 +483,39 @@
       </div>
     </div>
 
-    <div class="section-head">Resources (optional)</div>
+    <div class="section-head" id="quizSectionHead" style="display: none;">Build the quiz</div>
+    <div id="quizSection" style="display: none;">
+      <div class="quiz-tabs" style="display: flex; gap: 4px; margin-bottom: 10px;">
+        <button type="button" data-quiz-mode="inline" class="active" id="quizModeInline" style="background: var(--blue-pale); border: 1px solid var(--blue); color: var(--blue); padding: 6px 12px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Build inline</button>
+        <button type="button" data-quiz-mode="lesson" id="quizModeLesson" style="background: transparent; border: 1px solid var(--line-2); color: var(--text-3); padding: 6px 12px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Use a Recall lesson</button>
+      </div>
+      <div id="quizInlinePane">
+        <div id="quizQuestions" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        <button type="button" class="add-resource" id="addQuizQBtn">+ Add question</button>
+        <span class="hint" style="display: block; margin-top: 6px;">Add at least one question. Each question has a prompt, 2–6 options, and one correct answer.</span>
+      </div>
+      <div id="quizLessonPane" style="display: none;">
+        <div class="res-block" style="margin-bottom: 0;">
+          <div class="body">
+            <div class="lesson-search" id="quizLessonSearch">
+              <input type="text" placeholder="Search for a lesson with MCQ questions…" />
+              <div class="results" hidden></div>
+            </div>
+            <div id="quizLessonPicked" style="display: none;" class="picked-lesson">
+              <span id="quizLessonPickedName">—</span>
+              <span class="spacer"></span>
+              <button type="button" id="quizLessonClearBtn">Clear</button>
+            </div>
+            <span class="hint" style="display: block;">The lesson's MCQ questions become the quiz. Edit them on the lesson page.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head" id="resourcesSectionHead">Resources (optional)</div>
     <div id="resList"></div>
     <button type="button" class="add-resource" id="addResBtn">+ Add resource</button>
-    <span class="hint" style="display: block; margin-top: 6px;">Attach a Recall lesson, an external link, or upload a file.</span>
+    <span class="hint" style="display: block; margin-top: 6px;" id="resourcesHint">Attach a Recall lesson, an external link, or upload a file.</span>
 
     <div class="submit-row">
       <a class="btn-secondary" href="teacher-dashboard.html" id="cancelBtn">Cancel</a>
@@ -431,7 +553,14 @@
     subjects: [],     // [{ id, name }]
     yearGroups: [],   // distinct year_group strings from members
     students: [],     // [{ id, full_name, email }]
+    classes: [],      // list_classes rows
     resources: [],    // [{ kind, ref_lesson_id?, url?, storage_path?, display_name? }]
+    quiz: {           // quiz builder state
+      mode: 'inline', // 'inline' | 'lesson'
+      questions: [],  // [{ prompt, options: [{text, correct}], explanation }]
+      lessonId: null,
+      lessonTitle: null,
+    },
   };
 
   // ---------- banners ----------
@@ -513,12 +642,14 @@
     $('dueAt').value = toLocalIso(due);
 
     // Load data in parallel
-    await Promise.all([loadSubjects(), loadStudents()]);
+    await Promise.all([loadSubjects(), loadStudents(), loadClasses()]);
     renderSubjects();
     renderStudents();
     renderYearGroups();
     setupTargetOptions();
+    setupKindHandler();
     addResourceRow();
+    seedQuizBuilder();
   }
 
   // Format a Date for an <input type="datetime-local">.
@@ -545,6 +676,27 @@
       });
       if (!error) state.students = data || [];
     } catch (_) { /* best effort */ }
+  }
+
+  async function loadClasses() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_classes', {
+        p_school_id: state.school.id, p_include_archived: false,
+      });
+      if (!error) state.classes = data || [];
+    } catch (_) { /* best effort */ }
+    renderClasses();
+  }
+
+  function renderClasses() {
+    const sel = $('targetClass');
+    if (!sel) return;
+    if (!state.classes.length) {
+      sel.innerHTML = `<option value="">— No classes yet —</option>`;
+      return;
+    }
+    sel.innerHTML = `<option value="">— Pick a class —</option>` +
+      state.classes.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)} (${c.member_count} students)</option>`).join('');
   }
 
   function renderSubjects() {
@@ -591,6 +743,7 @@
         document.querySelectorAll('.target-option').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
         const v = opt.dataset.value;
+        $('targetExtraClass').classList.toggle('show',     v === 'class');
         $('targetExtraSubject').classList.toggle('show',  v === 'subject');
         $('targetExtraYear').classList.toggle('show',     v === 'year');
         $('targetExtraStudents').classList.toggle('show', v === 'students');
@@ -598,6 +751,199 @@
     });
     // Initial selection
     document.querySelector('.target-option[data-value="all"]').classList.add('selected');
+  }
+
+  // ---------- kind-aware UI ----------
+  function setupKindHandler() {
+    $('kind').addEventListener('change', applyKindMode);
+    applyKindMode();
+  }
+  function applyKindMode() {
+    const k = $('kind').value;
+    const isQuiz = k === 'quiz';
+    const isNotice = k === 'notice';
+    // Quiz section
+    $('quizSection').style.display = isQuiz ? '' : 'none';
+    $('quizSectionHead').style.display = isQuiz ? '' : 'none';
+    // Resources section — hidden for quiz (handled by quiz builder) and for notice.
+    const resVisible = !isQuiz;
+    $('resourcesSectionHead').style.display = resVisible ? '' : 'none';
+    $('resList').style.display = resVisible ? '' : 'none';
+    $('addResBtn').style.display = resVisible ? '' : 'none';
+    $('resourcesHint').style.display = resVisible ? '' : 'none';
+    // Description label swap for notices
+    const descLabel = document.querySelector('label[for="description"]');
+    if (descLabel) {
+      descLabel.textContent = isNotice ? 'Message' : 'Description (optional)';
+    }
+    const descPh = isNotice
+      ? 'Write the message students will see. They\'ll acknowledge it when they\'ve read it.'
+      : 'What students need to do, how long it should take, anything they should know.';
+    $('description').placeholder = descPh;
+  }
+
+  // ---------- quiz builder ----------
+  function seedQuizBuilder() {
+    if (!state.quiz.questions.length) {
+      addQuizQuestion();
+    } else {
+      renderQuizQuestions();
+    }
+    setupQuizMode();
+  }
+  function addQuizQuestion() {
+    state.quiz.questions.push({
+      prompt: '',
+      options: [
+        { text: '', correct: true },
+        { text: '', correct: false },
+      ],
+      explanation: '',
+    });
+    renderQuizQuestions();
+  }
+  function renderQuizQuestions() {
+    const root = $('quizQuestions');
+    root.innerHTML = state.quiz.questions.map((q, i) => quizQuestionHtml(q, i)).join('');
+    root.querySelectorAll('.quiz-q').forEach((el, i) => {
+      el.querySelector('.del').addEventListener('click', () => {
+        state.quiz.questions.splice(i, 1);
+        if (!state.quiz.questions.length) addQuizQuestion();
+        else renderQuizQuestions();
+      });
+      el.querySelector('.prompt').addEventListener('input', (e) => {
+        state.quiz.questions[i].prompt = e.target.value;
+      });
+      el.querySelector('.explain').addEventListener('input', (e) => {
+        state.quiz.questions[i].explanation = e.target.value;
+      });
+      el.querySelectorAll('.opt-row').forEach((row, j) => {
+        const marker = row.querySelector('.marker');
+        const text   = row.querySelector('input.opt-text');
+        marker.addEventListener('click', () => {
+          state.quiz.questions[i].options.forEach((o, k) => { o.correct = (k === j); });
+          renderQuizQuestions();
+        });
+        text.addEventListener('input', (e) => {
+          state.quiz.questions[i].options[j].text = e.target.value;
+        });
+        const del = row.querySelector('.del-opt');
+        if (del) del.addEventListener('click', () => {
+          if (state.quiz.questions[i].options.length <= 2) return;
+          state.quiz.questions[i].options.splice(j, 1);
+          renderQuizQuestions();
+        });
+      });
+      el.querySelector('.add-opt').addEventListener('click', () => {
+        if (state.quiz.questions[i].options.length >= 6) return;
+        state.quiz.questions[i].options.push({ text: '', correct: false });
+        renderQuizQuestions();
+      });
+    });
+  }
+  function quizQuestionHtml(q, i) {
+    const opts = q.options.map((o, j) => `
+      <div class="opt-row">
+        <div class="marker ${o.correct ? 'correct' : ''}" title="Mark as correct">${o.correct ? '✓' : String.fromCharCode(65 + j)}</div>
+        <input class="opt-text" type="text" placeholder="Option ${String.fromCharCode(65 + j)}" value="${escapeHtml(o.text)}" />
+        ${q.options.length > 2 ? `<button type="button" class="del-opt" style="background: transparent; border: 0; color: var(--text-3); cursor: pointer; font-size: 14px;">✕</button>` : ''}
+      </div>
+    `).join('');
+    return `
+      <div class="quiz-q" data-idx="${i}">
+        <div class="head">
+          <span class="num">Q${i + 1}</span>
+          <span style="color: var(--text-3); font-size: 12px;">Click a letter to mark the correct answer</span>
+          <span class="spacer"></span>
+          <button type="button" class="del" title="Remove question">✕</button>
+        </div>
+        <input class="prompt" type="text" placeholder="Question prompt…" value="${escapeHtml(q.prompt)}" />
+        <div class="opts">${opts}</div>
+        <button type="button" class="add-opt" style="align-self: flex-start;">+ Add option</button>
+        <input class="explain" type="text" placeholder="Optional explanation shown after the quiz" value="${escapeHtml(q.explanation || '')}" />
+      </div>
+    `;
+  }
+
+  function setupQuizMode() {
+    document.querySelectorAll('.quiz-tabs button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const m = btn.dataset.quizMode;
+        state.quiz.mode = m;
+        document.querySelectorAll('.quiz-tabs button').forEach(b => {
+          const active = b === btn;
+          b.classList.toggle('active', active);
+          b.style.background = active ? 'var(--blue-pale)' : 'transparent';
+          b.style.borderColor = active ? 'var(--blue)' : 'var(--line-2)';
+          b.style.color = active ? 'var(--blue)' : 'var(--text-3)';
+        });
+        $('quizInlinePane').style.display = m === 'inline' ? '' : 'none';
+        $('quizLessonPane').style.display = m === 'lesson' ? '' : 'none';
+      });
+    });
+    $('addQuizQBtn').addEventListener('click', addQuizQuestion);
+    // Lesson search for quiz
+    const lessonInput = document.querySelector('#quizLessonSearch input');
+    const lessonOut   = $('quizLessonSearch') ? $('quizLessonSearch').querySelector('.results') : null;
+    if (lessonInput && lessonOut) {
+      let timer = null, lastQ = null;
+      lessonInput.addEventListener('input', () => {
+        clearTimeout(timer);
+        const q = lessonInput.value.trim();
+        if (!q) { lessonOut.hidden = true; lessonOut.innerHTML = ''; lastQ = null; return; }
+        timer = setTimeout(async () => {
+          if (q === lastQ) return;
+          lastQ = q;
+          const qUpper = q.toUpperCase();
+          const [exact, fuzzy] = await Promise.all([
+            supabaseClient.from('lessons').select('id, title, code')
+              .eq('status', 'published').eq('code', qUpper).limit(1),
+            supabaseClient.from('lessons').select('id, title, code')
+              .eq('status', 'published').ilike('title', `%${q}%`).limit(7),
+          ]);
+          if (q !== lastQ) return;
+          const exactRow = (exact.data || [])[0];
+          const fuzzyRows = (fuzzy.data || []).filter(r => r.id !== exactRow?.id);
+          const rows = [exactRow, ...fuzzyRows].filter(Boolean);
+          if (!rows.length) {
+            lessonOut.innerHTML = `<div class="empty">No matches.</div>`;
+          } else {
+            lessonOut.innerHTML = rows.map(l => `
+              <a href="#" data-id="${escapeHtml(l.id)}" data-title="${escapeHtml(l.title)}">
+                <div>${escapeHtml(l.title)} ${l.code ? `<span style="color: var(--text-4); font-size: 11px; font-family: monospace;">${escapeHtml(l.code)}</span>` : ''}</div>
+              </a>
+            `).join('');
+            lessonOut.querySelectorAll('a').forEach(a => {
+              a.addEventListener('click', (e) => {
+                e.preventDefault();
+                state.quiz.lessonId = a.dataset.id;
+                state.quiz.lessonTitle = a.dataset.title;
+                lessonInput.value = '';
+                lessonOut.hidden = true;
+                renderQuizLessonPicked();
+              });
+            });
+          }
+          lessonOut.hidden = false;
+        }, 200);
+      });
+      lessonInput.addEventListener('blur', () => setTimeout(() => { lessonOut.hidden = true; }, 180));
+    }
+    $('quizLessonClearBtn').addEventListener('click', () => {
+      state.quiz.lessonId = null;
+      state.quiz.lessonTitle = null;
+      renderQuizLessonPicked();
+    });
+  }
+  function renderQuizLessonPicked() {
+    const wrap = $('quizLessonPicked');
+    const nameEl = $('quizLessonPickedName');
+    if (state.quiz.lessonId) {
+      nameEl.textContent = '📘 ' + (state.quiz.lessonTitle || 'Lesson');
+      wrap.style.display = '';
+    } else {
+      wrap.style.display = 'none';
+    }
   }
 
   // ---------- resource blocks ----------
@@ -798,6 +1144,11 @@
     const target = (document.querySelector('input[name="target"]:checked') || {}).value;
     let p_targets = {};
     if (target === 'all') p_targets = { all: true };
+    else if (target === 'class') {
+      const cid = $('targetClass').value;
+      if (!cid) return showError('Pick a class for the target group.');
+      p_targets = { class_id: cid };
+    }
     else if (target === 'subject') {
       const sid = $('targetSubject').value;
       if (!sid) return showError('Pick a subject for the target group.');
@@ -830,6 +1181,38 @@
         return { kind: 'file', storage_path: r.storage_path, display_name: r.display_name || null };
       });
 
+    // Build p_quiz_data — only for inline quizzes.
+    let p_quiz_data = null;
+    if (kind === 'quiz') {
+      if (state.quiz.mode === 'inline') {
+        // Validate
+        const cleaned = [];
+        for (const q of state.quiz.questions) {
+          const prompt = (q.prompt || '').trim();
+          const opts = (q.options || []).map(o => ({ text: (o.text || '').trim(), correct: !!o.correct, feedback: null })).filter(o => o.text);
+          const correctCount = opts.filter(o => o.correct).length;
+          if (!prompt) continue;
+          if (opts.length < 2 || correctCount !== 1) {
+            return showError('Each quiz question needs a prompt, 2+ options, and exactly one correct answer.');
+          }
+          cleaned.push({
+            prompt,
+            options: opts,
+            explanation: (q.explanation || '').trim() || null,
+          });
+        }
+        if (!cleaned.length) return showError('Add at least one quiz question.');
+        p_quiz_data = { questions: cleaned };
+      } else {
+        // Lesson-backed: no quiz_data — the lesson is the source of MCQ blocks.
+        if (!state.quiz.lessonId) return showError('Pick a Recall lesson for the quiz.');
+        p_resources.unshift({
+          kind: 'recall_lesson', ref_lesson_id: state.quiz.lessonId,
+          display_name: state.quiz.lessonTitle || null,
+        });
+      }
+    }
+
     const submitBtn = $('submitBtn');
     submitBtn.disabled = true;
     submitBtn.textContent = 'Sending…';
@@ -843,6 +1226,7 @@
         p_targets: p_targets,
         p_kind: kind,
         p_resources: p_resources,
+        p_quiz_data: p_quiz_data,
       });
       if (error) { submitBtn.disabled = false; submitBtn.textContent = 'Send homework'; return showError('Couldn\'t send: ' + error.message); }
       if (data && data.ok !== true) {

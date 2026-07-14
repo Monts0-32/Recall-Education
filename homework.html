@@ -29,7 +29,9 @@
       --green:     #3FB950;
       --green-dim: rgba(63,185,80,0.12);
       --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
       --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
       --r-sm: 6px;
       --r-md: 8px;
     }
@@ -78,6 +80,21 @@
       cursor: pointer;
     }
     .btn-ghost:hover { background: var(--bg-2); }
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      padding: 8px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 600;
+      border: 1px solid var(--blue); cursor: pointer;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid var(--line-2);
+      padding: 7px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;
+    }
+    .btn-secondary:hover { background: var(--bg-4); border-color: var(--line-3); }
 
     /* ---------- LAYOUT ---------- */
     .layout {
@@ -106,9 +123,6 @@
       border: 1px solid var(--line);
       border-radius: var(--r-md);
       padding: 20px 22px;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 16px;
     }
     .hw-card .body .head {
       display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
@@ -163,35 +177,104 @@
       flex-shrink: 0;
     }
 
-    /* ---------- DONE BUTTON + STATUS ---------- */
+    /* ---------- ACTION ROW + STATUS ---------- */
     .hw-card .side {
-      display: flex; flex-direction: column; align-items: flex-end;
-      gap: 8px; min-width: 140px;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+      margin-top: 16px; padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+    .hw-card .side .row {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     }
     .hw-card .side .status {
       font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
       text-transform: uppercase;
       padding: 3px 10px; border-radius: 999px;
     }
-    .hw-card .side .status.pending { background: var(--bg-4); color: var(--text-3); }
-    .hw-card .side .status.done    { background: var(--green-dim); color: var(--green); }
-    .hw-card .side .status.missed  { background: rgba(248,81,73,0.12); color: var(--red); }
-    .hw-card .side .pill {
-      font-size: 11px; color: var(--text-4);
+    .hw-card .side .status.pending  { background: var(--bg-4); color: var(--text-3); }
+    .hw-card .side .status.done     { background: var(--green-dim); color: var(--green); }
+    .hw-card .side .status.late     { background: var(--yellow-dim); color: var(--yellow); }
+    .hw-card .side .status.missed   { background: var(--red-dim); color: var(--red); }
+    .hw-card .side .status.submitted{ background: var(--blue-dim); color: var(--blue); }
+    .hw-card .side .status.seen     { background: rgba(139,148,158,0.12); color: var(--text-2); }
+    .hw-card .side .submitted-at {
+      color: var(--green); font-size: 12px;
     }
-    .btn-done {
-      background: var(--blue); color: #fff;
-      padding: 8px 14px; border-radius: var(--r-sm);
-      font-family: inherit; font-size: 12.5px; font-weight: 600;
-      border: 1px solid var(--blue);
-      cursor: pointer;
+
+    .submit-area {
+      width: 100%; box-sizing: border-box;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 12px;
     }
-    .btn-done:hover { background: var(--blue-2); border-color: var(--blue-2); }
-    .btn-done.is-done {
-      background: transparent; color: var(--text-2);
-      border-color: var(--line-2);
+    .submit-tabs {
+      display: flex; gap: 4px; margin-bottom: 10px;
     }
-    .btn-done.is-done:hover { background: var(--bg-3); color: var(--text); }
+    .submit-tabs button {
+      background: transparent; color: var(--text-3);
+      border: 1px solid var(--line-2);
+      padding: 4px 10px; border-radius: 4px;
+      font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+    }
+    .submit-tabs button.active { color: var(--blue); border-color: var(--blue); background: var(--blue-pale); }
+    .submit-pane { display: none; }
+    .submit-pane.active { display: block; }
+    .submit-pane textarea {
+      width: 100%; box-sizing: border-box;
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 8px 11px;
+      font-family: inherit; font-size: 13.5px;
+      min-height: 80px; resize: vertical;
+      outline: none;
+    }
+    .submit-pane textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+    .submit-pane input[type="file"] {
+      width: 100%; box-sizing: border-box;
+      color: var(--text-2); font-size: 12.5px;
+    }
+    .submit-pane .upload-state { font-size: 12px; color: var(--text-3); margin-left: 8px; }
+    .submit-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+
+    /* ---------- QUIZ PLAYER ---------- */
+    .quiz-host { display: flex; flex-direction: column; gap: 12px; }
+    .quiz-q { padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .quiz-q:last-child { border-bottom: none; }
+    .quiz-q .num { font-size: 11.5px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .quiz-q .prompt { color: var(--text); font-weight: 500; margin: 4px 0 8px; }
+    .quiz-q .opts { display: flex; flex-direction: column; gap: 4px; }
+    .quiz-q .opt {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px;
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      cursor: pointer; font-size: 13px;
+    }
+    .quiz-q .opt:hover { border-color: var(--blue); }
+    .quiz-q .opt input { accent-color: var(--blue); }
+    .quiz-q .opt .letter { font-weight: 700; color: var(--text-3); width: 18px; }
+    .quiz-q.result .opt.is-correct { border-color: var(--green); background: var(--green-dim); }
+    .quiz-q.result .opt.is-correct .letter { color: var(--green); }
+    .quiz-q.result .opt.is-picked-wrong { border-color: var(--red); background: var(--red-dim); }
+    .quiz-q.result .opt.is-picked-wrong .letter { color: var(--red); }
+    .quiz-q.result .explain { margin-top: 8px; color: var(--text-3); font-size: 12.5px; font-style: italic; }
+    .quiz-result-head {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; background: var(--bg-3);
+      border-radius: var(--r-sm); border: 1px solid var(--line);
+      margin-bottom: 12px;
+    }
+    .quiz-score {
+      font-size: 28px; font-weight: 700; color: var(--blue);
+    }
+    .quiz-score small { font-size: 14px; color: var(--text-3); font-weight: 500; }
+    .quiz-score-label { color: var(--text-2); font-size: 14px; }
+    .quiz-q-head {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+    }
+    .quiz-q-status { font-size: 11.5px; color: var(--text-3); margin-left: auto; }
+    .quiz-q-status.ok { color: var(--green); }
+    .quiz-q-status.bad { color: var(--red); }
 
     /* ---------- EMPTY STATE ---------- */
     .empty-state {
@@ -203,11 +286,40 @@
     .empty-state p { margin: 0 0 18px; }
     .empty-state a { color: var(--blue); }
 
-    @media (max-width: 600px) {
-      .hw-card { grid-template-columns: 1fr; }
-      .hw-card .side { align-items: flex-start; }
+    /* ---------- MODAL ---------- */
+    .modal-back {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.6);
+      display: none; align-items: center; justify-content: center;
+      padding: 32px;
     }
-    a:focus-visible, button:focus-visible {
+    .modal-back.open { display: flex; }
+    .modal {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      max-width: 720px; width: 100%;
+      max-height: 90vh;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .modal-head .right { margin-left: auto; }
+    .modal-body { padding: 18px; overflow-y: auto; }
+    .modal-foot {
+      padding: 12px 18px; border-top: 1px solid var(--line);
+      display: flex; gap: 8px; justify-content: flex-end;
+    }
+
+    @media (max-width: 600px) {
+      .hw-card { padding: 16px; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
       outline: 2px solid var(--blue); outline-offset: 2px;
     }
   </style>
@@ -236,10 +348,26 @@
   <div id="list" class="hw-list"></div>
 </div>
 
+<!-- Quiz modal -->
+<div class="modal-back" id="quizModal">
+  <div class="modal" style="max-width: 720px;">
+    <div class="modal-head">
+      <h3 id="quizModalTitle">Quiz</h3>
+      <div class="right">
+        <button class="btn-ghost" id="quizCloseBtn" type="button">Close</button>
+      </div>
+    </div>
+    <div class="modal-body" id="quizModalBody">
+      <p style="color: var(--text-3);">Loading…</p>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="quiz-player.js"></script>
 <script>
   const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9lIjoiYW5vbiIsImlhdCI6MTc4MzgzOTE0OCwiZXhwIjoyMDk5NDE1MTQ4fQ.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: {
       fetch: (url, options = {}) => {
@@ -259,6 +387,11 @@
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
+  const KIND_LABELS = {
+    homework: 'Homework', mock: 'Mock exam', exam: 'Exam', live: 'Live lesson',
+    assignment: 'Assignment', classwork: 'Classwork', notice: 'Notice',
+    quiz: 'Quiz', class_test: 'Class test', spelling_test: 'Spelling test',
+  };
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   function fmtDate(iso) {
     if (!iso) return '';
@@ -269,39 +402,30 @@
     if (!iso) return '';
     const then = new Date(iso);
     const now  = new Date();
-    const diffMs = then - now;
-    const days  = Math.round(diffMs / 86400000);
+    const days  = Math.round((then - now) / 86400000);
     if (days < 0)   return `overdue by ${-days} day${-days === 1 ? '' : 's'}`;
     if (days === 0) return 'due today';
     if (days === 1) return 'due tomorrow';
     if (days < 60)  return `due in ${days} days`;
     return `due ${fmtDate(iso)}`;
   }
-  function timeAgo(iso) {
+  function fmtTime(iso) {
     if (!iso) return '';
-    const then = new Date(iso);
-    const now  = new Date();
-    const diffMs = now - then;
-    const mins = Math.floor(diffMs / 60000);
-    if (mins < 1)    return 'just now';
-    if (mins < 60)   return `${mins} min ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24)    return `${hrs} hour${hrs === 1 ? '' : 's'} ago`;
-    const days = Math.floor(hrs / 24);
-    if (days < 7)    return `${days} day${days === 1 ? '' : 's'} ago`;
-    return fmtDate(iso);
+    const d = new Date(iso);
+    return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   }
 
-  // ---------- sign out (mirrors the dashboard's pattern) ----------
+  const state = {
+    user: null,
+    assignments: [],
+    submissions: {},   // aid -> { submitted_at, quiz_score, has_text, has_file, file_name }
+  };
+
   $('signOutBtn').addEventListener('click', async () => {
     await supabaseClient.auth.signOut();
     window.location.href = 'login.html';
   });
 
-  // ---------- render ----------
-  // We render ALL of the student's homework (not just one), so the page
-  // works both as a deep link from the dashboard and as a focused view.
-  // A "Mark done" button on each card calls mark_assignment_done.
   function renderResources(resList) {
     if (!resList || !resList.length) return '';
     return '<div class="resources">' + resList.map(r => {
@@ -326,16 +450,58 @@
     }).join('') + '</div>';
   }
 
+  function statusPillClass(s) {
+    if (s === 'late') return 'late';
+    return s || 'pending';
+  }
+  function statusLabel(s) {
+    if (s === 'late') return 'Late';
+    if (s === 'done') return 'On time';
+    if (s === 'seen') return 'Seen';
+    if (s === 'submitted') return 'Submitted';
+    if (s === 'missed') return 'Missed';
+    return 'Pending';
+  }
+
   function renderCard(a) {
-    const isDone = a.status === 'done';
-    const isMissed = a.status === 'missed';
-    const kindLabel = a.kind === 'homework' ? 'Homework'
-                    : a.kind === 'mock' ? 'Mock exam'
-                    : a.kind === 'exam' ? 'Exam'
-                    : a.kind === 'live' ? 'Live lesson'
-                    : a.kind;
+    const kindLabel = KIND_LABELS[a.kind] || a.kind;
+    const sub = state.submissions[a.id];
+    const submittedAt = sub && sub.submitted_at;
+    const isQuiz = a.kind === 'quiz';
+    const isNotice = a.kind === 'notice';
+    const showMarkDone = !isQuiz && !isNotice; // quizzes auto-grade; notices just need an ack
+    const showSubmit = showMarkDone && (a.status === 'pending' || a.status === 'submitted' || a.status === 'late');
+    const isDone = a.status === 'done' || a.status === 'late';
+
+    let actionHtml = '';
+    if (isNotice) {
+      actionHtml = a.status === 'seen' || a.status === 'done'
+        ? `<button class="btn-secondary" disabled>Acknowledged</button>`
+        : `<button class="btn-primary" data-id="${escapeHtml(a.id)}" data-action="ack">I've read this</button>`;
+    } else if (isQuiz) {
+      const score = sub && sub.quiz_score;
+      if (score != null) {
+        actionHtml = `<div class="row">
+          <span class="status done">Score: ${score}%</span>
+          <button class="btn-secondary" data-id="${escapeHtml(a.id)}" data-action="quiz-retake">Retake quiz</button>
+        </div>`;
+      } else if (a.status === 'pending' || a.status === 'missed') {
+        actionHtml = `<button class="btn-primary" data-id="${escapeHtml(a.id)}" data-action="quiz">Take quiz</button>`;
+      } else {
+        actionHtml = `<button class="btn-secondary" data-id="${escapeHtml(a.id)}" data-action="quiz">View quiz</button>`;
+      }
+    } else {
+      actionHtml = showMarkDone
+        ? `<button class="btn-primary ${isDone ? 'is-done' : ''}" data-id="${escapeHtml(a.id)}" data-action="mark" data-done="${isDone ? '1' : '0'}">
+            ${isDone ? 'Mark not done' : 'Mark done'}
+          </button>`
+        : '';
+    }
+
+    const submitArea = showSubmit ? renderSubmitArea(a) : '';
+
     return `
-      <div class="hw-card" data-id="${escapeHtml(a.id)}">
+      <div class="hw-card" data-id="${escapeHtml(a.id)}" data-kind="${escapeHtml(a.kind)}">
         <div class="body">
           <div class="head">
             <h2>${escapeHtml(a.title)}</h2>
@@ -346,12 +512,43 @@
           ${renderResources(a.resources)}
         </div>
         <div class="side">
-          <span class="status ${escapeHtml(a.status || 'pending')}">${escapeHtml(a.status || 'pending')}</span>
-          <button class="btn-done ${isDone ? 'is-done' : ''}" data-id="${escapeHtml(a.id)}" data-done="${isDone ? '1' : '0'}">
-            ${isDone ? 'Mark not done' : 'Mark done'}
-          </button>
+          <div class="row">
+            <span class="status ${escapeHtml(statusPillClass(a.status))}">${escapeHtml(statusLabel(a.status))}</span>
+            ${submittedAt ? `<span class="submitted-at">Submitted ${fmtTime(submittedAt)}${sub && sub.quiz_score != null ? ' · ' + sub.quiz_score + '%' : ''}</span>` : ''}
+            ${actionHtml}
+          </div>
+          ${submitArea}
         </div>
       </div>`;
+  }
+
+  function renderSubmitArea(a) {
+    const sub = state.submissions[a.id];
+    const hasText = sub && sub.has_text;
+    const hasFile = sub && sub.has_file;
+    const fileName = sub && sub.file_name;
+    return `
+      <div class="submit-area">
+        <div class="submit-tabs">
+          <button class="active" data-tab="text" type="button">Type answer</button>
+          <button data-tab="file" type="button">Upload file</button>
+        </div>
+        <div class="submit-pane active" data-pane="text">
+          <textarea placeholder="Write your answer here…" data-aid="${escapeHtml(a.id)}" class="text-answer">${hasText ? '' : ''}</textarea>
+          <div class="submit-actions">
+            ${hasText ? `<span style="color: var(--green); font-size: 12px; align-self: center;">Text submitted</span>` : ''}
+            <button class="btn-primary" data-id="${escapeHtml(a.id)}" data-action="submit-text" type="button">${hasText ? 'Update answer' : 'Submit'}</button>
+          </div>
+        </div>
+        <div class="submit-pane" data-pane="file">
+          <input type="file" accept="application/pdf,image/*,.doc,.docx" data-aid="${escapeHtml(a.id)}" class="file-input" />
+          <span class="upload-state"></span>
+          <div class="submit-actions">
+            ${hasFile ? `<span style="color: var(--green); font-size: 12px; align-self: center;">${escapeHtml(fileName || 'File uploaded')}</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   function renderEmpty() {
@@ -363,10 +560,6 @@
       </div>`;
   }
 
-  // For each assignment, fetch its resources. list_my_assignments()
-  // returns a resource_count but not the rows themselves — we need
-  // them for the link list. Resources are visible to anyone who can
-  // read the parent assignment (RLS on assignment_resources).
   async function fetchResources(assignmentId) {
     const { data, error } = await supabaseClient
       .from('assignment_resources')
@@ -377,9 +570,29 @@
     return data || [];
   }
 
+  async function fetchMySubmission(aid) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('assignment_submissions')
+        .select('submitted_at, quiz_score, text_answer, file_path, file_name')
+        .eq('assignment_id', aid)
+        .eq('student_user_id', state.user.id)
+        .maybeSingle();
+      if (error || !data) return null;
+      return {
+        submitted_at: data.submitted_at,
+        quiz_score:   data.quiz_score,
+        has_text:     !!data.text_answer,
+        has_file:     !!data.file_path,
+        file_name:    data.file_name,
+      };
+    } catch (_) { return null; }
+  }
+
   async function load() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) { window.location.href = 'login.html'; return; }
+    state.user = user;
     $('signOutBtn').hidden = false;
 
     const { data: rows, error } = await supabaseClient.rpc('list_my_assignments');
@@ -393,50 +606,193 @@
       return;
     }
 
-    // Fetch resources for each assignment in parallel. list_my_assignments
-    // doesn't return them inline (kept the RPC compact) — we do a small
-    // join per row here.
     const enriched = await Promise.all(rows.map(async a => ({
       ...a,
-      resources: a.resource_count > 0 ? await fetchResources(a.id) : []
+      resources: a.resource_count > 0 ? await fetchResources(a.id) : [],
     })));
+
+    // Pull the user's submissions for these assignments.
+    const subs = await Promise.all(enriched.map(a => fetchMySubmission(a.id)));
+    subs.forEach((s, i) => { if (s) state.submissions[enriched[i].id] = s; });
 
     // Pending first, then by due date asc.
     enriched.sort((a, b) => {
-      if (a.status === 'pending' && b.status !== 'pending') return -1;
-      if (a.status !== 'pending' && b.status === 'pending') return 1;
+      const aPending = a.status === 'pending' || a.status === 'submitted';
+      const bPending = b.status === 'pending' || b.status === 'submitted';
+      if (aPending && !bPending) return -1;
+      if (!aPending && bPending) return 1;
       return new Date(a.due_at) - new Date(b.due_at);
     });
 
-    const pendingCount = enriched.filter(a => a.status === 'pending').length;
+    const pendingCount = enriched.filter(a => a.status === 'pending' || a.status === 'submitted').length;
     $('sub').textContent = pendingCount
       ? `${pendingCount} pending · ${enriched.length} total`
       : `All caught up · ${enriched.length} total`;
 
     $('list').innerHTML = enriched.map(renderCard).join('');
+    setupHandlers();
+  }
 
-    // Wire mark-done buttons.
-    document.querySelectorAll('.btn-done').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.dataset.id;
-        const wasDone = btn.dataset.done === '1';
-        const newDone = !wasDone;
-        btn.disabled = true;
-        btn.textContent = newDone ? 'Marking…' : 'Unmarking…';
-        const { error } = await supabaseClient.rpc('mark_assignment_done', {
-          p_assignment_id: id, p_done: newDone,
-        });
-        if (error) {
-          btn.disabled = false;
-          btn.textContent = wasDone ? 'Mark not done' : 'Mark done';
-          alert('Couldn\'t update: ' + error.message);
-          return;
-        }
-        // Reload to refresh the list and statuses.
-        await load();
+  function setupHandlers() {
+    // Tabs in submit area
+    document.querySelectorAll('.submit-tabs button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const card = btn.closest('.submit-area');
+        card.querySelectorAll('.submit-tabs button').forEach(b => b.classList.toggle('active', b === btn));
+        card.querySelectorAll('.submit-pane').forEach(p => p.classList.toggle('active', p.dataset.pane === btn.dataset.tab));
       });
     });
+    // Card actions
+    document.querySelectorAll('.hw-card button[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => onAction(btn));
+    });
   }
+
+  async function onAction(btn) {
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+    if (!id || !action) return;
+    if (action === 'mark') {
+      const wasDone = btn.dataset.done === '1';
+      const newDone = !wasDone;
+      btn.disabled = true;
+      btn.textContent = newDone ? 'Marking…' : 'Unmarking…';
+      const { error } = await supabaseClient.rpc('mark_assignment_done', {
+        p_assignment_id: id, p_done: newDone,
+      });
+      if (error) {
+        btn.disabled = false;
+        btn.textContent = wasDone ? 'Mark not done' : 'Mark done';
+        alert('Couldn\'t update: ' + error.message);
+        return;
+      }
+      await load();
+    } else if (action === 'ack') {
+      btn.disabled = true; btn.textContent = '…';
+      const { error } = await supabaseClient.rpc('acknowledge_notice', { p_assignment_id: id });
+      if (error) { btn.disabled = false; btn.textContent = "I've read this"; alert('Couldn\'t update: ' + error.message); return; }
+      await load();
+    } else if (action === 'quiz' || action === 'quiz-retake') {
+      openQuiz(id, action === 'quiz-retake');
+    } else if (action === 'submit-text') {
+      const card = btn.closest('.hw-card');
+      const ta = card.querySelector('textarea.text-answer');
+      const text = (ta && ta.value || '').trim();
+      if (!text) { alert('Type an answer first.'); return; }
+      btn.disabled = true; btn.textContent = 'Submitting…';
+      const { error } = await supabaseClient.rpc('submit_assignment', {
+        p_assignment_id: id, p_text_answer: text,
+        p_file_path: null, p_file_name: null,
+        p_quiz_score: null, p_quiz_answers: null,
+      });
+      if (error) { btn.disabled = false; btn.textContent = 'Submit'; alert('Couldn\'t submit: ' + error.message); return; }
+      await load();
+    }
+  }
+
+  // File upload — bound per card on change.
+  document.addEventListener('change', async (e) => {
+    if (!e.target.classList.contains('file-input')) return;
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const aid = e.target.dataset.aid;
+    const card = e.target.closest('.hw-card');
+    const state_ = card.querySelector('.upload-state');
+    state_.textContent = 'Uploading…';
+    state_.style.color = 'var(--text-3)';
+    try {
+      // Get the school id from the student's profile.
+      const { data: profile } = await supabaseClient.from('profiles').select('school_id').eq('id', state.user.id).maybeSingle();
+      const schoolId = profile && profile.school_id;
+      if (!schoolId) throw new Error('No school attached to your account.');
+      const ext = (f.name.split('.').pop() || 'bin').toLowerCase();
+      const path = `${schoolId}/submissions/${aid}/${state.user.id}/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabaseClient.storage
+        .from('assignment-files').upload(path, f, { upsert: false, contentType: f.type });
+      if (upErr) throw upErr;
+      const { error: subErr } = await supabaseClient.rpc('submit_assignment', {
+        p_assignment_id: aid, p_text_answer: null,
+        p_file_path: path, p_file_name: f.name,
+        p_quiz_score: null, p_quiz_answers: null,
+      });
+      if (subErr) throw subErr;
+      state_.style.color = 'var(--green)';
+      state_.textContent = 'Uploaded';
+      await load();
+    } catch (err) {
+      state_.style.color = 'var(--red)';
+      state_.textContent = 'Upload failed: ' + err.message;
+    }
+  });
+
+  // ---------- quiz modal ----------
+  async function openQuiz(assignmentId, retake) {
+    $('quizModalBody').innerHTML = '<p style="color: var(--text-3);">Loading…</p>';
+    $('quizModalTitle').textContent = 'Quiz';
+    $('quizModal').classList.add('open');
+    const r = await window.QuizPlayer.load(assignmentId, supabaseClient);
+    if (!r.ok) {
+      $('quizModalBody').innerHTML = `<p style="color: var(--red);">${escapeHtml(r.reason || 'Couldn\'t load the quiz.')}</p>`;
+      return;
+    }
+    $('quizModalTitle').textContent = 'Quiz';
+    if (!r.questions.length) {
+      $('quizModalBody').innerHTML = '<p style="color: var(--text-3);">This quiz has no questions yet.</p>';
+      return;
+    }
+    if (retake) {
+      renderQuizForm(assignmentId, r.questions, r.source, r.lessonId);
+    } else {
+      // If they already have a score, show the result; otherwise the form.
+      const sub = state.submissions[assignmentId];
+      if (sub && sub.quiz_score != null) {
+        // Re-grade isn't possible without the original answers — just show summary.
+        $('quizModalBody').innerHTML = `
+          <p>You scored <b>${sub.quiz_score}%</b> on this quiz.</p>
+          <p style="color: var(--text-3); font-size: 12.5px;">Submitted ${fmtTime(sub.submitted_at)}.</p>
+          <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px;">
+            <button class="btn-primary" id="retakeBtn" type="button">Retake quiz</button>
+          </div>
+        `;
+        $('retakeBtn').addEventListener('click', () => renderQuizForm(assignmentId, r.questions, r.source, r.lessonId));
+      } else {
+        renderQuizForm(assignmentId, r.questions, r.source, r.lessonId);
+      }
+    }
+  }
+
+  function renderQuizForm(assignmentId, questions, source, lessonId) {
+    $('quizModalTitle').textContent = 'Quiz';
+    const container = document.createElement('div');
+    window.QuizPlayer.render(container, questions, null);
+    const submitBtn = document.createElement('button');
+    submitBtn.className = 'btn-primary';
+    submitBtn.textContent = 'Submit answers';
+    submitBtn.style.cssText = 'margin-top: 14px; display: block; margin-left: auto;';
+    submitBtn.addEventListener('click', async () => {
+      submitBtn.disabled = true; submitBtn.textContent = 'Grading…';
+      const answers = window.QuizPlayer.collect(container);
+      const { data, error } = await supabaseClient.rpc('grade_quiz', {
+        p_assignment_id: assignmentId, p_answers: answers,
+      });
+      if (error) { submitBtn.disabled = false; submitBtn.textContent = 'Submit answers'; alert('Couldn\'t grade: ' + error.message); return; }
+      if (data && data.ok === true) {
+        $('quizModalBody').innerHTML = '';
+        window.QuizPlayer.renderResult($('quizModalBody'), questions, data.score, data.per_question || []);
+        setTimeout(() => $('quizModal').classList.remove('open'), 1500);
+        await load();
+      } else {
+        submitBtn.disabled = false; submitBtn.textContent = 'Submit answers';
+        alert('Couldn\'t grade: ' + (data && data.reason || 'unknown'));
+      }
+    });
+    $('quizModalBody').innerHTML = '';
+    $('quizModalBody').appendChild(container);
+    $('quizModalBody').appendChild(submitBtn);
+  }
+
+  $('quizCloseBtn').addEventListener('click', () => $('quizModal').classList.remove('open'));
+  $('quizModal').addEventListener('click', (e) => { if (e.target.id === 'quizModal') $('quizModal').classList.remove('open'); });
 
   load();
 </script>

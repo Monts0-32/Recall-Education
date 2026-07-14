@@ -667,6 +667,27 @@
       </div>
     </div>
 
+    <div class="card" data-card-id="classes">
+      <div class="card-head">
+        <div>
+          <h3>Classes</h3>
+          <div class="sub">Group your students for targeted homework.</div>
+        </div>
+        <div class="right edit-tools">
+          <span class="grip" title="Drag to reorder">⋮⋮</span>
+          <button class="rename" data-card-id="classes" type="button">Rename</button>
+          <button class="hide" data-card-id="classes" type="button">Hide</button>
+        </div>
+      </div>
+      <div class="roster-list" id="classList">
+        <div class="roster-empty">Loading…</div>
+      </div>
+      <div style="padding: 10px 18px; border-top: 1px solid var(--line); background: var(--bg-3); display: flex; gap: 8px; justify-content: space-between; align-items: center;">
+        <span style="color: var(--text-3); font-size: 12px;" id="classListFooter">—</span>
+        <a class="btn-primary" href="classes.html" style="font-size: 12px; padding: 5px 10px;">Manage classes</a>
+      </div>
+    </div>
+
     <div class="card" data-card-id="homework">
       <div class="card-head">
         <div>
@@ -762,7 +783,7 @@
   // The order these cards exist in the DOM. The server-side validator
   // enforces the same set; we keep the client list in lockstep so the
   // default layout is always publishable.
-  const CARD_IDS = ['kpis', 'quick-actions', 'school', 'roster', 'homework'];
+  const CARD_IDS = ['kpis', 'quick-actions', 'school', 'roster', 'classes', 'homework'];
   const DEFAULT_LABELS = {
     'kpis': 'School stats',
     'quick-actions': 'Quick actions',
@@ -777,6 +798,7 @@
     user: null,
     school: null,    // { id, name, code, plan, owner_user_id, created_at }
     members: [],     // list_school_members rows
+    classes: [],     // list_classes rows
     assignments: [], // list_school_assignments rows
     layout: null,    // [{ card_id, visible, label_override }] — null until loaded
     editMode: false,
@@ -865,6 +887,7 @@
     await Promise.all([
       loadLayout(),
       loadMembers(),
+      loadClasses(),
       loadAssignments(),
     ]);
 
@@ -1031,6 +1054,47 @@
       });
       if (!error) state.members = data || [];
     } catch (_) { /* keep empty */ }
+  }
+
+  async function loadClasses() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_classes', {
+        p_school_id: state.school.id, p_include_archived: false,
+      });
+      if (!error) state.classes = data || [];
+    } catch (_) { /* keep empty */ }
+  }
+
+  function renderClasses() {
+    const list = $('classList');
+    const footer = $('classListFooter');
+    if (!list) return;
+    const classes = state.classes || [];
+    if (!classes.length) {
+      list.innerHTML = `<div class="roster-empty">No classes yet — group your students so homework can target a whole class.</div>`;
+      if (footer) footer.textContent = '0 classes';
+      return;
+    }
+    const shown = classes.slice(0, 5);
+    list.innerHTML = shown.map(c => `
+      <div class="roster-row" data-id="${escapeHtml(c.id)}">
+        <div class="avatar">${escapeHtml(initials(c.name))}</div>
+        <div>
+          <div class="name">${escapeHtml(c.name)}</div>
+          ${c.description ? `<div class="email">${escapeHtml(c.description)}</div>` : ''}
+        </div>
+        <div class="role" style="font-variant-numeric: tabular-nums;">${c.member_count}</div>
+        <div class="joined">${escapeHtml(c.owner_name || '—')}</div>
+        <div class="actions">
+          <a href="class-summary.html?class=${encodeURIComponent(c.id)}" style="font-size: 12px; padding: 4px 9px;">Summary</a>
+        </div>
+      </div>
+    `).join('');
+    if (footer) {
+      footer.textContent = classes.length > shown.length
+        ? `Showing ${shown.length} of ${classes.length} classes`
+        : `${classes.length} class${classes.length === 1 ? '' : 'es'}`;
+    }
   }
 
   function renderRoster(tab) {
@@ -1353,6 +1417,7 @@
     renderQuickActions();
     renderSchoolCard();
     setupRosterTabs();
+    renderClasses();
     renderHomework();
   }
 

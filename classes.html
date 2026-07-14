@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Classes — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Manage classes for your school." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+      position: sticky; top: 0; z-index: 50;
+    }
+    nav.top .row {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand-mark { width: 28px; height: 28px; object-fit: cover; border-radius: var(--r-sm); }
+    nav.top .right { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--text-3); }
+    .btn-ghost {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 7px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+    }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      padding: 8px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid var(--line-2);
+      padding: 7px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;
+      text-decoration: none; display: inline-block;
+    }
+    .btn-secondary:hover { background: var(--bg-4); border-color: var(--line-3); text-decoration: none; }
+    .btn-danger {
+      background: transparent; color: var(--red);
+      border: 1px solid rgba(248,81,73,0.3);
+      padding: 5px 10px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+    }
+    .btn-danger:hover { background: var(--red-dim); border-color: var(--red); }
+
+    .layout { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .crumbs { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+    .crumbs a { color: var(--text-3); }
+    .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+
+    .head-bar {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 18px;
+    }
+    .head-bar h1 {
+      font-size: 24px; font-weight: 600; letter-spacing: -0.02em;
+      margin: 0 0 4px;
+    }
+    .head-bar .sub {
+      color: var(--text-3); font-size: 13.5px; margin: 0;
+    }
+    .head-bar .grow { flex: 1; }
+    .head-bar .right { display: flex; align-items: center; gap: 8px; }
+
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      overflow: hidden;
+    }
+    .card-head {
+      padding: 14px 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--line);
+    }
+    .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+    .class-table { display: flex; flex-direction: column; }
+    .class-row {
+      display: grid;
+      grid-template-columns: 1.4fr 80px 1fr 100px 140px;
+      gap: 14px; align-items: center;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .class-row:last-child { border-bottom: none; }
+    .class-row:hover { background: var(--bg-3); }
+    .class-row .name { color: var(--text); font-weight: 600; }
+    .class-row .desc { color: var(--text-3); font-size: 12px; margin-top: 2px; }
+    .class-row .num { color: var(--text-2); font-variant-numeric: tabular-nums; }
+    .class-row .when { color: var(--text-3); font-size: 12px; }
+    .class-row .actions { text-align: right; display: flex; gap: 6px; justify-content: flex-end; }
+    .empty {
+      padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px;
+    }
+
+    /* modal */
+    .modal-back {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.6);
+      display: none; align-items: center; justify-content: center;
+      padding: 32px;
+    }
+    .modal-back.open { display: flex; }
+    .modal {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      max-width: 720px; width: 100%;
+      max-height: 90vh;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .modal-head .right { margin-left: auto; }
+    .modal-body { padding: 20px; overflow-y: auto; }
+    .modal-foot {
+      padding: 14px 18px; border-top: 1px solid var(--line);
+      display: flex; gap: 8px; justify-content: flex-end;
+    }
+    .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-row label { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+    .form-row .hint { font-size: 11.5px; color: var(--text-4); }
+    .form-row input, .form-row textarea {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 9px 12px;
+      font-family: inherit; font-size: 13.5px;
+      outline: none;
+    }
+    .form-row input:focus, .form-row textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .form-row textarea { min-height: 64px; line-height: 1.5; resize: vertical; }
+    .class-tabs {
+      display: flex; gap: 2px;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .class-tabs button {
+      background: transparent; border: 0;
+      padding: 10px 12px;
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      color: var(--text-3); cursor: pointer;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .class-tabs button:hover { color: var(--text-2); }
+    .class-tabs button.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .member-list { display: flex; flex-direction: column; }
+    .member-row {
+      display: grid; grid-template-columns: 28px 1fr 100px 80px;
+      gap: 12px; align-items: center;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .member-row:last-child { border-bottom: none; }
+    .member-row .avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--bg-4); color: var(--text-2);
+      display: grid; place-items: center;
+      font-weight: 700; font-size: 11px;
+    }
+    .member-row .name { color: var(--text); font-weight: 600; }
+    .member-row .email { color: var(--text-3); font-size: 12px; }
+    .member-row .year { color: var(--text-3); font-size: 12px; }
+    .member-row .actions { text-align: right; }
+    .picker-list {
+      max-height: 240px; overflow-y: auto;
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      background: var(--bg);
+    }
+    .picker-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .picker-row:last-child { border-bottom: none; }
+    .picker-row label { display: flex; align-items: center; gap: 8px; cursor: pointer; width: 100%; }
+    .picker-row input { accent-color: var(--blue); }
+
+    .gate {
+      max-width: 520px; margin: 80px auto; padding: 32px;
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: var(--r-md); text-align: center;
+    }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+
+    .toast-wrap {
+      position: fixed; bottom: 24px; right: 24px; z-index: 200;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      color: var(--text); padding: 10px 14px;
+      border-radius: var(--r-sm); font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      animation: toast-in 0.2s ease;
+    }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+    @keyframes toast-in {
+      from { transform: translateY(8px); opacity: 0; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+
+    a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
+    <div class="right">
+      <span id="navName" style="color: var(--text-3);"></span>
+      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="layout" id="main">
+  <div class="crumbs">
+    <a href="index.html">Recall</a>
+    <span class="sep">/</span>
+    <a href="school-organiser-dashboard.html">Organiser console</a>
+    <span class="sep">/</span>
+    <span class="current">Classes</span>
+  </div>
+
+  <div class="head-bar">
+    <div class="grow">
+      <h1>Classes</h1>
+      <p class="sub" id="sub">Loading your school…</p>
+    </div>
+    <div class="right">
+      <span class="pill" id="schoolPill" style="padding: 2px 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--text-2);">—</span>
+      <button class="btn-primary" id="newClassBtn" type="button">+ New class</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>Your classes</h3>
+        <div class="sub" id="classesSub">—</div>
+      </div>
+    </div>
+    <div class="class-table" id="classList">
+      <div class="empty">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<!-- Manage modal -->
+<div class="modal-back" id="manageModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="manageTitle">New class</h3>
+      <div class="right">
+        <button class="btn-ghost" id="manageCloseBtn" type="button">Close</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label for="className">Name</label>
+        <input type="text" id="className" maxlength="120" placeholder="e.g. Year 10 Higher Maths" />
+      </div>
+      <div class="form-row">
+        <label for="classDesc">Description (optional)</label>
+        <textarea id="classDesc" maxlength="500" placeholder="Anything students should know about this class."></textarea>
+      </div>
+      <div class="class-tabs" id="manageTabs">
+        <button class="active" data-tab="details" type="button">Details</button>
+        <button data-tab="roster" type="button" id="manageRosterTab" disabled>Roster</button>
+      </div>
+      <div id="manageDetails" style="padding: 18px 0 0;">
+        <p style="color: var(--text-3); font-size: 12.5px; margin: 0;">Save the class first, then add students from the Roster tab.</p>
+      </div>
+      <div id="manageRoster" style="padding: 18px 0 0; display: none;">
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+          <button class="btn-secondary" id="addStudentsBtn" type="button">+ Add students</button>
+          <span style="color: var(--text-3); font-size: 12px; align-self: center;" id="rosterCount">0 students</span>
+        </div>
+        <div class="member-list" id="rosterList">
+          <div class="empty">No students yet.</div>
+        </div>
+      </div>
+      <div id="picker" style="display: none; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line);">
+        <div style="font-size: 13px; color: var(--text-2); margin-bottom: 8px;">Pick students to add</div>
+        <div class="picker-list" id="pickerList">
+          <div class="empty">Loading students…</div>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px;">
+          <button class="btn-ghost" id="pickerCancelBtn" type="button">Cancel</button>
+          <button class="btn-primary" id="pickerAddBtn" type="button">Add to class</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-danger" id="archiveBtn" type="button" style="margin-right: auto;" hidden>Archive class</button>
+      <button class="btn-ghost" id="manageCancelBtn" type="button">Cancel</button>
+      <button class="btn-primary" id="manageSaveBtn" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9lIjoiYW5vbiIsImlhdCI6MTc4MzgzOTE0OCwiZXhwIjoyMDk5NDE1MTQ4fQ.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const initials = (name) => {
+    if (!name) return '?';
+    const p = name.trim().split(/\s+/);
+    return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '?';
+  };
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  const state = {
+    user: null,
+    school: null,
+    classes: [],
+    members: [],   // list_school_members rows
+    activeClass: null,    // class being edited in the modal
+    activeMembers: [],    // members of the active class
+    editing: false,
+  };
+
+  function renderGate(title, msg) {
+    $('main').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-primary" href="login.html">Sign in</a></p>
+      </div>
+    `;
+  }
+
+  async function boot() {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (error || !data || !data.user) {
+      renderGate('Sign-in required', 'Sign in to manage your school classes.');
+      return;
+    }
+    state.user = data.user;
+    const meta = state.user.user_metadata || {};
+
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) {}
+    }
+    if (role !== 'school_organiser' && role !== 'teacher') {
+      renderGate(
+        'Access denied',
+        'This page is for teachers and school organisers. Students can see their homework on dashboard.html.'
+      );
+      return;
+    }
+
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('school_id, full_name')
+      .eq('id', state.user.id)
+      .maybeSingle();
+    if (!profile || !profile.school_id) {
+      renderGate('No school attached', 'Your account isn\'t attached to a school yet.');
+      return;
+    }
+    const { data: school } = await supabaseClient
+      .from('schools')
+      .select('id, name, code')
+      .eq('id', profile.school_id)
+      .maybeSingle();
+    state.school = school;
+
+    $('navName').textContent = meta.full_name || state.user.email;
+    $('signOutBtn').hidden = false;
+    $('schoolPill').textContent = school ? school.name : '—';
+    $('sub').textContent = school ? `Classes at ${school.name}.` : 'Classes for your school.';
+
+    await Promise.all([loadClasses(), loadMembers()]);
+    renderClasses();
+  }
+
+  async function loadClasses() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_classes', {
+        p_school_id: state.school.id, p_include_archived: true,
+      });
+      if (!error) state.classes = data || [];
+    } catch (_) { /* keep empty */ }
+  }
+
+  async function loadMembers() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_members', {
+        p_school_id: state.school.id, p_role_filter: 'student',
+      });
+      if (!error) state.members = data || [];
+    } catch (_) { /* keep empty */ }
+  }
+
+  function renderClasses() {
+    const list = $('classList');
+    if (!state.classes.length) {
+      list.innerHTML = `<div class="empty">No classes yet. Click <b>+ New class</b> to create one.</div>`;
+      $('classesSub').textContent = '0 classes';
+      return;
+    }
+    $('classesSub').textContent = `${state.classes.length} class${state.classes.length === 1 ? '' : 'es'}`;
+    list.innerHTML = state.classes.map(c => {
+      const archived = c.archived_at ? ' (archived)' : '';
+      return `
+        <div class="class-row" data-id="${escapeHtml(c.id)}">
+          <div>
+            <div class="name">${escapeHtml(c.name)}${archived ? '<span style="color: var(--text-4); font-weight: 400; font-size: 12px; margin-left: 6px;">archived</span>' : ''}</div>
+            ${c.description ? `<div class="desc">${escapeHtml(c.description)}</div>` : ''}
+          </div>
+          <div class="num">${c.member_count} ${c.member_count === 1 ? 'student' : 'students'}</div>
+          <div class="when">${c.owner_name ? 'Owner: ' + escapeHtml(c.owner_name) : ''}</div>
+          <div class="when">${fmtDate(c.created_at)}</div>
+          <div class="actions">
+            <a class="btn-secondary" href="class-summary.html?class=${encodeURIComponent(c.id)}">Summary</a>
+            <button class="btn-secondary" data-id="${escapeHtml(c.id)}" data-action="manage" type="button">Manage</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    list.querySelectorAll('button[data-action="manage"]').forEach(btn => {
+      btn.addEventListener('click', () => openManage(btn.dataset.id));
+    });
+  }
+
+  // ---------- manage modal ----------
+  function openManage(classId) {
+    state.editing = !!classId;
+    $('manageTitle').textContent = classId ? 'Edit class' : 'New class';
+    $('manageTabs').querySelector('[data-tab="roster"]').disabled = !classId;
+    $('archiveBtn').hidden = !classId;
+    if (classId) {
+      const c = state.classes.find(x => x.id === classId);
+      if (!c) return;
+      state.activeClass = c;
+      $('className').value = c.name || '';
+      $('classDesc').value = c.description || '';
+    } else {
+      state.activeClass = null;
+      $('className').value = '';
+      $('classDesc').value = '';
+    }
+    state.activeMembers = [];
+    setManageTab('details');
+    $('picker').style.display = 'none';
+    $('manageModal').classList.add('open');
+  }
+  function closeManage() {
+    $('manageModal').classList.remove('open');
+    state.activeClass = null;
+  }
+
+  function setManageTab(tab) {
+    $('manageTabs').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    $('manageDetails').style.display = tab === 'details' ? '' : 'none';
+    $('manageRoster').style.display   = tab === 'roster'  ? '' : 'none';
+    if (tab === 'roster' && state.activeClass) loadActiveRoster();
+  }
+
+  $('manageTabs').addEventListener('click', (e) => {
+    const tab = e.target.dataset?.tab;
+    if (tab) setManageTab(tab);
+  });
+  $('newClassBtn').addEventListener('click', () => openManage(null));
+  $('manageCloseBtn').addEventListener('click', closeManage);
+  $('manageCancelBtn').addEventListener('click', closeManage);
+  $('manageModal').addEventListener('click', (e) => { if (e.target.id === 'manageModal') closeManage(); });
+
+  $('manageSaveBtn').addEventListener('click', async () => {
+    const name = $('className').value.trim();
+    const desc = $('classDesc').value.trim();
+    if (!name) { toast('Give the class a name.', 'error'); return; }
+    const btn = $('manageSaveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      if (state.editing && state.activeClass) {
+        const { data, error } = await supabaseClient.rpc('update_class', {
+          p_class_id: state.activeClass.id,
+          p_name: name,
+          p_description: desc || null,
+          p_archived: false,
+        });
+        if (error) throw error;
+        if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+        toast('Class updated.', 'success');
+        await loadClasses();
+        renderClasses();
+        // Refresh active class in modal
+        state.activeClass = state.classes.find(c => c.id === state.activeClass.id);
+        $('manageTabs').querySelector('[data-tab="roster"]').disabled = false;
+        setManageTab('roster');
+      } else {
+        const { data, error } = await supabaseClient.rpc('create_class', {
+          p_school_id: state.school.id, p_name: name, p_description: desc || null,
+        });
+        if (error) throw error;
+        if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+        toast('Class created.', 'success');
+        await loadClasses();
+        renderClasses();
+        // Switch the modal into "edit" mode for the new class.
+        state.editing = true;
+        state.activeClass = state.classes.find(c => c.id === data.class_id);
+        $('manageTitle').textContent = 'Edit class';
+        $('archiveBtn').hidden = false;
+        $('manageTabs').querySelector('[data-tab="roster"]').disabled = false;
+        setManageTab('roster');
+      }
+    } catch (err) {
+      toast('Couldn\'t save: ' + (err.message || err), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save';
+    }
+  });
+
+  $('archiveBtn').addEventListener('click', async () => {
+    if (!state.activeClass) return;
+    if (!confirm(`Archive "${state.activeClass.name}"? It will be hidden from new homework targets but existing work is kept.`)) return;
+    const { data, error } = await supabaseClient.rpc('update_class', {
+      p_class_id: state.activeClass.id,
+      p_name: state.activeClass.name,
+      p_description: state.activeClass.description,
+      p_archived: true,
+    });
+    if (error) { toast('Couldn\'t archive: ' + error.message, 'error'); return; }
+    toast('Class archived.', 'success');
+    closeManage();
+    await loadClasses();
+    renderClasses();
+  });
+
+  // ---------- roster tab ----------
+  async function loadActiveRoster() {
+    if (!state.activeClass) return;
+    const { data, error } = await supabaseClient.rpc('get_class', {
+      p_class_id: state.activeClass.id,
+    });
+    if (error) { toast('Couldn\'t load roster: ' + error.message, 'error'); return; }
+    const row = data && data[0];
+    state.activeMembers = (row && row.members) || [];
+    renderRoster();
+  }
+  function renderRoster() {
+    const list = $('rosterList');
+    $('rosterCount').textContent = `${state.activeMembers.length} student${state.activeMembers.length === 1 ? '' : 's'}`;
+    if (!state.activeMembers.length) {
+      list.innerHTML = `<div class="empty">No students yet — click "+ Add students" below.</div>`;
+      return;
+    }
+    list.innerHTML = state.activeMembers.map(m => `
+      <div class="member-row" data-uid="${escapeHtml(m.student_user_id)}">
+        <div class="avatar">${escapeHtml(initials(m.full_name || m.email))}</div>
+        <div>
+          <div class="name">${escapeHtml(m.full_name || '(no name)')}</div>
+          <div class="email">${escapeHtml(m.email || '')}</div>
+        </div>
+        <div class="year">${escapeHtml(m.year_group || '')}</div>
+        <div class="actions">
+          <button class="btn-danger" data-uid="${escapeHtml(m.student_user_id)}" type="button">Remove</button>
+        </div>
+      </div>
+    `).join('');
+    list.querySelectorAll('button[data-uid]').forEach(btn => {
+      btn.addEventListener('click', () => removeMember(btn.dataset.uid));
+    });
+  }
+
+  async function removeMember(uid) {
+    if (!state.activeClass) return;
+    if (!confirm('Remove this student from the class?')) return;
+    const { data, error } = await supabaseClient.rpc('remove_class_member', {
+      p_class_id: state.activeClass.id, p_student_user_id: uid,
+    });
+    if (error) { toast('Couldn\'t remove: ' + error.message, 'error'); return; }
+    toast('Removed.', 'success');
+    await loadActiveRoster();
+    // Refresh the class list so the member_count stays accurate.
+    await loadClasses();
+    renderClasses();
+  }
+
+  $('addStudentsBtn').addEventListener('click', () => {
+    if (!state.activeClass) return;
+    const inClass = new Set(state.activeMembers.map(m => m.student_user_id));
+    const candidates = state.members.filter(m => !inClass.has(m.id));
+    if (!candidates.length) {
+      $('pickerList').innerHTML = `<div class="empty">All students in your school are already in this class.</div>`;
+    } else {
+      $('pickerList').innerHTML = candidates.map(m => `
+        <div class="picker-row">
+          <label>
+            <input type="checkbox" data-uid="${escapeHtml(m.id)}" />
+            <div class="avatar" style="width:24px;height:24px;font-size:10px;">${escapeHtml(initials(m.full_name || m.email))}</div>
+            <div style="flex:1;">
+              <div style="color: var(--text); font-weight: 600;">${escapeHtml(m.full_name || '(no name)')}</div>
+              <div style="color: var(--text-3); font-size: 11.5px;">${escapeHtml(m.email || '')}</div>
+            </div>
+          </label>
+        </div>
+      `).join('');
+    }
+    $('picker').style.display = '';
+  });
+
+  $('pickerCancelBtn').addEventListener('click', () => { $('picker').style.display = 'none'; });
+
+  $('pickerAddBtn').addEventListener('click', async () => {
+    const uids = Array.from($('pickerList').querySelectorAll('input:checked')).map(c => c.dataset.uid);
+    if (!uids.length) { toast('Pick at least one student.', 'error'); return; }
+    const btn = $('pickerAddBtn');
+    btn.disabled = true;
+    btn.textContent = 'Adding…';
+    try {
+      const { data, error } = await supabaseClient.rpc('add_class_members', {
+        p_class_id: state.activeClass.id, p_student_user_ids: uids,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast(`Added ${data.added || uids.length} student${(data.added || uids.length) === 1 ? '' : 's'}.`, 'success');
+      $('picker').style.display = 'none';
+      await loadActiveRoster();
+      await loadClasses();
+      renderClasses();
+    } catch (err) {
+      toast('Couldn\'t add: ' + (err.message || err), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Add to class';
+    }
+  });
+
+  $('signOutBtn').addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = 'login.html';
+  });
+
+  boot();
+</script>
+<script src="bubbles.js" defer></script>
+</body>
+</html>

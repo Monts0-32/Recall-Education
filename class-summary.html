@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Class summary — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Per-class completion, lateness, and quiz stats." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+      position: sticky; top: 0; z-index: 50;
+    }
+    nav.top .row {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand-mark { width: 28px; height: 28px; object-fit: cover; border-radius: var(--r-sm); }
+    .btn-ghost {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 7px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+      text-decoration: none; display: inline-block;
+    }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); text-decoration: none; }
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      padding: 7px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .layout { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .crumbs { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+    .crumbs a { color: var(--text-3); }
+    .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+
+    .head {
+      display: flex; align-items: flex-start; gap: 14px;
+      margin-bottom: 18px;
+    }
+    .head .grow { flex: 1; }
+    .head h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .head .sub { color: var(--text-3); font-size: 13px; }
+    .head .right { display: flex; gap: 8px; align-items: center; }
+
+    .kpis {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+      margin-bottom: 18px;
+    }
+    .kpi {
+      background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 14px 16px;
+    }
+    .kpi .label { font-size: 11.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; }
+    .kpi .value { font-size: 24px; font-weight: 700; margin-top: 4px; color: var(--text); }
+    .kpi .pct   { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .kpi.green  { border-color: rgba(63,185,80,0.3); }
+    .kpi.green  .value { color: var(--green); }
+    .kpi.yellow { border-color: rgba(210,153,34,0.3); }
+    .kpi.yellow .value { color: var(--yellow); }
+    .kpi.red    { border-color: rgba(248,81,73,0.3); }
+    .kpi.red    .value { color: var(--red); }
+
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .card-head {
+      padding: 12px 16px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--line);
+    }
+    .card-head h3 { margin: 0; font-size: 14px; font-weight: 600; }
+    .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+    .sub-table { width: 100%; border-collapse: collapse; }
+    .sub-table th, .sub-table td {
+      padding: 10px 14px; text-align: left;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px; vertical-align: middle;
+    }
+    .sub-table th { font-weight: 600; color: var(--text-3); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; background: var(--bg-3); }
+    .sub-table tbody tr:hover { background: var(--bg-3); }
+    .sub-table .name { color: var(--text); font-weight: 600; }
+    .bar { height: 6px; background: var(--bg-4); border-radius: 3px; overflow: hidden; display: flex; min-width: 100px; }
+    .bar .b-ok { background: var(--green); height: 100%; }
+    .bar .b-late { background: var(--yellow); height: 100%; }
+    .bar .b-miss { background: var(--red); height: 100%; }
+    .num { font-variant-numeric: tabular-nums; }
+    .empty { padding: 30px 18px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+    .gate {
+      max-width: 520px; margin: 80px auto; padding: 32px;
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: var(--r-md); text-align: center;
+    }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+
+    .toast-wrap {
+      position: fixed; bottom: 24px; right: 24px; z-index: 200;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      color: var(--text); padding: 10px 14px;
+      border-radius: var(--r-sm); font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+
+    .refreshed-at { font-size: 11.5px; color: var(--text-4); }
+
+    .student-cell { cursor: pointer; }
+    .student-cell:hover .name { color: var(--blue); }
+
+    .modal-back {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.6);
+      display: none; align-items: center; justify-content: center;
+      padding: 32px;
+    }
+    .modal-back.open { display: flex; }
+    .modal {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      max-width: 600px; width: 100%;
+      max-height: 90vh;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .modal-head .right { margin-left: auto; }
+    .modal-body { padding: 20px; overflow-y: auto; }
+    .drill-row { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .drill-row:last-child { border-bottom: none; }
+    .drill-row .title { color: var(--text); }
+    .drill-row .when { color: var(--text-3); font-size: 12px; margin-left: auto; }
+    .status-pill { display: inline-block; padding: 1px 7px; font-size: 11px; font-weight: 600; border-radius: 999px; }
+    .status-pill.done     { background: var(--green-dim); color: var(--green); }
+    .status-pill.late     { background: var(--yellow-dim); color: var(--yellow); }
+    .status-pill.missed   { background: var(--red-dim); color: var(--red); }
+    .status-pill.submitted{ background: var(--blue-dim); color: var(--blue); }
+    .status-pill.pending  { background: var(--bg-3); color: var(--text-3); }
+    .status-pill.seen     { background: rgba(139,148,158,0.12); color: var(--text-2); }
+
+    @media (max-width: 800px) {
+      .kpis { grid-template-columns: repeat(2, 1fr); }
+    }
+    a:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
+    <a class="btn-ghost" id="backBtn" href="classes.html">All classes</a>
+  </div>
+</nav>
+
+<div class="layout" id="main">
+  <div class="crumbs">
+    <a href="index.html">Recall</a>
+    <span class="sep">/</span>
+    <a id="crumbsBack" href="classes.html">Classes</a>
+    <span class="sep">/</span>
+    <span class="current" id="crumbsTitle">Class</span>
+  </div>
+
+  <div id="body">
+    <p style="color: var(--text-3);">Loading…</p>
+  </div>
+</div>
+
+<!-- student drilldown modal -->
+<div class="modal-back" id="studentModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="studentModalTitle">Student</h3>
+      <div class="right">
+        <button class="btn-ghost" id="studentModalCloseBtn" type="button">Close</button>
+      </div>
+    </div>
+    <div class="modal-body" id="studentModalBody"></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9lIjoiYW5vbiIsImlhdCI6MTc4MzgzOTE0OCwiZXhwIjoyMDk5NDE1MTQ4fQ.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function fmtRelative(iso) {
+    if (!iso) return '—';
+    const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  }
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  const state = {
+    user: null,
+    role: null,
+    classId: null,
+    classRow: null,
+    school: null,
+    members: [],
+    rollup: null,
+    recentAssignments: [],
+  };
+
+  function gate(title, msg) {
+    $('main').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+      </div>
+    `;
+  }
+
+  async function boot() {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (error || !data || !data.user) { gate('Sign-in required', 'Sign in to view this class.'); return; }
+    state.user = data.user;
+
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try { const r = await supabaseClient.rpc('current_role'); if (!r.error && r.data) role = r.data; } catch (_) {}
+    }
+    if (role !== 'teacher' && role !== 'school_organiser') {
+      gate('Access denied', 'This page is for teachers and school organisers.');
+      return;
+    }
+    state.role = role;
+    const backHref = role === 'school_organiser' ? 'school-organiser-dashboard.html' : 'teacher-dashboard.html';
+    document.getElementById('backBtn').href = 'classes.html';
+    document.getElementById('crumbsBack').href = 'classes.html';
+
+    const params = new URLSearchParams(window.location.search);
+    state.classId = params.get('class');
+    if (!state.classId) { gate('No class selected', 'Open this page from the Classes page.'); return; }
+
+    // Load the class row + roster
+    const { data: cRow, error: cErr } = await supabaseClient.rpc('get_class', { p_class_id: state.classId });
+    if (cErr || !cRow || !cRow.length) { gate('Class not found', 'It may have been archived or deleted.'); return; }
+    state.classRow = cRow[0];
+    state.members = cRow[0].members || [];
+    document.getElementById('crumbsTitle').textContent = state.classRow.name || 'Class';
+
+    const { data: profile } = await supabaseClient
+      .from('profiles').select('school_id').eq('id', state.user.id).maybeSingle();
+    if (!profile || profile.school_id !== state.classRow.school_id) {
+      gate('Access denied', 'You can only view classes at your school.'); return;
+    }
+
+    const { data: school } = await supabaseClient
+      .from('schools').select('id, name, code').eq('id', state.classRow.school_id).maybeSingle();
+    state.school = school;
+
+    await loadRollup();
+    await loadRecentAssignments();
+    render();
+  }
+
+  async function loadRollup() {
+    try {
+      const { data, error } = await supabaseClient.rpc('read_class_rollup', { p_class_id: state.classId });
+      if (error) { state.rollup = null; return; }
+      state.rollup = data;  // may be null if no rollup row yet
+    } catch (_) { state.rollup = null; }
+  }
+
+  async function loadRecentAssignments() {
+    // Recent assignments that targeted this class's members.
+    try {
+      const { data, error } = await supabaseClient
+        .from('assignments')
+        .select('id, title, kind, due_at, subject_id, created_at')
+        .eq('school_id', state.classRow.school_id)
+        .eq('is_template', true)
+        .order('due_at', { ascending: false })
+        .limit(30);
+      state.recentAssignments = data || [];
+    } catch (_) { state.recentAssignments = []; }
+  }
+
+  async function refreshRollup() {
+    const btn = $('refreshBtn');
+    btn.disabled = true;
+    btn.textContent = 'Refreshing…';
+    try {
+      const { data, error } = await supabaseClient.rpc('refresh_class_rollups', { p_class_id: state.classId });
+      if (error) throw error;
+      toast('Class stats refreshed.', 'success');
+      await loadRollup();
+      render();
+    } catch (err) {
+      toast('Couldn\'t refresh: ' + (err.message || err), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Refresh';
+    }
+  }
+
+  function render() {
+    const c = state.classRow;
+    const r = state.rollup || {};
+    const total = r.total_targets || 0;
+    const onTime = r.on_time_count || 0;
+    const late = r.late_count || 0;
+    const notSub = r.not_submitted_count || 0;
+    const pct = (n) => total ? Math.round((n / total) * 100) : 0;
+
+    const refreshedAt = r.refreshed_at
+      ? new Date(r.refreshed_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+      : null;
+
+    // Per-subject breakdown — r.subject_breakdown is { subject_id: {on_time, late, not_submitted} }.
+    const subjects = r.subject_breakdown || {};
+    const subjectRows = Object.entries(subjects).map(([sid, s]) => {
+      const t = (s.on_time || 0) + (s.late || 0) + (s.not_submitted || 0);
+      const pOn = t ? (s.on_time || 0) / t * 100 : 0;
+      const pLate = t ? (s.late || 0) / t * 100 : 0;
+      const pMiss = t ? (s.not_submitted || 0) / t * 100 : 0;
+      return { sid, ...s, total: t, pOn, pLate, pMiss };
+    }).filter(x => x.total > 0)
+      .sort((a, b) => b.total - a.total);
+
+    // Quiz wrong questions — keyed by assignment_id.
+    const quizQ = r.quiz_wrong_questions || {};
+    const quizRows = Object.entries(quizQ).map(([aid, qs]) => ({
+      aid,
+      top: Object.entries(qs || {})
+        .map(([idx, c]) => ({ idx: parseInt(idx, 10), count: c }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3),
+    }));
+
+    // Not-handed-in
+    const notIn = r.not_handed_in || [];
+
+    $('body').innerHTML = `
+      <div class="head">
+        <div class="grow">
+          <h1>${escapeHtml(c.name || 'Class')}</h1>
+          <div class="sub">
+            ${state.school ? escapeHtml(state.school.name) + ' · ' : ''}
+            ${state.members.length} student${state.members.length === 1 ? '' : 's'}
+            ${refreshedAt ? ` · <span class="refreshed-at">last refresh ${refreshedAt}</span>` : ''}
+          </div>
+        </div>
+        <div class="right">
+          <button class="btn-primary" id="refreshBtn" type="button">Refresh</button>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi green">
+          <div class="label">On time</div>
+          <div class="value">${onTime}</div>
+          <div class="pct">${pct(onTime)}% of submissions</div>
+        </div>
+        <div class="kpi yellow">
+          <div class="label">Late</div>
+          <div class="value">${late}</div>
+          <div class="pct">${pct(late)}% of submissions</div>
+        </div>
+        <div class="kpi red">
+          <div class="label">Not submitted</div>
+          <div class="value">${notSub}</div>
+          <div class="pct">${pct(notSub)}% of targets</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Total targets</div>
+          <div class="value">${r.total_targets || 0}</div>
+          <div class="pct">across ${r.total_assignments || 0} assignment${r.total_assignments === 1 ? '' : 's'}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>By subject</h3>
+            <div class="sub">How this class is doing on each subject's homework</div>
+          </div>
+        </div>
+        ${subjectRows.length ? `
+          <table class="sub-table">
+            <thead>
+              <tr>
+                <th>Subject</th>
+                <th>Distribution</th>
+                <th class="num">On time</th>
+                <th class="num">Late</th>
+                <th class="num">Not in</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${subjectRows.map(s => `
+                <tr>
+                  <td class="name">${escapeHtml(subjectName(s.sid))}</td>
+                  <td>
+                    <div class="bar" title="${Math.round(s.pOn)}% on time">
+                      <div class="b-ok" style="width: ${s.pOn}%;"></div>
+                      <div class="b-late" style="width: ${s.pLate}%;"></div>
+                      <div class="b-miss" style="width: ${s.pMiss}%;"></div>
+                    </div>
+                  </td>
+                  <td class="num">${s.on_time || 0}</td>
+                  <td class="num">${s.late || 0}</td>
+                  <td class="num">${s.not_submitted || 0}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : `<div class="empty">No assignment data yet. Send some homework and click <b>Refresh</b>.</div>`}
+      </div>
+
+      ${quizRows.length ? `<div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Toughest quiz questions</h3>
+            <div class="sub">Where the class is losing marks</div>
+          </div>
+        </div>
+        <div style="padding: 8px 16px;">
+          ${quizRows.map(q => `
+            <div style="padding: 8px 0; border-bottom: 1px solid var(--line);">
+              <div style="color: var(--text-2); font-size: 12.5px; margin-bottom: 4px;">
+                <a href="assignment-detail.html?id=${encodeURIComponent(q.aid)}">${escapeHtml(assignmentTitle(q.aid))}</a>
+              </div>
+              <div style="color: var(--text); font-size: 13px;">${q.top.map(t => `Q${t.idx + 1} missed by ${t.count}`).join(' · ')}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>` : ''}
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Who hasn't handed in</h3>
+            <div class="sub">${notIn.length} open item${notIn.length === 1 ? '' : 's'}</div>
+          </div>
+        </div>
+        ${notIn.length ? `
+          <table class="sub-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Assignment</th>
+                <th>Due</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${notIn.map(n => `
+                <tr>
+                  <td class="student-cell" data-uid="${escapeHtml(n.student_id)}">
+                    <div class="name">${escapeHtml(studentName(n.student_id))}</div>
+                  </td>
+                  <td><a href="assignment-detail.html?id=${encodeURIComponent(n.assignment_id)}">${escapeHtml(n.title || '—')}</a></td>
+                  <td style="color: var(--text-3);">${fmtDate(n.due_at)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : `<div class="empty">Nothing outstanding. 🎉</div>`}
+      </div>
+    `;
+
+    $('refreshBtn').addEventListener('click', refreshRollup);
+
+    document.querySelectorAll('.student-cell').forEach(el => {
+      el.addEventListener('click', () => openStudentModal(el.dataset.uid));
+    });
+  }
+
+  function studentName(uid) {
+    const m = state.members.find(x => x.student_user_id === uid);
+    return (m && (m.full_name || m.email)) || 'Unknown student';
+  }
+  function assignmentTitle(aid) {
+    const a = state.recentAssignments.find(x => x.id === aid);
+    return (a && a.title) || '—';
+  }
+  function subjectName(sid) {
+    if (!state.subjectMap) return sid ? 'Subject' : '—';
+    return state.subjectMap[sid] || 'Subject';
+  }
+
+  async function openStudentModal(uid) {
+    const m = state.members.find(x => x.student_user_id === uid);
+    $('studentModalTitle').textContent = (m && (m.full_name || m.email)) || 'Student';
+    $('studentModalBody').innerHTML = '<p style="color: var(--text-3);">Loading…</p>';
+    $('studentModal').classList.add('open');
+
+    // Pull all assignment_targets for this student within recent assignments
+    // the class has been targeted with. We use get_class_summary's live
+    // bit, but the function currently only returns rollup; so we filter
+    // recent assignments by member-ship ourselves.
+    try {
+      const memberIds = new Set(state.members.map(m => m.student_user_id));
+      const recentIds = state.recentAssignments.map(a => a.id);
+      if (!recentIds.length) {
+        $('studentModalBody').innerHTML = '<p style="color: var(--text-3);">No assignment data yet.</p>';
+        return;
+      }
+      const { data: rows, error } = await supabaseClient
+        .from('assignment_targets')
+        .select('assignment_id, status, completed_at, submitted_at')
+        .eq('student_user_id', uid)
+        .in('assignment_id', recentIds)
+        .order('completed_at', { ascending: false, nullsFirst: false });
+      if (error) throw error;
+
+      const byId = new Map(state.recentAssignments.map(a => [a.id, a]));
+      const list = (rows || []).map(r => ({
+        ...r,
+        a: byId.get(r.assignment_id),
+      })).filter(r => r.a);
+
+      const onTime = list.filter(r => r.status === 'done').length;
+      const late   = list.filter(r => r.status === 'late').length;
+      const missed = list.filter(r => r.status === 'missed').length;
+      const pending = list.filter(r => r.status === 'pending' || r.status === 'submitted').length;
+
+      $('studentModalBody').innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;">
+          <div style="text-align: center; padding: 10px; background: var(--bg-3); border-radius: var(--r-sm);">
+            <div style="color: var(--green); font-weight: 700; font-size: 18px;">${onTime}</div>
+            <div style="color: var(--text-3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;">On time</div>
+          </div>
+          <div style="text-align: center; padding: 10px; background: var(--bg-3); border-radius: var(--r-sm);">
+            <div style="color: var(--yellow); font-weight: 700; font-size: 18px;">${late}</div>
+            <div style="color: var(--text-3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;">Late</div>
+          </div>
+          <div style="text-align: center; padding: 10px; background: var(--bg-3); border-radius: var(--r-sm);">
+            <div style="color: var(--red); font-weight: 700; font-size: 18px;">${missed}</div>
+            <div style="color: var(--text-3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;">Missed</div>
+          </div>
+          <div style="text-align: center; padding: 10px; background: var(--bg-3); border-radius: var(--r-sm);">
+            <div style="color: var(--text-2); font-weight: 700; font-size: 18px;">${pending}</div>
+            <div style="color: var(--text-3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;">Pending</div>
+          </div>
+        </div>
+        ${list.length ? list.map(r => {
+          const cls = r.status === 'done' ? 'done' : r.status === 'late' ? 'late' : r.status === 'missed' ? 'missed' : (r.status === 'submitted' ? 'submitted' : r.status === 'seen' ? 'seen' : 'pending');
+          return `
+            <div class="drill-row">
+              <div>
+                <div class="title"><a href="assignment-detail.html?id=${encodeURIComponent(r.assignment_id)}">${escapeHtml(r.a.title || '—')}</a></div>
+                <div style="color: var(--text-3); font-size: 11.5px;">due ${fmtDate(r.a.due_at)}</div>
+              </div>
+              <span class="status-pill ${cls}">${escapeHtml(r.status)}</span>
+              <span class="when">${r.completed_at ? fmtRelative(r.completed_at) : ''}</span>
+            </div>
+          `;
+        }).join('') : '<p style="color: var(--text-3); text-align: center;">No recent submissions.</p>'}
+      `;
+    } catch (err) {
+      $('studentModalBody').innerHTML = `<p style="color: var(--red);">Couldn\'t load: ${escapeHtml(err.message || err)}</p>`;
+    }
+  }
+
+  $('studentModalCloseBtn').addEventListener('click', () => $('studentModal').classList.remove('open'));
+  $('studentModal').addEventListener('click', (e) => { if (e.target.id === 'studentModal') $('studentModal').classList.remove('open'); });
+
+  boot();
+</script>
+<script src="bubbles.js" defer></script>
+</body>
+</html>

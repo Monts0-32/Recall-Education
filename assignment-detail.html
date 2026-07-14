@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Homework — Recall</title>
+  <title>Assignment — Recall</title>
   <link rel="icon" type="image/png" href="favicon.png" />
-  <meta name="description" content="View who has done this homework." />
+  <meta name="description" content="View per-student submissions and stats for an assignment." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -25,11 +25,13 @@
       --blue:      #58A6FF;
       --blue-2:    #1F6FEB;
       --blue-dim:  rgba(56,139,253,0.15);
-      --blue-pale: rgba(56,139,253,0.08);
       --green:     #3FB950;
       --green-dim: rgba(63,185,80,0.12);
       --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
       --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
       --r-sm: 6px;
       --r-md: 8px;
     }
@@ -45,134 +47,148 @@
     }
     a { color: var(--blue); text-decoration: none; }
     a:hover { text-decoration: underline; }
-    nav.top { border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; z-index: 50; }
+
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+      position: sticky; top: 0; z-index: 50;
+    }
     nav.top .row {
-      max-width: 1100px; margin: 0 auto;
+      max-width: 1280px; margin: 0 auto;
       padding: 0 24px;
       display: flex; align-items: center; justify-content: space-between;
       height: 64px;
     }
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
-    .brand:hover { text-decoration: none; }
     .brand-mark { width: 28px; height: 28px; object-fit: cover; border-radius: var(--r-sm); }
-    nav.top .right { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--text-3); }
     .btn-ghost {
       background: transparent; color: var(--text-2);
       border: 1px solid var(--line-2);
       padding: 7px 14px; border-radius: var(--r-sm);
       font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+      text-decoration: none; display: inline-block;
     }
-    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); text-decoration: none; }
 
-    .layout { max-width: 880px; margin: 0 auto; padding: 24px; }
+    .layout { max-width: 1100px; margin: 0 auto; padding: 24px; }
     .crumbs { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
     .crumbs a { color: var(--text-3); }
     .crumbs a:hover { color: var(--text-2); text-decoration: none; }
     .crumbs .sep { color: var(--text-4); margin: 0 6px; }
     .crumbs .current { color: var(--text); font-weight: 600; }
-    h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
-    .sub { color: var(--text-3); font-size: 13.5px; margin: 0 0 24px; }
 
-    .summary {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
-      margin-bottom: 24px;
+    .head { margin-bottom: 18px; }
+    .head h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .head .sub { color: var(--text-3); font-size: 13px; }
+    .head .pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .pill {
+      display: inline-block; padding: 2px 9px; font-size: 11.5px; font-weight: 500;
+      border-radius: 999px; background: var(--bg-3); border: 1px solid var(--line-2);
+      color: var(--text-2);
     }
-    .stat {
-      background: var(--bg-2);
-      border: 1px solid var(--line);
-      border-radius: var(--r-md);
-      padding: 16px;
+    .pill.kind    { background: var(--blue-dim); border-color: rgba(56,139,253,0.4); color: var(--blue); }
+    .pill.subject { background: rgba(163,113,247,0.12); border-color: rgba(163,113,247,0.4); color: var(--purple); }
+
+    .kpis {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+      margin-bottom: 18px;
     }
-    .stat .lbl { font-size: 12px; color: var(--text-3); margin-bottom: 4px; }
-    .stat .num { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-    .stat .num small { font-size: 13px; color: var(--text-3); font-weight: 500; margin-left: 2px; }
-    .stat .delta { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+    .kpi {
+      background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 14px 16px;
+    }
+    .kpi .label { font-size: 11.5px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; }
+    .kpi .value { font-size: 22px; font-weight: 700; margin-top: 4px; color: var(--text); }
+    .kpi .pct   { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .kpi.green  { border-color: rgba(63,185,80,0.3); }
+    .kpi.green  .value { color: var(--green); }
+    .kpi.yellow { border-color: rgba(210,153,34,0.3); }
+    .kpi.yellow .value { color: var(--yellow); }
+    .kpi.red    { border-color: rgba(248,81,73,0.3); }
+    .kpi.red    .value { color: var(--red); }
 
     .card {
       background: var(--bg-2);
       border: 1px solid var(--line);
       border-radius: var(--r-md);
       overflow: hidden;
+      margin-bottom: 16px;
     }
     .card-head {
-      padding: 14px 18px;
+      padding: 12px 16px;
       display: flex; justify-content: space-between; align-items: center;
       border-bottom: 1px solid var(--line);
     }
-    .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .card-head h3 { margin: 0; font-size: 14px; font-weight: 600; }
     .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
 
-    .filter-row {
-      padding: 12px 18px;
-      display: flex; gap: 6px; align-items: center;
-      border-bottom: 1px solid var(--line);
-    }
-    .filter-row button {
-      background: transparent; color: var(--text-3);
-      border: 1px solid var(--line-2);
-      padding: 4px 12px; border-radius: 999px;
-      font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
-    }
-    .filter-row button:hover { color: var(--text); }
-    .filter-row button.active { color: var(--blue); border-color: var(--blue); background: var(--blue-pale); }
-    .filter-row .spacer { flex: 1; }
-    .filter-row .search {
-      background: var(--bg);
-      color: var(--text);
-      border: 1px solid var(--line-2);
-      border-radius: var(--r-sm);
-      padding: 5px 10px;
-      font-family: inherit; font-size: 12.5px; outline: none;
-      width: 200px;
-    }
-
-    .student-list { display: flex; flex-direction: column; }
-    .student-row {
-      display: grid; grid-template-columns: 28px 1.4fr 1fr 110px 90px;
-      gap: 14px; align-items: center;
-      padding: 12px 18px;
+    .sub-table { width: 100%; border-collapse: collapse; }
+    .sub-table th, .sub-table td {
+      padding: 10px 14px;
+      text-align: left;
       border-bottom: 1px solid var(--line);
       font-size: 13px;
+      vertical-align: middle;
     }
-    .student-row:last-child { border-bottom: none; }
-    .student-row .avatar {
-      width: 28px; height: 28px; border-radius: 50%;
-      background: var(--bg-4); color: var(--text-2);
-      display: grid; place-items: center;
-      font-weight: 700; font-size: 11px;
-    }
-    .student-row .name { color: var(--text); font-weight: 600; }
-    .student-row .email { color: var(--text-3); font-size: 12px; }
-    .student-row .when { color: var(--text-3); font-size: 12px; }
+    .sub-table th { font-weight: 600; color: var(--text-3); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; background: var(--bg-3); }
+    .sub-table tbody tr:hover { background: var(--bg-3); }
+    .sub-table .name { color: var(--text); font-weight: 600; }
     .status-pill {
-      display: inline-block;
-      padding: 2px 10px; border-radius: 999px;
-      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
-      text-transform: uppercase;
+      display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600;
+      border-radius: 999px;
     }
-    .status-pill.pending { background: var(--bg-4); color: var(--text-3); }
-    .status-pill.done    { background: var(--green-dim); color: var(--green); }
-    .status-pill.missed  { background: rgba(248,81,73,0.12); color: var(--red); }
-    .empty {
-      padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px;
+    .status-pending  { background: var(--bg-3); color: var(--text-3); border: 1px solid var(--line-2); }
+    .status-submitted{ background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(56,139,253,0.4); }
+    .status-done     { background: var(--green-dim); color: var(--green); border: 1px solid rgba(63,185,80,0.4); }
+    .status-late     { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(210,153,34,0.4); }
+    .status-missed   { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,81,73,0.4); }
+    .status-seen     { background: rgba(139,148,158,0.12); color: var(--text-2); border: 1px solid var(--line-2); }
+
+    .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .row-actions .btn-tiny {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      padding: 3px 8px; font-family: inherit; font-size: 11.5px; cursor: pointer;
     }
+    .row-actions .btn-tiny:hover { background: var(--bg-3); color: var(--text); }
+    .row-actions .btn-tiny:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .quiz-q-row {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .quiz-q-row:last-child { border-bottom: none; }
+    .quiz-q-prompt { color: var(--text); font-weight: 500; margin-bottom: 6px; }
+    .quiz-q-stats { display: flex; gap: 14px; align-items: center; font-size: 12.5px; color: var(--text-3); flex-wrap: wrap; }
+    .quiz-q-bar { flex: 1; height: 6px; background: var(--bg-4); border-radius: 3px; overflow: hidden; max-width: 200px; min-width: 80px; }
+    .quiz-q-bar .fill { height: 100%; background: var(--red); }
+    .quiz-q-bar .fill.ok { background: var(--green); }
 
     .gate {
-      max-width: 520px;
-      margin: 80px auto;
-      padding: 32px;
-      background: var(--bg-2);
-      border: 1px solid var(--line-2);
-      border-radius: var(--r-md);
-      text-align: center;
+      max-width: 520px; margin: 80px auto; padding: 32px;
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: var(--r-md); text-align: center;
     }
     .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
     .gate p { color: var(--text-2); margin: 0 0 18px; }
 
-    @media (max-width: 700px) {
-      .summary { grid-template-columns: 1fr; }
-      .student-row { grid-template-columns: 28px 1fr 80px; }
-      .student-row .email, .student-row .when { display: none; }
+    .toast-wrap {
+      position: fixed; bottom: 24px; right: 24px; z-index: 200;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      color: var(--text); padding: 10px 14px;
+      border-radius: var(--r-sm); font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+
+    @media (max-width: 800px) {
+      .kpis { grid-template-columns: repeat(2, 1fr); }
+      .sub-table th:nth-child(2), .sub-table td:nth-child(2),
+      .sub-table th:nth-child(4), .sub-table td:nth-child(4) { display: none; }
     }
     a:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
   </style>
@@ -182,65 +198,30 @@
 <nav class="top">
   <div class="row">
     <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
-    <div class="right">
-      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
-    </div>
+    <a class="btn-ghost" id="backBtn" href="teacher-dashboard.html">Back</a>
   </div>
 </nav>
 
 <div class="layout" id="main">
   <div class="crumbs">
-    <a href="teacher-dashboard.html">Teacher dashboard</a>
+    <a href="index.html">Recall</a>
     <span class="sep">/</span>
-    <span class="current" id="crumbsTitle">Homework</span>
+    <a id="crumbsBack" href="teacher-dashboard.html">Dashboard</a>
+    <span class="sep">/</span>
+    <span class="current">Assignment</span>
   </div>
 
-  <h1 id="title">Loading…</h1>
-  <p class="sub" id="sub">Fetching the per-student breakdown.</p>
-
-  <div class="summary">
-    <div class="stat">
-      <div class="lbl">Targets</div>
-      <div class="num" id="statTotal">—</div>
-      <div class="delta">Students this was sent to</div>
-    </div>
-    <div class="stat">
-      <div class="lbl">Done</div>
-      <div class="num" id="statDone" style="color: var(--green);">—</div>
-      <div class="delta" id="statDoneDelta">—</div>
-    </div>
-    <div class="stat">
-      <div class="lbl">Outstanding</div>
-      <div class="num" id="statPending">—</div>
-      <div class="delta" id="statPendingDelta">—</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-head">
-      <div>
-        <h3>Per-student breakdown</h3>
-        <div class="sub">Filter by status or search by name.</div>
-      </div>
-    </div>
-    <div class="filter-row">
-      <button class="active" data-filter="all" type="button">All</button>
-      <button data-filter="pending" type="button">Pending</button>
-      <button data-filter="done" type="button">Done</button>
-      <button data-filter="missed" type="button">Missed</button>
-      <div class="spacer"></div>
-      <input type="search" class="search" id="search" placeholder="Search by name…" />
-    </div>
-    <div class="student-list" id="studentList">
-      <div class="empty">Loading…</div>
-    </div>
+  <div id="body">
+    <p style="color: var(--text-3);">Loading…</p>
   </div>
 </div>
+
+<div class="toast-wrap" id="toastWrap"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9lIjoiYW5vbiIsImlhdCI6MTc4MzgzOTE0OCwiZXhwIjoyMDk5NDE1MTQ4fQ.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: {
       fetch: (url, options = {}) => {
@@ -259,148 +240,305 @@
   const escapeHtml = (s) => String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  const initials = (name) => {
-    if (!name) return '?';
-    const p = name.trim().split(/\s+/);
-    return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '?';
+  const KIND_LABELS = {
+    homework: 'Homework', mock: 'Mock exam', exam: 'Exam', live: 'Live lesson',
+    assignment: 'Assignment', classwork: 'Classwork', notice: 'Notice',
+    quiz: 'Quiz', class_test: 'Class test', spelling_test: 'Spelling test',
   };
   function fmtDate(iso) {
     if (!iso) return '—';
-    const d = new Date(iso);
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    return new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
-  function fmtTime(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
   }
 
   const state = {
     user: null,
     role: null,
-    assignmentId: null,
-    targets: [],   // list_assignment_targets rows
-    filter: 'all',
-    query: '',
+    school: null,
+    assignment: null,
+    targets: [],
+    questions: [],
+    quizStats: [],
+    isQuiz: false,
   };
 
-  function renderGate(title, msg) {
+  function gate(title, msg) {
     $('main').innerHTML = `
       <div class="gate">
         <h1>${escapeHtml(title)}</h1>
         <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
-        <p><a class="btn-ghost" href="login.html">Sign in</a></p>
       </div>
     `;
   }
 
   async function boot() {
     const { data, error } = await supabaseClient.auth.getUser();
-    if (error || !data || !data.user) {
-      renderGate('Sign-in required', 'Sign in to see this breakdown.');
-      return;
-    }
+    if (error || !data || !data.user) { gate('Sign-in required', 'Sign in to view this assignment.'); return; }
     state.user = data.user;
-    const meta = state.user.user_metadata || {};
 
     let role = state.user.app_metadata?.role;
     if (!role) {
-      try {
-        const r = await supabaseClient.rpc('current_role');
-        if (!r.error && r.data) role = r.data;
-      } catch (_) { /* RPC not installed */ }
+      try { const r = await supabaseClient.rpc('current_role'); if (!r.error && r.data) role = r.data; } catch (_) {}
+    }
+    if (role !== 'teacher' && role !== 'school_organiser') {
+      gate('Access denied', 'This page is for teachers and school organisers.');
+      return;
     }
     state.role = role;
-    if (role !== 'teacher' && role !== 'school_organiser' && role !== 'admin') {
-      renderGate('Teacher access only', 'This page is for teachers and school organisers.');
-      return;
+    const backHref = role === 'school_organiser' ? 'school-organiser-dashboard.html' : 'teacher-dashboard.html';
+    document.getElementById('backBtn').href = backHref;
+    document.getElementById('crumbsBack').href = backHref;
+
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (!id) { gate('No assignment selected', 'Open this page from the teacher or organiser dashboard.'); return; }
+
+    const { data: a, error: aErr } = await supabaseClient
+      .from('assignments')
+      .select('id, school_id, subject_id, title, description, kind, due_at, quiz_data, created_by, created_at')
+      .eq('id', id)
+      .maybeSingle();
+    if (aErr || !a) { gate('Assignment not found', 'It may have been deleted.'); return; }
+    state.assignment = a;
+    state.isQuiz = a.kind === 'quiz';
+
+    const { data: profile } = await supabaseClient
+      .from('profiles').select('school_id').eq('id', state.user.id).maybeSingle();
+    if (!profile || profile.school_id !== a.school_id) {
+      gate('Access denied', 'You can only view assignments at your school.'); return;
     }
 
-    const params = new URLSearchParams(location.search);
-    state.assignmentId = params.get('id');
-    if (!state.assignmentId) {
-      renderGate('Missing homework id', 'No assignment id was provided in the URL.');
-      return;
+    const { data: school } = await supabaseClient
+      .from('schools').select('id, name, code').eq('id', a.school_id).maybeSingle();
+    state.school = school;
+
+    if (state.isQuiz) {
+      const r = await supabaseClient.rpc('get_quiz_questions', { p_assignment_id: a.id });
+      if (r.data && r.data.ok) {
+        state.questions = r.data.questions || [];
+      } else if (a.quiz_data && a.quiz_data.questions) {
+        state.questions = a.quiz_data.questions;
+      }
     }
 
-    $('signOutBtn').hidden = false;
-    setupFilters();
-
-    const { data: rows, error: rpcErr } = await supabaseClient.rpc('list_assignment_targets', {
-      p_assignment_id: state.assignmentId,
-    });
-    if (rpcErr) {
-      renderGate('Couldn\'t load', rpcErr.message);
-      return;
-    }
-    state.targets = rows || [];
-    if (state.targets.length && state.targets[0].title) {
-      $('title').textContent = state.targets[0].title;
-      $('crumbsTitle').textContent = state.targets[0].title;
-      $('sub').textContent = (state.targets[0].kind || 'Homework') + ' · due ' + fmtDate(state.targets[0].due_at);
-    } else {
-      $('title').textContent = 'Homework';
-      $('sub').textContent = 'Per-student breakdown.';
-    }
-    renderStats();
-    renderList();
+    await Promise.all([loadTargets(), state.isQuiz ? loadQuizStats() : Promise.resolve()]);
+    render();
   }
 
-  function setupFilters() {
-    document.querySelectorAll('.filter-row button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.filter-row button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.filter = btn.dataset.filter;
-        renderList();
-      });
+  async function loadTargets() {
+    const { data, error } = await supabaseClient.rpc('list_assignment_targets_with_submissions', {
+      p_assignment_id: state.assignment.id,
     });
-    $('search').addEventListener('input', () => {
-      state.query = $('search').value.trim().toLowerCase();
-      renderList();
+    if (error) { toast('Couldn\'t load submissions: ' + error.message, 'error'); state.targets = []; return; }
+    state.targets = data || [];
+  }
+  async function loadQuizStats() {
+    const { data, error } = await supabaseClient.rpc('list_quiz_wrong_questions', {
+      p_assignment_id: state.assignment.id,
     });
+    if (error) { state.quizStats = []; return; }
+    state.quizStats = data || [];
   }
 
-  function renderStats() {
-    const total   = state.targets.length;
-    const done    = state.targets.filter(t => t.status === 'done').length;
-    const pending = state.targets.filter(t => t.status === 'pending').length;
-    const missed  = state.targets.filter(t => t.status === 'missed').length;
-    $('statTotal').textContent = String(total);
-    $('statDone').textContent  = String(done);
-    $('statDoneDelta').textContent = total ? `${Math.round((done / total) * 100)}% completion` : '—';
-    $('statPending').textContent = String(pending + missed);
-    $('statPendingDelta').textContent = `${pending} pending, ${missed} missed`;
-  }
+  function render() {
+    const a = state.assignment;
+    const targets = state.targets;
+    const totals = {
+      total: targets.length,
+      done: targets.filter(t => t.status === 'done').length,
+      late: targets.filter(t => t.status === 'late' || t.is_late).length,
+      missed: targets.filter(t => t.status === 'missed').length,
+      submitted: targets.filter(t => t.status === 'submitted').length,
+      pending: targets.filter(t => t.status === 'pending').length,
+      seen: targets.filter(t => t.status === 'seen').length,
+    };
+    const pct = (n) => totals.total ? Math.round((n / totals.total) * 100) : 0;
+    const due = a.due_at ? new Date(a.due_at) : null;
+    const overdue = due && due < new Date();
 
-  function renderList() {
-    const filtered = state.targets.filter(t => {
-      if (state.filter !== 'all' && t.status !== state.filter) return false;
-      if (state.query && !((t.full_name || '') + ' ' + (t.email || '')).toLowerCase().includes(state.query)) return false;
-      return true;
-    });
-    const root = $('studentList');
-    if (!filtered.length) {
-      root.innerHTML = `<div class="empty">No students match this filter.</div>`;
-      return;
-    }
-    root.innerHTML = filtered.map(t => `
-      <div class="student-row">
-        <div class="avatar">${escapeHtml(initials(t.full_name || t.email))}</div>
-        <div>
-          <div class="name">${escapeHtml(t.full_name || '(no name)')}</div>
-          <div class="email">${escapeHtml(t.email || '')}</div>
+    $('body').innerHTML = `
+      <div class="head">
+        <h1>${escapeHtml(a.title || 'Untitled assignment')}</h1>
+        <div class="sub">
+          ${state.school ? escapeHtml(state.school.name) + ' · ' : ''}
+          Due ${fmtDate(a.due_at)}${overdue ? ' (overdue)' : ''}
         </div>
-        <div class="when">${escapeHtml(t.completed_at ? `Done ${fmtTime(t.completed_at)}` : '—')}</div>
-        <div><span class="status-pill ${escapeHtml(t.status || 'pending')}">${escapeHtml(t.status || 'pending')}</span></div>
-        <div></div>
+        <div class="pill-row">
+          <span class="pill kind">${escapeHtml(KIND_LABELS[a.kind] || a.kind)}</span>
+          <span class="pill">${totals.total} target${totals.total === 1 ? '' : 's'}</span>
+          ${state.questions.length ? `<span class="pill">${state.questions.length} question${state.questions.length === 1 ? '' : 's'}</span>` : ''}
+        </div>
+        ${a.description ? `<p style="margin: 12px 0 0; color: var(--text-2); white-space: pre-wrap;">${escapeHtml(a.description)}</p>` : ''}
       </div>
-    `).join('');
+
+      <div class="kpis">
+        <div class="kpi green">
+          <div class="label">On time</div>
+          <div class="value">${totals.done}</div>
+          <div class="pct">${pct(totals.done)}% of class</div>
+        </div>
+        <div class="kpi yellow">
+          <div class="label">Late</div>
+          <div class="value">${totals.late}</div>
+          <div class="pct">${pct(totals.late)}% of class</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Submitted</div>
+          <div class="value">${totals.submitted}</div>
+          <div class="pct">awaiting review</div>
+        </div>
+        <div class="kpi red">
+          <div class="label">Not handed in</div>
+          <div class="value">${totals.pending + totals.missed}</div>
+          <div class="pct">${pct(totals.pending + totals.missed)}% of class</div>
+        </div>
+      </div>
+
+      ${state.isQuiz ? `<div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Per-question stats</h3>
+            <div class="sub">${state.questions.length} question${state.questions.length === 1 ? '' : 's'} across all submissions</div>
+          </div>
+        </div>
+        <div id="qStats"></div>
+      </div>` : ''}
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Per-student submissions</h3>
+            <div class="sub">${totals.total} target${totals.total === 1 ? '' : 's'}</div>
+          </div>
+        </div>
+        ${targets.length ? renderTable(targets) : '<div style="padding: 24px; text-align: center; color: var(--text-3); font-size: 13px;">No targets yet.</div>'}
+      </div>
+    `;
+
+    if (state.isQuiz) renderQuizStats();
   }
 
-  $('signOutBtn').addEventListener('click', async () => {
-    await supabaseClient.auth.signOut();
-    window.location.href = 'login.html';
+  function renderTable(targets) {
+    return `
+      <table class="sub-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Year</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th>${state.isQuiz ? 'Score' : 'Submission'}</th>
+            <th style="text-align: right;">Mark</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${targets.map(t => {
+            const isLate = t.status === 'late' || t.is_late;
+            const statusClass = isLate ? 'status-late' : `status-${t.status}`;
+            const statusLabel = isLate ? 'Late' : ({
+              pending: 'Pending', submitted: 'Submitted',
+              done: 'On time', missed: 'Missed', seen: 'Seen',
+            }[t.status] || t.status);
+            return `
+              <tr>
+                <td>
+                  <div class="name">${escapeHtml(t.full_name || '(no name)')}</div>
+                </td>
+                <td>${escapeHtml(t.year_group || '—')}</td>
+                <td><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+                <td style="color: var(--text-3); font-size: 12.5px;">${fmtDate(t.submitted_at)}</td>
+                <td>${state.isQuiz
+                  ? (t.quiz_score != null ? `<b>${t.quiz_score}%</b>` : '<span style="color: var(--text-4);">—</span>')
+                  : (t.has_text ? '<span style="color: var(--blue);">Text</span>' : '') +
+                    (t.has_file ? '<span style="color: var(--blue); margin-left: 4px;">File</span>' : '') +
+                    (!t.has_text && !t.has_file ? '<span style="color: var(--text-4);">—</span>' : '')
+                }</td>
+                <td>
+                  <div class="row-actions">
+                    ${renderMarkActions(t)}
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function renderMarkActions(t) {
+    if (state.isQuiz) {
+      // Quiz status is set by grade_quiz; teacher can only flip pending → missed.
+      if (t.status === 'pending' || t.status === 'missed') {
+        return `<button class="btn-tiny" data-uid="${escapeHtml(t.student_user_id)}" data-action="mark" data-status="missed">Mark missed</button>`;
+      }
+      return '<span style="color: var(--text-4);">—</span>';
+    }
+    return `
+      <button class="btn-tiny" data-uid="${escapeHtml(t.student_user_id)}" data-action="mark" data-status="done">Done</button>
+      <button class="btn-tiny" data-uid="${escapeHtml(t.student_user_id)}" data-action="mark" data-status="late">Late</button>
+      <button class="btn-tiny" data-uid="${escapeHtml(t.student_user_id)}" data-action="mark" data-status="missed">Missed</button>
+      ${t.status === 'pending' ? '' : `<button class="btn-tiny" data-uid="${escapeHtml(t.student_user_id)}" data-action="mark" data-status="pending">Reset</button>`}
+    `;
+  }
+
+  function renderQuizStats() {
+    const wrap = $('qStats');
+    if (!wrap) return;
+    if (!state.quizStats.length) {
+      wrap.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-3); font-size: 13px;">No quiz attempts yet.</div>`;
+      return;
+    }
+    wrap.innerHTML = state.quizStats.map((s, i) => {
+      const q = state.questions[s.question_index] || state.questions[i] || {};
+      const correct = q.options && q.options.find(o => o.correct);
+      const wrongPct = s.total_count ? Math.round((s.wrong_count / s.total_count) * 100) : 0;
+      const ok = wrongPct < 50;
+      return `
+        <div class="quiz-q-row">
+          <div class="quiz-q-prompt">Q${s.question_index + 1}. ${escapeHtml(q.prompt || '—')}</div>
+          <div class="quiz-q-stats">
+            <span>Class got this wrong <b style="color: var(--red);">${s.wrong_count} / ${s.total_count}</b> (${wrongPct}%)</span>
+            <div class="quiz-q-bar"><div class="fill ${ok ? 'ok' : ''}" style="width: ${100 - wrongPct}%;"></div></div>
+            ${correct ? `<span style="color: var(--text-3);">Correct: <b style="color: var(--green);">${escapeHtml(correct.text)}</b></span>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Event delegation for mark buttons
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-action="mark"]');
+    if (!btn) return;
+    const uid = btn.dataset.uid;
+    const status = btn.dataset.status;
+    if (!uid || !status) return;
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = '…';
+    try {
+      const { data, error } = await supabaseClient.rpc('mark_submission_done', {
+        p_assignment_id: state.assignment.id,
+        p_student_user_id: uid,
+        p_status: status,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast(`Marked as ${status}.`, 'success');
+      await loadTargets();
+      render();
+    } catch (err) {
+      toast('Couldn\'t mark: ' + (err.message || err), 'error');
+      btn.disabled = false;
+      btn.textContent = original;
+    }
   });
 
   boot();
