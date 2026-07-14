@@ -378,6 +378,20 @@
         submitBtn.disabled = false; submitBtn.textContent = orig;
         return showError('Account was created but we couldn\'t register your school. Please sign in and contact support.');
       }
+      // 1b) Establish a session. With email confirmation enabled,
+      //     supabase.auth.signUp() does NOT return a logged-in session
+      //     — the user has to click the email link first. We need a
+      //     session to call the SECURITY DEFINER RPC below (it reads
+      //     auth.uid()). Sign the user in with the password they just
+      //     chose. If this fails (e.g. confirmation is required before
+      //     sign-in), we still want them to know the account exists.
+      const { error: siErr } = await supabaseClient.auth.signInWithPassword({
+        email, password: pw,
+      });
+      if (siErr) {
+        submitBtn.disabled = false; submitBtn.textContent = orig;
+        return showError('Account created, but we couldn\'t start a session yet. Check ' + email + ' for a confirmation link, then sign in to finish setting up your school.');
+      }
       // 2) Create the school + stamp the organiser role.
       const { data: cs, error: csErr } = await supabaseClient.rpc('create_school_and_organiser', {
         p_user_id: newUserId,
