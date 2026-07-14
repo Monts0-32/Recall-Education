@@ -524,6 +524,70 @@
       margin-left: 8px;
     }
     .consent-card a.ghost:hover { background: var(--bg-3); text-decoration: none; }
+
+    /* Wrong-account-type full-page overlay. Shown when a user with a
+       non-student role (school_organiser / teacher / staff) lands on
+       the student dashboard. The dashboard is a student-only surface;
+       a teacher who wants to use Recall as a learner needs a separate
+       student account (and vice-versa). */
+    .wrong-type-page {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 24px; z-index: 100;
+    }
+    .wrong-type-page.show { display: flex; }
+    .wrong-type-card {
+      max-width: 520px; width: 100%;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 32px;
+      text-align: center;
+    }
+    .wrong-type-card .glyph {
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: rgba(210,153,34,0.12);
+      color: #e3b341;
+      font-size: 24px; font-weight: 700;
+      margin: 0 auto 16px;
+    }
+    .wrong-type-card h1 {
+      margin: 0 0 12px;
+      font-size: 22px; font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+    .wrong-type-card p {
+      margin: 0 0 8px;
+      color: var(--text-2);
+      font-size: 14px; line-height: 1.5;
+    }
+    .wrong-type-card .small {
+      font-size: 12px; color: var(--text-3);
+      margin-top: 20px; padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+    .wrong-type-card a {
+      display: inline-block;
+      margin-top: 18px;
+      padding: 10px 18px;
+      background: var(--blue); color: #fff;
+      border-radius: var(--r-sm);
+      font-weight: 600; font-size: 14px;
+      text-decoration: none;
+    }
+    .wrong-type-card a:hover { background: var(--blue-2); text-decoration: none; }
+    .wrong-type-card a.ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      margin-left: 8px;
+    }
+    .wrong-type-card a.ghost:hover { background: var(--bg-3); text-decoration: none; }
   </style>
 </head>
 <body>
@@ -553,6 +617,26 @@
     <p>We sent them a link by email &mdash; it expires in 3 days. Once they click it, you can come back and start learning.</p>
     <a href="index.html">Back to home</a>
     <a href="#" id="signOutFromConsent" class="ghost">Sign out</a>
+    <div class="small">
+      Questions? Email <a href="mailto:hello@recalleducation.co.uk" style="color: var(--blue);">hello@recalleducation.co.uk</a>.
+    </div>
+  </div>
+</div>
+
+<!-- Full-page overlay shown when a non-student role (school organiser,
+     teacher, or staff) lands on the student dashboard. The dashboard
+     is a student-only surface; these account types have their own
+     consoles. Shown by dashboard.js when it detects a wrong-type role
+     on the profile. -->
+<div class="wrong-type-page" id="wrongTypePage" role="alertdialog" aria-labelledby="wrongTypeTitle" aria-modal="true">
+  <div class="wrong-type-card">
+    <div class="glyph" aria-hidden="true">!</div>
+    <h1 id="wrongTypeTitle">This is the student dashboard</h1>
+    <p id="wrongTypeRole">Your account is set up as a non-student role.</p>
+    <p>This page is only for students learning with Recall. School organisers, teachers, and staff each have their own dedicated console &mdash; the right one for your account will load automatically when you sign in.</p>
+    <p>If you also want to use Recall as a learner, you'll need to sign out and create a separate student account with a different email.</p>
+    <a href="#" id="wrongTypeSignOut">Sign out</a>
+    <a href="signup.html" id="wrongTypeCreateStudent">Create a student account</a>
     <div class="small">
       Questions? Email <a href="mailto:hello@recalleducation.co.uk" style="color: var(--blue);">hello@recalleducation.co.uk</a>.
     </div>
@@ -1029,6 +1113,39 @@
     // back. The signOut button on the overlay is their escape hatch.
   }
 
+  // Full-page overlay for non-student roles that landed on the student
+  // dashboard. The dashboard is a student-only surface; the right
+  // home for an organiser / teacher / staff account is its own
+  // console (organiser-console.html, teacher-dashboard.html,
+  // staff-dashboard.html). We block the dashboard chrome entirely
+  // and give the user a way to either sign out and use their proper
+  // console, or create a separate student account.
+  function showWrongType(role) {
+    const roleEl = $('wrongTypeRole');
+    if (roleEl) {
+      let label = 'non-student';
+      if (role === 'school_organiser')    label = 'school organiser';
+      else if (role === 'teacher')         label = 'teacher';
+      else if (role === 'staff_author')   label = 'Recall author';
+      else if (role === 'staff_reviewer') label = 'Recall reviewer';
+      else if (role === 'admin')          label = 'Recall admin';
+      roleEl.textContent = 'Your account is set up as a ' + label + ' account.';
+    }
+    // Wire up the sign-out button (it lives in the overlay so we can't
+    // use the standard signOutBtn click handler).
+    const out = $('wrongTypeSignOut');
+    if (out && !out.dataset.wired) {
+      out.addEventListener('click', async function (e) {
+        e.preventDefault();
+        try { await supabaseClient.auth.signOut(); } catch (_) {}
+        window.location.href = 'index.html';
+      });
+      out.dataset.wired = '1';
+    }
+    const page = $('wrongTypePage');
+    if (page) page.classList.add('show');
+  }
+
   // ---------- data shaping ----------
   function subjectProgressToRow(sp) {
     const levelLabel = sp.level === 'a-level' ? 'A-level' : 'GCSE';
@@ -1278,10 +1395,11 @@
     // Try to read year_group + consent from profiles; not fatal if it fails.
     let yearGroup = meta.year_group || null;
     let schoolId = null;
+    let userRole = null;
     try {
       const { data: profile } = await supabaseClient
         .from('profiles')
-        .select('year_group, consent_status, requires_parental_consent, deleted_at, school_id')
+        .select('year_group, consent_status, requires_parental_consent, deleted_at, school_id, role')
         .eq('id', user.id)
         .maybeSingle();
       if (profile) {
@@ -1309,6 +1427,7 @@
 
         yearGroup = profile.year_group || yearGroup;
         schoolId  = profile.school_id  || null;
+        userRole  = profile.role       || null;
         if (profile.requires_parental_consent && profile.consent_status !== 'granted') {
           // Under-16 awaiting consent. The auth hook lets the email-
           // confirmation flow through (authentication_method =
@@ -1320,6 +1439,34 @@
         }
       }
     } catch (_) { /* profiles table may not be readable in this env; ignore */ }
+
+    // The dashboard is a student-only surface. If a non-student role
+    // (organiser / teacher / staff) somehow lands here — e.g. they
+    // refreshed the student dashboard URL after their role was
+    // updated, or a routing bug sent them here — show an explanatory
+    // overlay and offer a way out. We read the role from
+    //   1. the profile row we already fetched (freshest)
+    //   2. the JWT app_metadata (in case the profile read failed but
+    //      the hook stamped a role at issuance)
+    //   3. the current_role() RPC as a last resort
+    // Student is the default and is allowed through.
+    if (userRole && userRole !== 'student') {
+      showWrongType(userRole);
+      return;
+    }
+    if (!userRole) {
+      let jwtRole = user.app_metadata && user.app_metadata.role;
+      if (!jwtRole) {
+        try {
+          const r = await supabaseClient.rpc('current_role');
+          if (!r.error && r.data) jwtRole = r.data;
+        } catch (_) { /* RPC not installed — fall through */ }
+      }
+      if (jwtRole && jwtRole !== 'student') {
+        showWrongType(jwtRole);
+        return;
+      }
+    }
 
     setIdentity(meta.full_name || user.email, yearGroup);
     // Apply the school's published dashboard layout (visibility,

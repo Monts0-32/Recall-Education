@@ -206,6 +206,21 @@
   //   - over-16 / consent granted student: "Go to your dashboard"
   //   - under-16 awaiting parent:           "We're waiting on your parent"
   async function renderReady(user) {
+    // Force a token refresh FIRST so the custom_access_token_hook
+    // re-runs against the current profiles row. Without this, the
+    // freshly-minted JWT (created at sign-in time, before the
+    // create_school_and_organiser RPC ran) still says
+    // app_metadata.role = 'student' and we'd route the user to the
+    // student dashboard. Refreshing makes the hook re-stamp the
+    // current role onto the JWT.
+    try {
+      const { data: refreshed, error: refreshErr } =
+        await supabaseClient.auth.refreshSession({ forceRefresh: true });
+      if (!refreshErr && refreshed && refreshed.user) {
+        user = refreshed.user;
+      }
+    } catch (_) { /* best effort — fall through to the stale JWT */ }
+
     try {
       const { data: profile } = await supabaseClient
         .from('profiles')

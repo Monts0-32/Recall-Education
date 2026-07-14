@@ -298,6 +298,21 @@
       }
     }
 
+    // Force a token refresh so the custom_access_token_hook re-runs
+    // against the (now-updated) profiles row. The JWT we got from
+    // the magic-link / confirmation flow was issued BEFORE the
+    // create_school_and_organiser RPC stamped role='school_organiser'
+    // onto the profile, so app_metadata.role is still 'student'.
+    // Without this refresh, the user.app_metadata.role check below
+    // and any downstream role-gated page would see the wrong role.
+    try {
+      const { data: refreshed, error: refreshErr } =
+        await supabaseClient.auth.refreshSession({ forceRefresh: true });
+      if (!refreshErr && refreshed && refreshed.user) {
+        user = refreshed.user;
+      }
+    } catch (_) { /* best effort — fall through to the stale JWT */ }
+
     try {
       if (school) {
         const { data: profile } = await supabaseClient
@@ -343,6 +358,48 @@
   // gracefully. Today we only get here from the organiser signup, but
   // we still want role-aware routing in case the URL is shared.
   async function renderReady(user) {
+    // Two ways an organiser can land here:
+    //   A. School was created in-page during signup-organisation.html
+    //      (signInWithPassword worked). Profile.role is already
+    //      'school_organiser'.
+    //   B. School was NOT created in-page because signInWithPassword
+    //      was blocked by the email-confirmation gate. The profile
+    //      still has role='student'. We have to create the school
+    //      from user_metadata.intended_school BEFORE we can read the
+    //      role correctly.
+    // We handle both by routing through renderOrganiserReady (which
+    // is idempotent — it creates the school only if one doesn't
+    // already exist) whenever the metadata OR the profile says this
+    // is an organiser signup. renderOrganiserReady refreshes the
+    // session internally so the JWT gets re-stamped with the new
+    // role, and the role check below sees the post-refresh value.
+    const intendedRole = (user.user_metadata && user.user_metadata.intended_role) || null;
+    let dbRole = null;
+    try {
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+      dbRole = profile && profile.role;
+    } catch (_) { /* best effort */ }
+    if (intendedRole === 'school_organiser' || dbRole === 'school_organiser') {
+      await renderOrganiserReady(user);
+      return;
+    }
+
+    // For users who somehow landed on this page WITHOUT being an
+    // organiser signup (URL shared, etc.), fall through to the
+    // standard role-aware routing. Refresh the session first so
+    // the hook re-stamps app_metadata.role.
+    try {
+      const { data: refreshed, error: refreshErr } =
+        await supabaseClient.auth.refreshSession({ forceRefresh: true });
+      if (!refreshErr && refreshed && refreshed.user) {
+        user = refreshed.user;
+      }
+    } catch (_) { /* best effort — fall through to the stale JWT */ }
+
     let role = user.app_metadata?.role;
     if (!role) {
       try {
