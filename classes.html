@@ -447,11 +447,18 @@
       resolved = true;
       onSession(user);
     };
-    const { data, error } = await supabaseClient.auth.getUser();
-    if (!error && data && data.user) { finish(data.user); return; }
+    try {
+      const { data, error } = await supabaseClient.auth.getUser();
+      // 401 / AuthSessionMissingError means there's no session at all —
+      // don't try to fall through to other RPCs, which would also 401.
+      if (error) { finish(null); return; }
+      if (data && data.user) { finish(data.user); return; }
+    } catch (_) { finish(null); return; }
     supabaseClient.auth.onAuthStateChange((event, session) => {
       if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
         finish(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        finish(null);
       }
     });
     // Fallback: if 1.5s passes with no session, show the gate.
@@ -460,7 +467,7 @@
 
   async function onSession(user) {
     if (!user) {
-      renderGate('Sign-in required', 'Sign in to manage your school classes.');
+      renderGate('Sign-in required', 'Your session has expired or you haven\'t signed in yet. Sign in to manage your school classes.');
       return;
     }
     state.user = user;
@@ -470,9 +477,15 @@
     // app_metadata.role against the latest profiles.role. Without this,
     // an organiser whose profile was just upgraded (e.g. they just
     // confirmed their email) reads a stale JWT and gets "Access denied".
+    // Skipped if the session is already stale — refreshSession would
+    // just fail again.
     try {
-      const { data: refreshed } = await supabaseClient.auth.refreshSession({ forceRefresh: true });
-      if (refreshed && refreshed.user) state.user = refreshed.user;
+      const expiresAt = state.user.expires_at || 0;
+      const now = Math.floor(Date.now() / 1000);
+      if (now < expiresAt - 30) {
+        const { data: refreshed } = await supabaseClient.auth.refreshSession({ forceRefresh: true });
+        if (refreshed && refreshed.user) state.user = refreshed.user;
+      }
     } catch (_) { /* fall through to the stale JWT */ }
 
     let role = state.user.app_metadata?.role;
