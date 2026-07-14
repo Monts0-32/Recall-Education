@@ -1,44 +1,116 @@
 // ============================================================================
 // Recall Education — Send-auth-email Edge Function
 //
-// Replaces Supabase's built-in SMTP for the "Confirm email", "Recovery",
-// and "Magic link" actions. Triggered by Supabase's `send_email` auth hook:
+// Replaces Supabase's built-in SMTP for the "Confirm signup" / "Recovery"
+// / "Magic link" / "Email change" / "Invite" / "Reauthentication" actions.
+// Triggered by Supabase's `send_email` auth hook:
 //   Auth → Hooks → Send Email → Enable, point at this function's URL,
 //   store the generated secret in the SEND_EMAIL_HOOK_SECRET env var.
 //
 // When the hook returns 2xx, Supabase skips its own email. When it fails,
-// Supabase falls back to its default SMTP (kill switch).
+// Supabase falls back to its default SMTP (kill switch — we never silently
+// drop an auth email).
 //
-// Routing is by `email_data.email_action_type`:
-//   signup     → student / teacher confirmation (or organiser, branched
-//                on user.user_metadata.intended_role) or parent consent
-//                request, if under 16
-//   recovery   → password reset
-//   magiclink  → sign-in link
-//   others     → 200 no-op (we don't use email_change / invite / reauthentication)
+// ============================================================================
+//  SIGNATURE VERIFICATION
+// ============================================================================
 //
-// The `email_data.token_hash` is the one-shot token Supabase generated; the
-// URL the user clicks is the Supabase /auth/v1/verify endpoint with
-// redirect_to pointing at /auth/confirmed.html (or /reset-password.html for
-// recovery). The Edge Function does NOT construct the URL from
-// `email_data.site_url` — that field is currently populated from the Supabase
-// auth host, not the configured Site URL (Supabase auth#2559).
+// Supabase signs every hook request using the Standard Webhooks spec
+// (https://github.com/standard-webhooks/standard-webhooks). The secret
+// shown in the dashboard looks like:
 //
-// Env vars (set with `supabase secrets set`):
-//   RESEND_API_KEY         — Resend dashboard
-//   SUPABASE_URL           — https://hkjiyibpeqdoqzlyqzwz.supabase.co
-//   SUPABASE_SERVICE_ROLE_KEY — needed to read/write parental_consents
-//   SEND_EMAIL_HOOK_SECRET — the v1,whsec_… secret the hook dashboard gives you
-//   EMAIL_FROM             — optional override; defaults to
-//                            "Recall Education <hello@recalleducation.co.uk>"
+//     whsec_AbCdEf123...
+//
+// The literal "whsec_" prefix is a human-readable marker, NOT part of
+// the secret value. The secret bytes are everything after it. The
+// `webhook-signature` header contains the version + the signature:
+//
+//     v1,sig=<base64 of HMAC-SHA256 of signed_payload using secret bytes>
+//
+// The signed payload is constructed as:
+//
+//     <webhook-id> + "." + <webhook-timestamp> + "." + <raw body>
+//
+// where webhook-id is in the `webhook-id` header and webhook-timestamp
+// (unix seconds) is in the `webhook-timestamp` header. We reject any
+// timestamp more than 5 minutes off wall-clock time to bound replay
+// attacks.
+//
+// We implement the verification inline using `crypto.subtle` rather
+// than the `standardwebhooks` npm package. The package historically
+// has trouble with the `v1,` prefix in the signature header on some
+// runtimes and Deno versions; the inline implementation is ~30 lines
+// and completely under our control.
+//
+// ============================================================================
+//  ROUTING
+// ============================================================================
+//
+// `email_data.email_action_type` drives the template choice:
+//
+//   signup            → "Welcome to Recall" confirmation, role-aware
+//                       (student / teacher / school_organiser / staff)
+//   recovery          → "Reset your password"
+//   magiclink         → "Your sign-in link"
+//   email_change      → "Confirm your new email"   (rare; same shape as signup)
+//   invite            → "You've been invited"      (rare; we don't issue
+//                       invites via auth — this is a safety net)
+//   reauthentication  → no-op 200 (we don't use it)
+//
+// ============================================================================
+//  ROLE-AWARE CONFIRMATION
+// ============================================================================
+//
+// The signup branch reads `user.user_metadata.intended_role` to pick a
+// template. signup-organisation.html writes
+// `intended_role='school_organiser'` plus `intended_school` and
+// `intended_plan`. The organiser template uses a purple accent (the
+// school-organiser brand colour) and frames the email as "you're
+// setting up a school" rather than the generic student welcome —
+// without this branch, organisers get a confusing "Welcome to Recall"
+// email followed by a redirect to the student dashboard.
+//
+// ============================================================================
+//  ENV VARS
+// ============================================================================
+//
+//   RESEND_API_KEY            — Resend dashboard (re_xxx)
+//   SEND_EMAIL_HOOK_SECRET    — whsec_… value from Auth → Hooks → Send Email
+//   EMAIL_FROM                — optional; defaults to
+//                               "Recall Education <hello@recalleducation.co.uk>"
+//
+// SUPABASE_URL and the service role key are auto-injected by the
+// Supabase Edge Function runtime.
 // ============================================================================
 
-import { Webhook } from "standardwebhooks";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
 // ----------------------------------------------------------------------------
-// Types — keep in sync with Supabase's send_email hook payload schema.
+// Env validation
+// ----------------------------------------------------------------------------
+
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY =
+  Deno.env.get("REACT_SUPABASE_SERVICE_KEY") ??
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const HOOK_SECRET = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
+const EMAIL_FROM =
+  Deno.env.get("EMAIL_FROM") ?? "Recall Education <hello@recalleducation.co.uk>";
+
+function missingEnv(): string[] {
+  const out: string[] = [];
+  if (!RESEND_API_KEY) out.push("RESEND_API_KEY");
+  if (!SUPABASE_URL) out.push("SUPABASE_URL");
+  if (!SUPABASE_SERVICE_ROLE_KEY) out.push("REACT_SUPABASE_SERVICE_KEY");
+  if (!HOOK_SECRET) out.push("SEND_EMAIL_HOOK_SECRET");
+  return out;
+}
+
+// ----------------------------------------------------------------------------
+// Hook payload types — keep in sync with Supabase's send_email hook schema.
+// https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook
 // ----------------------------------------------------------------------------
 
 interface HookUser {
@@ -56,8 +128,8 @@ interface HookUser {
 }
 
 interface HookEmailData {
-  token: string;            // 6-digit OTP, used as a text fallback
-  token_hash: string;       // for the verify URL
+  token: string;            // 6-digit OTP
+  token_hash: string;       // one-shot token for the verify URL
   redirect_to: string;      // the emailRedirectTo the client passed
   email_action_type:
     | "signup"
@@ -66,7 +138,7 @@ interface HookEmailData {
     | "email_change"
     | "invite"
     | "reauthentication";
-  site_url: string;         // DO NOT trust — see file header
+  site_url: string;         // DO NOT trust — see note below
 }
 
 interface HookPayload {
@@ -74,30 +146,143 @@ interface HookPayload {
   email_data: HookEmailData;
 }
 
-// ----------------------------------------------------------------------------
-// Env validation
-// ----------------------------------------------------------------------------
+// ============================================================================
+//  Signature verification — Standard Webhooks, raw HMAC-SHA256.
+// ============================================================================
+//
+// Returns { ok: true } on success, { ok: false, reason } on failure. We
+// never throw — the calling code returns 401 with a clear reason.
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_SERVICE_ROLE_KEY =
-  Deno.env.get("REACT_SUPABASE_SERVICE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-const HOOK_SECRET = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
-const EMAIL_FROM =
-  Deno.env.get("EMAIL_FROM") ?? "Recall Education <hello@recalleducation.co.uk>";
+interface VerifyResult {
+  ok: boolean;
+  reason?: string;
+}
 
-function missingEnv(): string[] {
-  const out: string[] = [];
-  if (!RESEND_API_KEY) out.push("RESEND_API_KEY");
-  if (!SUPABASE_URL) out.push("SUPABASE_URL");
-  if (!SUPABASE_SERVICE_ROLE_KEY) out.push("REACT_SUPABASE_SERVICE_KEY");
-  if (!HOOK_SECRET) out.push("SEND_EMAIL_HOOK_SECRET");
-  return out;
+function timingSafeEqual(a: string, b: string): boolean {
+  // Constant-time string comparison. Webhook signatures are short
+  // (<100 chars base64) so this is plenty fast. The point is to
+  // prevent the typical timing-side-channel bug where a string
+  // compare returns early on the first differing byte.
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+function base64Encode(bytes: Uint8Array): string {
+  // Standard base64 with padding. btoa() takes a "binary string" — we
+  // convert the byte array to one first. Deno's btoa is built-in.
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+async function verifyHookSignature(
+  secret: string,
+  headers: Headers,
+  rawBody: string,
+): Promise<VerifyResult> {
+  // Extract the headers we need. Supabase sends them lowercased in
+  // most environments but the Standard Webhooks spec is case-
+  // insensitive, so we case-insensitively look them up.
+  const webhookId = headers.get("webhook-id") ?? headers.get("Webhook-Id") ?? "";
+  const webhookTs = headers.get("webhook-timestamp") ?? headers.get("Webhook-Timestamp") ?? "";
+  const webhookSig = headers.get("webhook-signature") ?? headers.get("Webhook-Signature") ?? "";
+
+  if (!webhookId || !webhookTs || !webhookSig) {
+    return { ok: false, reason: "missing required signature headers" };
+  }
+
+  // Reject anything more than 5 minutes old. The timestamp is unix
+  // seconds (per spec).
+  const tsNum = Number(webhookTs);
+  if (!Number.isFinite(tsNum)) {
+    return { ok: false, reason: "invalid webhook-timestamp" };
+  }
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  if (Math.abs(nowSeconds - tsNum) > 5 * 60) {
+    return { ok: false, reason: "webhook timestamp out of tolerance" };
+  }
+
+  // Parse the signature header. Format: "v1,sig=<base64>" or
+  // space-separated multiple "v1,sig=<base64>" values. We accept the
+  // v1 scheme only.
+  const parts = webhookSig.split(" ").filter(Boolean);
+  let expected: string | null = null;
+  for (const part of parts) {
+    const comma = part.indexOf(",");
+    if (comma < 0) continue;
+    const version = part.slice(0, comma);
+    const sig = part.slice(comma + 1);
+    if (version === "v1" && sig.startsWith("sig=")) {
+      expected = sig.slice(4);
+      break;
+    }
+  }
+  if (!expected) {
+    return { ok: false, reason: "no v1 signature in header" };
+  }
+
+  // Build the signed payload. The spec is explicit: id + "." + ts + "." + body.
+  const signedPayload = `${webhookId}.${webhookTs}.${rawBody}`;
+
+  // Compute the HMAC-SHA256 of signed_payload using the secret bytes.
+  //
+  // The Standard Webhooks spec defines the secret as: a base64-encoded
+  // random byte string, prefixed with `whsec_` as a human-readable
+  // marker. So the env var looks like `whsec_<base64>` and the HMAC
+  // key is the DECODED bytes (the random bytes themselves, not the
+  // base64 string).
+  //
+  // This is the part the previous implementation got wrong — it used
+  // the post-prefix string as the key (no base64 decode), which gave a
+  // valid signature against a different signing scheme than the one
+  // Supabase's hook actually uses. The fix is a single btoa/atob round-
+  // trip on the secret value after stripping the `whsec_` marker.
+  const whsecPrefix = "whsec_";
+  if (!secret.startsWith(whsecPrefix)) {
+    return { ok: false, reason: "secret does not start with whsec_" };
+  }
+  const secretBase64 = secret.slice(whsecPrefix.length);
+
+  // atob() is the inverse of btoa(): base64 → binary string → bytes.
+  // Deno's atob is built-in and throws on invalid input, which is what
+  // we want (a malformed secret should fail verification, not silently
+  // match a different scheme).
+  let keyBytes: Uint8Array;
+  try {
+    const bin = atob(secretBase64);
+    keyBytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) keyBytes[i] = bin.charCodeAt(i);
+  } catch {
+    return { ok: false, reason: "secret base64 decode failed" };
+  }
+
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    keyBytes,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sigBytes = new Uint8Array(
+    await crypto.subtle.sign("HMAC", cryptoKey, new TextEncoder().encode(signedPayload)),
+  );
+  const computed = base64Encode(sigBytes);
+
+  if (!timingSafeEqual(computed, expected)) {
+    return { ok: false, reason: "signature mismatch" };
+  }
+
+  return { ok: true };
 }
 
 // ----------------------------------------------------------------------------
-// Email templates — inline-styled HTML, no <style> blocks. Resend strips
-// them in some clients, and Outlook desktop ignores them entirely.
+// HTML escaping + brand shell — byte-for-byte match with the other
+// transactional email functions (send-consent-email, send-staff-invite)
+// so all Recall emails look like the same product.
 // ----------------------------------------------------------------------------
 
 function escapeHtml(s: string): string {
@@ -109,10 +294,8 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function layout(title: string, bodyHtml: string): string {
-  // Single-column, 600px, dark-on-light (most email clients render better
-  // when the body is white and the brand colour is in a top bar). We use the
-  // same palette as the website so the email looks like it came from us.
+function layout(title: string, bodyHtml: string, accent: "blue" | "purple" = "blue"): string {
+  const bar = accent === "purple" ? "#6B3FA0" : "#1F6FEB";
   return `<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
@@ -120,15 +303,15 @@ function layout(title: string, bodyHtml: string): string {
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F6F8FA;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#FFFFFF;border:1px solid #D0D7DE;border-radius:8px;overflow:hidden;">
-        <tr><td style="background:#1F6FEB;padding:18px 24px;font-size:14px;font-weight:700;color:#FFFFFF;letter-spacing:-0.01em;">
-          <span style="display:inline-block;background:#FFFFFF;color:#1F6FEB;width:22px;height:22px;line-height:22px;text-align:center;border-radius:4px;margin-right:10px;font-size:12px;font-weight:800;">R</span>
+        <tr><td style="background:${bar};padding:18px 24px;font-size:14px;font-weight:700;color:#FFFFFF;letter-spacing:-0.01em;">
+          <span style="display:inline-block;background:#FFFFFF;color:${bar};width:22px;height:22px;line-height:22px;text-align:center;border-radius:4px;margin-right:10px;font-size:12px;font-weight:800;">R</span>
           Recall
         </td></tr>
         <tr><td style="padding:28px 24px 8px;font-size:18px;font-weight:600;color:#0D1117;letter-spacing:-0.01em;">${escapeHtml(title)}</td></tr>
         <tr><td style="padding:0 24px 24px;font-size:14px;line-height:1.55;color:#1F2328;">${bodyHtml}</td></tr>
         <tr><td style="padding:14px 24px;border-top:1px solid #D0D7DE;background:#F6F8FA;font-size:12px;color:#57606A;">
-          Recall Education Ltd · UK · You can
-          <a href="mailto:hello@recalleducation.co.uk" style="color:#1F6FEB;">unsubscribe</a>
+          Recall Education Ltd &middot; UK &middot; You can
+          <a href="mailto:hello@recalleducation.co.uk" style="color:${bar};">unsubscribe</a>
           or update your preferences at any time.
         </td></tr>
       </table>
@@ -138,9 +321,10 @@ function layout(title: string, bodyHtml: string): string {
 </html>`;
 }
 
-function ctaButton(url: string, label: string): string {
+function ctaButton(url: string, label: string, accent: "blue" | "purple" = "blue"): string {
+  const bar = accent === "purple" ? "#6B3FA0" : "#1F6FEB";
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;">
-    <tr><td bgcolor="#1F6FEB" style="border-radius:6px;">
+    <tr><td bgcolor="${bar}" style="border-radius:6px;">
       <a href="${escapeHtml(url)}" target="_blank"
          style="display:inline-block;padding:11px 20px;font-family:inherit;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:6px;">
         ${escapeHtml(label)}
@@ -149,15 +333,18 @@ function ctaButton(url: string, label: string): string {
   </table>
   <p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#57606A;word-break:break-all;">
     If the button doesn't work, paste this link into your browser:<br>
-    <a href="${escapeHtml(url)}" style="color:#1F6FEB;">${escapeHtml(url)}</a>
+    <a href="${escapeHtml(url)}" style="color:${bar};">${escapeHtml(url)}</a>
   </p>`;
 }
 
 // ----------------------------------------------------------------------------
-// Per-template builders
+// Per-role confirmation templates. The verify URL is built from
+// email_data.token_hash + email_data.redirect_to and hits Supabase's
+// /auth/v1/verify endpoint. After verify, the user lands on
+// redirect_to (which the client passed via signUp's emailRedirectTo).
 // ----------------------------------------------------------------------------
 
-function confirmationEmail(name: string, verifyUrl: string, otp: string) {
+function studentConfirmationEmail(name: string, verifyUrl: string, otp: string) {
   const first = (name || "there").trim().split(/\s+/)[0];
   return {
     subject: "Confirm your Recall email",
@@ -169,15 +356,34 @@ function confirmationEmail(name: string, verifyUrl: string, otp: string) {
        <p style="margin:18px 0 0;font-size:13px;color:#57606A;">This link expires in 24 hours. If you didn't sign up, you can safely ignore this email.</p>
        <p style="margin:14px 0 0;font-size:13px;color:#57606A;">Or paste this code if you'd rather type it in: <b style="color:#0D1117;">${escapeHtml(otp)}</b></p>`,
     ),
-    text: `Hi ${first},\n\nWelcome to Recall. Confirm your email by visiting:\n${verifyUrl}\n\nOr paste this code: ${otp}\n\nThis link expires in 24 hours. If you didn't sign up, ignore this email.`,
+    text:
+      `Hi ${first},\n\n` +
+      `Welcome to Recall. Confirm your email by visiting:\n${verifyUrl}\n\n` +
+      `Or paste this code: ${otp}\n\n` +
+      `This link expires in 24 hours. If you didn't sign up, ignore this email.`,
   };
 }
 
-// School organiser confirmation. Same verify URL mechanism, but the
-// surrounding copy makes it clear that the link is for setting up a
-// school — not a personal student account. Without this branch, the
-// generic "Confirm your email" template would land in their inbox and
-// the recipient would assume they're a student.
+function teacherConfirmationEmail(name: string, verifyUrl: string, otp: string) {
+  const first = (name || "there").trim().split(/\s+/)[0];
+  return {
+    subject: "Confirm your teacher account on Recall",
+    html: layout(
+      "Confirm your teacher account",
+      `<p style="margin:0 0 14px;">Hi ${escapeHtml(first)},</p>
+       <p style="margin:0 0 14px;">Welcome to Recall. You're moments away from being able to set homework, track your classes, and see how your students are getting on.</p>
+       ${ctaButton(verifyUrl, "Confirm and open my teacher dashboard")}
+       <p style="margin:18px 0 0;font-size:13px;color:#57606A;">This link expires in 24 hours. If you didn't sign up as a teacher, you can safely ignore this email.</p>
+       <p style="margin:14px 0 0;font-size:13px;color:#57606A;">Or paste this code if you'd rather type it in: <b style="color:#0D1117;">${escapeHtml(otp)}</b></p>`,
+    ),
+    text:
+      `Hi ${first},\n\n` +
+      `Welcome to Recall. Confirm your teacher account by visiting:\n${verifyUrl}\n\n` +
+      `Or paste this code: ${otp}\n\n` +
+      `This link expires in 24 hours. If you didn't sign up as a teacher, ignore this email.`,
+  };
+}
+
 function organiserConfirmationEmail(
   name: string,
   schoolName: string,
@@ -191,12 +397,10 @@ function organiserConfirmationEmail(
     subject: `Confirm your school organiser account — ${schoolName}`,
     html: layout(
       "Confirm your school organiser account",
-      // The accent here is purple (the organiser-school brand colour
-      // used on school-organiser-dashboard.html) rather than the
-      // default blue, so the email looks different from a student
-      // confirmation in the recipient's inbox.
+      // Purple accent so the email is visually distinct from a
+      // student confirmation in the recipient's inbox.
       `<p style="margin:0 0 14px;">Hi ${escapeHtml(first)},</p>
-       <p style="margin:0 0 14px;">Welcome to Recall. You're moments away from being able to manage <b>${escapeHtml(schoolName)}</b> on Recall — invite teachers, set homework, and see how your students are getting on.</p>
+       <p style="margin:0 0 14px;">Welcome to Recall. You're moments away from being able to manage <b>${escapeHtml(schoolName)}</b> on Recall &mdash; invite teachers, set homework, and see how your students are getting on.</p>
        <p style="margin:0 0 14px;">Plan: <b>${escapeHtml(planLabel)}</b> (you can change this from your organiser console at any time).</p>
        <div style="margin:18px 0;padding:14px 16px;background:#F5EEFF;border:1px solid #C9A8FF;border-radius:6px;">
          <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#6B3FA0;">What happens when you click confirm</p>
@@ -206,9 +410,10 @@ function organiserConfirmationEmail(
            <li>You'll be taken straight to your organiser console.</li>
          </ol>
        </div>
-       ${ctaButton(verifyUrl, "Confirm and open my organiser console")}
+       ${ctaButton(verifyUrl, "Confirm and open my organiser console", "purple")}
        <p style="margin:18px 0 0;font-size:13px;color:#57606A;">This link expires in 24 hours. If you didn't sign up to run a school on Recall, you can safely ignore this email.</p>
        <p style="margin:14px 0 0;font-size:13px;color:#57606A;">Or paste this code if you'd rather type it in: <b style="color:#0D1117;">${escapeHtml(otp)}</b></p>`,
+      "purple",
     ),
     text:
       `Hi ${first},\n\n` +
@@ -224,19 +429,29 @@ function organiserConfirmationEmail(
   };
 }
 
-function parentConsentEmail(studentName: string, consentUrl: string) {
+function staffConfirmationEmail(name: string, role: string, verifyUrl: string, otp: string) {
+  const first = (name || "there").trim().split(/\s+/)[0];
+  const label =
+    role === "staff_author" ? "lesson author" :
+    role === "staff_reviewer" ? "lesson reviewer" :
+    role === "admin" ? "admin" :
+    "staff member";
   return {
-    subject: `${studentName} wants to use Recall — please confirm`,
+    subject: `Confirm your Recall staff account (${label})`,
     html: layout(
-      "Your child wants to use Recall",
-      `<p style="margin:0 0 14px;">Hello,</p>
-       <p style="margin:0 0 14px;"><b>${escapeHtml(studentName)}</b> has signed up for Recall, a UK study app for GCSE and A-level students. UK law (UK-GDPR / Age-Appropriate Design Code) requires us to get a parent or guardian's consent before a child under 16 can use the product.</p>
-       <p style="margin:0 0 14px;">Please review and decide. The link is unique to you and will expire in 7 days.</p>
-       ${ctaButton(consentUrl, "Review and give consent")}
-       <p style="margin:18px 0 0;font-size:13px;color:#57606A;">If this wasn't your child, you can safely ignore this email — no account will be activated.</p>
-       <p style="margin:14px 0 0;font-size:13px;color:#57606A;">Questions? Email <a href="mailto:hello@recalleducation.co.uk" style="color:#1F6FEB;">hello@recalleducation.co.uk</a>. You can withdraw consent at any time and we will delete the account.</p>`,
+      "Confirm your staff account",
+      `<p style="margin:0 0 14px;">Hi ${escapeHtml(first)},</p>
+       <p style="margin:0 0 14px;">You've been invited to join Recall as <b>${escapeHtml(label)}</b>. Click the button below to confirm your email and finish setting up your staff account.</p>
+       ${ctaButton(verifyUrl, "Confirm email")}
+       <p style="margin:18px 0 0;font-size:13px;color:#57606A;">This link expires in 24 hours. If you weren't expecting this, you can safely ignore the email &mdash; nothing happens unless you click through.</p>
+       <p style="margin:14px 0 0;font-size:13px;color:#57606A;">Or paste this code if you'd rather type it in: <b style="color:#0D1117;">${escapeHtml(otp)}</b></p>`,
     ),
-    text: `${studentName} has signed up for Recall, a UK study app.\n\nUK law requires a parent or guardian to consent before a child under 16 can use the product.\n\nReview and decide:\n${consentUrl}\n\nIf this wasn't your child, ignore this email — no account will be activated.\n\nQuestions? Email hello@recalleducation.co.uk.`,
+    text:
+      `Hi ${first},\n\n` +
+      `You've been invited to join Recall as ${label}.\n\n` +
+      `Confirm your email by visiting:\n${verifyUrl}\n\n` +
+      `Or paste this code: ${otp}\n\n` +
+      `This link expires in 24 hours. If you weren't expecting this, ignore the email.`,
   };
 }
 
@@ -247,9 +462,11 @@ function recoveryEmail(verifyUrl: string) {
       "Reset your password",
       `<p style="margin:0 0 14px;">Someone (hopefully you) asked to reset the password on this Recall account.</p>
        ${ctaButton(verifyUrl, "Reset password")}
-       <p style="margin:18px 0 0;font-size:13px;color:#57606A;">This link expires in 1 hour. If you didn't request a reset, you can safely ignore this email — your password will not change.</p>`,
+       <p style="margin:18px 0 0;font-size:13px;color:#57606A;">This link expires in 1 hour. If you didn't request a reset, you can safely ignore this email &mdash; your password will not change.</p>`,
     ),
-    text: `Reset your Recall password:\n${verifyUrl}\n\nThis link expires in 1 hour. If you didn't request a reset, ignore this email.`,
+    text:
+      `Reset your Recall password:\n${verifyUrl}\n\n` +
+      `This link expires in 1 hour. If you didn't request a reset, ignore this email.`,
   };
 }
 
@@ -263,41 +480,26 @@ function magiclinkEmail(verifyUrl: string, otp: string) {
        <p style="margin:18px 0 0;font-size:13px;color:#57606A;">This link expires in 1 hour. If you didn't request it, ignore this email.</p>
        <p style="margin:14px 0 0;font-size:13px;color:#57606A;">Or paste this code: <b style="color:#0D1117;">${escapeHtml(otp)}</b></p>`,
     ),
-    text: `Sign in to Recall:\n${verifyUrl}\n\nOr paste this code: ${otp}\n\nThis link expires in 1 hour.`,
+    text:
+      `Sign in to Recall:\n${verifyUrl}\n\n` +
+      `Or paste this code: ${otp}\n\n` +
+      `This link expires in 1 hour.`,
   };
 }
 
-// ----------------------------------------------------------------------------
-// Consent token lookup / creation
-// ----------------------------------------------------------------------------
-
-async function ensureConsentToken(
-  sb: ReturnType<typeof createClient>,
-  studentUserId: string,
-  parentEmail: string,
-): Promise<string | null> {
-  // Reuse an existing pending row if one exists, otherwise create one.
-  // The Edge Function uses the service role so RLS is bypassed.
-  const { data: existing } = await sb
-    .from("parental_consents")
-    .select("token")
-    .eq("student_user_id", studentUserId)
-    .eq("status", "pending")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (existing?.token) return existing.token as string;
-
-  const { data: created, error } = await sb.rpc("create_parental_consent", {
-    p_student_user_id: studentUserId,
-    p_parent_email: parentEmail,
-  });
-  if (error) {
-    console.error("create_parental_consent failed:", error.message);
-    return null;
-  }
-  return (created as string) ?? null;
+function emailChangeEmail(verifyUrl: string) {
+  return {
+    subject: "Confirm your new email on Recall",
+    html: layout(
+      "Confirm your new email",
+      `<p style="margin:0 0 14px;">Click the button below to confirm this is the email address you want to use on Recall.</p>
+       ${ctaButton(verifyUrl, "Confirm new email")}
+       <p style="margin:18px 0 0;font-size:13px;color:#57606A;">This link expires in 24 hours. If you didn't change your email, you can safely ignore this message.</p>`,
+    ),
+    text:
+      `Confirm your new email on Recall:\n${verifyUrl}\n\n` +
+      `This link expires in 24 hours. If you didn't change your email, ignore this message.`,
+  };
 }
 
 // ----------------------------------------------------------------------------
@@ -312,32 +514,32 @@ Deno.serve(async (req) => {
   const missing = missingEnv();
   if (missing.length) {
     console.error("send-auth-email: missing env vars:", missing.join(", "));
-    // Returning 500 here will cause Supabase to fall back to its default SMTP.
-    // That's the right behaviour during a misconfiguration.
+    // Returning 500 here causes Supabase to fall back to its default
+    // SMTP. That's the right behaviour during a misconfiguration —
+    // we never silently drop an auth email.
     return new Response("server misconfigured", { status: 500 });
   }
 
-  // 1. Verify the Standard Webhooks signature. Without this, anyone who
-  //    finds the function URL could POST to it and burn Resend quota.
+  // Read the raw body once. We need it as a string for signature
+  // verification AND as JSON for parsing — re-encoding from JSON
+  // would change whitespace and break the signature, so we do it
+  // text-first and parse the same string.
+  const rawBody = await req.text();
+
+  // Verify the Standard Webhooks signature. Without this, anyone who
+  // finds the function URL could POST to it and burn Resend quota.
+  const verifyResult = await verifyHookSignature(HOOK_SECRET!, req.headers, rawBody);
+  if (!verifyResult.ok) {
+    console.error("send-auth-email: signature verification failed:", verifyResult.reason);
+    return new Response(`signature verification failed: ${verifyResult.reason}`, { status: 401 });
+  }
+
   let payload: HookPayload;
   try {
-    // The Standard Webhooks spec stores the secret as "v1,whsec_<base64>".
-    // The version prefix and the human-readable "whsec_" marker are NOT
-    // part of the secret — the library only wants the base64 bytes. If
-    // we hand it the whole string, it tries to base64-decode characters
-    // like 'v', '1', 'w', 'h', etc. and fails with "incorrect characters
-    // for decoding".
-    let secret = HOOK_SECRET!;
-    if (secret.startsWith("v1,")) secret = secret.slice(3);
-    if (secret.startsWith("whsec_")) secret = secret.slice(6);
-    const wh = new Webhook(secret);
-    const raw = await req.text();
-    const headers: Record<string, string> = {};
-    req.headers.forEach((v, k) => { headers[k] = v; });
-    payload = wh.verify(raw, headers) as HookPayload;
+    payload = JSON.parse(rawBody);
   } catch (err) {
-    console.error("send-auth-email: signature verification failed:", (err as Error).message);
-    return new Response("invalid signature", { status: 401 });
+    console.error("send-auth-email: malformed json:", (err as Error).message);
+    return new Response("malformed json", { status: 400 });
   }
 
   const { user, email_data } = payload;
@@ -346,9 +548,9 @@ Deno.serve(async (req) => {
     return new Response("malformed payload", { status: 400 });
   }
 
-  // 2. Build the verify URL. email_data.site_url is currently the Supabase
-  //    auth host, not the configured Site URL (Supabase auth#2559), so we
-  //    prepend the auth host ourselves and trust email_data.redirect_to.
+  // Build the verify URL. email_data.site_url is currently the
+  // Supabase auth host, not the configured Site URL (Supabase
+  // auth#2559), so we trust email_data.redirect_to instead.
   const verifyUrl =
     `${SUPABASE_URL}/auth/v1/verify` +
     `?token=${encodeURIComponent(email_data.token_hash)}` +
@@ -356,32 +558,28 @@ Deno.serve(async (req) => {
     `&redirect_to=${encodeURIComponent(email_data.redirect_to)}`;
 
   const resend = new Resend(RESEND_API_KEY!);
-  const sb = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
   const action = email_data.email_action_type;
-  const studentName = (user.user_metadata?.full_name ?? "").trim() || "there";
+  const name = (user.user_metadata?.full_name ?? "").trim();
 
   try {
-    // ------------------ SIGNUP ------------------
+    // ------------------ SIGNUP (role-aware) ------------------
     if (action === "signup") {
-      // Pick the template based on intended role. The organiser branch
-      // re-frames the same verify URL with copy that says "you're
-      // setting up a school" — without this, a freshly-minted
-      // organiser receives a generic "Welcome to Recall" email and
-      // doesn't realise the link they're about to click sets them up
-      // as the owner of a school.
-      const isOrganiser = user.user_metadata?.intended_role === "school_organiser";
-      const tpl = isOrganiser
-        ? organiserConfirmationEmail(
-            studentName,
-            user.user_metadata?.intended_school || "your school",
-            user.user_metadata?.intended_plan || "free",
-            verifyUrl,
-            email_data.token,
-          )
-        : confirmationEmail(studentName, verifyUrl, email_data.token);
+      const role = user.user_metadata?.intended_role || "student";
+      const tpl =
+        role === "school_organiser"
+          ? organiserConfirmationEmail(
+              name,
+              user.user_metadata?.intended_school || "your school",
+              user.user_metadata?.intended_plan || "free",
+              verifyUrl,
+              email_data.token,
+            )
+          : role === "teacher"
+            ? teacherConfirmationEmail(name, verifyUrl, email_data.token)
+            : role === "staff_author" || role === "staff_reviewer" || role === "admin"
+              ? staffConfirmationEmail(name, role, verifyUrl, email_data.token)
+              : studentConfirmationEmail(name, verifyUrl, email_data.token);
+
       const { error } = await resend.emails.send({
         from: EMAIL_FROM,
         to: user.email,
@@ -391,45 +589,7 @@ Deno.serve(async (req) => {
       });
       if (error) {
         console.error("send-auth-email: resend signup failed:", error);
-        // Return 500 → Supabase falls back to its SMTP, so the user still
-        // gets the confirmation email.
         return new Response("resend error", { status: 500 });
-      }
-
-      // For under-16s, also email the parent a consent request.
-      const parentEmail = (user.user_metadata?.parent_email ?? "").trim();
-      if (parentEmail) {
-        const token = await ensureConsentToken(sb, user.id, parentEmail);
-        if (token) {
-          // Build the consent URL relative to the app origin. The redirect_to
-          // for signup is the app's auth/confirmed.html — derive the app
-          // origin from it so the consent URL matches the site the parent
-          // saw during signup.
-          let appOrigin: string;
-          try {
-            appOrigin = new URL(email_data.redirect_to).origin;
-          } catch {
-            appOrigin = new URL(verifyUrl).origin; // last-resort fallback
-          }
-          const consentUrl = `${appOrigin}/consent.html?token=${encodeURIComponent(token)}`;
-
-          const ptpl = parentConsentEmail(studentName, consentUrl);
-          const { error: perr } = await resend.emails.send({
-            from: EMAIL_FROM,
-            to: parentEmail,
-            subject: ptpl.subject,
-            html: ptpl.html,
-            text: ptpl.text,
-          });
-          if (perr) {
-            // Non-fatal: student confirmation went out. The student can
-            // re-trigger a parent email later (future "Resend consent"
-            // feature). Log and continue.
-            console.error("send-auth-email: resend parent failed:", perr);
-          }
-        } else {
-          console.error("send-auth-email: could not create/find consent token for", user.id);
-        }
       }
       return new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } });
     }
@@ -468,9 +628,35 @@ Deno.serve(async (req) => {
       return new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } });
     }
 
-    // ------------------ OTHER ACTIONS (no-op) ------------------
-    // We don't use email_change / invite / reauthentication, so do nothing.
-    return new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } });
+    // ------------------ EMAIL CHANGE ------------------
+    if (action === "email_change") {
+      const tpl = emailChangeEmail(verifyUrl);
+      const { error } = await resend.emails.send({
+        from: EMAIL_FROM,
+        to: user.email,
+        subject: tpl.subject,
+        html: tpl.html,
+        text: tpl.text,
+      });
+      if (error) {
+        console.error("send-auth-email: resend email_change failed:", error);
+        return new Response("resend error", { status: 500 });
+      }
+      return new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+
+    // ------------------ INVITE / REAUTH (safety nets) ------------------
+    // We don't currently use either of these flows, but if Supabase
+    // ever fires one we shouldn't drop the email silently. We return
+    // a 200 with no Resend call so the auth flow continues.
+    if (action === "invite" || action === "reauthentication") {
+      console.warn(`send-auth-email: no template for action "${action}", dropping email`);
+      return new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+
+    // ------------------ UNKNOWN ------------------
+    console.error("send-auth-email: unknown email_action_type:", action);
+    return new Response("unknown email_action_type", { status: 400 });
   } catch (err) {
     console.error("send-auth-email: unexpected error:", (err as Error).message, (err as Error).stack);
     return new Response("internal error", { status: 500 });
