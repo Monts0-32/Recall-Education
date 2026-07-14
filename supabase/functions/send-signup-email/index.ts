@@ -9,29 +9,7 @@
 // template.
 //
 // ============================================================================
-//  DASHBOARD CONFIG REQUIRED FOR ONE-EMAIL BEHAVIOUR
-// ============================================================================
-//
-// This function sends the only confirmation email the user should
-// receive. To stop Supabase from ALSO sending its built-in "Confirm
-// signup" email (which would mean the user gets two emails), do
-// ONE of these in the Supabase dashboard:
-//
-//   Option A (recommended): Authentication → Email Templates →
-//     "Confirm signup" → set the Subject to a single space (" ")
-//     and the Body to nothing. Supabase checks for an empty subject
-//     and skips the email entirely.
-//
-//   Option B: Authentication → Sign In/Up → set "Confirm email"
-//     to OFF. This auto-confirms users, so signInWithOtp/magic-link
-//     flows work without ever asking the user to click. The downside
-//     is that login.html's "email not confirmed" error path becomes
-//     unreachable, so any new user protection that depends on it
-//     won't fire.
-//
-// We default to Option A (the function comment is the only place
-// this is documented, so check here if signups start producing two
-// emails).
+//  WHY THIS FUNCTION EXISTS
 // ============================================================================
 //
 // Supabase's built-in "Confirm signup" email is generic ("Welcome to
@@ -40,6 +18,17 @@
 // organisers specifically, the stock email is actively confusing
 // (it reads as "welcome, student" when the recipient just signed up
 // to run a school).
+//
+// This function sends a SECOND, branded email. The user will receive
+// two emails per signup — Supabase's stock one and this one. That's
+// intentional: the user wants Supabase's confirmation flow to stay
+// active (it gates password sign-in via email_confirmed_at), and the
+// Resend email is the one that visually communicates "you signed up
+// to do X" rather than a generic "confirm your email".
+//
+// ============================================================================
+//  EARLIER APPROACHES THAT DIDN'T STICK
+// ============================================================================
 //
 // We tried two earlier approaches and abandoned both:
 //
@@ -54,8 +43,12 @@
 //      actively confusing (it reads as "welcome, student" when the
 //      recipient just signed up to run a school).
 //
-// This function uses `admin.generateLink({ type: 'magiclink' })` to
-// mint a one-tap sign-in link. The link, when clicked:
+// ============================================================================
+//  HOW THE LINK WORKS
+// ============================================================================
+//
+// The link this function sends is a magic link minted by
+// `admin.generateLink({ type: 'magiclink' })`. When clicked:
 //
 //   - Verifies the OTP against auth.users (this is the "confirmation"
 //     step — same as the built-in email flow, just delivered differently)
@@ -63,10 +56,10 @@
 //   - Redirects to redirect_to (the emailRedirectTo the client passed
 //     to signUp)
 //
-// The user receives ONE branded Resend email. The Supabase auth flow
-// still works end-to-end; the only difference is the email content
-// and the fact that the user signs in via a magic link rather than
-// clicking "confirm" then going back to the login page.
+// Magic links sign the user in but DON'T set email_confirmed_at. To
+// make sure the user can also sign in with their password later, the
+// /auth/confirmed*.html pages call a confirm_my_email() RPC after the
+// session is established.
 //
 // ============================================================================
 //  ROUTING

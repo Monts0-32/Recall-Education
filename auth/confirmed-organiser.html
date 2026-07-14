@@ -273,11 +273,13 @@
     } catch (_) { /* best effort */ }
 
     // No school yet? Try to create it now from the metadata the
-    // signup form stored. The form puts (school_name, plan) into
-    // data: { intended_role, full_name } — the user's full_name is
-    // already on the profile; the school name + plan need to be
-    // stashed somewhere readable. We use user_metadata.intended_school
-    // and user_metadata.intended_plan (set by signup-organisation.html).
+    // signup form stored. signup-organisation.html writes
+    //   data: { full_name, intended_role, intended_school, intended_plan }
+    // so the school name and plan are recoverable here without a
+    // round-trip to the dashboard. This handles the case where
+    // signInWithPassword was blocked by the email-confirmation gate
+    // so the inline school creation couldn't run — we now have a
+    // confirmed session, so the RPC can run.
     if (!school) {
       const meta = user.user_metadata || {};
       const schoolName = meta.intended_school;
