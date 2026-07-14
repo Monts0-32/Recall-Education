@@ -435,12 +435,35 @@
   }
 
   async function boot() {
+    // Wait for the session to be hydrated. getUser() can return null on
+    // a cold load if localStorage isn't yet read, so fall back to the
+    // INITIAL_SESSION / SIGNED_IN event the same way confirmed-organiser
+    // does. This handles the "I just signed in and clicked the link"
+    // case where the access token is set by a redirect handler that
+    // hasn't run yet.
+    let resolved = false;
+    const finish = (user) => {
+      if (resolved) return;
+      resolved = true;
+      onSession(user);
+    };
     const { data, error } = await supabaseClient.auth.getUser();
-    if (error || !data || !data.user) {
+    if (!error && data && data.user) { finish(data.user); return; }
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
+        finish(session.user);
+      }
+    });
+    // Fallback: if 1.5s passes with no session, show the gate.
+    setTimeout(() => { if (!resolved) finish(null); }, 1500);
+  }
+
+  async function onSession(user) {
+    if (!user) {
       renderGate('Sign-in required', 'Sign in to manage your school classes.');
       return;
     }
-    state.user = data.user;
+    state.user = user;
     const meta = state.user.user_metadata || {};
 
     let role = state.user.app_metadata?.role;
