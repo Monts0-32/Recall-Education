@@ -287,6 +287,21 @@
     .qa .name { font-weight: 600; font-size: 14px; color: var(--text); }
     .qa .desc { font-size: 12px; color: var(--text-3); }
 
+    .radio-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px;
+      background: var(--bg); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      border-radius: 999px;
+      font-size: 12px; cursor: pointer;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+    }
+    .radio-pill:hover { background: var(--bg-3); color: var(--text); }
+    .radio-pill input { accent-color: var(--blue); margin: 0; }
+    .radio-pill:has(input:checked) {
+      background: var(--blue-pale); border-color: rgba(56,139,253,0.4); color: var(--blue);
+    }
+
     /* ---------- SCHOOL CARD ---------- */
     .school-card-body { padding: 18px; }
     .school-card-body .row {
@@ -568,6 +583,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         Teacher codes
       </a>
+      <a href="#" id="studentCodesAnchor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="15" r="1.5" fill="currentColor"/></svg>
+        Student codes
+      </a>
     </nav>
   </aside>
 
@@ -726,9 +745,31 @@
   </div>
 </div>
 
+<!-- Student codes modal: rules + create / list / revoke / download. -->
+<div class="modal-back" id="studentCodesModal">
+  <div class="modal" style="max-width: 760px;">
+    <div class="modal-head">
+      <h3>Student signup codes</h3>
+      <div class="right">
+        <button class="btn-ghost" id="studentCodesCloseBtn" type="button">Close</button>
+      </div>
+    </div>
+    <div class="modal-body" id="studentCodesBody">
+      <div style="color: var(--text-3);">Loading…</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" id="studentCodesRefreshBtn" type="button">Refresh</button>
+      <button class="btn-primary" id="studentCodesCreateBtn" type="button">+ New code</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-wrap" id="toastWrap"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="poster-generator.js"></script>
 <script>
   const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
@@ -882,6 +923,10 @@
       e.preventDefault();
       openCodesModal();
     });
+    $('studentCodesAnchor').addEventListener('click', (e) => {
+      e.preventDefault();
+      openStudentCodesModal();
+    });
 
     // Load everything in parallel.
     await Promise.all([
@@ -979,6 +1024,11 @@
         <div class="name">Invite a teacher</div>
         <div class="desc">Generate a one-time code for a new teacher.</div>
       </a>
+      <a class="qa purple" href="#" id="qaStudentCodes">
+        <div class="ico">@</div>
+        <div class="name">Student codes</div>
+        <div class="desc">Create rules for your student sign-up codes.</div>
+      </a>
       <a class="qa green" href="set-homework.html?school=${encodeURIComponent(state.school.id)}">
         <div class="ico">✎</div>
         <div class="name">Set homework</div>
@@ -996,6 +1046,7 @@
       </a>
     `;
     $('qaInvite').addEventListener('click', (e) => { e.preventDefault(); openCodesModal(); });
+    $('qaStudentCodes').addEventListener('click', (e) => { e.preventDefault(); openStudentCodesModal(); });
     $('qaCustomise').addEventListener('click', (e) => { e.preventDefault(); enterEditMode(); });
     $('qaCopy').addEventListener('click', async (e) => {
       e.preventDefault();
@@ -1258,6 +1309,254 @@
     toast('Code revoked.', 'success');
     refreshCodes();
   }
+
+  // ---------- student codes modal ----------
+  // The state of the inline create form. Lives outside openStudentCodesModal
+  // so toggling the form open/closed doesn't reset the user's selections.
+  const studentCodesFormState = { open: false };
+
+  function openStudentCodesModal() {
+    $('studentCodesModal').classList.add('open');
+    studentCodesFormState.open = false;
+    refreshStudentCodes();
+  }
+  function closeStudentCodesModal() {
+    $('studentCodesModal').classList.remove('open');
+    studentCodesFormState.open = false;
+  }
+  $('studentCodesCloseBtn').addEventListener('click', closeStudentCodesModal);
+  $('studentCodesModal').addEventListener('click', (e) => {
+    if (e.target.id === 'studentCodesModal') closeStudentCodesModal();
+  });
+  $('studentCodesRefreshBtn').addEventListener('click', refreshStudentCodes);
+
+  function renderStudentCodesForm() {
+    return `
+      <div style="background: var(--bg-3); border: 1px solid var(--line-2); border-radius: var(--r-sm); padding: 14px; margin-bottom: 14px;">
+        <div style="font-size: 13px; font-weight: 600; margin-bottom: 10px;">New student code</div>
+
+        <label style="display: block; font-size: 12px; color: var(--text-3); margin-bottom: 4px;">Expires</label>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+          ${['never','7d','30d','90d','1y','custom'].map((v, i) => `
+            <label class="radio-pill">
+              <input type="radio" name="scExpiry" value="${v}" ${i === 0 ? 'checked' : ''} />
+              <span>${v === 'never' ? 'Never' : v === 'custom' ? 'Custom…' : v === '1y' ? '1 year' : v.toUpperCase()}</span>
+            </label>
+          `).join('')}
+        </div>
+        <input type="date" id="scExpiryCustom" style="display:none; background: var(--bg); color: var(--text); border: 1px solid var(--line-2); border-radius: var(--r-sm); padding: 6px 10px; font-family: inherit; font-size: 12.5px; margin-bottom: 12px;" />
+
+        <label style="display: block; font-size: 12px; color: var(--text-3); margin-bottom: 4px;">Max uses</label>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">
+          ${[['unlimited', 'Unlimited'],['1','1'],['5','5'],['10','10'],['25','25'],['custom','Custom…']].map(([v, lbl], i) => `
+            <label class="radio-pill">
+              <input type="radio" name="scMax" value="${v}" ${i === 0 ? 'checked' : ''} />
+              <span>${lbl}</span>
+            </label>
+          `).join('')}
+        </div>
+        <input type="number" id="scMaxCustom" min="1" placeholder="e.g. 30" style="display:none; background: var(--bg); color: var(--text); border: 1px solid var(--line-2); border-radius: var(--r-sm); padding: 6px 10px; font-family: inherit; font-size: 12.5px; width: 120px; margin-bottom: 12px;" />
+
+        <label style="display: block; font-size: 12px; color: var(--text-3); margin-bottom: 4px;">Allowed email domain (optional)</label>
+        <input type="text" id="scEmailDomain" placeholder="e.g. birminghamgs.co.uk — leave blank for any email"
+               style="width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line-2); border-radius: var(--r-sm); padding: 8px 10px; font-family: inherit; font-size: 13px; margin-bottom: 12px;" />
+        <div style="font-size: 11.5px; color: var(--text-3); margin-top: -8px; margin-bottom: 12px;">
+          If set, students must sign up with an email ending in <code>@yourdomain</code>.
+        </div>
+
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button class="btn-ghost" id="scCancelBtn" type="button">Cancel</button>
+          <button class="btn-primary" id="scSaveBtn" type="button">Create code</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function wireStudentCodesForm() {
+    // Show / hide the custom expiry / custom max-uses inputs.
+    const onChange = (name, customId) => {
+      document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+        r.addEventListener('change', () => {
+          const el = $(customId);
+          const any = document.querySelector(`input[name="${name}"]:checked`);
+          el.style.display = any && any.value === 'custom' ? '' : 'none';
+        });
+      });
+    };
+    onChange('scExpiry', 'scExpiryCustom');
+    onChange('scMax',    'scMaxCustom');
+
+    $('scCancelBtn').addEventListener('click', () => {
+      studentCodesFormState.open = false;
+      refreshStudentCodes();
+    });
+    $('scSaveBtn').addEventListener('click', saveStudentCode);
+  }
+
+  function resolveStudentCodeParams() {
+    const expiry = document.querySelector('input[name="scExpiry"]:checked')?.value || 'never';
+    const max    = document.querySelector('input[name="scMax"]:checked')?.value || 'unlimited';
+    let expiresAt = null;
+    if (expiry === 'custom') {
+      const v = $('scExpiryCustom').value;
+      if (!v) return { error: 'Pick a custom expiry date.' };
+      expiresAt = new Date(v + 'T23:59:59').toISOString();
+    } else if (expiry !== 'never') {
+      const days = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 }[expiry];
+      if (days) expiresAt = new Date(Date.now() + days * 86400000).toISOString();
+    }
+    let maxUses = null;
+    if (max === 'custom') {
+      const v = parseInt($('scMaxCustom').value, 10);
+      if (!v || v < 1) return { error: 'Enter a positive number for max uses.' };
+      maxUses = v;
+    } else if (max !== 'unlimited') {
+      maxUses = parseInt(max, 10) || null;
+    }
+    const domain = ($('scEmailDomain').value || '').trim().toLowerCase().replace(/^@/, '') || null;
+    return { expiresAt, maxUses, domain };
+  }
+
+  async function saveStudentCode() {
+    const btn = $('scSaveBtn');
+    const params = resolveStudentCodeParams();
+    if (params.error) { toast(params.error, 'error'); return; }
+    btn.disabled = true; btn.textContent = 'Creating…';
+    try {
+      const { data, error } = await supabaseClient.rpc('create_school_invite_code', {
+        p_school_id: state.school.id,
+        p_expires_at: params.expiresAt,
+        p_max_uses: params.maxUses,
+        p_allowed_email_domain: params.domain,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast('New code: ' + (data && data.code), 'success');
+      studentCodesFormState.open = false;
+      refreshStudentCodes();
+    } catch (err) {
+      toast('Couldn\'t create code: ' + (err.message || err), 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Create code';
+    }
+  }
+
+  function statusPill(c) {
+    if (!c.is_active) {
+      if (c.max_uses && c.uses_count >= c.max_uses) {
+        return `<span class="pill" style="padding:1px 8px;background:rgba(248,81,73,0.12);border:1px solid rgba(248,81,73,0.3);border-radius:999px;font-size:11px;color:var(--red);">Used up</span>`;
+      }
+      return `<span class="pill" style="padding:1px 8px;background:rgba(248,81,73,0.12);border:1px solid rgba(248,81,73,0.3);border-radius:999px;font-size:11px;color:var(--red);">Expired</span>`;
+    }
+    if (c.is_expiring_soon) {
+      return `<span class="pill" style="padding:1px 8px;background:rgba(210,153,34,0.12);border:1px solid rgba(210,153,34,0.3);border-radius:999px;font-size:11px;color:var(--yellow);">Expiring soon</span>`;
+    }
+    return `<span class="pill" style="padding:1px 8px;background:var(--green-dim);border:1px solid rgba(63,185,80,0.3);border-radius:999px;font-size:11px;color:var(--green);">Active</span>`;
+  }
+
+  async function refreshStudentCodes() {
+    $('studentCodesBody').innerHTML = renderStudentCodesForm() + `<div style="color: var(--text-3);">Loading…</div>`;
+    wireStudentCodesForm();
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_invite_codes', {
+        p_school_id: state.school.id,
+      });
+      if (error) {
+        $('studentCodesBody').insertAdjacentHTML('beforeend',
+          `<div style="color: var(--red); margin-top: 10px;">Couldn't load codes: ${escapeHtml(error.message)}</div>`);
+        return;
+      }
+      // Replace the loading row with the list.
+      const loadingEl = $('studentCodesBody').querySelector('div[style*="color: var(--text-3)"]');
+      if (loadingEl) loadingEl.remove();
+      if (!data || !data.length) {
+        $('studentCodesBody').insertAdjacentHTML('beforeend',
+          `<div style="color: var(--text-3); font-size: 13px; padding: 8px 0;">No student codes yet. Click "+ New code" to create one with rules.</div>`);
+        return;
+      }
+      const rows = data.map(c => {
+        const used = c.max_uses
+          ? `${c.uses_count} of ${c.max_uses} used`
+          : `${c.uses_count || 0} used`;
+        const domain = c.allowed_email_domain ? `@${escapeHtml(c.allowed_email_domain)}` : 'Any email';
+        const expires = c.expires_at ? `Expires ${fmtDate(c.expires_at)}` : 'No expiry';
+        return `
+          <div class="code-row" data-code="${escapeHtml(c.code)}" data-row='${escapeHtml(JSON.stringify(c))}' style="display: grid; grid-template-columns: 1.4fr 0.8fr 1fr 0.8fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: center;">
+            <div>
+              <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--blue);">${escapeHtml(c.code)}</span>
+              <div style="font-size: 11px; color: var(--text-3); margin-top: 2px;">${statusPill(c)} <span style="margin-left: 6px;">${used}</span></div>
+            </div>
+            <div style="font-size: 12px; color: var(--text-3);">${expires}</div>
+            <div style="font-size: 12px; color: var(--text-3);">${domain}</div>
+            <div class="actions" style="display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap;">
+              <button class="copy-code" data-code="${escapeHtml(c.code)}" type="button" style="background: var(--bg-3); color: var(--text); border: 1px solid var(--line-2); padding: 4px 8px; border-radius: var(--r-sm); font-size: 11.5px; cursor: pointer;">Copy</button>
+              ${c.is_active ? `<button class="revoke-sc" data-code="${escapeHtml(c.code)}" type="button" style="background: transparent; color: var(--red); border: 1px solid rgba(248,81,73,0.3); padding: 4px 8px; border-radius: var(--r-sm); font-size: 11.5px; cursor: pointer;">Revoke</button>` : ''}
+              <button class="download-pptx-sc" data-code="${escapeHtml(c.code)}" type="button" style="background: var(--bg-3); color: var(--text); border: 1px solid var(--line-2); padding: 4px 8px; border-radius: var(--r-sm); font-size: 11.5px; cursor: pointer;">Slides</button>
+              <button class="download-pdf-sc" data-code="${escapeHtml(c.code)}" type="button" style="background: var(--bg-3); color: var(--text); border: 1px solid var(--line-2); padding: 4px 8px; border-radius: var(--r-sm); font-size: 11.5px; cursor: pointer;">Poster</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      $('studentCodesBody').insertAdjacentHTML('beforeend', rows);
+    } catch (e) {
+      $('studentCodesBody').insertAdjacentHTML('beforeend',
+        `<div style="color: var(--red); margin-top: 10px;">Network error.</div>`);
+    }
+  }
+
+  // Delegated listeners for the per-row buttons in the student codes modal.
+  $('studentCodesBody').addEventListener('click', async (e) => {
+    const code = e.target.dataset?.code;
+    if (!code) return;
+    if (e.target.classList.contains('copy-code')) {
+      try { await navigator.clipboard.writeText(code); toast('Code ' + code + ' copied', 'success'); }
+      catch (_) { toast('Copy failed — code is ' + code); }
+      return;
+    }
+    if (e.target.classList.contains('revoke-sc')) {
+      if (!confirm('Revoke ' + code + '? Students won\'t be able to sign up with it after that.')) return;
+      const { error } = await supabaseClient.rpc('revoke_school_invite_code', { p_code: code });
+      if (error) { toast('Couldn\'t revoke: ' + error.message, 'error'); return; }
+      toast('Code revoked.', 'success');
+      refreshStudentCodes();
+      return;
+    }
+    if (e.target.classList.contains('download-pptx-sc') || e.target.classList.contains('download-pdf-sc')) {
+      const tr = e.target.closest('.code-row');
+      let rowData = null;
+      try { rowData = tr?.dataset.row ? JSON.parse(tr.dataset.row) : null; } catch (_) {}
+      const opts = {
+        schoolName: state.school.name,
+        code: code,
+        expiresAt: rowData?.expires_at || null,
+        maxUses:   rowData?.max_uses   || null,
+        usesCount: rowData?.uses_count || 0,
+        allowedEmailDomain: rowData?.allowed_email_domain || null,
+      };
+      try {
+        if (e.target.classList.contains('download-pptx-sc')) {
+          await window.PosterGenerator.downloadPptx(opts);
+        } else {
+          await window.PosterGenerator.downloadPdf(opts);
+        }
+        toast('Downloaded.', 'success');
+      } catch (err) {
+        toast('Couldn\'t generate: ' + (err.message || err), 'error');
+      }
+    }
+  });
+
+  // Open the inline create form when "+ New code" is clicked.
+  $('studentCodesCreateBtn').addEventListener('click', () => {
+    // The form is always present; just scroll the user to the top of
+    // the modal body and focus the first input.
+    const body = $('studentCodesBody');
+    const first = body.querySelector('input[type="text"], input[type="date"]');
+    if (first) {
+      body.scrollTop = 0;
+      first.focus();
+    }
+  });
 
   // ---------- edit mode (layout customisation) ----------
   function setupEditMode() {

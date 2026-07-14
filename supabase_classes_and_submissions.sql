@@ -441,6 +441,14 @@ begin
 end;
 $$;
 
+-- Drop the old versions so the new RETURNS TABLE shapes are accepted.
+-- create / update_class keep RETURNS jsonb, but drop them too in case a
+-- previous run of this file left a conflicting signature behind.
+drop function if exists public.create_class(uuid, text, text);
+drop function if exists public.update_class(uuid, text, text, boolean);
+drop function if exists public.list_classes(uuid, boolean);
+drop function if exists public.get_class(uuid);
+
 create or replace function public.create_class(
   p_school_id   uuid,
   p_name        text,
@@ -520,6 +528,7 @@ grant execute on function public.update_class(uuid, text, text, boolean, uuid, u
 
 -- delete_class — hard-delete a class. Cascades to class_members via FK.
 -- Caller must be the organiser of the school OR the class owner.
+drop function if exists public.delete_class(uuid);
 create or replace function public.delete_class(
   p_class_id uuid
 )

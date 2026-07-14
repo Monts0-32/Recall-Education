@@ -300,6 +300,36 @@
     .school-banner.error { background: rgba(248,81,73,0.10); border-color: rgba(248,81,73,0.4); color: #FFA198; }
     .school-banner[hidden] { display: none; }
 
+    /* Binding warning — surfaces after the user enters a student
+       invite code. Explains that their account will be bound to the
+       school and that they can\'t leave on their own. The submit
+       button stays disabled until the acknowledgement is ticked. */
+    .binding-warning {
+      display: none;
+      background: rgba(210,153,34,0.10);
+      border: 1px solid rgba(210,153,34,0.4);
+      color: #E3B341;
+      border-radius: var(--r-sm);
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-top: 10px;
+    }
+    .binding-warning.show { display: block; }
+    .binding-warning .name { color: var(--text); font-weight: 600; }
+    .binding-warning .ack {
+      display: flex; align-items: flex-start; gap: 8px;
+      margin-top: 10px;
+      color: var(--text-2);
+      font-size: 12.5px;
+      cursor: pointer;
+    }
+    .binding-warning .ack input {
+      margin-top: 2px;
+      accent-color: var(--blue);
+      width: 14px; height: 14px; flex-shrink: 0;
+    }
+
     @media (max-width: 900px) {
       .page { grid-template-columns: 1fr; gap: 32px; padding: 32px 20px 56px; }
       .pitch { order: 2; }
@@ -428,6 +458,17 @@
           <span>Joining <span class="name" id="schoolName"></span> (<span id="schoolCodeEcho"></span>)</span>
         </div>
 
+        <div class="binding-warning" id="bindingWarning" role="alert">
+          <div>
+            <b>Your account will be bound to <span class="name" id="bindingSchoolName"></span>.</b>
+            Only the school organiser can release your account — you can't leave on your own. Your homework, classes, and progress are tied to this school.
+          </div>
+          <label class="ack">
+            <input type="checkbox" id="bindingAck" />
+            <span>I understand and want to continue</span>
+          </label>
+        </div>
+
         <div class="field">
           <label for="dob">Date of birth</label>
           <input type="date" id="dob" name="dob" max="2015-07-01" required />
@@ -529,17 +570,74 @@
     const schoolBanner   = document.getElementById('schoolBanner');
     const schoolName     = document.getElementById('schoolName');
     const schoolCodeEcho = document.getElementById('schoolCodeEcho');
+    const bindingWarning = document.getElementById('bindingWarning');
+    const bindingSchoolName = document.getElementById('bindingSchoolName');
+    const bindingAck     = document.getElementById('bindingAck');
 
     // ----- Optional school-code attach (school system) ---------------
     // The student can paste their school's permanent code. If it
-    // resolves, attach_student_to_school is called after signUp. The
-    // field is optional — students without a school still get a
-    // normal account and school_id = null.
-    let resolvedSchool = null;  // { school_id, school_name, school_code }
+    // resolves, attach_student_to_school (or the invite variant) is
+    // called after signUp. The field is optional — students without a
+    // school still get a normal account and school_id = null.
+    //
+    // `resolvedSchool` is null OR an object:
+    //   {
+    //     school_id, school_name, school_code,   // shared fields
+    //     kind: 'teacher_invite' | 'student_invite' | 'school',
+    //     // invite-only fields:
+    //     expires_at, allowed_email_domain, uses_remaining,
+    //     original_code: <the code the user typed>
+    //   }
+    let resolvedSchool = null;
     let schoolLookupTimer = null;
     function setSchoolHint(msg, kind) {
       schoolCodeHint.textContent = msg;
       schoolCodeHint.className = 'hint' + (kind ? ' ' + kind : '');
+    }
+    function showBindingWarning(schoolName) {
+      bindingSchoolName.textContent = schoolName;
+      bindingWarning.classList.add('show');
+    }
+    function hideBindingWarning() {
+      bindingWarning.classList.remove('show');
+      bindingAck.checked = false;
+    }
+    // Called whenever the resolved code OR the typed email changes.
+    // For a student invite, blocks submit if the email doesn't match
+    // the code's allowed_email_domain. Also controls the binding
+    // warning's required acknowledgement.
+    function refreshStudentInviteState() {
+      if (!resolvedSchool || resolvedSchool.kind !== 'student_invite') {
+        hideBindingWarning();
+        return;
+      }
+      // The user must have ticked the acknowledgement.
+      submitBtn.disabled = !bindingAck.checked;
+    }
+    bindingAck.addEventListener('change', refreshStudentInviteState);
+    function isStudentInvite() {
+      return resolvedSchool && resolvedSchool.kind === 'student_invite';
+    }
+    function emailDomainOf(v) {
+      const at = (v || '').indexOf('@');
+      return at < 0 ? '' : (v.slice(at + 1) || '').trim().toLowerCase();
+    }
+    function recheckDomainMatch() {
+      if (!isStudentInvite()) return;
+      const dom = resolvedSchool.allowed_email_domain;
+      if (!dom) {
+        // No domain restriction on this code — domain is fine.
+        setSchoolHint('Code looks good. Tick the box below to continue.', 'ok');
+        return;
+      }
+      const typed = emailDomainOf(email.value);
+      if (typed && typed === dom.toLowerCase()) {
+        setSchoolHint('Code and email match ' + dom + '.', 'ok');
+      } else if (typed) {
+        setSchoolHint('This code is for @' + dom + ' emails. Yours is @' + typed + '.', 'error');
+      } else {
+        setSchoolHint('This code is restricted to @' + dom + ' emails.', 'warn');
+      }
     }
     schoolCode.addEventListener('input', () => {
       const code = schoolCode.value.trim();
@@ -547,11 +645,14 @@
       if (!code) {
         resolvedSchool = null;
         schoolBanner.hidden = true;
+        hideBindingWarning();
         setSchoolHint('Optional. Join your school to receive homework from your teachers.', null);
         return;
       }
       schoolLookupTimer = setTimeout(() => lookupSchool(code), 350);
     });
+    // Re-validate the email against the resolved code's domain.
+    email.addEventListener('input', recheckDomainMatch);
     async function lookupSchool(code) {
       try {
         const { data, error } = await supabaseClient.rpc('lookup_school_by_code', { p_code: code });
@@ -559,15 +660,38 @@
         if (!data || data.ok !== true) {
           resolvedSchool = null;
           schoolBanner.hidden = true;
-          setSchoolHint('Invalid school code. Leave it blank to sign up without a school.', 'error');
+          hideBindingWarning();
+          const reason = (data && data.reason) || 'invalid';
+          if (reason === 'expired') {
+            setSchoolHint('That code has expired — ask your school for a new one.', 'error');
+          } else if (reason === 'used_up') {
+            setSchoolHint('That code has already been used the maximum number of times — ask your school for a new one.', 'error');
+          } else {
+            setSchoolHint('Invalid school code. Leave it blank to sign up without a school.', 'error');
+          }
           return;
         }
-        resolvedSchool = { school_id: data.school_id, school_name: data.school_name, school_code: data.school_code };
+        resolvedSchool = {
+          school_id:   data.school_id,
+          school_name: data.school_name,
+          school_code: data.school_code,
+          kind:        data.kind || 'school',
+          expires_at:  data.expires_at || null,
+          allowed_email_domain: data.allowed_email_domain || null,
+          uses_remaining: data.uses_remaining != null ? data.uses_remaining : null,
+          original_code: code,
+        };
         schoolName.textContent = data.school_name;
         schoolCodeEcho.textContent = data.school_code;
         schoolBanner.classList.remove('error');
         schoolBanner.hidden = false;
-        setSchoolHint('Code looks good. You\'ll be attached to this school.', 'ok');
+        if (resolvedSchool.kind === 'student_invite') {
+          showBindingWarning(data.school_name);
+          recheckDomainMatch();
+        } else {
+          hideBindingWarning();
+          setSchoolHint('Code looks good. You\'ll be attached to this school.', 'ok');
+        }
       } catch (e) {
         setSchoolHint('Network error. Try again in a moment.', 'error');
       }
@@ -837,6 +961,22 @@
         return showError('Please confirm the consent statement to continue.');
       }
 
+      // If the user has a student-invite code, they must have ticked
+      // the binding acknowledgement, and their email must match the
+      // code's allowed_email_domain (if the organiser set one).
+      if (resolvedSchool && resolvedSchool.kind === 'student_invite') {
+        if (!bindingAck.checked) {
+          return showError('Please tick the binding acknowledgement to continue.');
+        }
+        const dom = resolvedSchool.allowed_email_domain;
+        if (dom) {
+          const typed = emailDomainOf(email.value);
+          if (typed !== dom.toLowerCase()) {
+            return showError('That code is for @' + dom + ' emails. Yours is @' + (typed || '?') + '.');
+          }
+        }
+      }
+
       submitBtn.disabled = true;
       const originalText = submitBtn.textContent;
       submitBtn.textContent = 'Creating account…';
@@ -976,19 +1116,45 @@
         // code and the lookup resolved a school, stamp profiles.school_id
         // so the school system can target this student with homework
         // and the dashboard respects the school's published layout.
-        // Best-effort: failures are non-fatal, the student can sign in
-        // and re-attach from their profile later.
+        //
+        // Two paths:
+        //   * kind = 'student_invite' → use the new
+        //     attach_student_to_school_via_invite RPC, which atomically
+        //     claims the invite code and enforces the email-domain
+        //     rule. On any failure the student is still kept (best
+        //     effort); the school organiser can sort it out.
+        //   * kind = 'teacher_invite' or 'school' → the legacy
+        //     attach_student_to_school call (still used for the
+        //     permanent SCH-XXXXXX school codes and TCH-XXXXXX teacher
+        //     one-time codes).
         if (resolvedSchool) {
           try {
-            const { error: attachErr } = await supabaseClient.rpc('attach_student_to_school', {
-              p_user_id: newUserId,
-              p_school_id: resolvedSchool.school_id,
-            });
-            if (attachErr) {
-              console.warn('attach_student_to_school failed:', attachErr);
+            if (resolvedSchool.kind === 'student_invite') {
+              const { error: attachErr } = await supabaseClient.rpc(
+                'attach_student_to_school_via_invite',
+                {
+                  p_code:    resolvedSchool.original_code,
+                  p_user_id: newUserId,
+                  p_email:   email.value.trim(),
+                }
+              );
+              if (attachErr) {
+                console.warn('attach_student_to_school_via_invite failed:', attachErr);
+              }
+            } else {
+              const { error: attachErr } = await supabaseClient.rpc(
+                'attach_student_to_school',
+                {
+                  p_user_id:   newUserId,
+                  p_school_id: resolvedSchool.school_id,
+                }
+              );
+              if (attachErr) {
+                console.warn('attach_student_to_school failed:', attachErr);
+              }
             }
           } catch (err) {
-            console.warn('attach_student_to_school threw:', err);
+            console.warn('school attach threw:', err);
           }
         }
 

@@ -15,7 +15,9 @@
 --      that school admins can issue. Today the table is created but
 --      no UI to issue them; the teacher sign-up form accepts both
 --      a one-time code AND the permanent school.code.
---   5. Defines 2 anon-callable RPCs for sign-up-time code lookups.
+--   5. Defines 4 anon-callable RPCs for sign-up-time code lookups,
+--      plus attach_student_to_school_via_invite which enforces the
+--      student invite code's email-domain / max-uses / expiry rules.
 --   6. Adds a SECURITY DEFINER RPC for the lesson creator to create
 --      a new exam board AND its anchoring (subject, board, year)
 --      units row in one call (the previous iteration's "+ Add board"
@@ -328,6 +330,285 @@ $$;
 grant execute on function public.create_board_for_subject_year(uuid, uuid, text) to authenticated;
 
 -- ============================================================================
+-- 4e. EXTENDED LOOKUP — adds school_invite_codes branch.
+-- Run after supabase_school_invite_codes.sql. Drops the old function
+-- first because the RETURNS TABLE shape gains new columns.
+-- ============================================================================
+
+drop function if exists public.lookup_school_by_code(text);
+
+create or replace function public.lookup_school_by_code(p_code text)
+returns table (
+  ok                   boolean,
+  school_id            uuid,
+  school_name          text,
+  school_code          text,
+  kind                 text,    -- 'teacher_invite' | 'student_invite' | 'school' | null
+  expires_at           timestamptz,
+  allowed_email_domain text,
+  uses_remaining       int,
+  reason               text
+)
+language plpgsql
+security definer
+set search_path = public
+stable
+as $$
+declare
+  v_clean text := trim(coalesce(p_code, ''));
+  v_row   record;
+begin
+  if v_clean = '' then
+    ok := false; school_id := null; school_name := null; school_code := null;
+    kind := null; expires_at := null; allowed_email_domain := null; uses_remaining := null;
+    reason := 'empty';
+    return next; return;
+  end if;
+
+  -- 1. One-time teacher_signup_codes (existing behaviour).
+  select tsc.school_id, s.name, s.code, tsc.expires_at
+    into v_row
+    from public.teacher_signup_codes tsc
+    join public.schools s on s.id = tsc.school_id
+   where tsc.code = v_clean
+     and tsc.used_at is null
+     and (tsc.expires_at is null or tsc.expires_at > now())
+   limit 1;
+
+  if found then
+    ok := true; school_id := v_row.school_id; school_name := v_row.name; school_code := v_row.code;
+    kind := 'teacher_invite'; expires_at := v_row.expires_at;
+    allowed_email_domain := null; uses_remaining := null;
+    reason := null;
+    return next; return;
+  end if;
+
+  -- 2. Student invite codes (new). Check expiry + max_uses here so the
+  --    signup form can show a precise error before the user types
+  --    anything else.
+  select ic.school_id, s.name, s.code, ic.expires_at, ic.allowed_email_domain,
+         ic.max_uses, ic.uses_count
+    into v_row
+    from public.school_invite_codes ic
+    join public.schools s on s.id = ic.school_id
+   where ic.code = v_clean
+     and (ic.expires_at is null or ic.expires_at > now())
+     and (ic.max_uses is null or ic.uses_count < ic.max_uses)
+   limit 1;
+
+  if found then
+    ok := true; school_id := v_row.school_id; school_name := v_row.name; school_code := v_row.code;
+    kind := 'student_invite'; expires_at := v_row.expires_at;
+    allowed_email_domain := v_row.allowed_email_domain;
+    uses_remaining := case
+                        when v_row.max_uses is null then null
+                        else (v_row.max_uses - v_row.uses_count)
+                      end;
+    reason := null;
+    return next; return;
+  end if;
+
+  -- 3. Legacy permanent schools.code.
+  select id, name, code into v_row
+    from public.schools
+   where code = v_clean and active = true;
+
+  if found then
+    ok := true; school_id := v_row.id; school_name := v_row.name; school_code := v_row.code;
+    kind := 'school'; expires_at := null; allowed_email_domain := null; uses_remaining := null;
+    reason := null;
+    return next; return;
+  end if;
+
+  -- 4. Look one last time at student invite codes that were filtered
+  --    out by expiry / max_uses so we can return a precise reason.
+  select ic.expires_at, ic.max_uses, ic.uses_count
+    into v_row
+    from public.school_invite_codes ic
+   where ic.code = v_clean
+   limit 1;
+  if found then
+    if v_row.expires_at is not null and v_row.expires_at <= now() then
+      ok := false; school_id := null; school_name := null; school_code := null;
+      kind := 'student_invite'; expires_at := null; allowed_email_domain := null; uses_remaining := null;
+      reason := 'expired';
+      return next; return;
+    end if;
+    if v_row.max_uses is not null and v_row.uses_count >= v_row.max_uses then
+      ok := false; school_id := null; school_name := null; school_code := null;
+      kind := 'student_invite'; expires_at := null; allowed_email_domain := null; uses_remaining := 0;
+      reason := 'used_up';
+      return next; return;
+    end if;
+  end if;
+
+  ok := false; school_id := null; school_name := null; school_code := null;
+  kind := null; expires_at := null; allowed_email_domain := null; uses_remaining := null;
+  reason := 'not_found';
+  return next;
+end;
+$$;
+grant execute on function public.lookup_school_by_code(text) to anon, authenticated;
+
+-- ============================================================================
+-- 4f. CLAIM_SCHOOL_INVITE_CODE
+-- Anon-callable. Called by signup.html on submit. Atomically validates
+-- expiry + max_uses + school.active, increments uses_count, returns
+-- the school_id. The school_id is what the signup form then uses to
+-- attach via attach_student_to_school_via_invite.
+-- ============================================================================
+
+create or replace function public.claim_school_invite_code(p_code text)
+returns table (
+  ok          boolean,
+  school_id   uuid,
+  school_name text,
+  reason      text
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_clean text := trim(coalesce(p_code, ''));
+  v_ic    public.school_invite_codes%rowtype;
+  v_school public.schools%rowtype;
+begin
+  if v_clean = '' then
+    ok := false; school_id := null; school_name := null; reason := 'empty';
+    return next; return;
+  end if;
+
+  -- Lock the row to prevent two concurrent signups from both
+  -- claiming the last seat.
+  select * into v_ic
+    from public.school_invite_codes
+   where code = v_clean
+   for update;
+
+  if not found then
+    ok := false; school_id := null; school_name := null; reason := 'not_found';
+    return next; return;
+  end if;
+  if v_ic.expires_at is not null and v_ic.expires_at <= now() then
+    ok := false; school_id := null; school_name := null; reason := 'expired';
+    return next; return;
+  end if;
+  if v_ic.max_uses is not null and v_ic.uses_count >= v_ic.max_uses then
+    ok := false; school_id := null; school_name := null; reason := 'used_up';
+    return next; return;
+  end if;
+
+  select * into v_school from public.schools where id = v_ic.school_id;
+  if not found or v_school.active = false then
+    ok := false; school_id := null; school_name := null; reason := 'school_inactive';
+    return next; return;
+  end if;
+
+  update public.school_invite_codes
+     set uses_count = uses_count + 1
+   where id = v_ic.id;
+
+  ok := true; school_id := v_school.id; school_name := v_school.name; reason := null;
+  return next;
+end;
+$$;
+grant execute on function public.claim_school_invite_code(text) to anon, authenticated;
+
+-- ============================================================================
+-- 4g. ATTACH_STUDENT_TO_SCHOOL_VIA_INVITE
+-- The student-signup endpoint. Validates the email against the code's
+-- allowed_email_domain, then claims the code (atomically bumping
+-- uses_count) and finally delegates to attach_student_to_school.
+-- On domain mismatch or claim failure, the claim is rolled back so
+-- the counter doesn't get burned.
+-- ============================================================================
+
+create or replace function public.attach_student_to_school_via_invite(
+  p_code     text,
+  p_user_id  uuid,
+  p_email    text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_caller  uuid := auth.uid();
+  v_clean   text := trim(coalesce(p_code, ''));
+  v_email   text := lower(trim(coalesce(p_email, '')));
+  v_domain  text;
+  v_ic      public.school_invite_codes%rowtype;
+  v_school  public.schools%rowtype;
+begin
+  if v_caller is null or v_caller <> p_user_id then
+    return jsonb_build_object('ok', false, 'reason', 'cannot_attach_other_user');
+  end if;
+  if v_clean = '' or v_email = '' or position('@' in v_email) < 2 then
+    return jsonb_build_object('ok', false, 'reason', 'invalid_input');
+  end if;
+
+  -- Lock + load the invite row.
+  select * into v_ic
+    from public.school_invite_codes
+   where code = v_clean
+   for update;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'not_found');
+  end if;
+
+  -- Email-domain check. Strict: the student's email's domain must
+  -- equal the code's allowed_email_domain (case-insensitive).
+  if v_ic.allowed_email_domain is not null then
+    v_domain := lower(split_part(v_email, '@', 2));
+    if v_domain <> lower(v_ic.allowed_email_domain) then
+      -- We do NOT claim the code on a domain mismatch.
+      return jsonb_build_object('ok', false, 'reason', 'email_domain_mismatch',
+                                'expected_domain', v_ic.allowed_email_domain,
+                                'actual_domain',   v_domain);
+    end if;
+  end if;
+
+  -- Expiry + max_uses + active.
+  if v_ic.expires_at is not null and v_ic.expires_at <= now() then
+    return jsonb_build_object('ok', false, 'reason', 'expired');
+  end if;
+  if v_ic.max_uses is not null and v_ic.uses_count >= v_ic.max_uses then
+    return jsonb_build_object('ok', false, 'reason', 'used_up');
+  end if;
+  select * into v_school from public.schools where id = v_ic.school_id;
+  if not found or v_school.active = false then
+    return jsonb_build_object('ok', false, 'reason', 'school_inactive');
+  end if;
+
+  -- Bump the counter (claim).
+  update public.school_invite_codes
+     set uses_count = uses_count + 1
+   where id = v_ic.id;
+
+  -- Delegate to the existing attach RPC. If it throws, roll back the
+  -- counter so the seat isn't burned.
+  begin
+    perform public.attach_student_to_school(p_user_id, v_school.id);
+  exception when others then
+    update public.school_invite_codes
+       set uses_count = greatest(uses_count - 1, 0)
+     where id = v_ic.id;
+    return jsonb_build_object('ok', false, 'reason', 'attach_failed',
+                              'detail', sqlerrm);
+  end;
+
+  return jsonb_build_object(
+    'ok',          true,
+    'school_id',   v_school.id,
+    'school_name', v_school.name
+  );
+end;
+$$;
+grant execute on function public.attach_student_to_school_via_invite(text, uuid, text) to authenticated;
+
+-- ============================================================================
 -- DONE. After running this:
 --   1. signup-teacher.html can call lookup_school_by_code() and
 --      claim_teacher_signup_code() to attach teachers to schools.
@@ -337,4 +618,8 @@ grant execute on function public.create_board_for_subject_year(uuid, uuid, text)
 --   3. profiles.school_id is queryable; the staff/admin views can
 --      later filter "show me every teacher at Birmingham" without
 --      another migration.
+--   4. signup.html can call lookup_school_by_code() (which now also
+--      resolves school_invite_codes) and attach_student_to_school_via_invite
+--      to bind a new student to a school under a code with expiry,
+--      max-uses, and email-domain rules.
 -- ============================================================================
