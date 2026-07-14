@@ -10,7 +10,9 @@
 // Supabase falls back to its default SMTP (kill switch).
 //
 // Routing is by `email_data.email_action_type`:
-//   signup     → student confirmation (and parent consent request, if under 16)
+//   signup     → student / teacher confirmation (or organiser, branched
+//                on user.user_metadata.intended_role) or parent consent
+//                request, if under 16
 //   recovery   → password reset
 //   magiclink  → sign-in link
 //   others     → 200 no-op (we don't use email_change / invite / reauthentication)
@@ -47,6 +49,9 @@ interface HookUser {
     parent_email?: string | null;
     year_group?: string;
     dob?: string;
+    intended_role?: string;
+    intended_school?: string;
+    intended_plan?: string;
   };
 }
 
@@ -165,6 +170,57 @@ function confirmationEmail(name: string, verifyUrl: string, otp: string) {
        <p style="margin:14px 0 0;font-size:13px;color:#57606A;">Or paste this code if you'd rather type it in: <b style="color:#0D1117;">${escapeHtml(otp)}</b></p>`,
     ),
     text: `Hi ${first},\n\nWelcome to Recall. Confirm your email by visiting:\n${verifyUrl}\n\nOr paste this code: ${otp}\n\nThis link expires in 24 hours. If you didn't sign up, ignore this email.`,
+  };
+}
+
+// School organiser confirmation. Same verify URL mechanism, but the
+// surrounding copy makes it clear that the link is for setting up a
+// school — not a personal student account. Without this branch, the
+// generic "Confirm your email" template would land in their inbox and
+// the recipient would assume they're a student.
+function organiserConfirmationEmail(
+  name: string,
+  schoolName: string,
+  plan: string,
+  verifyUrl: string,
+  otp: string,
+) {
+  const first = (name || "there").trim().split(/\s+/)[0];
+  const planLabel = plan === "pro" ? "Pro" : plan === "standard" ? "Standard" : "Free";
+  return {
+    subject: `Confirm your school organiser account — ${schoolName}`,
+    html: layout(
+      "Confirm your school organiser account",
+      // The accent here is purple (the organiser-school brand colour
+      // used on school-organiser-dashboard.html) rather than the
+      // default blue, so the email looks different from a student
+      // confirmation in the recipient's inbox.
+      `<p style="margin:0 0 14px;">Hi ${escapeHtml(first)},</p>
+       <p style="margin:0 0 14px;">Welcome to Recall. You're moments away from being able to manage <b>${escapeHtml(schoolName)}</b> on Recall — invite teachers, set homework, and see how your students are getting on.</p>
+       <p style="margin:0 0 14px;">Plan: <b>${escapeHtml(planLabel)}</b> (you can change this from your organiser console at any time).</p>
+       <div style="margin:18px 0;padding:14px 16px;background:#F5EEFF;border:1px solid #C9A8FF;border-radius:6px;">
+         <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#6B3FA0;">What happens when you click confirm</p>
+         <ol style="margin:6px 0 0;padding-left:20px;font-size:13.5px;line-height:1.6;color:#1F2328;">
+           <li>We'll finish setting up your organiser account.</li>
+           <li>We'll issue <b>${escapeHtml(schoolName)}</b> a permanent school code you can share with students and teachers.</li>
+           <li>You'll be taken straight to your organiser console.</li>
+         </ol>
+       </div>
+       ${ctaButton(verifyUrl, "Confirm and open my organiser console")}
+       <p style="margin:18px 0 0;font-size:13px;color:#57606A;">This link expires in 24 hours. If you didn't sign up to run a school on Recall, you can safely ignore this email.</p>
+       <p style="margin:14px 0 0;font-size:13px;color:#57606A;">Or paste this code if you'd rather type it in: <b style="color:#0D1117;">${escapeHtml(otp)}</b></p>`,
+    ),
+    text:
+      `Hi ${first},\n\n` +
+      `Welcome to Recall. You're moments away from being able to manage ${schoolName} on Recall.\n\n` +
+      `Plan: ${planLabel}.\n\n` +
+      `What happens when you click confirm:\n` +
+      `  1. We'll finish setting up your organiser account.\n` +
+      `  2. We'll issue ${schoolName} a permanent school code you can share with students and teachers.\n` +
+      `  3. You'll be taken straight to your organiser console.\n\n` +
+      `Confirm and open your console:\n${verifyUrl}\n\n` +
+      `Or paste this code: ${otp}\n\n` +
+      `This link expires in 24 hours. If you didn't sign up to run a school on Recall, ignore this email.`,
   };
 }
 
@@ -310,7 +366,22 @@ Deno.serve(async (req) => {
   try {
     // ------------------ SIGNUP ------------------
     if (action === "signup") {
-      const tpl = confirmationEmail(studentName, verifyUrl, email_data.token);
+      // Pick the template based on intended role. The organiser branch
+      // re-frames the same verify URL with copy that says "you're
+      // setting up a school" — without this, a freshly-minted
+      // organiser receives a generic "Welcome to Recall" email and
+      // doesn't realise the link they're about to click sets them up
+      // as the owner of a school.
+      const isOrganiser = user.user_metadata?.intended_role === "school_organiser";
+      const tpl = isOrganiser
+        ? organiserConfirmationEmail(
+            studentName,
+            user.user_metadata?.intended_school || "your school",
+            user.user_metadata?.intended_plan || "free",
+            verifyUrl,
+            email_data.token,
+          )
+        : confirmationEmail(studentName, verifyUrl, email_data.token);
       const { error } = await resend.emails.send({
         from: EMAIL_FROM,
         to: user.email,
