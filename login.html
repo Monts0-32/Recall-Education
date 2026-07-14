@@ -530,7 +530,7 @@
       <button type="button" class="role-card" data-role="school_admin">
         <span class="icon">🏫</span>
         <span class="label">I'm a school administrator</span>
-        <span class="meta muted">Coming soon.</span>
+        <span class="meta">Register your school and manage teachers and students.</span>
       </button>
     </div>
   </div>
@@ -644,7 +644,17 @@
         } catch (_) { /* RPC not installed — fall through */ }
       }
       const staffRoles = ['staff_author', 'staff_reviewer', 'admin'];
-      if (role && staffRoles.includes(role)) {
+      // School organisers and teachers each get their own dashboard.
+      // The 'teacher' role is new for the school system — before this
+      // iteration, teachers landed on dashboard.html too. Routing them
+      // to teacher-dashboard.html now keeps the student dashboard a
+      // pure student view and gives teachers their own "Set homework"
+      // entry point.
+      if (role === 'school_organiser') {
+        window.location.href = 'school-organiser-dashboard.html';
+      } else if (role === 'teacher') {
+        window.location.href = 'teacher-dashboard.html';
+      } else if (role && staffRoles.includes(role)) {
         window.location.href = 'staff-dashboard.html';
       } else {
         window.location.href = 'dashboard.html';
@@ -774,7 +784,7 @@
         role === 'student'      ? 'signup.html' :
         role === 'teacher'      ? 'signup-teacher.html' :
         role === 'staff'        ? 'signup-staff.html' :
-        /* school_admin */        'signup-school-admin.html';
+        /* school_admin */        'signup-organisation.html';
       window.location.href = target;
     });
   });

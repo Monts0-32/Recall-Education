@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Homework — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="View who has done this homework." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --red:       #F85149;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    nav.top { border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; z-index: 50; }
+    nav.top .row {
+      max-width: 1100px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand:hover { text-decoration: none; }
+    .brand-mark { width: 28px; height: 28px; object-fit: cover; border-radius: var(--r-sm); }
+    nav.top .right { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--text-3); }
+    .btn-ghost {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 7px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+    }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+
+    .layout { max-width: 880px; margin: 0 auto; padding: 24px; }
+    .crumbs { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+    .crumbs a { color: var(--text-3); }
+    .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+    h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .sub { color: var(--text-3); font-size: 13.5px; margin: 0 0 24px; }
+
+    .summary {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 16px;
+    }
+    .stat .lbl { font-size: 12px; color: var(--text-3); margin-bottom: 4px; }
+    .stat .num { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .stat .num small { font-size: 13px; color: var(--text-3); font-weight: 500; margin-left: 2px; }
+    .stat .delta { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      overflow: hidden;
+    }
+    .card-head {
+      padding: 14px 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--line);
+    }
+    .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+    .filter-row {
+      padding: 12px 18px;
+      display: flex; gap: 6px; align-items: center;
+      border-bottom: 1px solid var(--line);
+    }
+    .filter-row button {
+      background: transparent; color: var(--text-3);
+      border: 1px solid var(--line-2);
+      padding: 4px 12px; border-radius: 999px;
+      font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    }
+    .filter-row button:hover { color: var(--text); }
+    .filter-row button.active { color: var(--blue); border-color: var(--blue); background: var(--blue-pale); }
+    .filter-row .spacer { flex: 1; }
+    .filter-row .search {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 5px 10px;
+      font-family: inherit; font-size: 12.5px; outline: none;
+      width: 200px;
+    }
+
+    .student-list { display: flex; flex-direction: column; }
+    .student-row {
+      display: grid; grid-template-columns: 28px 1.4fr 1fr 110px 90px;
+      gap: 14px; align-items: center;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .student-row:last-child { border-bottom: none; }
+    .student-row .avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--bg-4); color: var(--text-2);
+      display: grid; place-items: center;
+      font-weight: 700; font-size: 11px;
+    }
+    .student-row .name { color: var(--text); font-weight: 600; }
+    .student-row .email { color: var(--text-3); font-size: 12px; }
+    .student-row .when { color: var(--text-3); font-size: 12px; }
+    .status-pill {
+      display: inline-block;
+      padding: 2px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .status-pill.pending { background: var(--bg-4); color: var(--text-3); }
+    .status-pill.done    { background: var(--green-dim); color: var(--green); }
+    .status-pill.missed  { background: rgba(248,81,73,0.12); color: var(--red); }
+    .empty {
+      padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px;
+    }
+
+    .gate {
+      max-width: 520px;
+      margin: 80px auto;
+      padding: 32px;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      text-align: center;
+    }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+
+    @media (max-width: 700px) {
+      .summary { grid-template-columns: 1fr; }
+      .student-row { grid-template-columns: 28px 1fr 80px; }
+      .student-row .email, .student-row .when { display: none; }
+    }
+    a:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
+    <div class="right">
+      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="layout" id="main">
+  <div class="crumbs">
+    <a href="teacher-dashboard.html">Teacher dashboard</a>
+    <span class="sep">/</span>
+    <span class="current" id="crumbsTitle">Homework</span>
+  </div>
+
+  <h1 id="title">Loading…</h1>
+  <p class="sub" id="sub">Fetching the per-student breakdown.</p>
+
+  <div class="summary">
+    <div class="stat">
+      <div class="lbl">Targets</div>
+      <div class="num" id="statTotal">—</div>
+      <div class="delta">Students this was sent to</div>
+    </div>
+    <div class="stat">
+      <div class="lbl">Done</div>
+      <div class="num" id="statDone" style="color: var(--green);">—</div>
+      <div class="delta" id="statDoneDelta">—</div>
+    </div>
+    <div class="stat">
+      <div class="lbl">Outstanding</div>
+      <div class="num" id="statPending">—</div>
+      <div class="delta" id="statPendingDelta">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>Per-student breakdown</h3>
+        <div class="sub">Filter by status or search by name.</div>
+      </div>
+    </div>
+    <div class="filter-row">
+      <button class="active" data-filter="all" type="button">All</button>
+      <button data-filter="pending" type="button">Pending</button>
+      <button data-filter="done" type="button">Done</button>
+      <button data-filter="missed" type="button">Missed</button>
+      <div class="spacer"></div>
+      <input type="search" class="search" id="search" placeholder="Search by name…" />
+    </div>
+    <div class="student-list" id="studentList">
+      <div class="empty">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const initials = (name) => {
+    if (!name) return '?';
+    const p = name.trim().split(/\s+/);
+    return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '?';
+  };
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+  function fmtTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+
+  const state = {
+    user: null,
+    role: null,
+    assignmentId: null,
+    targets: [],   // list_assignment_targets rows
+    filter: 'all',
+    query: '',
+  };
+
+  function renderGate(title, msg) {
+    $('main').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-ghost" href="login.html">Sign in</a></p>
+      </div>
+    `;
+  }
+
+  async function boot() {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (error || !data || !data.user) {
+      renderGate('Sign-in required', 'Sign in to see this breakdown.');
+      return;
+    }
+    state.user = data.user;
+    const meta = state.user.user_metadata || {};
+
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) { /* RPC not installed */ }
+    }
+    state.role = role;
+    if (role !== 'teacher' && role !== 'school_organiser' && role !== 'admin') {
+      renderGate('Teacher access only', 'This page is for teachers and school organisers.');
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    state.assignmentId = params.get('id');
+    if (!state.assignmentId) {
+      renderGate('Missing homework id', 'No assignment id was provided in the URL.');
+      return;
+    }
+
+    $('signOutBtn').hidden = false;
+    setupFilters();
+
+    const { data: rows, error: rpcErr } = await supabaseClient.rpc('list_assignment_targets', {
+      p_assignment_id: state.assignmentId,
+    });
+    if (rpcErr) {
+      renderGate('Couldn\'t load', rpcErr.message);
+      return;
+    }
+    state.targets = rows || [];
+    if (state.targets.length && state.targets[0].title) {
+      $('title').textContent = state.targets[0].title;
+      $('crumbsTitle').textContent = state.targets[0].title;
+      $('sub').textContent = (state.targets[0].kind || 'Homework') + ' · due ' + fmtDate(state.targets[0].due_at);
+    } else {
+      $('title').textContent = 'Homework';
+      $('sub').textContent = 'Per-student breakdown.';
+    }
+    renderStats();
+    renderList();
+  }
+
+  function setupFilters() {
+    document.querySelectorAll('.filter-row button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-row button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.filter = btn.dataset.filter;
+        renderList();
+      });
+    });
+    $('search').addEventListener('input', () => {
+      state.query = $('search').value.trim().toLowerCase();
+      renderList();
+    });
+  }
+
+  function renderStats() {
+    const total   = state.targets.length;
+    const done    = state.targets.filter(t => t.status === 'done').length;
+    const pending = state.targets.filter(t => t.status === 'pending').length;
+    const missed  = state.targets.filter(t => t.status === 'missed').length;
+    $('statTotal').textContent = String(total);
+    $('statDone').textContent  = String(done);
+    $('statDoneDelta').textContent = total ? `${Math.round((done / total) * 100)}% completion` : '—';
+    $('statPending').textContent = String(pending + missed);
+    $('statPendingDelta').textContent = `${pending} pending, ${missed} missed`;
+  }
+
+  function renderList() {
+    const filtered = state.targets.filter(t => {
+      if (state.filter !== 'all' && t.status !== state.filter) return false;
+      if (state.query && !((t.full_name || '') + ' ' + (t.email || '')).toLowerCase().includes(state.query)) return false;
+      return true;
+    });
+    const root = $('studentList');
+    if (!filtered.length) {
+      root.innerHTML = `<div class="empty">No students match this filter.</div>`;
+      return;
+    }
+    root.innerHTML = filtered.map(t => `
+      <div class="student-row">
+        <div class="avatar">${escapeHtml(initials(t.full_name || t.email))}</div>
+        <div>
+          <div class="name">${escapeHtml(t.full_name || '(no name)')}</div>
+          <div class="email">${escapeHtml(t.email || '')}</div>
+        </div>
+        <div class="when">${escapeHtml(t.completed_at ? `Done ${fmtTime(t.completed_at)}` : '—')}</div>
+        <div><span class="status-pill ${escapeHtml(t.status || 'pending')}">${escapeHtml(t.status || 'pending')}</span></div>
+        <div></div>
+      </div>
+    `).join('');
+  }
+
+  $('signOutBtn').addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = 'login.html';
+  });
+
+  boot();
+</script>
+<script src="bubbles.js" defer></script>
+</body>
+</html>

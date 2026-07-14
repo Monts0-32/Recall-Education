@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Set homework — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Set homework or revision work for your students." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    nav.top { border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; z-index: 50; }
+    nav.top .row {
+      max-width: 1100px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand:hover { text-decoration: none; }
+    .brand-mark { width: 28px; height: 28px; object-fit: cover; border-radius: var(--r-sm); }
+    nav.top .right { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--text-3); }
+    .btn-ghost {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 7px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+    }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      padding: 8px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid var(--line-2);
+      padding: 7px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;
+      text-decoration: none; display: inline-block;
+    }
+    .btn-secondary:hover { background: var(--bg-4); border-color: var(--line-3); text-decoration: none; }
+    .btn-danger {
+      background: transparent; color: var(--red);
+      border: 1px solid rgba(248,81,73,0.3);
+      padding: 5px 10px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+    }
+    .btn-danger:hover { background: var(--red-dim); border-color: var(--red); }
+
+    .layout { max-width: 720px; margin: 0 auto; padding: 24px; }
+    .crumbs { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+    .crumbs a { color: var(--text-3); }
+    .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+    h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .sub { color: var(--text-3); font-size: 13.5px; margin: 0 0 24px; }
+
+    .form-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 24px 28px;
+    }
+    .section-head {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.05em; text-transform: uppercase;
+      color: var(--text-4);
+      margin: 22px 0 12px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+    .section-head:first-of-type { margin-top: 4px; padding-top: 0; border-top: 0; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field label { font-size: 13px; font-weight: 500; color: var(--text-2); }
+    .field .hint { font-size: 11.5px; color: var(--text-4); }
+    .field input, .field select, .field textarea {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 9px 12px;
+      font-family: inherit; font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .field input::placeholder, .field textarea::placeholder { color: var(--text-4); }
+    .field textarea { min-height: 80px; line-height: 1.5; resize: vertical; font-family: inherit; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+    .target-group { display: flex; flex-direction: column; gap: 8px; }
+    .target-option {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 14px;
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      cursor: pointer;
+    }
+    .target-option:hover { border-color: var(--blue); }
+    .target-option.selected { border-color: var(--blue); background: var(--blue-pale); }
+    .target-option input { margin-top: 2px; accent-color: var(--blue); }
+    .target-option .copy { flex: 1; }
+    .target-option .copy b { color: var(--text); display: block; margin-bottom: 2px; font-size: 13.5px; }
+    .target-option .copy span { color: var(--text-3); font-size: 12.5px; }
+    .target-extra { display: none; margin: 6px 0 12px 26px; }
+    .target-extra.show { display: block; }
+    .target-extra select { width: 100%; }
+
+    /* ---------- resource blocks ---------- */
+    .res-block {
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .res-block .head {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 10px;
+    }
+    .res-block .head .num {
+      font-size: 11px; font-weight: 700;
+      background: var(--blue-dim); color: var(--blue);
+      padding: 2px 8px; border-radius: 999px;
+    }
+    .res-block .head .kind-tabs { display: flex; gap: 4px; }
+    .res-block .head .kind-tabs button {
+      background: transparent; border: 1px solid var(--line-2);
+      color: var(--text-3);
+      padding: 4px 10px; border-radius: 4px;
+      font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+    }
+    .res-block .head .kind-tabs button.active { color: var(--blue); border-color: var(--blue); background: var(--blue-pale); }
+    .res-block .head .spacer { flex: 1; }
+    .res-block .body { display: flex; flex-direction: column; gap: 8px; }
+    .res-block .body input, .res-block .body select {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 8px 11px;
+      font-family: inherit; font-size: 13px;
+      outline: none;
+    }
+    .res-block .body input:focus, .res-block .body select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .res-block .lesson-search { position: relative; }
+    .res-block .lesson-search input { width: 100%; }
+    .res-block .lesson-search .results {
+      position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+      max-height: 280px; overflow-y: auto;
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      z-index: 30;
+    }
+    .res-block .lesson-search .results[hidden] { display: none; }
+    .res-block .lesson-search .results a {
+      display: block; padding: 8px 12px;
+      border-bottom: 1px solid var(--line);
+      text-decoration: none; color: var(--text); font-size: 13px;
+    }
+    .res-block .lesson-search .results a:hover { background: var(--bg-3); }
+    .res-block .lesson-search .results a .meta { color: var(--text-3); font-size: 11.5px; }
+    .res-block .lesson-search .results .empty { padding: 12px; color: var(--text-3); font-size: 12.5px; }
+    .res-block .picked-lesson {
+      padding: 8px 12px;
+      background: var(--blue-pale); border: 1px solid rgba(56,139,253,0.3);
+      border-radius: var(--r-sm);
+      color: var(--blue); font-size: 13px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .res-block .picked-lesson .spacer { flex: 1; }
+    .res-block .picked-lesson button { background: transparent; border: 0; color: var(--blue); cursor: pointer; font-size: 12px; }
+    .res-block .picked-lesson button:hover { color: var(--text); }
+    .res-block .file-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .res-block .file-row input[type="file"] { flex: 1; color: var(--text-2); }
+    .res-block .file-row .upload-state {
+      font-size: 12px; color: var(--text-3);
+    }
+    .add-resource {
+      background: transparent; color: var(--text-3);
+      border: 1px dashed var(--line-3);
+      padding: 8px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+    }
+    .add-resource:hover { color: var(--blue); border-color: var(--blue); }
+
+    .error-banner, .ok-banner {
+      display: none;
+      border-radius: var(--r-sm);
+      padding: 10px 12px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .error-banner { background: rgba(248,81,73,0.10); border: 1px solid rgba(248,81,73,0.4); color: #FFA198; }
+    .error-banner.show { display: block; }
+    .error-banner b { color: var(--red); font-weight: 600; }
+    .ok-banner { background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.4); color: #7EE787; }
+    .ok-banner.show { display: block; }
+    .ok-banner b { color: var(--green); font-weight: 600; }
+
+    .submit-row {
+      display: flex; gap: 8px; justify-content: flex-end;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    .gate {
+      max-width: 520px;
+      margin: 80px auto;
+      padding: 32px;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      text-align: center;
+    }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+
+    @media (max-width: 600px) {
+      .row-2, .row-3 { grid-template-columns: 1fr; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
+    <div class="right">
+      <span id="navName" style="color: var(--text-3);"></span>
+      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="layout">
+  <div class="crumbs">
+    <a href="dashboard.html">Recall</a>
+    <span class="sep">/</span>
+    <a href="teacher-dashboard.html">Teacher dashboard</a>
+    <span class="sep">/</span>
+    <span class="current">Set homework</span>
+  </div>
+
+  <h1>Set homework</h1>
+  <p class="sub" id="sub">Loading your school…</p>
+
+  <div class="error-banner" id="err"><b>We couldn't send this.</b> <span id="errMsg">Check the highlighted fields.</span></div>
+  <div class="ok-banner" id="ok"><b>Done.</b> <span id="okMsg">Homework sent.</span></div>
+
+  <form id="hwForm" class="form-card" novalidate>
+
+    <div class="section-head">The task</div>
+    <div class="field">
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" required maxlength="120" placeholder="e.g. Algebra practice — week 3" />
+    </div>
+    <div class="field">
+      <label for="description">Description (optional)</label>
+      <textarea id="description" name="description" maxlength="2000" placeholder="What students need to do, how long it should take, anything they should know."></textarea>
+    </div>
+    <div class="row-2">
+      <div class="field">
+        <label for="kind">Type</label>
+        <select id="kind" name="kind">
+          <option value="homework">Homework</option>
+          <option value="mock">Mock exam</option>
+          <option value="exam">Exam</option>
+          <option value="live">Live lesson</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="subject">Subject</label>
+        <select id="subject" name="subject">
+          <option value="">— All subjects —</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="dueAt">Due</label>
+      <input type="datetime-local" id="dueAt" name="dueAt" required />
+      <span class="hint">When students should aim to have this finished.</span>
+    </div>
+
+    <div class="section-head">Who it's for</div>
+    <div class="target-group" id="targetGroup">
+      <label class="target-option" data-value="all">
+        <input type="radio" name="target" value="all" checked />
+        <div class="copy">
+          <b>All students in my school</b>
+          <span>Every student attached to your school will see this.</span>
+        </div>
+      </label>
+      <label class="target-option" data-value="subject">
+        <input type="radio" name="target" value="subject" />
+        <div class="copy">
+          <b>By subject</b>
+          <span>Only students enrolled in the subject you pick.</span>
+        </div>
+      </label>
+      <label class="target-option" data-value="year">
+        <input type="radio" name="target" value="year" />
+        <div class="copy">
+          <b>By year group</b>
+          <span>Students in a specific year group at your school.</span>
+        </div>
+      </label>
+      <label class="target-option" data-value="students">
+        <input type="radio" name="target" value="students" />
+        <div class="copy">
+          <b>Individual students</b>
+          <span>Pick a custom list of students.</span>
+        </div>
+      </label>
+    </div>
+    <div class="target-extra" id="targetExtraSubject">
+      <div class="field" style="margin-bottom: 0;">
+        <select id="targetSubject">
+          <option value="">— Pick a subject —</option>
+        </select>
+      </div>
+    </div>
+    <div class="target-extra" id="targetExtraYear">
+      <div class="field" style="margin-bottom: 0;">
+        <select id="targetYear">
+          <option value="">— Pick a year group —</option>
+        </select>
+      </div>
+    </div>
+    <div class="target-extra" id="targetExtraStudents">
+      <div class="field" style="margin-bottom: 0;">
+        <select id="targetStudents" multiple size="6" style="min-height: 140px;">
+        </select>
+        <span class="hint">Hold Ctrl / Cmd to select multiple.</span>
+      </div>
+    </div>
+
+    <div class="section-head">Resources (optional)</div>
+    <div id="resList"></div>
+    <button type="button" class="add-resource" id="addResBtn">+ Add resource</button>
+    <span class="hint" style="display: block; margin-top: 6px;">Attach a Recall lesson, an external link, or upload a file.</span>
+
+    <div class="submit-row">
+      <a class="btn-secondary" href="teacher-dashboard.html" id="cancelBtn">Cancel</a>
+      <button type="submit" class="btn-primary" id="submitBtn">Send homework</button>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+  const state = {
+    user: null,
+    school: null,
+    subjects: [],     // [{ id, name }]
+    yearGroups: [],   // distinct year_group strings from members
+    students: [],     // [{ id, full_name, email }]
+    resources: [],    // [{ kind, ref_lesson_id?, url?, storage_path?, display_name? }]
+  };
+
+  // ---------- banners ----------
+  function showError(msg) {
+    $('errMsg').textContent = msg;
+    $('err').classList.add('show');
+    $('ok').classList.remove('show');
+    $('err').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function hideError() { $('err').classList.remove('show'); }
+  function showOk(msg) {
+    $('okMsg').textContent = msg;
+    $('ok').classList.add('show');
+    $('err').classList.remove('show');
+  }
+
+  // ---------- gate ----------
+  function renderGate(title, msg) {
+    document.querySelector('.layout').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-primary" href="login.html">Sign in</a></p>
+      </div>
+    `;
+  }
+
+  // ---------- boot ----------
+  async function boot() {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (error || !data || !data.user) {
+      renderGate('Sign-in required', 'Sign in to set homework for your school.');
+      return;
+    }
+    state.user = data.user;
+    const meta = state.user.user_metadata || {};
+
+    // Role check
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) { /* RPC not installed */ }
+    }
+    if (role !== 'teacher' && role !== 'school_organiser') {
+      renderGate(
+        'Teacher access only',
+        'This page is for teachers and school organisers. Students can see their homework on the dashboard.'
+      );
+      return;
+    }
+
+    // Find school
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('school_id')
+      .eq('id', state.user.id)
+      .maybeSingle();
+    if (!profile || !profile.school_id) {
+      renderGate('No school attached', 'Your account isn\'t attached to a school yet.');
+      return;
+    }
+    const urlSchool = new URLSearchParams(location.search).get('school');
+    if (urlSchool && urlSchool !== profile.school_id) {
+      renderGate('Wrong school', 'The school in the URL doesn\'t match your account.');
+      return;
+    }
+    state.school = { id: profile.school_id };
+
+    $('navName').textContent = meta.full_name || state.user.email;
+    $('signOutBtn').hidden = false;
+    $('sub').textContent = 'Fill in the details and pick who should see it.';
+
+    // Default the due date to a week from now, rounded to 9am local
+    const due = new Date();
+    due.setDate(due.getDate() + 7);
+    due.setHours(9, 0, 0, 0);
+    $('dueAt').value = toLocalIso(due);
+
+    // Load data in parallel
+    await Promise.all([loadSubjects(), loadStudents()]);
+    renderSubjects();
+    renderStudents();
+    renderYearGroups();
+    setupTargetOptions();
+    addResourceRow();
+  }
+
+  // Format a Date for an <input type="datetime-local">.
+  function toLocalIso(d) {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  async function loadSubjects() {
+    try {
+      const { data, error } = await supabaseClient
+        .from('subjects')
+        .select('id, name')
+        .order('sort_order').order('name');
+      if (!error) state.subjects = data || [];
+    } catch (_) { /* best effort */ }
+  }
+
+  async function loadStudents() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_members', {
+        p_school_id: state.school.id,
+        p_role_filter: 'student',
+      });
+      if (!error) state.students = data || [];
+    } catch (_) { /* best effort */ }
+  }
+
+  function renderSubjects() {
+    const subjectSel = $('subject');
+    const targetSel  = $('targetSubject');
+    const opts = state.subjects.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join('');
+    subjectSel.innerHTML = `<option value="">— All subjects —</option>${opts}`;
+    targetSel.innerHTML  = `<option value="">— Pick a subject —</option>${opts}`;
+  }
+
+  function renderStudents() {
+    const sel = $('targetStudents');
+    if (!state.students.length) {
+      sel.innerHTML = `<option disabled>No students in your school yet.</option>`;
+      return;
+    }
+    sel.innerHTML = state.students.map(s =>
+      `<option value="${escapeHtml(s.id)}">${escapeHtml(s.full_name || s.email)}</option>`
+    ).join('');
+  }
+
+  function renderYearGroups() {
+    // year_group is a free-text column on profiles; we dedupe from the
+    // member list. The create_assignment RPC accepts either a literal
+    // string ("Year 10") or the special token "Year 10", so we just
+    // hand back whatever the school has.
+    const years = new Set();
+    // We don't have year_group on list_school_members (it doesn't join
+    // that), so fetch separately.
+    supabaseClient.from('profiles')
+      .select('year_group')
+      .eq('school_id', state.school.id)
+      .not('year_group', 'is', null)
+      .then(({ data }) => {
+        for (const r of (data || [])) if (r.year_group) years.add(r.year_group);
+        $('targetYear').innerHTML = `<option value="">— Pick a year group —</option>` +
+          Array.from(years).sort().map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
+      });
+  }
+
+  function setupTargetOptions() {
+    document.querySelectorAll('.target-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        document.querySelectorAll('.target-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        const v = opt.dataset.value;
+        $('targetExtraSubject').classList.toggle('show',  v === 'subject');
+        $('targetExtraYear').classList.toggle('show',     v === 'year');
+        $('targetExtraStudents').classList.toggle('show', v === 'students');
+      });
+    });
+    // Initial selection
+    document.querySelector('.target-option[data-value="all"]').classList.add('selected');
+  }
+
+  // ---------- resource blocks ----------
+  $('addResBtn').addEventListener('click', () => addResourceRow());
+
+  function addResourceRow() {
+    const idx = state.resources.length;
+    state.resources.push({ kind: 'recall_lesson', ref_lesson_id: null, url: null, display_name: '' });
+    renderResources();
+  }
+
+  function renderResources() {
+    const root = $('resList');
+    root.innerHTML = state.resources.map((r, i) => resourceHtml(r, i)).join('');
+    // Wire the kind tabs
+    root.querySelectorAll('.res-block').forEach((el, i) => {
+      el.querySelectorAll('.kind-tabs button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.resources[i].kind = btn.dataset.kind;
+          state.resources[i].ref_lesson_id = null;
+          state.resources[i].url = null;
+          state.resources[i].storage_path = null;
+          state.resources[i].display_name = '';
+          renderResources();
+        });
+      });
+      el.querySelector('.del').addEventListener('click', () => {
+        state.resources.splice(i, 1);
+        renderResources();
+      });
+
+      // Lesson-search input (recall_lesson)
+      const lessonInput = el.querySelector('.lesson-search input');
+      const lessonOut   = el.querySelector('.lesson-search .results');
+      if (lessonInput && lessonOut) {
+        let timer = null, lastQ = null;
+        lessonInput.addEventListener('input', () => {
+          clearTimeout(timer);
+          const q = lessonInput.value.trim();
+          if (!q) { lessonOut.hidden = true; lessonOut.innerHTML = ''; lastQ = null; return; }
+          timer = setTimeout(async () => {
+            if (q === lastQ) return;
+            lastQ = q;
+            const qUpper = q.toUpperCase();
+            const [exact, fuzzy] = await Promise.all([
+              supabaseClient.from('lessons').select('id, title, code, topic:topics(subject:subjects(name))')
+                .eq('status', 'published').eq('code', qUpper).limit(1),
+              supabaseClient.from('lessons').select('id, title, code, topic:topics(subject:subjects(name))')
+                .eq('status', 'published').ilike('title', `%${q}%`).limit(7),
+            ]);
+            if (q !== lastQ) return;
+            const exactRow = (exact.data || [])[0];
+            const fuzzyRows = (fuzzy.data || []).filter(r => r.id !== exactRow?.id);
+            const rows = [exactRow, ...fuzzyRows].filter(Boolean);
+            if (!rows.length) {
+              lessonOut.innerHTML = `<div class="empty">No matches.</div>`;
+            } else {
+              lessonOut.innerHTML = rows.map(l => `
+                <a href="#" data-id="${escapeHtml(l.id)}" data-title="${escapeHtml(l.title)}">
+                  <div>${escapeHtml(l.title)} ${l.code ? `<span style="color: var(--text-4); font-size: 11px; font-family: monospace;">${escapeHtml(l.code)}</span>` : ''}</div>
+                  <div class="meta">${escapeHtml(l.topic?.subject?.name || 'General')}</div>
+                </a>
+              `).join('');
+              lessonOut.querySelectorAll('a').forEach(a => {
+                a.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  state.resources[i].ref_lesson_id = a.dataset.id;
+                  state.resources[i].display_name = a.dataset.title;
+                  renderResources();
+                });
+              });
+            }
+            lessonOut.hidden = false;
+          }, 200);
+        });
+        lessonInput.addEventListener('blur', () => setTimeout(() => { lessonOut.hidden = true; }, 180));
+      }
+
+      // Link URL
+      const urlInput = el.querySelector('.url-input');
+      if (urlInput) {
+        urlInput.addEventListener('input', () => {
+          state.resources[i].url = urlInput.value.trim();
+        });
+      }
+      const nameInput = el.querySelector('.name-input');
+      if (nameInput) {
+        nameInput.addEventListener('input', () => {
+          state.resources[i].display_name = nameInput.value;
+        });
+      }
+
+      // File picker
+      const fileInput = el.querySelector('.file-input');
+      if (fileInput) {
+        fileInput.addEventListener('change', async (e) => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          const state_ = el.querySelector('.upload-state');
+          state_.textContent = 'Uploading…';
+          try {
+            const ext = (f.name.split('.').pop() || 'bin').toLowerCase();
+            const path = `${state.school.id}/${crypto.randomUUID()}.${ext}`;
+            const { error: upErr } = await supabaseClient.storage
+              .from('assignment-files').upload(path, f, { upsert: false, contentType: f.type });
+            if (upErr) throw upErr;
+            const { data: pub } = supabaseClient.storage.from('assignment-files').getPublicUrl(path);
+            state.resources[i].storage_path = path;
+            state.resources[i].url = pub.publicUrl;
+            state.resources[i].display_name = state.resources[i].display_name || f.name;
+            state_.textContent = 'Uploaded';
+            state_.style.color = 'var(--green)';
+            // Refresh to show a "picked" state with the file name
+            renderResources();
+          } catch (err) {
+            state_.textContent = 'Upload failed: ' + err.message;
+            state_.style.color = 'var(--red)';
+          }
+        });
+      }
+    });
+  }
+
+  function resourceHtml(r, i) {
+    const kind = r.kind;
+    const tabs = (k) => `
+      <div class="kind-tabs">
+        <button type="button" data-kind="recall_lesson" class="${kind==='recall_lesson'?'active':''}">Recall lesson</button>
+        <button type="button" data-kind="link"          class="${kind==='link'?'active':''}">Link</button>
+        <button type="button" data-kind="file"          class="${kind==='file'?'active':''}">File</button>
+      </div>
+    `;
+    const head = `
+      <div class="head">
+        <span class="num">#${i+1}</span>
+        ${tabs(kind)}
+        <span class="spacer"></span>
+        <button type="button" class="del" title="Remove">✕</button>
+      </div>
+    `;
+    let body = '';
+    if (kind === 'recall_lesson') {
+      if (r.ref_lesson_id) {
+        body = `
+          <div class="picked-lesson">
+            <span>📘 ${escapeHtml(r.display_name || 'Lesson')}</span>
+            <span class="spacer"></span>
+            <span style="color: var(--text-3); font-size: 11.5px; font-family: monospace;">${escapeHtml(r.ref_lesson_id.slice(0, 8))}…</span>
+          </div>
+        `;
+      } else {
+        body = `
+          <div class="lesson-search">
+            <input type="text" placeholder="Search by title or paste a code…" />
+            <div class="results" hidden></div>
+          </div>
+        `;
+      }
+    } else if (kind === 'link') {
+      body = `
+        <div class="body">
+          <input class="url-input" type="url" placeholder="https://…" value="${escapeHtml(r.url || '')}" />
+          <input class="name-input" type="text" placeholder="Display name (optional)" value="${escapeHtml(r.display_name || '')}" />
+        </div>
+      `;
+    } else if (kind === 'file') {
+      const uploaded = r.storage_path
+        ? `<div class="picked-lesson"><span>📎 ${escapeHtml(r.display_name || 'File')}</span><span class="spacer"></span><span style="color: var(--text-3); font-size: 11.5px;">Uploaded</span></div>`
+        : '';
+      body = `
+        <div class="body">
+          <div class="file-row">
+            <input class="file-input" type="file" accept="application/pdf,image/*,.doc,.docx" />
+            <span class="upload-state"></span>
+          </div>
+          <input class="name-input" type="text" placeholder="Display name (optional)" value="${escapeHtml(r.display_name || '')}" />
+          ${uploaded}
+        </div>
+      `;
+    }
+    return `<div class="res-block" data-idx="${i}">${head}<div class="body-wrap">${body}</div></div>`;
+  }
+
+  // ---------- submit ----------
+  $('hwForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError();
+
+    const title = $('title').value.trim();
+    const description = $('description').value.trim();
+    const kind = $('kind').value;
+    const subjectId = $('subject').value || null;
+    const dueAt = $('dueAt').value;
+    if (!title) return showError('Give the homework a title.');
+    if (!dueAt) return showError('Pick a due date.');
+
+    // Build p_targets
+    const target = (document.querySelector('input[name="target"]:checked') || {}).value;
+    let p_targets = {};
+    if (target === 'all') p_targets = { all: true };
+    else if (target === 'subject') {
+      const sid = $('targetSubject').value;
+      if (!sid) return showError('Pick a subject for the target group.');
+      p_targets = { subject_id: sid };
+    } else if (target === 'year') {
+      const y = $('targetYear').value;
+      if (!y) return showError('Pick a year group for the target group.');
+      p_targets = { year_group: y };
+    } else if (target === 'students') {
+      const sids = Array.from($('targetStudents').selectedOptions).map(o => o.value);
+      if (!sids.length) return showError('Pick at least one student.');
+      p_targets = { student_ids: sids };
+    }
+
+    // Build p_resources
+    const p_resources = state.resources
+      .filter(r => {
+        if (r.kind === 'recall_lesson') return !!r.ref_lesson_id;
+        if (r.kind === 'link')          return !!r.url;
+        if (r.kind === 'file')          return !!r.storage_path;
+        return false;
+      })
+      .map(r => {
+        if (r.kind === 'recall_lesson') {
+          return { kind: 'recall_lesson', ref_lesson_id: r.ref_lesson_id, display_name: r.display_name || null };
+        }
+        if (r.kind === 'link') {
+          return { kind: 'link', url: r.url, display_name: r.display_name || null };
+        }
+        return { kind: 'file', storage_path: r.storage_path, display_name: r.display_name || null };
+      });
+
+    const submitBtn = $('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+    try {
+      const { data, error } = await supabaseClient.rpc('create_assignment', {
+        p_school_id: state.school.id,
+        p_subject_id: subjectId,
+        p_title: title,
+        p_description: description || null,
+        p_kind: kind,
+        p_due_at: new Date(dueAt).toISOString(),
+        p_targets: p_targets,
+        p_resources: p_resources,
+      });
+      if (error) { submitBtn.disabled = false; submitBtn.textContent = 'Send homework'; return showError('Couldn\'t send: ' + error.message); }
+      if (data && data.ok !== true) {
+        submitBtn.disabled = false; submitBtn.textContent = 'Send homework';
+        return showError('Couldn\'t send: ' + (data.reason || 'unknown'));
+      }
+      showOk(`Sent to ${data.targets_created} student${data.targets_created === 1 ? '' : 's'}.`);
+      // Disable further edits
+      Array.from($('hwForm').elements).forEach(el => { el.disabled = true; });
+      submitBtn.textContent = 'Sent';
+      setTimeout(() => { window.location.href = 'teacher-dashboard.html'; }, 1500);
+    } catch (err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send homework';
+      showError('Network error: ' + err.message);
+    }
+  });
+
+  $('signOutBtn').addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = 'login.html';
+  });
+
+  boot();
+</script>
+<script src="bubbles.js" defer></script>
+</body>
+</html>

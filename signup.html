@@ -284,6 +284,22 @@
     .invite-banner .invite-pill.reviewer { background: #9e6a03; }
     .invite-banner .invite-pill.admin    { background: #b62324; }
 
+    /* School-code banner — same look as signup-teacher.html so the
+       pattern stays consistent across the role-specific sign-ups. */
+    .school-banner {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      background: rgba(63,185,80,0.12);
+      border: 1px solid rgba(63,185,80,0.4);
+      color: #7EE787;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .school-banner .name { color: var(--text); font-weight: 600; }
+    .school-banner.error { background: rgba(248,81,73,0.10); border-color: rgba(248,81,73,0.4); color: #FFA198; }
+    .school-banner[hidden] { display: none; }
+
     @media (max-width: 900px) {
       .page { grid-template-columns: 1fr; gap: 32px; padding: 32px 20px 56px; }
       .pitch { order: 2; }
@@ -402,6 +418,17 @@
         </div>
 
         <div class="field">
+          <label for="schoolCode">School code <span style="color:var(--text-4); font-weight:400;">(optional)</span></label>
+          <input type="text" id="schoolCode" name="schoolCode"
+                 placeholder="e.g. BIRM-2024" autocomplete="off" spellcheck="false" />
+          <span class="hint" id="schoolCodeHint">Optional. Join your school to receive homework from your teachers.</span>
+        </div>
+        <div class="school-banner" id="schoolBanner" hidden>
+          <span>✓</span>
+          <span>Joining <span class="name" id="schoolName"></span> (<span id="schoolCodeEcho"></span>)</span>
+        </div>
+
+        <div class="field">
           <label for="dob">Date of birth</label>
           <input type="date" id="dob" name="dob" max="2015-07-01" required />
           <span class="hint" id="dobHint">Used to show content for your year group.</span>
@@ -497,6 +524,54 @@
     const ok = document.getElementById('ok');
     const okMsg = document.getElementById('okMsg');
     const submitBtn = document.getElementById('submitBtn');
+    const schoolCode     = document.getElementById('schoolCode');
+    const schoolCodeHint = document.getElementById('schoolCodeHint');
+    const schoolBanner   = document.getElementById('schoolBanner');
+    const schoolName     = document.getElementById('schoolName');
+    const schoolCodeEcho = document.getElementById('schoolCodeEcho');
+
+    // ----- Optional school-code attach (school system) ---------------
+    // The student can paste their school's permanent code. If it
+    // resolves, attach_student_to_school is called after signUp. The
+    // field is optional — students without a school still get a
+    // normal account and school_id = null.
+    let resolvedSchool = null;  // { school_id, school_name, school_code }
+    let schoolLookupTimer = null;
+    function setSchoolHint(msg, kind) {
+      schoolCodeHint.textContent = msg;
+      schoolCodeHint.className = 'hint' + (kind ? ' ' + kind : '');
+    }
+    schoolCode.addEventListener('input', () => {
+      const code = schoolCode.value.trim();
+      if (schoolLookupTimer) clearTimeout(schoolLookupTimer);
+      if (!code) {
+        resolvedSchool = null;
+        schoolBanner.hidden = true;
+        setSchoolHint('Optional. Join your school to receive homework from your teachers.', null);
+        return;
+      }
+      schoolLookupTimer = setTimeout(() => lookupSchool(code), 350);
+    });
+    async function lookupSchool(code) {
+      try {
+        const { data, error } = await supabaseClient.rpc('lookup_school_by_code', { p_code: code });
+        if (error) { setSchoolHint('Couldn\'t check that code: ' + error.message, 'error'); return; }
+        if (!data || data.ok !== true) {
+          resolvedSchool = null;
+          schoolBanner.hidden = true;
+          setSchoolHint('Invalid school code. Leave it blank to sign up without a school.', 'error');
+          return;
+        }
+        resolvedSchool = { school_id: data.school_id, school_name: data.school_name, school_code: data.school_code };
+        schoolName.textContent = data.school_name;
+        schoolCodeEcho.textContent = data.school_code;
+        schoolBanner.classList.remove('error');
+        schoolBanner.hidden = false;
+        setSchoolHint('Code looks good. You\'ll be attached to this school.', 'ok');
+      } catch (e) {
+        setSchoolHint('Network error. Try again in a moment.', 'error');
+      }
+    }
 
     // ----- Staff-invite handling ----------------------------------------
     // When this page is reached via accept-invite.html, the URL has
@@ -895,6 +970,26 @@
           );
         } else {
           showOk('Check ' + email.value.trim() + ' for a confirmation link. You can close this tab.');
+        }
+
+        // School-code attach (optional). If the user typed a school
+        // code and the lookup resolved a school, stamp profiles.school_id
+        // so the school system can target this student with homework
+        // and the dashboard respects the school's published layout.
+        // Best-effort: failures are non-fatal, the student can sign in
+        // and re-attach from their profile later.
+        if (resolvedSchool) {
+          try {
+            const { error: attachErr } = await supabaseClient.rpc('attach_student_to_school', {
+              p_user_id: newUserId,
+              p_school_id: resolvedSchool.school_id,
+            });
+            if (attachErr) {
+              console.warn('attach_student_to_school failed:', attachErr);
+            }
+          } catch (err) {
+            console.warn('attach_student_to_school threw:', err);
+          }
         }
 
         // Lock the form.

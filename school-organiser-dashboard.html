@@ -1,0 +1,1370 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>School organiser — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Manage your school, members, and dashboard layout." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---------- TOP NAV ---------- */
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+      position: sticky; top: 0; z-index: 50;
+    }
+    nav.top .row {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand:hover { text-decoration: none; }
+    .brand-mark { width: 28px; height: 28px; object-fit: cover; border-radius: var(--r-sm); }
+    nav.top .right { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--text-3); }
+    .btn-ghost {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 7px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+    }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+
+    /* ---------- BUTTONS ---------- */
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      padding: 8px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid var(--line-2);
+      padding: 7px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;
+      text-decoration: none; display: inline-block;
+    }
+    .btn-secondary:hover { background: var(--bg-4); border-color: var(--line-3); text-decoration: none; }
+    .btn-danger {
+      background: transparent; color: var(--red);
+      border: 1px solid rgba(248,81,73,0.3);
+      padding: 7px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;
+    }
+    .btn-danger:hover { background: var(--red-dim); border-color: var(--red); }
+
+    /* ---------- LAYOUT ---------- */
+    .layout {
+      max-width: 1280px; margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* ---------- SIDEBAR ---------- */
+    .sidebar {
+      position: sticky; top: 88px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .user-block {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .user-block .avatar {
+      width: 38px; height: 38px;
+      background: var(--purple); color: #fff;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-weight: 700; font-size: 14px; flex-shrink: 0;
+    }
+    .user-block .who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .user-block .name { font-weight: 600; font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-block .meta { font-size: 12px; color: var(--text-3); }
+    .side-nav {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 8px;
+      display: flex; flex-direction: column;
+    }
+    .side-nav a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: var(--r-sm);
+      color: var(--text-2); font-size: 13.5px; font-weight: 500;
+    }
+    .side-nav a:hover { background: var(--bg-3); color: var(--text); text-decoration: none; }
+    .side-nav a.active { background: var(--blue-pale); color: var(--blue); }
+    .side-nav .section-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+      color: var(--text-4); text-transform: uppercase;
+      padding: 12px 10px 6px;
+    }
+    .side-nav a svg { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.8; }
+    .side-nav a.active svg { opacity: 1; }
+
+    /* ---------- MAIN ---------- */
+    .main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+    .dash-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      font-size: 12px; color: var(--text-3);
+    }
+    .dash-bar .crumbs { color: var(--text-2); }
+    .dash-bar .crumbs a { color: var(--text-3); }
+    .dash-bar .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .dash-bar .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .dash-bar .crumbs .current { color: var(--text); font-weight: 600; }
+    .dash-bar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+    .dash-bar .right .pill {
+      padding: 2px 8px; background: var(--bg-4); border-radius: 999px;
+      font-size: 11px; font-weight: 600; color: var(--text-2);
+    }
+
+    .welcome h1 {
+      font-size: 24px; font-weight: 600;
+      letter-spacing: -0.02em; margin: 0 0 4px;
+    }
+    .welcome .sub { color: var(--text-3); font-size: 13.5px; margin: 0; }
+
+    /* ---------- EDIT-MODE BANNER ---------- */
+    .edit-banner {
+      display: none;
+      align-items: center; gap: 12px;
+      padding: 10px 16px;
+      background: var(--blue-pale);
+      border: 1px solid rgba(56,139,253,0.4);
+      color: var(--blue);
+      border-radius: var(--r-md);
+      font-size: 13px;
+    }
+    .edit-banner.show { display: flex; }
+    .edit-banner .spacer { flex: 1; }
+    .edit-banner button {
+      background: transparent; color: var(--blue);
+      border: 1px solid rgba(56,139,253,0.5);
+      padding: 5px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    }
+    .edit-banner button:hover { background: var(--blue-dim); }
+    .edit-banner button.primary {
+      background: var(--blue); color: #fff; border-color: var(--blue);
+    }
+    .edit-banner button.primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
+
+    /* ---------- KPI ROW ---------- */
+    .kpis {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    }
+    .kpi {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 16px;
+    }
+    .kpi .lbl { font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
+    .kpi .num {
+      font-size: 24px; font-weight: 700;
+      letter-spacing: -0.02em; color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi .num small { font-size: 13px; color: var(--text-3); font-weight: 500; margin-left: 2px; }
+    .kpi .delta { font-size: 12px; font-weight: 600; margin-top: 6px; color: var(--text-3); }
+
+    /* ---------- CARD (shared) ---------- */
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      overflow: hidden;
+    }
+    .card-head {
+      padding: 14px 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--line);
+    }
+    .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+    .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .card-head .right { font-size: 12px; color: var(--text-3); }
+    .card-head .right a { color: var(--blue); font-weight: 500; }
+    /* Edit-mode affordances injected onto the card head. */
+    .card-head .edit-tools { display: none; align-items: center; gap: 6px; }
+    body.edit-mode .card-head .edit-tools { display: flex; }
+    .card-head .edit-tools button {
+      background: transparent; color: var(--text-3);
+      border: 1px solid var(--line-2);
+      padding: 3px 8px; border-radius: 4px;
+      font-family: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+    }
+    .card-head .edit-tools button:hover { background: var(--bg-3); color: var(--text); }
+    .card-head .edit-tools .grip { cursor: grab; color: var(--text-4); font-size: 14px; padding: 0 4px; }
+    .card-head .edit-tools .grip:active { cursor: grabbing; }
+    .card-head .edit-tools .rename:hover { color: var(--blue); border-color: var(--blue); }
+    .card-head .edit-tools .hide:hover { color: var(--yellow); border-color: var(--yellow); }
+    body.edit-mode .card.hidden-by-layout { opacity: 0.4; }
+    body.edit-mode .card { cursor: move; }
+    body.edit-mode .card.dragging { opacity: 0.4; }
+    body.edit-mode .card.drop-above { box-shadow: 0 -2px 0 var(--blue); }
+    body.edit-mode .card.drop-below { box-shadow: 0 2px 0 var(--blue); }
+
+    /* ---------- QUICK ACTIONS ---------- */
+    .quick-actions {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    }
+    .qa {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 16px;
+      display: flex; flex-direction: column; gap: 8px;
+      cursor: pointer;
+      transition: border-color 0.1s ease, background 0.1s ease;
+      text-decoration: none; color: inherit;
+    }
+    .qa:hover { border-color: var(--blue); background: var(--bg-3); text-decoration: none; }
+    .qa .ico {
+      width: 32px; height: 32px;
+      background: var(--blue-pale); color: var(--blue);
+      border-radius: 6px;
+      display: grid; place-items: center;
+      font-size: 16px; font-weight: 700;
+    }
+    .qa.green .ico { background: var(--green-dim); color: var(--green); }
+    .qa.purple .ico { background: rgba(163,113,247,0.15); color: var(--purple); }
+    .qa.yellow .ico { background: var(--yellow-dim); color: var(--yellow); }
+    .qa .name { font-weight: 600; font-size: 14px; color: var(--text); }
+    .qa .desc { font-size: 12px; color: var(--text-3); }
+
+    /* ---------- SCHOOL CARD ---------- */
+    .school-card-body { padding: 18px; }
+    .school-card-body .row {
+      display: grid; grid-template-columns: 130px 1fr; gap: 14px;
+      padding: 8px 0; font-size: 13px;
+      border-bottom: 1px solid var(--line);
+    }
+    .school-card-body .row:last-child { border-bottom: none; }
+    .school-card-body .lbl { color: var(--text-3); }
+    .school-card-body .val { color: var(--text); }
+    .school-card-body .code-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 10px;
+      background: var(--blue-pale); color: var(--blue);
+      border: 1px solid rgba(56,139,253,0.3);
+      border-radius: var(--r-sm);
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 13px; font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .school-card-body .code-pill .copy {
+      background: transparent; border: 0; color: var(--blue);
+      cursor: pointer; font-size: 14px; padding: 0 2px;
+    }
+    .school-card-body .code-pill .copy:hover { color: var(--text); }
+    .plan-pill {
+      display: inline-block;
+      padding: 2px 8px; border-radius: 999px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .plan-pill.free     { background: var(--bg-4); color: var(--text-3); }
+    .plan-pill.standard { background: var(--blue-dim); color: var(--blue); }
+    .plan-pill.pro      { background: rgba(163,113,247,0.15); color: var(--purple); }
+
+    /* ---------- ROSTER ---------- */
+    .roster-tabs {
+      display: flex; gap: 2px;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .roster-tabs button {
+      background: transparent; border: 0;
+      padding: 10px 12px;
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      color: var(--text-3); cursor: pointer;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .roster-tabs button:hover { color: var(--text-2); }
+    .roster-tabs button.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .roster-list { display: flex; flex-direction: column; }
+    .roster-row {
+      display: grid; grid-template-columns: 28px 1.4fr 1fr 100px 80px;
+      gap: 14px; align-items: center;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .roster-row:last-child { border-bottom: none; }
+    .roster-row .avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--bg-4); color: var(--text-2);
+      display: grid; place-items: center;
+      font-weight: 700; font-size: 11px;
+    }
+    .roster-row .name { color: var(--text); font-weight: 600; }
+    .roster-row .email { color: var(--text-3); font-size: 12px; }
+    .roster-row .role { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-3); }
+    .roster-row .role.teacher   { color: var(--green); }
+    .roster-row .role.student   { color: var(--blue); }
+    .roster-row .role.organiser { color: var(--purple); }
+    .roster-row .joined { color: var(--text-3); font-size: 12px; }
+    .roster-row .actions { text-align: right; }
+    .roster-row .actions button {
+      background: transparent; color: var(--text-3);
+      border: 1px solid var(--line-2);
+      padding: 4px 8px; border-radius: 4px;
+      font-family: inherit; font-size: 11.5px; cursor: pointer;
+    }
+    .roster-row .actions button:hover { color: var(--red); border-color: var(--red); }
+    .roster-empty {
+      padding: 32px 18px; text-align: center; color: var(--text-3); font-size: 13px;
+    }
+
+    /* ---------- CODES MODAL ---------- */
+    .modal-back {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.6);
+      display: none; align-items: center; justify-content: center;
+      padding: 32px;
+    }
+    .modal-back.open { display: flex; }
+    .modal {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      max-width: 560px; width: 100%;
+      max-height: 90vh;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .modal-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .modal-head .right { margin-left: auto; }
+    .modal-body { padding: 24px; overflow-y: auto; }
+    .modal-foot {
+      padding: 14px 18px; border-top: 1px solid var(--line);
+      display: flex; gap: 8px; justify-content: flex-end;
+    }
+    .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-row label { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+    .form-row .hint { font-size: 11.5px; color: var(--text-4); }
+    .form-row input, .form-row select, .form-row textarea {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 8px 11px;
+      font-family: inherit; font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .form-row input::placeholder { color: var(--text-4); }
+    .code-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 13px; font-weight: 700;
+      color: var(--blue);
+    }
+    .code-row .meta { color: var(--text-3); font-size: 11.5px; font-weight: 400; font-family: inherit; margin-left: auto; }
+    .code-row .actions { display: flex; gap: 6px; }
+    .code-row .actions button {
+      background: transparent; color: var(--text-3);
+      border: 1px solid var(--line-2);
+      padding: 3px 8px; border-radius: 4px;
+      font-family: inherit; font-size: 11.5px; cursor: pointer;
+    }
+    .code-row .actions button:hover { background: var(--bg-4); color: var(--text); }
+
+    /* ---------- RECENT HOMEWORK ---------- */
+    .hw-table { display: flex; flex-direction: column; }
+    .hw-row {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 100px 100px;
+      gap: 14px; align-items: center;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .hw-row:last-child { border-bottom: none; }
+    .hw-row .title { color: var(--text); font-weight: 600; }
+    .hw-row .title .kind {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--text-3);
+      margin-left: 6px;
+    }
+    .hw-row .meta { color: var(--text-3); font-size: 12px; }
+    .hw-row .progress {
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .hw-row .progress .bar {
+      height: 6px; background: var(--bg-4); border-radius: 3px; overflow: hidden;
+    }
+    .hw-row .progress .bar i {
+      display: block; height: 100%;
+      background: var(--green);
+    }
+    .hw-row .progress .lbl {
+      font-size: 11px; color: var(--text-3);
+      font-variant-numeric: tabular-nums;
+    }
+    .hw-row .when { color: var(--text-3); font-size: 12px; }
+
+    /* ---------- TOAST ---------- */
+    .toast-wrap {
+      position: fixed; bottom: 24px; right: 24px; z-index: 200;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      animation: toast-in 0.2s ease;
+    }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+    @keyframes toast-in {
+      from { transform: translateY(8px); opacity: 0; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+
+    /* ---------- GATE ---------- */
+    .gate {
+      max-width: 520px;
+      margin: 80px auto;
+      padding: 32px;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      text-align: center;
+    }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+    .gate .muted { color: var(--text-4); font-size: 12px; }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 1000px) {
+      .kpis { grid-template-columns: repeat(2, 1fr); }
+      .quick-actions { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+    }
+    @media (max-width: 560px) {
+      .kpis { grid-template-columns: 1fr; }
+      .quick-actions { grid-template-columns: 1fr; }
+      .roster-row { grid-template-columns: 28px 1fr 80px; gap: 10px; }
+      .roster-row .email, .roster-row .joined { display: none; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
+    <div class="right">
+      <span id="navName" style="color: var(--text-3);"></span>
+      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="user-block">
+      <div class="avatar" id="userAvatar">—</div>
+      <div class="who">
+        <span class="name" id="userName">Signed out</span>
+        <span class="meta" id="userMeta">&nbsp;</span>
+      </div>
+    </div>
+
+    <nav class="side-nav" aria-label="Organiser">
+      <a href="#" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 3l9 9"/><path d="M5 10v10h14V10"/></svg>
+        Overview
+      </a>
+      <a href="#" id="setHwLink">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Set homework
+      </a>
+      <div class="section-label">School</div>
+      <a href="#" id="rosterAnchor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Roster
+      </a>
+      <a href="#" id="codesAnchor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Teacher codes
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main" id="main">
+    <div class="dash-bar">
+      <span class="crumbs">
+        <a href="index.html">Recall</a>
+        <span class="sep">/</span>
+        <span class="current" id="schoolNameCrumb">School</span>
+      </span>
+      <div class="right">
+        <span class="pill" id="planPill">—</span>
+      </div>
+    </div>
+
+    <section class="welcome">
+      <h1 id="welcomeTitle">Welcome</h1>
+      <p class="sub" id="welcomeSub">Loading your school…</p>
+    </section>
+
+    <div class="edit-banner" id="editBanner">
+      <span><b>Editing layout.</b> Drag cards to reorder, click the eye to hide, click the label to rename.</span>
+      <div class="spacer"></div>
+      <button id="editResetBtn" type="button">Reset to default</button>
+      <button id="editCancelBtn" type="button">Cancel</button>
+      <button class="primary" id="editPublishBtn" type="button">Publish</button>
+    </div>
+
+    <!-- The .main has 5 named children that the layout customisation
+         may reorder/hide/rename. They MUST keep the data-card-id
+         attribute so applyLayout() can find them. -->
+    <div class="kpis card" data-card-id="kpis">
+      <div class="card-head">
+        <div>
+          <h3>School stats</h3>
+          <div class="sub" id="kpiSub">—</div>
+        </div>
+        <div class="right edit-tools">
+          <span class="grip" title="Drag to reorder">⋮⋮</span>
+          <button class="rename" data-card-id="kpis" type="button">Rename</button>
+          <button class="hide" data-card-id="kpis" type="button">Hide</button>
+        </div>
+      </div>
+      <div id="kpiList" style="padding: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;"></div>
+    </div>
+
+    <div class="card" data-card-id="quick-actions">
+      <div class="card-head">
+        <div>
+          <h3>Quick actions</h3>
+          <div class="sub">The things you'll do most often.</div>
+        </div>
+        <div class="right edit-tools">
+          <span class="grip" title="Drag to reorder">⋮⋮</span>
+          <button class="rename" data-card-id="quick-actions" type="button">Rename</button>
+          <button class="hide" data-card-id="quick-actions" type="button">Hide</button>
+        </div>
+      </div>
+      <div class="quick-actions" id="quickActions" style="padding: 14px;"></div>
+    </div>
+
+    <div class="card" data-card-id="school">
+      <div class="card-head">
+        <div>
+          <h3>Your school</h3>
+          <div class="sub">The school your students and teachers belong to.</div>
+        </div>
+        <div class="right edit-tools">
+          <span class="grip" title="Drag to reorder">⋮⋮</span>
+          <button class="rename" data-card-id="school" type="button">Rename</button>
+          <button class="hide" data-card-id="school" type="button">Hide</button>
+        </div>
+      </div>
+      <div class="school-card-body" id="schoolCardBody">
+        <div style="color: var(--text-3);">Loading…</div>
+      </div>
+    </div>
+
+    <div class="card" data-card-id="roster">
+      <div class="card-head">
+        <div>
+          <h3>Roster</h3>
+          <div class="sub">Teachers and students at your school.</div>
+        </div>
+        <div class="right edit-tools">
+          <span class="grip" title="Drag to reorder">⋮⋮</span>
+          <button class="rename" data-card-id="roster" type="button">Rename</button>
+          <button class="hide" data-card-id="roster" type="button">Hide</button>
+        </div>
+      </div>
+      <div class="roster-tabs">
+        <button class="active" data-tab="teachers" type="button">Teachers</button>
+        <button data-tab="students" type="button">Students</button>
+      </div>
+      <div class="roster-list" id="rosterList">
+        <div class="roster-empty">Loading…</div>
+      </div>
+    </div>
+
+    <div class="card" data-card-id="homework">
+      <div class="card-head">
+        <div>
+          <h3>Recent homework</h3>
+          <div class="sub">How your school is doing this week.</div>
+        </div>
+        <div class="right edit-tools">
+          <span class="grip" title="Drag to reorder">⋮⋮</span>
+          <button class="rename" data-card-id="homework" type="button">Rename</button>
+          <button class="hide" data-card-id="homework" type="button">Hide</button>
+        </div>
+      </div>
+      <div class="hw-table" id="hwTable">
+        <div class="roster-empty">Loading…</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Codes modal: shown when the organiser clicks "Invite a teacher" -->
+<div class="modal-back" id="codesModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Teacher signup codes</h3>
+      <div class="right">
+        <button class="btn-ghost" id="codesCloseBtn" type="button">Close</button>
+      </div>
+    </div>
+    <div class="modal-body" id="codesBody">
+      <div style="color: var(--text-3);">Loading…</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" id="codesRefreshBtn" type="button">Refresh</button>
+      <button class="btn-primary" id="codesCreateBtn" type="button">+ New code</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  // ---------- helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const initials = (name) => {
+    if (!name) return '?';
+    const p = name.trim().split(/\s+/);
+    return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '?';
+  };
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function timeAgo(iso) {
+    if (!iso) return 'never';
+    const then = new Date(iso);
+    const now  = new Date();
+    const diffMs = now - then;
+    const days = Math.floor(diffMs / 86400000);
+    if (days < 1)  return 'today';
+    if (days < 7)  return `${days} day${days === 1 ? '' : 's'} ago`;
+    if (days < 30) return `${Math.floor(days / 7)} week${Math.floor(days / 7) === 1 ? '' : 's'} ago`;
+    return fmtDate(iso);
+  }
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  // The order these cards exist in the DOM. The server-side validator
+  // enforces the same set; we keep the client list in lockstep so the
+  // default layout is always publishable.
+  const CARD_IDS = ['kpis', 'quick-actions', 'school', 'roster', 'homework'];
+  const DEFAULT_LABELS = {
+    'kpis': 'School stats',
+    'quick-actions': 'Quick actions',
+    'school': 'Your school',
+    'roster': 'Roster',
+    'homework': 'Recent homework',
+  };
+  const DEFAULT_LAYOUT = CARD_IDS.map(id => ({ card_id: id, visible: true, label_override: null }));
+
+  // ---------- state ----------
+  const state = {
+    user: null,
+    school: null,    // { id, name, code, plan, owner_user_id, created_at }
+    members: [],     // list_school_members rows
+    assignments: [], // list_school_assignments rows
+    layout: null,    // [{ card_id, visible, label_override }] — null until loaded
+    editMode: false,
+  };
+
+  // ---------- gate ----------
+  function renderGate(title, msg) {
+    $('main').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-primary" href="login.html">Sign in</a></p>
+      </div>
+    `;
+  }
+
+  // ---------- boot ----------
+  async function boot() {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (error || !data || !data.user) {
+      renderGate('Sign-in required', 'Sign in to manage your school.');
+      return;
+    }
+    state.user = data.user;
+    const meta = state.user.user_metadata || {};
+
+    // Role check: read from JWT first, fall back to current_role() RPC.
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) { /* RPC not installed */ }
+    }
+    if (role !== 'school_organiser') {
+      renderGate(
+        'Organiser access only',
+        'This page is for school organisers. If you\'re a teacher, head to your teacher dashboard.'
+      );
+      return;
+    }
+
+    // Find the school this organiser owns. RLS allows the organiser to
+    // see their own school; we use schools.owner_user_id to find the row.
+    const { data: school, error: schoolErr } = await supabaseClient
+      .from('schools')
+      .select('id, name, code, plan, owner_user_id, created_at')
+      .eq('owner_user_id', state.user.id)
+      .maybeSingle();
+    if (schoolErr || !school) {
+      renderGate(
+        'No school yet',
+        'Your account doesn\'t own a school. Sign up at signup-organisation.html to create one.'
+      );
+      return;
+    }
+    state.school = school;
+
+    // Sidebar identity
+    $('userName').textContent = meta.full_name || state.user.email;
+    $('userAvatar').textContent = initials(meta.full_name || state.user.email);
+    $('userMeta').textContent = 'School organiser';
+    $('navName').textContent = meta.full_name || '';
+    $('signOutBtn').hidden = false;
+
+    $('schoolNameCrumb').textContent = school.name;
+    $('welcomeTitle').textContent = `Welcome back, ${(meta.full_name || '').split(' ')[0] || 'there'}`;
+    $('welcomeSub').textContent = `Managing ${school.name}.`;
+
+    const planPill = $('planPill');
+    planPill.textContent = school.plan || 'free';
+    planPill.className = 'pill plan-pill ' + (school.plan || 'free');
+
+    // Sidebar quick-action links
+    $('setHwLink').href = 'set-homework.html?school=' + encodeURIComponent(school.id);
+    $('rosterAnchor').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelector('[data-card-id="roster"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    $('codesAnchor').addEventListener('click', (e) => {
+      e.preventDefault();
+      openCodesModal();
+    });
+
+    // Load everything in parallel.
+    await Promise.all([
+      loadLayout(),
+      loadMembers(),
+      loadAssignments(),
+    ]);
+
+    applyLayoutToDom();
+    renderAll();
+    setupEditMode();
+  }
+
+  // ---------- layout ----------
+  async function loadLayout() {
+    try {
+      const { data, error } = await supabaseClient.rpc('get_school_dashboard_layout', {
+        p_school_id: state.school.id,
+      });
+      if (error) { state.layout = null; return; }
+      state.layout = data || null;
+    } catch (_) { state.layout = null; }
+  }
+
+  // The layout is an array of {card_id, visible, label_override}.
+  // Server validates every card_id against the allowlist. Apply the
+  // visibility/label settings in place; reorder the .main children
+  // by appending in the layout's order (appendChild moves, not clones).
+  function applyLayoutToDom() {
+    const layout = state.layout;
+    if (!layout || !Array.isArray(layout) || !layout.length) return;
+
+    const cardToEl = {};
+    for (const card of document.querySelectorAll('[data-card-id]')) {
+      cardToEl[card.dataset.cardId] = card;
+    }
+    for (const rec of layout) {
+      const el = cardToEl[rec.card_id];
+      if (!el) continue;
+      el.hidden = rec.visible === false;
+      el.classList.toggle('hidden-by-layout', rec.visible === false);
+      if (rec.label_override) {
+        const h3 = el.querySelector('.card-head h3');
+        if (h3) h3.textContent = rec.label_override;
+      }
+    }
+    // Reorder
+    const main = $('main');
+    for (const rec of layout) {
+      const el = cardToEl[rec.card_id];
+      if (el) main.appendChild(el);
+    }
+  }
+
+  // ---------- KPI row ----------
+  function renderKpis() {
+    const teachers   = state.members.filter(m => m.role === 'teacher').length;
+    const students   = state.members.filter(m => m.role === 'student').length;
+    const open       = state.assignments.filter(a => a.status === 'open').length;
+    const completion = computeCompletionRate(state.assignments);
+    const kpis = [
+      { lbl: 'Active teachers', num: String(teachers),                 delta: 'Members in your school' },
+      { lbl: 'Active students', num: String(students),                 delta: 'Members in your school' },
+      { lbl: 'Open homework',   num: String(open),                     delta: 'Pending deadlines' },
+      { lbl: 'Completion rate', num: String(completion.pct), small: '%', delta: completion.label },
+    ];
+    $('kpiList').innerHTML = kpis.map(k => `
+      <div>
+        <div style="font-size: 12px; color: var(--text-3); margin-bottom: 4px;">${escapeHtml(k.lbl)}</div>
+        <div style="font-size: 22px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums;">${escapeHtml(k.num)}${k.small ? `<small style="font-size: 12px; color: var(--text-3); font-weight: 500; margin-left: 2px;">${escapeHtml(k.small)}</small>` : ''}</div>
+        <div style="font-size: 11.5px; color: var(--text-3); margin-top: 4px;">${escapeHtml(k.delta)}</div>
+      </div>
+    `).join('');
+    $('kpiSub').textContent = `${teachers + students} total members · ${state.assignments.length} homework set`;
+  }
+
+  function computeCompletionRate(assignments) {
+    let targets = 0, done = 0, missed = 0;
+    for (const a of assignments) {
+      targets += a.total_targets || 0;
+      done    += a.done_count   || 0;
+      missed  += a.missed_count || 0;
+    }
+    if (targets === 0) return { pct: '—', label: 'No homework yet' };
+    const pct = Math.round((done / targets) * 100);
+    return { pct, label: `${done} of ${targets} done` };
+  }
+
+  // ---------- quick actions ----------
+  function renderQuickActions() {
+    $('quickActions').innerHTML = `
+      <a class="qa" href="#" id="qaInvite">
+        <div class="ico">+</div>
+        <div class="name">Invite a teacher</div>
+        <div class="desc">Generate a one-time code for a new teacher.</div>
+      </a>
+      <a class="qa green" href="set-homework.html?school=${encodeURIComponent(state.school.id)}">
+        <div class="ico">✎</div>
+        <div class="name">Set homework</div>
+        <div class="desc">Send a task to one or many students.</div>
+      </a>
+      <a class="qa purple" href="#" id="qaCustomise">
+        <div class="ico">≡</div>
+        <div class="name">Customise dashboard</div>
+        <div class="desc">Reorder, rename, and hide cards for your students.</div>
+      </a>
+      <a class="qa yellow" href="#" id="qaCopy">
+        <div class="ico">⎘</div>
+        <div class="name">Copy school code</div>
+        <div class="desc">Share with students so they can join your school.</div>
+      </a>
+    `;
+    $('qaInvite').addEventListener('click', (e) => { e.preventDefault(); openCodesModal(); });
+    $('qaCustomise').addEventListener('click', (e) => { e.preventDefault(); enterEditMode(); });
+    $('qaCopy').addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        await navigator.clipboard.writeText(state.school.code);
+        toast('Code ' + state.school.code + ' copied', 'success');
+      } catch (_) {
+        toast('Copy failed — code is ' + state.school.code);
+      }
+    });
+  }
+
+  // ---------- school card ----------
+  function renderSchoolCard() {
+    const s = state.school;
+    $('schoolCardBody').innerHTML = `
+      <div class="row">
+        <span class="lbl">School name</span>
+        <span class="val">${escapeHtml(s.name)}</span>
+      </div>
+      <div class="row">
+        <span class="lbl">School code</span>
+        <span class="val">
+          <span class="code-pill">
+            <span>${escapeHtml(s.code)}</span>
+            <button class="copy" id="schoolCodeCopy" type="button" title="Copy code">⎘</button>
+          </span>
+        </span>
+      </div>
+      <div class="row">
+        <span class="lbl">Plan</span>
+        <span class="val"><span class="plan-pill ${escapeHtml(s.plan || 'free')}">${escapeHtml(s.plan || 'free')}</span></span>
+      </div>
+      <div class="row">
+        <span class="lbl">Owner</span>
+        <span class="val">${escapeHtml((state.user.user_metadata && state.user.user_metadata.full_name) || state.user.email)}</span>
+      </div>
+      <div class="row">
+        <span class="lbl">Created</span>
+        <span class="val">${escapeHtml(fmtDate(s.created_at))}</span>
+      </div>
+    `;
+    $('schoolCodeCopy').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(s.code);
+        toast('Code ' + s.code + ' copied', 'success');
+      } catch (_) { toast('Copy failed — code is ' + s.code); }
+    });
+  }
+
+  // ---------- roster ----------
+  async function loadMembers() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_members', {
+        p_school_id: state.school.id,
+      });
+      if (!error) state.members = data || [];
+    } catch (_) { /* keep empty */ }
+  }
+
+  function renderRoster(tab) {
+    const list = $('rosterList');
+    const filtered = state.members.filter(m => {
+      if (tab === 'teachers') return m.role === 'teacher' || m.role === 'school_organiser';
+      if (tab === 'students') return m.role === 'student';
+      return false;
+    });
+    if (!filtered.length) {
+      list.innerHTML = `<div class="roster-empty">No ${tab === 'teachers' ? 'teachers' : 'students'} yet.</div>`;
+      return;
+    }
+    list.innerHTML = filtered.map(m => {
+      const isSelf = m.id === state.user.id;
+      return `
+        <div class="roster-row" data-uid="${escapeHtml(m.id)}">
+          <div class="avatar">${escapeHtml(initials(m.full_name || m.email))}</div>
+          <div>
+            <div class="name">${escapeHtml(m.full_name || '(no name)')}${isSelf ? ' <span style="color:var(--text-4); font-weight:400; font-size:11px;">(you)</span>' : ''}</div>
+            <div class="email">${escapeHtml(m.email || '')}</div>
+          </div>
+          <div class="role ${escapeHtml(m.role)}">${escapeHtml(m.role)}</div>
+          <div class="joined">${escapeHtml(timeAgo(m.joined_at))}</div>
+          <div class="actions">
+            ${isSelf ? '' : `<button data-uid="${escapeHtml(m.id)}" data-name="${escapeHtml(m.full_name || m.email)}" class="remove-member" type="button">Remove</button>`}
+          </div>
+        </div>
+      `;
+    }).join('');
+    list.querySelectorAll('.remove-member').forEach(btn => {
+      btn.addEventListener('click', () => removeMember(btn.dataset.uid, btn.dataset.name));
+    });
+  }
+
+  function setupRosterTabs() {
+    document.querySelectorAll('.roster-tabs button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.roster-tabs button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderRoster(btn.dataset.tab);
+      });
+    });
+    renderRoster('teachers');
+  }
+
+  async function removeMember(uid, name) {
+    if (!confirm(`Remove ${name} from the school? They'll lose access to school homework but can still use their own account.`)) return;
+    const { error } = await supabaseClient.rpc('remove_school_member', { p_user_id: uid });
+    if (error) { toast('Couldn\'t remove: ' + error.message, 'error'); return; }
+    toast(`${name} removed.`, 'success');
+    await loadMembers();
+    renderRoster(currentRosterTab());
+    renderKpis();
+  }
+
+  function currentRosterTab() {
+    return document.querySelector('.roster-tabs button.active')?.dataset.tab || 'teachers';
+  }
+
+  // ---------- recent homework ----------
+  async function loadAssignments() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_assignments', {
+        p_school_id: state.school.id,
+      });
+      if (!error) state.assignments = data || [];
+    } catch (_) { /* keep empty */ }
+  }
+
+  function renderHomework() {
+    const tbl = $('hwTable');
+    if (!state.assignments.length) {
+      tbl.innerHTML = `<div class="roster-empty">No homework set yet. <a href="set-homework.html?school=${encodeURIComponent(state.school.id)}">Set the first one →</a></div>`;
+      return;
+    }
+    const top = state.assignments.slice(0, 5);
+    tbl.innerHTML = top.map(a => {
+      const total = a.total_targets || 0;
+      const done  = a.done_count   || 0;
+      const pct   = total ? Math.round((done / total) * 100) : 0;
+      const kindLabel = a.kind === 'homework' ? 'Homework'
+                      : a.kind === 'mock' ? 'Mock'
+                      : a.kind === 'exam' ? 'Exam'
+                      : a.kind === 'live' ? 'Live'
+                      : a.kind;
+      return `
+        <div class="hw-row">
+          <div>
+            <div class="title">${escapeHtml(a.title)}<span class="kind">${escapeHtml(kindLabel || '')}</span></div>
+            <div class="meta">${escapeHtml(a.subject_name || '—')}</div>
+          </div>
+          <div class="progress">
+            <div class="bar"><i style="width:${pct}%"></i></div>
+            <div class="lbl">${done} of ${total} done</div>
+          </div>
+          <div class="when">Due ${escapeHtml(a.due_at ? new Date(a.due_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—')}</div>
+          <div class="when">${escapeHtml(a.status || 'open')}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ---------- codes modal ----------
+  function openCodesModal() { $('codesModal').classList.add('open'); refreshCodes(); }
+  function closeCodesModal() { $('codesModal').classList.remove('open'); }
+  $('codesCloseBtn').addEventListener('click', closeCodesModal);
+  $('codesModal').addEventListener('click', (e) => { if (e.target.id === 'codesModal') closeCodesModal(); });
+
+  async function refreshCodes() {
+    $('codesBody').innerHTML = `<div style="color: var(--text-3);">Loading…</div>`;
+    const { data, error } = await supabaseClient.rpc('list_teacher_signup_codes', { p_school_id: state.school.id });
+    if (error) {
+      $('codesBody').innerHTML = `<div style="color: var(--red);">Couldn't load codes: ${escapeHtml(error.message)}</div>`;
+      return;
+    }
+    if (!data || !data.length) {
+      $('codesBody').innerHTML = `<div style="color: var(--text-3); font-size: 13px;">No codes yet. Click "+ New code" to generate one. Share it with a teacher and ask them to enter it at <a href="signup-teacher.html">signup-teacher.html</a>.</div>`;
+      return;
+    }
+    $('codesBody').innerHTML = data.map(c => {
+      const status = c.used_at ? `Used ${timeAgo(c.used_at)}`
+                   : c.expires_at && new Date(c.expires_at) < new Date() ? 'Expired'
+                   : 'Active';
+      return `
+        <div class="code-row" style="margin-bottom: 8px;">
+          <span>${escapeHtml(c.code)}</span>
+          <span class="meta">${escapeHtml(status)}</span>
+          <div class="actions">
+            <button class="copy-code" data-code="${escapeHtml(c.code)}" type="button">Copy</button>
+            ${c.used_at ? '' : `<button class="revoke-code" data-code="${escapeHtml(c.code)}" type="button">Revoke</button>`}
+          </div>
+        </div>
+      `;
+    }).join('');
+    $('codesBody').querySelectorAll('.copy-code').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(btn.dataset.code); toast('Code copied', 'success'); }
+        catch (_) { toast('Copy failed'); }
+      });
+    });
+    $('codesBody').querySelectorAll('.revoke-code').forEach(btn => {
+      btn.addEventListener('click', () => revokeCode(btn.dataset.code));
+    });
+  }
+  $('codesRefreshBtn').addEventListener('click', refreshCodes);
+  $('codesCreateBtn').addEventListener('click', async () => {
+    const btn = $('codesCreateBtn');
+    btn.disabled = true;
+    const { data, error } = await supabaseClient.rpc('create_teacher_signup_code', { p_school_id: state.school.id });
+    btn.disabled = false;
+    if (error) { toast('Couldn\'t create code: ' + error.message, 'error'); return; }
+    toast('New code: ' + (data && data.code), 'success');
+    refreshCodes();
+  });
+
+  async function revokeCode(code) {
+    if (!confirm('Revoke this code? It can\'t be used after that.')) return;
+    const { error } = await supabaseClient.rpc('revoke_teacher_signup_code', { p_code: code });
+    if (error) { toast('Couldn\'t revoke: ' + error.message, 'error'); return; }
+    toast('Code revoked.', 'success');
+    refreshCodes();
+  }
+
+  // ---------- edit mode (layout customisation) ----------
+  function setupEditMode() {
+    // Edit-tool buttons on each card
+    document.querySelectorAll('.card-head .edit-tools .rename').forEach(btn => {
+      btn.addEventListener('click', () => renameCard(btn.dataset.cardId));
+    });
+    document.querySelectorAll('.card-head .edit-tools .hide').forEach(btn => {
+      btn.addEventListener('click', () => toggleCardHidden(btn.dataset.cardId));
+    });
+    // Banner buttons
+    $('editCancelBtn').addEventListener('click', exitEditMode);
+    $('editResetBtn').addEventListener('click', resetLayout);
+    $('editPublishBtn').addEventListener('click', publishLayout);
+    // Wire drag-to-reorder
+    wireDragReorder();
+  }
+
+  function enterEditMode() {
+    state.editMode = true;
+    document.body.classList.add('edit-mode');
+    $('editBanner').classList.add('show');
+  }
+  function exitEditMode() {
+    state.editMode = false;
+    document.body.classList.remove('edit-mode');
+    $('editBanner').classList.remove('show');
+    // Reset the DOM to match state.layout (in case the user toggled
+    // things but didn't publish).
+    document.querySelectorAll('.card[data-card-id]').forEach(el => {
+      el.classList.remove('hidden-by-layout');
+      const h3 = el.querySelector('.card-head h3');
+      const id = el.dataset.cardId;
+      if (h3 && DEFAULT_LABELS[id]) h3.textContent = DEFAULT_LABELS[id];
+    });
+    applyLayoutToDom();
+  }
+
+  function renameCard(cardId) {
+    const el = document.querySelector(`[data-card-id="${cardId}"]`);
+    if (!el) return;
+    const h3 = el.querySelector('.card-head h3');
+    if (!h3) return;
+    const current = h3.textContent;
+    const next = prompt('Rename this card (leave blank to reset to default):', current);
+    if (next == null) return;
+    h3.textContent = next.trim() || DEFAULT_LABELS[cardId] || current;
+  }
+  function toggleCardHidden(cardId) {
+    const el = document.querySelector(`[data-card-id="${cardId}"]`);
+    if (!el) return;
+    el.classList.toggle('hidden-by-layout');
+  }
+
+  async function publishLayout() {
+    // Build the layout array from the current DOM order + visible flags +
+    // label overrides.
+    const cards = Array.from(document.querySelectorAll('.card[data-card-id]'));
+    const layout = cards.map(el => {
+      const h3 = el.querySelector('.card-head h3');
+      const label = h3 ? h3.textContent.trim() : '';
+      const override = label && label !== DEFAULT_LABELS[el.dataset.cardId] ? label : null;
+      return {
+        card_id: el.dataset.cardId,
+        visible: !el.classList.contains('hidden-by-layout'),
+        label_override: override,
+      };
+    });
+    const btn = $('editPublishBtn');
+    btn.disabled = true;
+    const { data, error } = await supabaseClient.rpc('upsert_school_dashboard_layout', {
+      p_school_id: state.school.id,
+      p_layout: layout,
+    });
+    btn.disabled = false;
+    if (error) { toast('Couldn\'t publish: ' + error.message, 'error'); return; }
+    state.layout = layout;
+    toast('Layout published.', 'success');
+    exitEditMode();
+  }
+
+  async function resetLayout() {
+    if (!confirm('Reset the dashboard layout to the default for your school?')) return;
+    const btn = $('editResetBtn');
+    btn.disabled = true;
+    const { data, error } = await supabaseClient.rpc('upsert_school_dashboard_layout', {
+      p_school_id: state.school.id,
+      p_layout: DEFAULT_LAYOUT,
+    });
+    btn.disabled = false;
+    if (error) { toast('Couldn\'t reset: ' + error.message, 'error'); return; }
+    state.layout = DEFAULT_LAYOUT;
+    toast('Layout reset.', 'success');
+    exitEditMode();
+    // Re-apply
+    applyLayoutToDom();
+    renderAll();
+  }
+
+  // HTML5 drag-and-drop reordering for the 5 card elements. appendChild
+  // moves the node (it doesn't clone), so we just need to clear the
+  // current order and append in the new order at the end.
+  function wireDragReorder() {
+    let dragSrc = null;
+    document.querySelectorAll('.card[data-card-id]').forEach(card => {
+      card.addEventListener('dragstart', (e) => {
+        if (!state.editMode) { e.preventDefault(); return; }
+        dragSrc = card;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', card.dataset.cardId);
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        document.querySelectorAll('.card[data-card-id]').forEach(c => {
+          c.classList.remove('drop-above');
+          c.classList.remove('drop-below');
+        });
+        dragSrc = null;
+      });
+      card.addEventListener('dragover', (e) => {
+        if (!state.editMode || !dragSrc || dragSrc === card) return;
+        e.preventDefault();
+        const rect = card.getBoundingClientRect();
+        const above = (e.clientY - rect.top) < rect.height / 2;
+        card.classList.toggle('drop-above', above);
+        card.classList.toggle('drop-below', !above);
+      });
+      card.addEventListener('dragleave', () => {
+        card.classList.remove('drop-above');
+        card.classList.remove('drop-below');
+      });
+      card.addEventListener('drop', (e) => {
+        if (!state.editMode || !dragSrc || dragSrc === card) return;
+        e.preventDefault();
+        const rect = card.getBoundingClientRect();
+        const above = (e.clientY - rect.top) < rect.height / 2;
+        const main = $('main');
+        if (above) main.insertBefore(dragSrc, card);
+        else main.insertBefore(dragSrc, card.nextSibling);
+        card.classList.remove('drop-above');
+        card.classList.remove('drop-below');
+      });
+    });
+    // Make cards draggable while in edit mode
+    const observer = new MutationObserver(() => {
+      document.querySelectorAll('.card[data-card-id]').forEach(c => {
+        c.draggable = state.editMode;
+      });
+    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  // ---------- render ----------
+  function renderAll() {
+    renderKpis();
+    renderQuickActions();
+    renderSchoolCard();
+    setupRosterTabs();
+    renderHomework();
+  }
+
+  // ---------- sign out ----------
+  $('signOutBtn').addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = 'login.html';
+  });
+
+  // ---------- start ----------
+  boot();
+</script>
+<script src="bubbles.js" defer></script>
+</body>
+</html>

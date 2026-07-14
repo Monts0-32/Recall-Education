@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Homework — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Your homework and revision work from your school and teachers." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --red:       #F85149;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---------- TOP NAV ---------- */
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+      position: sticky; top: 0; z-index: 50;
+    }
+    nav.top .row {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px; color: var(--text);
+    }
+    .brand:hover { text-decoration: none; }
+    .brand-mark {
+      width: 28px; height: 28px;
+      display: block;
+      object-fit: cover;
+      border-radius: var(--r-sm);
+    }
+    nav.top .right { display: flex; align-items: center; gap: 14px; font-size: 13px; }
+    .btn-ghost {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 7px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-ghost:hover { background: var(--bg-2); }
+
+    /* ---------- LAYOUT ---------- */
+    .layout {
+      max-width: 880px; margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+    .crumbs {
+      font-size: 12px; color: var(--text-3);
+      margin-bottom: 18px;
+    }
+    .crumbs a { color: var(--text-3); }
+    .crumbs .sep { margin: 0 6px; color: var(--text-4); }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+
+    h1 {
+      font-size: 24px; font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0 0 4px;
+    }
+    .sub { color: var(--text-3); font-size: 13.5px; margin: 0 0 28px; }
+
+    /* ---------- ASSIGNMENT CARDS ---------- */
+    .hw-list { display: flex; flex-direction: column; gap: 14px; }
+    .hw-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 20px 22px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+    }
+    .hw-card .body .head {
+      display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    }
+    .hw-card .body .head h2 {
+      margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em;
+    }
+    .hw-card .body .head .kind {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--text-3);
+    }
+    .hw-card .body .due {
+      font-size: 12.5px; color: var(--text-3);
+      margin-top: 4px;
+    }
+    .hw-card .body .due b { color: var(--text-2); font-weight: 500; }
+    .hw-card .body .desc {
+      color: var(--text-2); font-size: 14px;
+      margin-top: 10px;
+      white-space: pre-wrap;
+    }
+    .hw-card .body .resources {
+      margin-top: 14px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .hw-card .body .res-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      font-size: 13px;
+    }
+    .hw-card .body .res-item .icon {
+      width: 22px; height: 22px;
+      display: grid; place-items: center;
+      background: var(--bg-4); border-radius: 4px;
+      font-size: 11px; font-weight: 700; color: var(--text-2);
+      flex-shrink: 0;
+    }
+    .hw-card .body .res-item .label {
+      flex: 1; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      color: var(--text-2);
+    }
+    .hw-card .body .res-item .label:hover { color: var(--text); text-decoration: underline; }
+    .hw-card .body .res-item .kind-tag {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--text-3);
+      flex-shrink: 0;
+    }
+
+    /* ---------- DONE BUTTON + STATUS ---------- */
+    .hw-card .side {
+      display: flex; flex-direction: column; align-items: flex-end;
+      gap: 8px; min-width: 140px;
+    }
+    .hw-card .side .status {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 3px 10px; border-radius: 999px;
+    }
+    .hw-card .side .status.pending { background: var(--bg-4); color: var(--text-3); }
+    .hw-card .side .status.done    { background: var(--green-dim); color: var(--green); }
+    .hw-card .side .status.missed  { background: rgba(248,81,73,0.12); color: var(--red); }
+    .hw-card .side .pill {
+      font-size: 11px; color: var(--text-4);
+    }
+    .btn-done {
+      background: var(--blue); color: #fff;
+      padding: 8px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 600;
+      border: 1px solid var(--blue);
+      cursor: pointer;
+    }
+    .btn-done:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .btn-done.is-done {
+      background: transparent; color: var(--text-2);
+      border-color: var(--line-2);
+    }
+    .btn-done.is-done:hover { background: var(--bg-3); color: var(--text); }
+
+    /* ---------- EMPTY STATE ---------- */
+    .empty-state {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text-3);
+    }
+    .empty-state h2 { font-size: 18px; font-weight: 600; color: var(--text); margin: 0 0 6px; }
+    .empty-state p { margin: 0 0 18px; }
+    .empty-state a { color: var(--blue); }
+
+    @media (max-width: 600px) {
+      .hw-card { grid-template-columns: 1fr; }
+      .hw-card .side { align-items: flex-start; }
+    }
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="dashboard.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
+    <div class="right">
+      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="layout">
+  <div class="crumbs">
+    <a href="dashboard.html">Recall</a>
+    <span class="sep">/</span>
+    <span class="current">Homework</span>
+  </div>
+
+  <h1>Your homework</h1>
+  <p class="sub" id="sub">Loading your homework…</p>
+
+  <div id="list" class="hw-list"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  }
+  function relativeTime(iso) {
+    if (!iso) return '';
+    const then = new Date(iso);
+    const now  = new Date();
+    const diffMs = then - now;
+    const days  = Math.round(diffMs / 86400000);
+    if (days < 0)   return `overdue by ${-days} day${-days === 1 ? '' : 's'}`;
+    if (days === 0) return 'due today';
+    if (days === 1) return 'due tomorrow';
+    if (days < 60)  return `due in ${days} days`;
+    return `due ${fmtDate(iso)}`;
+  }
+  function timeAgo(iso) {
+    if (!iso) return '';
+    const then = new Date(iso);
+    const now  = new Date();
+    const diffMs = now - then;
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1)    return 'just now';
+    if (mins < 60)   return `${mins} min ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24)    return `${hrs} hour${hrs === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7)    return `${days} day${days === 1 ? '' : 's'} ago`;
+    return fmtDate(iso);
+  }
+
+  // ---------- sign out (mirrors the dashboard's pattern) ----------
+  $('signOutBtn').addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = 'login.html';
+  });
+
+  // ---------- render ----------
+  // We render ALL of the student's homework (not just one), so the page
+  // works both as a deep link from the dashboard and as a focused view.
+  // A "Mark done" button on each card calls mark_assignment_done.
+  function renderResources(resList) {
+    if (!resList || !resList.length) return '';
+    return '<div class="resources">' + resList.map(r => {
+      const tag = r.kind === 'recall_lesson' ? 'Lesson'
+                : r.kind === 'link' ? 'Link'
+                : 'File';
+      const icon = r.kind === 'recall_lesson' ? 'L'
+                 : r.kind === 'link' ? '↗'
+                 : '⤓';
+      let href = '#', label = r.display_name || 'Resource';
+      if (r.kind === 'link')        href = r.url;
+      else if (r.kind === 'file')   href = r.url;
+      else if (r.kind === 'recall_lesson' && r.lesson) {
+        href = 'lesson.html?lesson=' + encodeURIComponent(r.lesson.id);
+        label = r.lesson.title || label;
+      }
+      return `<a class="res-item" href="${escapeHtml(href)}" target="_blank" rel="noopener" style="text-decoration: none; color: inherit;">
+        <span class="icon">${escapeHtml(icon)}</span>
+        <span class="label">${escapeHtml(label)}</span>
+        <span class="kind-tag">${escapeHtml(tag)}</span>
+      </a>`;
+    }).join('') + '</div>';
+  }
+
+  function renderCard(a) {
+    const isDone = a.status === 'done';
+    const isMissed = a.status === 'missed';
+    const kindLabel = a.kind === 'homework' ? 'Homework'
+                    : a.kind === 'mock' ? 'Mock exam'
+                    : a.kind === 'exam' ? 'Exam'
+                    : a.kind === 'live' ? 'Live lesson'
+                    : a.kind;
+    return `
+      <div class="hw-card" data-id="${escapeHtml(a.id)}">
+        <div class="body">
+          <div class="head">
+            <h2>${escapeHtml(a.title)}</h2>
+            <span class="kind">${escapeHtml(kindLabel)}</span>
+          </div>
+          <div class="due">${escapeHtml(relativeTime(a.due_at))} · <b>${escapeHtml(fmtDate(a.due_at))}</b></div>
+          ${a.description ? `<div class="desc">${escapeHtml(a.description)}</div>` : ''}
+          ${renderResources(a.resources)}
+        </div>
+        <div class="side">
+          <span class="status ${escapeHtml(a.status || 'pending')}">${escapeHtml(a.status || 'pending')}</span>
+          <button class="btn-done ${isDone ? 'is-done' : ''}" data-id="${escapeHtml(a.id)}" data-done="${isDone ? '1' : '0'}">
+            ${isDone ? 'Mark not done' : 'Mark done'}
+          </button>
+        </div>
+      </div>`;
+  }
+
+  function renderEmpty() {
+    $('list').innerHTML = `
+      <div class="empty-state">
+        <h2>No homework yet</h2>
+        <p>When your teachers set work, it shows up here.</p>
+        <p><a href="dashboard.html">Back to your dashboard</a></p>
+      </div>`;
+  }
+
+  // For each assignment, fetch its resources. list_my_assignments()
+  // returns a resource_count but not the rows themselves — we need
+  // them for the link list. Resources are visible to anyone who can
+  // read the parent assignment (RLS on assignment_resources).
+  async function fetchResources(assignmentId) {
+    const { data, error } = await supabaseClient
+      .from('assignment_resources')
+      .select('id, kind, ref_lesson_id, url, display_name, sort_order, lesson:lessons(id, title)')
+      .eq('assignment_id', assignmentId)
+      .order('sort_order', { ascending: true });
+    if (error) return [];
+    return data || [];
+  }
+
+  async function load() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) { window.location.href = 'login.html'; return; }
+    $('signOutBtn').hidden = false;
+
+    const { data: rows, error } = await supabaseClient.rpc('list_my_assignments');
+    if (error) {
+      $('sub').textContent = 'Couldn\'t load your homework. Refresh to try again.';
+      return;
+    }
+    if (!rows || !rows.length) {
+      $('sub').textContent = 'Homework from your teachers and revision work appear here.';
+      renderEmpty();
+      return;
+    }
+
+    // Fetch resources for each assignment in parallel. list_my_assignments
+    // doesn't return them inline (kept the RPC compact) — we do a small
+    // join per row here.
+    const enriched = await Promise.all(rows.map(async a => ({
+      ...a,
+      resources: a.resource_count > 0 ? await fetchResources(a.id) : []
+    })));
+
+    // Pending first, then by due date asc.
+    enriched.sort((a, b) => {
+      if (a.status === 'pending' && b.status !== 'pending') return -1;
+      if (a.status !== 'pending' && b.status === 'pending') return 1;
+      return new Date(a.due_at) - new Date(b.due_at);
+    });
+
+    const pendingCount = enriched.filter(a => a.status === 'pending').length;
+    $('sub').textContent = pendingCount
+      ? `${pendingCount} pending · ${enriched.length} total`
+      : `All caught up · ${enriched.length} total`;
+
+    $('list').innerHTML = enriched.map(renderCard).join('');
+
+    // Wire mark-done buttons.
+    document.querySelectorAll('.btn-done').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const wasDone = btn.dataset.done === '1';
+        const newDone = !wasDone;
+        btn.disabled = true;
+        btn.textContent = newDone ? 'Marking…' : 'Unmarking…';
+        const { error } = await supabaseClient.rpc('mark_assignment_done', {
+          p_assignment_id: id, p_done: newDone,
+        });
+        if (error) {
+          btn.disabled = false;
+          btn.textContent = wasDone ? 'Mark not done' : 'Mark done';
+          alert('Couldn\'t update: ' + error.message);
+          return;
+        }
+        // Reload to refresh the list and statuses.
+        await load();
+      });
+    });
+  }
+
+  load();
+</script>
+<script src="bubbles.js" defer></script>
+</body>
+</html>

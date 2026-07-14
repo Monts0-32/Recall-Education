@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Teacher dashboard — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Set homework and track your school's progress." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --red:       #F85149;
+      --purple:    #A371F7;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    nav.top { border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; z-index: 50; }
+    nav.top .row {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand:hover { text-decoration: none; }
+    .brand-mark { width: 28px; height: 28px; object-fit: cover; border-radius: var(--r-sm); }
+    nav.top .right { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--text-3); }
+    .btn-ghost {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 7px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+    }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      padding: 8px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-secondary {
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid var(--line-2);
+      padding: 7px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer;
+      text-decoration: none; display: inline-block;
+    }
+    .btn-secondary:hover { background: var(--bg-4); border-color: var(--line-3); text-decoration: none; }
+
+    .layout {
+      max-width: 1100px; margin: 0 auto;
+      padding: 24px;
+    }
+    .dash-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      font-size: 12px; color: var(--text-3);
+      margin-bottom: 20px;
+    }
+    .dash-bar .crumbs a { color: var(--text-3); }
+    .dash-bar .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .dash-bar .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .dash-bar .crumbs .current { color: var(--text); font-weight: 600; }
+    .dash-bar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+    .dash-bar .right .pill {
+      padding: 2px 8px; background: var(--bg-4); border-radius: 999px;
+      font-size: 11px; font-weight: 600; color: var(--text-2);
+    }
+
+    .welcome {
+      display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+    }
+    .welcome .grow { flex: 1; }
+    .welcome h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .welcome .sub { color: var(--text-3); font-size: 13.5px; margin: 0; }
+
+    .kpis {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;
+    }
+    .kpi {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 18px;
+    }
+    .kpi .lbl { font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
+    .kpi .num { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); font-variant-numeric: tabular-nums; }
+    .kpi .num small { font-size: 14px; color: var(--text-3); font-weight: 500; margin-left: 2px; }
+    .kpi .delta { font-size: 12px; color: var(--text-3); margin-top: 6px; }
+
+    .cta-card {
+      background: linear-gradient(135deg, var(--blue-dim) 0%, rgba(163,113,247,0.10) 100%);
+      border: 1px solid rgba(56,139,253,0.3);
+      border-radius: var(--r-md);
+      padding: 22px 24px;
+      display: flex; align-items: center; gap: 18px;
+      margin-bottom: 20px;
+    }
+    .cta-card .ico {
+      width: 44px; height: 44px;
+      background: var(--blue); color: #fff;
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-size: 22px; font-weight: 700;
+    }
+    .cta-card .copy { flex: 1; }
+    .cta-card h2 { margin: 0 0 4px; font-size: 17px; font-weight: 600; color: var(--text); }
+    .cta-card p { margin: 0; color: var(--text-2); font-size: 13.5px; }
+
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      overflow: hidden;
+    }
+    .card-head {
+      padding: 14px 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--line);
+    }
+    .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .card-head .right { font-size: 12px; color: var(--text-3); }
+    .card-head .right a { color: var(--blue); font-weight: 500; }
+
+    .hw-table { display: flex; flex-direction: column; }
+    .hw-row {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 100px 100px 80px;
+      gap: 14px; align-items: center;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .hw-row:last-child { border-bottom: none; }
+    .hw-row:hover { background: var(--bg-3); }
+    .hw-row .title { color: var(--text); font-weight: 600; }
+    .hw-row .title .kind {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--text-3);
+      margin-left: 6px;
+    }
+    .hw-row .meta { color: var(--text-3); font-size: 12px; }
+    .hw-row .progress { display: flex; flex-direction: column; gap: 3px; }
+    .hw-row .progress .bar { height: 6px; background: var(--bg-4); border-radius: 3px; overflow: hidden; }
+    .hw-row .progress .bar i { display: block; height: 100%; background: var(--green); }
+    .hw-row .progress .lbl { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+    .hw-row .when { color: var(--text-3); font-size: 12px; }
+    .hw-row .view { text-align: right; }
+    .hw-row .view a {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 4px 10px; border-radius: 4px;
+      font-size: 12px; font-weight: 600; text-decoration: none;
+    }
+    .hw-row .view a:hover { background: var(--bg-3); color: var(--text); text-decoration: none; }
+    .empty {
+      padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px;
+    }
+
+    .gate {
+      max-width: 520px;
+      margin: 80px auto;
+      padding: 32px;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      text-align: center;
+    }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+
+    @media (max-width: 900px) {
+      .kpis { grid-template-columns: 1fr; }
+      .hw-row { grid-template-columns: 1.5fr 1fr 80px; }
+      .hw-row .when, .hw-row .view { display: none; }
+    }
+    a:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
+    <div class="right">
+      <span id="navName" style="color: var(--text-3);"></span>
+      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="layout" id="main">
+  <div class="dash-bar">
+    <span class="crumbs">
+      <a href="index.html">Recall</a>
+      <span class="sep">/</span>
+      <span class="current">Teacher dashboard</span>
+    </span>
+    <div class="right">
+      <span class="pill" id="schoolPill">—</span>
+    </div>
+  </div>
+
+  <section class="welcome">
+    <div class="grow">
+      <h1 id="welcomeTitle">Welcome</h1>
+      <p class="sub" id="welcomeSub">Loading your school…</p>
+    </div>
+  </section>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="lbl">Students in your school</div>
+      <div class="num" id="kpiStudents">—</div>
+      <div class="delta" id="kpiStudentsDelta">Members attached to your school.</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Homework set this week</div>
+      <div class="num" id="kpiThisWeek">—</div>
+      <div class="delta" id="kpiThisWeekDelta">In the last 7 days.</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Completion rate</div>
+      <div class="num" id="kpiCompletion">—<small>%</small></div>
+      <div class="delta" id="kpiCompletionDelta">Across all open homework.</div>
+    </div>
+  </div>
+
+  <a class="cta-card" id="setHomeworkCta" href="#">
+    <div class="ico">✎</div>
+    <div class="copy">
+      <h2>Set new homework</h2>
+      <p>Send a task to one student, a year group, or the whole school. Attach Recall lessons, links, or files.</p>
+    </div>
+    <div class="btn-primary">Set homework →</div>
+  </a>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>Recent homework</h3>
+        <div class="sub">How your students are doing this week.</div>
+      </div>
+      <div class="right"><span id="hwTotal" style="color: var(--text-3);">—</span></div>
+    </div>
+    <div class="hw-table" id="hwTable">
+      <div class="empty">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+  const state = {
+    user: null,
+    school: null,
+    members: [],
+    assignments: [],
+  };
+
+  function renderGate(title, msg) {
+    $('main').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-primary" href="login.html">Sign in</a></p>
+      </div>
+    `;
+  }
+
+  async function boot() {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (error || !data || !data.user) {
+      renderGate('Sign-in required', 'Sign in to set homework for your school.');
+      return;
+    }
+    state.user = data.user;
+    const meta = state.user.user_metadata || {};
+
+    // Role check — teachers (and organisers, who can also set work) are allowed.
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) { /* RPC not installed */ }
+    }
+    if (role !== 'teacher' && role !== 'school_organiser') {
+      renderGate(
+        'Teacher access only',
+        'This page is for teachers and school organisers. Students can see their homework on dashboard.html.'
+      );
+      return;
+    }
+
+    // Find the school the user belongs to. RLS gives same-school read.
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('school_id, full_name')
+      .eq('id', state.user.id)
+      .maybeSingle();
+
+    if (!profile || !profile.school_id) {
+      renderGate(
+        'No school attached',
+        'Your account isn\'t attached to a school yet. Ask your school organiser to invite you with a teacher code.'
+      );
+      return;
+    }
+
+    const { data: school } = await supabaseClient
+      .from('schools')
+      .select('id, name, code')
+      .eq('id', profile.school_id)
+      .maybeSingle();
+    state.school = school;
+
+    // Sidebar identity
+    $('navName').textContent = meta.full_name || state.user.email;
+    $('signOutBtn').hidden = false;
+    $('welcomeTitle').textContent = `Welcome, ${(meta.full_name || '').split(' ')[0] || 'teacher'}`;
+    $('welcomeSub').textContent = school ? `Teaching at ${school.name}.` : '';
+    $('schoolPill').textContent = school ? school.name : '—';
+    $('setHomeworkCta').href = 'set-homework.html?school=' + encodeURIComponent(state.school.id);
+
+    // Load everything in parallel
+    await Promise.all([loadMembers(), loadAssignments()]);
+    renderKpis();
+    renderHomework();
+  }
+
+  async function loadMembers() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_members', {
+        p_school_id: state.school.id,
+      });
+      if (!error) state.members = data || [];
+    } catch (_) { /* best effort */ }
+  }
+
+  async function loadAssignments() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_assignments', {
+        p_school_id: state.school.id,
+      });
+      if (!error) state.assignments = data || [];
+    } catch (_) { /* best effort */ }
+  }
+
+  function renderKpis() {
+    const students = state.members.filter(m => m.role === 'student').length;
+    const sevenDaysAgo = Date.now() - 7 * 86400000;
+    const thisWeek = state.assignments.filter(a => a.created_at && new Date(a.created_at).getTime() >= sevenDaysAgo).length;
+
+    let targets = 0, done = 0;
+    for (const a of state.assignments) {
+      targets += a.total_targets || 0;
+      done    += a.done_count   || 0;
+    }
+    const completion = targets ? Math.round((done / targets) * 100) : null;
+
+    $('kpiStudents').textContent = String(students);
+    $('kpiStudentsDelta').textContent = students ? 'Members in your school' : 'No students yet';
+    $('kpiThisWeek').textContent = String(thisWeek);
+    $('kpiThisWeekDelta').textContent = thisWeek ? 'Set in the last 7 days' : 'None this week';
+    if (completion == null) {
+      $('kpiCompletion').innerHTML = '—<small>%</small>';
+      $('kpiCompletionDelta').textContent = 'No homework yet';
+    } else {
+      $('kpiCompletion').innerHTML = `${completion}<small>%</small>`;
+      $('kpiCompletionDelta').textContent = `${done} of ${targets} targets done`;
+    }
+  }
+
+  function renderHomework() {
+    $('hwTotal').textContent = state.assignments.length ? `${state.assignments.length} total` : '';
+    const tbl = $('hwTable');
+    if (!state.assignments.length) {
+      tbl.innerHTML = `<div class="empty">No homework set yet. Click <b>Set homework</b> above to send the first one.</div>`;
+      return;
+    }
+    const top = state.assignments.slice(0, 8);
+    tbl.innerHTML = top.map(a => {
+      const total = a.total_targets || 0;
+      const done  = a.done_count   || 0;
+      const pct   = total ? Math.round((done / total) * 100) : 0;
+      const kindLabel = a.kind === 'homework' ? 'Homework'
+                      : a.kind === 'mock' ? 'Mock'
+                      : a.kind === 'exam' ? 'Exam'
+                      : a.kind === 'live' ? 'Live'
+                      : a.kind;
+      return `
+        <div class="hw-row">
+          <div>
+            <div class="title">${escapeHtml(a.title)}<span class="kind">${escapeHtml(kindLabel || '')}</span></div>
+            <div class="meta">${escapeHtml(a.subject_name || '—')}</div>
+          </div>
+          <div class="progress">
+            <div class="bar"><i style="width:${pct}%"></i></div>
+            <div class="lbl">${done} of ${total} done</div>
+          </div>
+          <div class="when">Due ${escapeHtml(a.due_at ? new Date(a.due_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—')}</div>
+          <div class="when">${escapeHtml(a.status || 'open')}</div>
+          <div class="view"><a href="assignment-detail.html?id=${encodeURIComponent(a.id)}">View</a></div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  $('signOutBtn').addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = 'login.html';
+  });
+
+  boot();
+</script>
+<script src="bubbles.js" defer></script>
+</body>
+</html>

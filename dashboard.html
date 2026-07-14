@@ -879,15 +879,23 @@
     }
     $('upcomingList').innerHTML = items.map(u => {
       const dm = dayMonth(u.due_at);
+      // Click an Upcoming row to open the homework view. Status pill on
+      // the right gives a quick read of whether the student has done it.
+      const statusPill = u.status === 'done'
+        ? `<span style="color: var(--green); font-weight: 600;">✓ Done</span>`
+        : u.status === 'missed'
+          ? `<span style="color: var(--red); font-weight: 600;">Missed</span>`
+          : '';
+      const href = u.assignment_id ? `homework.html?id=${encodeURIComponent(u.assignment_id)}` : '#';
       return `
-        <div class="up-item">
+        <a class="up-item" href="${href}" style="text-decoration: none; color: inherit; display: grid;">
           <div class="date"><b>${escapeHtml(dm.day)}</b><span>${escapeHtml(dm.mon)}</span></div>
           <div class="info">
             <div class="title">${escapeHtml(u.title)}</div>
             <div class="meta">${escapeHtml(u.meta || '')}</div>
           </div>
-          <div class="count">${escapeHtml(u.when)}</div>
-        </div>`;
+          <div class="count">${statusPill || escapeHtml(u.when)}</div>
+        </a>`;
     }).join('');
   }
 
@@ -1098,13 +1106,18 @@
       .map(sp => ({ ...subjectProgressToRow(sp), last: `${sp.completed_lessons || 0} of ${sp.total_lessons || 0} lessons` }));
   }
 
-  function buildUpcoming(assignments) {
-    return (assignments || []).map(a => ({
-      due_at: a.due_at,
-      title: a.title,
-      meta: a.description || (a.subject ? a.subject.name : ''),
-      when: timeUntil(a.due_at)
-    }));
+  function buildUpcoming(assignments, subjectNameById) {
+    return (assignments || []).map(a => {
+      const subjName = a.subject_id && subjectNameById ? subjectNameById[a.subject_id] : null;
+      return {
+        due_at: a.due_at,
+        title: a.title,
+        meta: a.description || subjName || (a.kind === 'homework' ? 'Homework' : a.kind),
+        when: timeUntil(a.due_at),
+        status: a.status,
+        assignment_id: a.id,
+      };
+    });
   }
 
   function buildKpis({ enrollmentCount, completedLessons, quizAvg, studyMinThisWeek, lastActivityAt }) {
@@ -1127,7 +1140,11 @@
       results = await Promise.all([
         supabaseClient.from('subject_progress').select('*').eq('user_id', userId),
         supabaseClient.from('enrollments').select('id, started_at, subject:subjects(name, color_key)').eq('user_id', userId).order('started_at', { ascending: false }),
-        supabaseClient.from('assignments').select('id, title, description, due_at, kind, subject:subjects(name)').eq('user_id', userId).gte('due_at', new Date().toISOString()).order('due_at').limit(4),
+        // list_my_assignments() returns BOTH legacy per-student rows
+        // and template rows where the caller has a target — so the
+        // school system feeds this card with one RPC instead of two
+        // separate queries.
+        supabaseClient.rpc('list_my_assignments'),
         supabaseClient.from('activity_log').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(8),
         supabaseClient.from('study_sessions').select('started_at, duration_min').eq('user_id', userId).gte('started_at', new Date(Date.now() - 60 * 86400000).toISOString()),
         supabaseClient.from('lesson_progress').select('lesson_id, status, updated_at, lesson:lessons(id, title, topic:topics(id, name, subject:subjects(id, name, color_key, exam_board, level)))').eq('user_id', userId).order('updated_at', { ascending: false }).limit(20),
@@ -1197,6 +1214,12 @@
     const subjectsSub = enrollments.length
       ? `${enrollments.length} enrolled · ${lastActivityAt ? 'last activity ' + timeAgo(lastActivityAt) : 'no activity yet'}`
       : 'No subjects yet — add one to begin.';
+
+    // Map subject_id -> subject_name for the Upcoming meta line. The
+    // school system returns subject_id without a join; the rest of
+    // the dashboard already has the catalogue data via subject_progress.
+    const subjectNameById = {};
+    for (const sp of subjectProgress) subjectNameById[sp.subject_id] = sp.subject_name;
     $('subjectsSub').textContent = subjectsSub;
 
     const { count, last14 } = computeStreak(sessions);
@@ -1204,7 +1227,7 @@
     renderKPIs(kpis);
     renderContinue(buildContinueRows(subjectProgress, lastTouchedBySubject, lastLessonBySubject));
     renderSubjects(buildSubjectRows(subjectProgress));
-    renderUpcoming(buildUpcoming(assignments));
+    renderUpcoming(buildUpcoming(assignments, subjectNameById));
     renderActivity(activity);
     renderStreak(count, last14);
   }
@@ -1254,10 +1277,11 @@
 
     // Try to read year_group + consent from profiles; not fatal if it fails.
     let yearGroup = meta.year_group || null;
+    let schoolId = null;
     try {
       const { data: profile } = await supabaseClient
         .from('profiles')
-        .select('year_group, consent_status, requires_parental_consent, deleted_at')
+        .select('year_group, consent_status, requires_parental_consent, deleted_at, school_id')
         .eq('id', user.id)
         .maybeSingle();
       if (profile) {
@@ -1284,6 +1308,7 @@
         }
 
         yearGroup = profile.year_group || yearGroup;
+        schoolId  = profile.school_id  || null;
         if (profile.requires_parental_consent && profile.consent_status !== 'granted') {
           // Under-16 awaiting consent. The auth hook lets the email-
           // confirmation flow through (authentication_method =
@@ -1297,7 +1322,52 @@
     } catch (_) { /* profiles table may not be readable in this env; ignore */ }
 
     setIdentity(meta.full_name || user.email, yearGroup);
+    // Apply the school's published dashboard layout (visibility,
+    // label override, reorder) BEFORE loading the per-user data —
+    // the layout is purely cosmetic and doesn't gate the data fetch.
+    if (schoolId) {
+      try { await applySchoolLayout(schoolId); } catch (_) { /* best effort */ }
+    }
     await loadDashboard(user.id);
+  }
+
+  // Apply a school's published dashboard layout. The school system
+  // stores an ordered list of {card_id, visible, label_override}
+  // records in public.school_dashboard_layouts; this function applies
+  // the visibility and label overrides to the five card elements,
+  // then re-orders the .main column to match the layout's order.
+  // Silently does nothing if the school has no published layout.
+  async function applySchoolLayout(schoolId) {
+    const { data: layout, error } = await supabaseClient.rpc(
+      'get_school_dashboard_layout', { p_school_id: schoolId });
+    if (error || !layout) return;
+
+    const cardToEl = {
+      kpis:             document.querySelector('.kpis'),
+      continue:         document.getElementById('continueList')?.closest('.card'),
+      subjects:         document.getElementById('subjectsList')?.closest('.card'),
+      upcoming:         document.getElementById('upcomingList')?.closest('.card'),
+      activity:         document.getElementById('activityList')?.closest('.card'),
+      school_announce:  null,   // reserved for a future slot
+    };
+    for (const rec of layout) {
+      const el = cardToEl[rec.card_id];
+      if (!el) continue;
+      el.hidden = rec.visible === false;
+      if (rec.label_override) {
+        const h3 = el.querySelector('h3');
+        if (h3) h3.textContent = rec.label_override;
+      }
+    }
+    // Reorder: appendChild MOVES the node (doesn't clone), so walking
+    // the layout and re-appending in order is enough.
+    const main = document.querySelector('.main');
+    if (main) {
+      for (const rec of layout) {
+        const el = cardToEl[rec.card_id];
+        if (el && !el.hidden) main.appendChild(el);
+      }
+    }
   }
 
   // Two ways the user can land here with a session:

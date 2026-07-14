@@ -2,136 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>School admin sign-up — Recall</title>
+  <meta http-equiv="refresh" content="0; url=signup-organisation.html" />
+  <title>Redirecting… — Recall</title>
   <link rel="icon" type="image/png" href="favicon.png" />
-  <meta name="description" content="School administrator accounts. Coming soon." />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg:        #0D1117;
-      --bg-2:      #161B22;
-      --bg-3:      #1C2128;
-      --line:      #21262D;
-      --line-2:    #30363D;
-      --text:      #F0F6FC;
-      --text-2:    #C9D1D9;
-      --text-3:    #8B949E;
-      --text-4:    #6E7681;
-      --blue:      #58A6FF;
-      --blue-2:    #1F6FEB;
-      --blue-dim:  rgba(56,139,253,0.15);
-      --green:     #3FB950;
-      --r-sm: 6px;
-      --r-md: 8px;
-    }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; min-height: 100%; }
     body {
-      background: var(--bg);
-      color: var(--text);
+      background: #0D1117; color: #C9D1D9;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      font-size: 14px;
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
+      margin: 0; min-height: 100vh;
+      display: grid; place-items: center;
+      text-align: center; padding: 24px;
     }
-    a { color: var(--blue); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    nav.top {
-      border-bottom: 1px solid var(--line);
-      background: var(--bg);
-    }
-    nav.top .row {
-      max-width: 1280px; margin: 0 auto;
-      padding: 0 24px;
-      display: flex; align-items: center; justify-content: space-between;
-      height: 64px;
-    }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
-    .brand-mark {
-      width: 28px; height: 28px;
-      display: block;
-      object-fit: cover;
-      border-radius: var(--r-sm);
-    }
-    nav.top .right { font-size: 13px; color: var(--text-3); }
-    nav.top .right a { color: var(--text-2); font-weight: 500; }
-
-    .page {
-      max-width: 540px;
-      margin: 56px auto 80px;
-      padding: 0 24px;
-    }
-    .form-card {
-      background: var(--bg-2);
-      border: 1px solid var(--line-2);
-      border-radius: var(--r-md);
-      padding: 32px;
-      text-align: center;
-    }
-    .badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: var(--blue-dim);
-      color: var(--blue);
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      margin-bottom: 16px;
-    }
-    h1 {
-      font-size: 22px; font-weight: 600;
-      letter-spacing: -0.01em;
-      margin: 0 0 10px;
-    }
-    p { color: var(--text-2); margin: 0 0 14px; }
-    p.muted { color: var(--text-3); font-size: 13px; }
-    .btn-primary {
-      display: inline-block;
-      background: var(--blue); color: #fff;
-      padding: 10px 22px; border-radius: var(--r-sm);
-      font-family: inherit; font-size: 14px; font-weight: 600;
-      border: 1px solid var(--blue);
-      cursor: pointer;
-      margin-top: 14px;
-    }
-    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; color: #fff; }
-    a:focus-visible, button:focus-visible {
-      outline: 2px solid var(--blue); outline-offset: 2px;
-    }
+    a { color: #58A6FF; }
   </style>
 </head>
 <body>
-
-<nav class="top">
-  <div class="row">
-    <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
-    <div class="right">Already have an account? <a href="login.html">Sign in</a></div>
-  </div>
-</nav>
-
-<main class="page">
-  <div class="form-card">
-    <span class="badge">Coming soon</span>
-    <h1>School administrator accounts</h1>
-    <p>
-      The school admin sign-up flow is on the roadmap. School admins will be
-      able to issue teacher codes, manage their school's roster, and view
-      per-school analytics.
-    </p>
-    <p class="muted">
-      If you're a school administrator and you'd like early access, email
-      <a href="mailto:hello@recalleducation.co.uk">hello@recalleducation.co.uk</a>
-      and we'll set you up manually.
-    </p>
-    <a class="btn-primary" href="login.html">Back to sign in</a>
-  </div>
-</main>
-
-<script src="bubbles.js" defer></script>
+  <p>School administrator sign-up has moved.<br>
+     <a href="signup-organisation.html">Continue to the new sign-up</a>.</p>
+  <script>location.replace('signup-organisation.html');</script>
+  <script src="bubbles.js" defer></script>
 </body>
 </html>
