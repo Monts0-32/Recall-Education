@@ -466,6 +466,15 @@
     state.user = user;
     const meta = state.user.user_metadata || {};
 
+    // Force a token refresh so the custom_access_token_hook re-stamps
+    // app_metadata.role against the latest profiles.role. Without this,
+    // an organiser whose profile was just upgraded (e.g. they just
+    // confirmed their email) reads a stale JWT and gets "Access denied".
+    try {
+      const { data: refreshed } = await supabaseClient.auth.refreshSession({ forceRefresh: true });
+      if (refreshed && refreshed.user) state.user = refreshed.user;
+    } catch (_) { /* fall through to the stale JWT */ }
+
     let role = state.user.app_metadata?.role;
     if (!role) {
       try {
@@ -473,10 +482,22 @@
         if (!r.error && r.data) role = r.data;
       } catch (_) {}
     }
+    // Last-resort: read profiles.role directly. This always reflects the
+    // current DB state even if both the JWT claim and current_role() are
+    // out of date.
+    if (!role) {
+      try {
+        const { data: profile } = await supabaseClient
+          .from('profiles').select('role').eq('id', state.user.id).maybeSingle();
+        if (profile && profile.role) role = profile.role;
+      } catch (_) {}
+    }
     if (role !== 'school_organiser' && role !== 'teacher') {
       renderGate(
         'Access denied',
-        'This page is for teachers and school organisers. Students can see their homework on dashboard.html.'
+        role
+          ? `This page is for teachers and school organisers. Your account is a ${role}.`
+          : 'This page is for teachers and school organisers. Your account role couldn\'t be determined — try signing out and back in.'
       );
       return;
     }
