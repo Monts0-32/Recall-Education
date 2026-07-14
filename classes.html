@@ -435,12 +435,10 @@
   }
 
   async function boot() {
-    // Wait for the session to be hydrated. getUser() can return null on
-    // a cold load if localStorage isn't yet read, so fall back to the
-    // INITIAL_SESSION / SIGNED_IN event the same way confirmed-organiser
-    // does. This handles the "I just signed in and clicked the link"
-    // case where the access token is set by a redirect handler that
-    // hasn't run yet.
+    // Use getSession() first (reads localStorage, no network call) so a
+    // briefly-out-of-sync token doesn't 401 the page. getUser() can
+    // 401 if the access token in storage is slightly stale relative to
+    // the refresh token — getSession() never does.
     let resolved = false;
     const finish = (user) => {
       if (resolved) return;
@@ -448,12 +446,11 @@
       onSession(user);
     };
     try {
-      const { data, error } = await supabaseClient.auth.getUser();
-      // 401 / AuthSessionMissingError means there's no session at all —
-      // don't try to fall through to other RPCs, which would also 401.
+      const { data, error } = await supabaseClient.auth.getSession();
       if (error) { finish(null); return; }
-      if (data && data.user) { finish(data.user); return; }
-    } catch (_) { finish(null); return; }
+      const session = data && data.session;
+      if (session && session.user) { finish(session.user); return; }
+    } catch (_) { /* fall through to event listener */ }
     supabaseClient.auth.onAuthStateChange((event, session) => {
       if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
         finish(session.user);
