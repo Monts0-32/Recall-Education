@@ -765,9 +765,9 @@ create or replace function public.create_assignment(
   p_subject_id  uuid,
   p_title       text,
   p_description text,
-  p_kind        text default 'homework',
   p_due_at      timestamptz,
   p_targets     jsonb,
+  p_kind        text default 'homework',
   p_resources   jsonb default '[]'::jsonb
 )
 returns jsonb
@@ -897,7 +897,7 @@ end;
 $$;
 
 grant execute on function public.create_assignment(
-  uuid, uuid, text, text, text, timestamptz, jsonb, jsonb
+  uuid, uuid, text, text, timestamptz, jsonb, text, jsonb
 ) to authenticated;
 
 -- ---------- list_my_assignments ----------

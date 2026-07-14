@@ -839,9 +839,9 @@
         p_subject_id: subjectId,
         p_title: title,
         p_description: description || null,
-        p_kind: kind,
         p_due_at: new Date(dueAt).toISOString(),
         p_targets: p_targets,
+        p_kind: kind,
         p_resources: p_resources,
       });
       if (error) { submitBtn.disabled = false; submitBtn.textContent = 'Send homework'; return showError('Couldn\'t send: ' + error.message); }
