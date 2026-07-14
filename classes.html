@@ -194,6 +194,18 @@
       box-shadow: 0 0 0 3px var(--blue-pale);
     }
     .form-row textarea { min-height: 64px; line-height: 1.5; resize: vertical; }
+    .form-row select {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 9px 12px;
+      font-family: inherit; font-size: 13.5px;
+      outline: none;
+    }
+    .form-row select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-pale);
+    }
     .class-tabs {
       display: flex; gap: 2px;
       padding: 0 18px;
@@ -337,6 +349,20 @@
         <label for="classDesc">Description (optional)</label>
         <textarea id="classDesc" maxlength="500" placeholder="Anything students should know about this class."></textarea>
       </div>
+      <div class="form-row">
+        <label for="classTutor">Tutor (optional)</label>
+        <div class="hint">A teacher attached to this class as the main point of contact.</div>
+        <select id="classTutor">
+          <option value="">— None —</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="classSubject">Subject (optional)</label>
+        <div class="hint">The subject this class is associated with. Used as a hint for new homework.</div>
+        <select id="classSubject">
+          <option value="">— None —</option>
+        </select>
+      </div>
       <div class="class-tabs" id="manageTabs">
         <button class="active" data-tab="details" type="button">Details</button>
         <button data-tab="roster" type="button" id="manageRosterTab" disabled>Roster</button>
@@ -365,7 +391,7 @@
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn-danger" id="archiveBtn" type="button" style="margin-right: auto;" hidden>Archive class</button>
+      <button class="btn-danger" id="deleteBtn" type="button" style="margin-right: auto;" hidden>Delete class</button>
       <button class="btn-ghost" id="manageCancelBtn" type="button">Cancel</button>
       <button class="btn-primary" id="manageSaveBtn" type="button">Save</button>
     </div>
@@ -419,6 +445,8 @@
     school: null,
     classes: [],
     members: [],   // list_school_members rows
+    teachers: [],  // list_school_members rows with role=teacher, for the tutor dropdown
+    subjects: [],  // subjects rows for the subject dropdown
     activeClass: null,    // class being edited in the modal
     activeMembers: [],    // members of the active class
     editing: false,
@@ -533,7 +561,7 @@
     $('schoolPill').textContent = school ? school.name : '—';
     $('sub').textContent = school ? `Classes at ${school.name}.` : 'Classes for your school.';
 
-    await Promise.all([loadClasses(), loadMembers()]);
+    await Promise.all([loadClasses(), loadMembers(), loadTeachers(), loadSubjects()]);
     renderClasses();
   }
 
@@ -555,6 +583,37 @@
     } catch (_) { /* keep empty */ }
   }
 
+  async function loadTeachers() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_members', {
+        p_school_id: state.school.id, p_role_filter: 'teacher',
+      });
+      if (!error) state.teachers = data || [];
+    } catch (_) { state.teachers = []; }
+  }
+
+  async function loadSubjects() {
+    try {
+      const { data, error } = await supabaseClient
+        .from('subjects')
+        .select('id, name')
+        .order('name');
+      if (!error) state.subjects = data || [];
+    } catch (_) { state.subjects = []; }
+  }
+
+  function populateReferenceSelects() {
+    const tutorSel = $('classTutor');
+    const subjectSel = $('classSubject');
+    tutorSel.innerHTML = '<option value="">— None —</option>' + state.teachers.map(t => {
+      const label = t.full_name || t.email || '(teacher)';
+      return `<option value="${escapeHtml(t.id)}">${escapeHtml(label)}</option>`;
+    }).join('');
+    subjectSel.innerHTML = '<option value="">— None —</option>' + state.subjects.map(s => {
+      return `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`;
+    }).join('');
+  }
+
   function renderClasses() {
     const list = $('classList');
     if (!state.classes.length) {
@@ -564,12 +623,15 @@
     }
     $('classesSub').textContent = `${state.classes.length} class${state.classes.length === 1 ? '' : 'es'}`;
     list.innerHTML = state.classes.map(c => {
-      const archived = c.archived_at ? ' (archived)' : '';
+      const tags = [];
+      if (c.tutor_name) tags.push(`<span class="pill" style="padding: 1px 8px; background: var(--purple-dim, rgba(163,113,247,0.15)); border: 1px solid rgba(163,113,247,0.3); border-radius: 999px; font-size: 11px; color: var(--text-2);">Tutor: ${escapeHtml(c.tutor_name)}</span>`);
+      if (c.subject_name) tags.push(`<span class="pill" style="padding: 1px 8px; background: var(--blue-dim); border: 1px solid rgba(56,139,253,0.3); border-radius: 999px; font-size: 11px; color: var(--text-2);">${escapeHtml(c.subject_name)}</span>`);
       return `
         <div class="class-row" data-id="${escapeHtml(c.id)}">
           <div>
-            <div class="name">${escapeHtml(c.name)}${archived ? '<span style="color: var(--text-4); font-weight: 400; font-size: 12px; margin-left: 6px;">archived</span>' : ''}</div>
+            <div class="name">${escapeHtml(c.name)}</div>
             ${c.description ? `<div class="desc">${escapeHtml(c.description)}</div>` : ''}
+            ${tags.length ? `<div style="margin-top: 5px; display: flex; gap: 4px; flex-wrap: wrap;">${tags.join('')}</div>` : ''}
           </div>
           <div class="num">${c.member_count} ${c.member_count === 1 ? 'student' : 'students'}</div>
           <div class="when">${c.owner_name ? 'Owner: ' + escapeHtml(c.owner_name) : ''}</div>
@@ -591,17 +653,22 @@
     state.editing = !!classId;
     $('manageTitle').textContent = classId ? 'Edit class' : 'New class';
     $('manageTabs').querySelector('[data-tab="roster"]').disabled = !classId;
-    $('archiveBtn').hidden = !classId;
+    $('deleteBtn').hidden = !classId;
+    populateReferenceSelects();
     if (classId) {
       const c = state.classes.find(x => x.id === classId);
       if (!c) return;
       state.activeClass = c;
-      $('className').value = c.name || '';
-      $('classDesc').value = c.description || '';
+      $('className').value    = c.name || '';
+      $('classDesc').value    = c.description || '';
+      $('classTutor').value   = c.tutor_user_id || '';
+      $('classSubject').value = c.subject_id    || '';
     } else {
       state.activeClass = null;
-      $('className').value = '';
-      $('classDesc').value = '';
+      $('className').value    = '';
+      $('classDesc').value    = '';
+      $('classTutor').value   = '';
+      $('classSubject').value = '';
     }
     state.activeMembers = [];
     setManageTab('details');
@@ -632,6 +699,8 @@
   $('manageSaveBtn').addEventListener('click', async () => {
     const name = $('className').value.trim();
     const desc = $('classDesc').value.trim();
+    const tutor   = $('classTutor').value   || null;
+    const subject = $('classSubject').value || null;
     if (!name) { toast('Give the class a name.', 'error'); return; }
     const btn = $('manageSaveBtn');
     btn.disabled = true;
@@ -643,6 +712,8 @@
           p_name: name,
           p_description: desc || null,
           p_archived: false,
+          p_tutor_user_id: tutor,
+          p_subject_id: subject,
         });
         if (error) throw error;
         if (data && data.ok !== true) throw new Error(data.reason || 'failed');
@@ -655,7 +726,11 @@
         setManageTab('roster');
       } else {
         const { data, error } = await supabaseClient.rpc('create_class', {
-          p_school_id: state.school.id, p_name: name, p_description: desc || null,
+          p_school_id: state.school.id,
+          p_name: name,
+          p_description: desc || null,
+          p_tutor_user_id: tutor,
+          p_subject_id: subject,
         });
         if (error) throw error;
         if (data && data.ok !== true) throw new Error(data.reason || 'failed');
@@ -666,7 +741,7 @@
         state.editing = true;
         state.activeClass = state.classes.find(c => c.id === data.class_id);
         $('manageTitle').textContent = 'Edit class';
-        $('archiveBtn').hidden = false;
+        $('deleteBtn').hidden = false;
         $('manageTabs').querySelector('[data-tab="roster"]').disabled = false;
         setManageTab('roster');
       }
@@ -678,17 +753,19 @@
     }
   });
 
-  $('archiveBtn').addEventListener('click', async () => {
+  $('deleteBtn').addEventListener('click', async () => {
     if (!state.activeClass) return;
-    if (!confirm(`Archive "${state.activeClass.name}"? It will be hidden from new homework targets but existing work is kept.`)) return;
-    const { data, error } = await supabaseClient.rpc('update_class', {
+    if (!confirm(`Delete "${state.activeClass.name}"? This permanently removes the class and its student roster. Any homework already submitted is kept on the student's record.`)) return;
+    if (!confirm('Are you sure? This cannot be undone.')) return;
+    const { data, error } = await supabaseClient.rpc('delete_class', {
       p_class_id: state.activeClass.id,
-      p_name: state.activeClass.name,
-      p_description: state.activeClass.description,
-      p_archived: true,
     });
-    if (error) { toast('Couldn\'t archive: ' + error.message, 'error'); return; }
-    toast('Class archived.', 'success');
+    if (error) { toast('Couldn\'t delete: ' + error.message, 'error'); return; }
+    if (data && data.ok !== true) {
+      toast('Couldn\'t delete: ' + (data.reason || 'failed'), 'error');
+      return;
+    }
+    toast('Class deleted.', 'success');
     closeManage();
     await loadClasses();
     renderClasses();

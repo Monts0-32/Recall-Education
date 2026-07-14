@@ -72,6 +72,11 @@ create table if not exists public.classes (
   name            text not null,
   description     text,
   owner_user_id   uuid references auth.users(id) on delete set null,
+  -- Optional tag: which teacher owns/tutors this class, and which subject it
+  -- is for. Both nullable — a class can be just a roster, or be tagged for
+  -- one teacher / one subject, or both.
+  tutor_user_id   uuid references auth.users(id) on delete set null,
+  subject_id      uuid references public.subjects(id) on delete set null,
   created_at      timestamptz not null default now(),
   archived_at     timestamptz
 );
@@ -79,6 +84,12 @@ create index if not exists classes_school_idx
   on public.classes (school_id) where archived_at is null;
 create index if not exists classes_owner_idx
   on public.classes (owner_user_id);
+
+-- Idempotent add for existing deployments.
+alter table public.classes
+  add column if not exists tutor_user_id uuid references auth.users(id) on delete set null;
+alter table public.classes
+  add column if not exists subject_id    uuid references public.subjects(id) on delete set null;
 
 create table if not exists public.class_members (
   class_id        uuid not null references public.classes(id) on delete cascade,
@@ -433,7 +444,9 @@ $$;
 create or replace function public.create_class(
   p_school_id   uuid,
   p_name        text,
-  p_description text default null
+  p_description text default null,
+  p_tutor_user_id uuid default null,
+  p_subject_id    uuid default null
 )
 returns jsonb
 language plpgsql
@@ -448,19 +461,27 @@ begin
   if v_clean = '' then
     return jsonb_build_object('ok', false, 'reason', 'name_required');
   end if;
-  insert into public.classes (school_id, name, description, owner_user_id)
-  values (p_school_id, v_clean, nullif(trim(coalesce(p_description, '')), ''), auth.uid())
+  insert into public.classes (school_id, name, description, owner_user_id, tutor_user_id, subject_id)
+  values (
+    p_school_id, v_clean,
+    nullif(trim(coalesce(p_description, '')), ''),
+    auth.uid(),
+    p_tutor_user_id,
+    p_subject_id
+  )
   returning id into v_id;
   return jsonb_build_object('ok', true, 'class_id', v_id);
 end;
 $$;
-grant execute on function public.create_class(uuid, text, text) to authenticated;
+grant execute on function public.create_class(uuid, text, text, uuid, uuid) to authenticated;
 
 create or replace function public.update_class(
   p_class_id    uuid,
   p_name        text,
   p_description text,
-  p_archived    boolean
+  p_archived    boolean,
+  p_tutor_user_id uuid default null,
+  p_subject_id    uuid default null
 )
 returns jsonb
 language plpgsql
@@ -473,7 +494,7 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   end if;
-  select * into v_class from public.classes where id = p_class_id;
+  select * into v_class from public.classes where classes.id = p_class_id;
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'unknown_class');
   end if;
@@ -487,14 +508,48 @@ begin
   end if;
 
   update public.classes
-     set name        = coalesce(nullif(trim(p_name), ''), name),
-         description = nullif(trim(coalesce(p_description, '')), description),
-         archived_at = case when p_archived then coalesce(archived_at, now()) else null end
-   where id = p_class_id;
+     set name          = coalesce(nullif(trim(p_name), ''), name),
+         description   = nullif(trim(coalesce(p_description, '')), description),
+         tutor_user_id = p_tutor_user_id,
+         subject_id    = p_subject_id
+   where classes.id = p_class_id;
   return jsonb_build_object('ok', true);
 end;
 $$;
-grant execute on function public.update_class(uuid, text, text, boolean) to authenticated;
+grant execute on function public.update_class(uuid, text, text, boolean, uuid, uuid) to authenticated;
+
+-- delete_class — hard-delete a class. Cascades to class_members via FK.
+-- Caller must be the organiser of the school OR the class owner.
+create or replace function public.delete_class(
+  p_class_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_class public.classes%rowtype;
+begin
+  if auth.uid() is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
+  end if;
+  select * into v_class from public.classes where classes.id = p_class_id;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'unknown_class');
+  end if;
+  if not exists (
+    select 1 from public.schools s
+     where s.id = v_class.school_id
+       and s.owner_user_id = auth.uid()
+  ) and v_class.owner_user_id is distinct from auth.uid() then
+    return jsonb_build_object('ok', false, 'reason', 'forbidden');
+  end if;
+  delete from public.classes where classes.id = p_class_id;
+  return jsonb_build_object('ok', true);
+end;
+$$;
+grant execute on function public.delete_class(uuid) to authenticated;
 
 -- Caller must be in the school (student sees the class list, staff sees too).
 create or replace function public.list_classes(
@@ -507,6 +562,10 @@ returns table (
   description  text,
   owner_user_id uuid,
   owner_name   text,
+  tutor_user_id uuid,
+  tutor_name   text,
+  subject_id   uuid,
+  subject_name text,
   member_count int,
   created_at   timestamptz,
   archived_at  timestamptz
@@ -518,11 +577,18 @@ stable
 as $$
   select c.id, c.name, c.description, c.owner_user_id,
          coalesce(p.full_name, u.email, '')::text as owner_name,
+         c.tutor_user_id,
+         coalesce(pt.full_name, ut.email, '')::text as tutor_name,
+         c.subject_id,
+         s.name as subject_name,
          (select count(*) from public.class_members cm where cm.class_id = c.id)::int,
          c.created_at, c.archived_at
     from public.classes c
-    left join public.profiles p on p.id = c.owner_user_id
-    left join auth.users    u on u.id = c.owner_user_id
+    left join public.profiles p  on p.id  = c.owner_user_id
+    left join auth.users    u  on u.id  = c.owner_user_id
+    left join public.profiles pt on pt.id = c.tutor_user_id
+    left join auth.users    ut on ut.id = c.tutor_user_id
+    left join public.subjects s  on s.id  = c.subject_id
    where c.school_id = p_school_id
      and (
        p_include_archived
@@ -536,14 +602,19 @@ create or replace function public.get_class(
   p_class_id uuid
 )
 returns table (
-  id           uuid,
-  school_id    uuid,
-  name         text,
-  description  text,
+  id            uuid,
+  school_id     uuid,
+  name          text,
+  description   text,
   owner_user_id uuid,
-  created_at   timestamptz,
-  archived_at  timestamptz,
-  members      jsonb
+  owner_name    text,
+  tutor_user_id uuid,
+  tutor_name    text,
+  subject_id    uuid,
+  subject_name  text,
+  created_at    timestamptz,
+  archived_at   timestamptz,
+  members       jsonb
 )
 language plpgsql
 security definer
@@ -553,8 +624,11 @@ as $$
 declare
   v_class public.classes%rowtype;
   v_members jsonb;
+  v_owner_name text;
+  v_tutor_name text;
+  v_subject_name text;
 begin
-  select * into v_class from public.classes where id = p_class_id;
+  select * into v_class from public.classes where classes.id = p_class_id;
   if not found then
     return;
   end if;
@@ -578,14 +652,38 @@ begin
     join public.profiles p on p.id = m.student_user_id
     join auth.users u on u.id = m.student_user_id
    where m.class_id = p_class_id;
-  id           := v_class.id;
-  school_id    := v_class.school_id;
-  name         := v_class.name;
-  description  := v_class.description;
+  select coalesce(p.full_name, u.email, '')
+    into v_owner_name
+    from public.profiles p
+    left join auth.users u on u.id = p.id
+   where p.id = v_class.owner_user_id;
+  if v_class.tutor_user_id is not null then
+    select coalesce(p.full_name, u.email, '')
+      into v_tutor_name
+      from public.profiles p
+      left join auth.users u on u.id = p.id
+     where p.id = v_class.tutor_user_id;
+  else
+    v_tutor_name := null;
+  end if;
+  if v_class.subject_id is not null then
+    select s.name into v_subject_name from public.subjects s where s.id = v_class.subject_id;
+  else
+    v_subject_name := null;
+  end if;
+  id            := v_class.id;
+  school_id     := v_class.school_id;
+  name          := v_class.name;
+  description   := v_class.description;
   owner_user_id := v_class.owner_user_id;
-  created_at   := v_class.created_at;
-  archived_at  := v_class.archived_at;
-  members      := v_members;
+  owner_name    := coalesce(v_owner_name, '');
+  tutor_user_id := v_class.tutor_user_id;
+  tutor_name    := v_tutor_name;
+  subject_id    := v_class.subject_id;
+  subject_name  := v_subject_name;
+  created_at    := v_class.created_at;
+  archived_at   := v_class.archived_at;
+  members       := v_members;
   return next;
 end;
 $$;
@@ -607,7 +705,7 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   end if;
-  select * into v_class from public.classes where id = p_class_id;
+  select * into v_class from public.classes where classes.id = p_class_id;
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'unknown_class');
   end if;
@@ -648,7 +746,7 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   end if;
-  select * into v_class from public.classes where id = p_class_id;
+  select * into v_class from public.classes where classes.id = p_class_id;
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'unknown_class');
   end if;
@@ -1134,7 +1232,7 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   end if;
-  select * into v_class from public.classes where id = p_class_id;
+  select * into v_class from public.classes where classes.id = p_class_id;
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'unknown_class');
   end if;
@@ -1212,7 +1310,7 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   end if;
-  select * into v_class from public.classes where id = p_class_id;
+  select * into v_class from public.classes where classes.id = p_class_id;
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'unknown_class');
   end if;

@@ -440,6 +440,8 @@
           <div class="sub">
             ${state.school ? escapeHtml(state.school.name) + ' · ' : ''}
             ${state.members.length} student${state.members.length === 1 ? '' : 's'}
+            ${c.subject_name ? ` · <span class="pill" style="padding: 1px 8px; background: var(--blue-dim); border: 1px solid rgba(56,139,253,0.3); border-radius: 999px; font-size: 11px; color: var(--text-2);">${escapeHtml(c.subject_name)}</span>` : ''}
+            ${c.tutor_name ? ` · <span class="pill" style="padding: 1px 8px; background: rgba(163,113,247,0.15); border: 1px solid rgba(163,113,247,0.3); border-radius: 999px; font-size: 11px; color: var(--text-2);">Tutor: ${escapeHtml(c.tutor_name)}</span>` : ''}
             ${refreshedAt ? ` · <span class="refreshed-at">last refresh ${refreshedAt}</span>` : ''}
           </div>
         </div>
