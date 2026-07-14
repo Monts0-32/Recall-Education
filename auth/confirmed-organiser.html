@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Email confirmed — Recall</title>
+  <link rel="icon" type="image/png" href="../favicon.png" />
+  <meta name="description" content="Your Recall email is confirmed." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-2:   #2EA043;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --red:       #F85149;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+    }
+    nav.top .row {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px; color: var(--text);
+    }
+    .brand:hover { text-decoration: none; }
+    .brand-mark { width: 28px; height: 28px; object-fit: cover; border-radius: var(--r-sm); }
+
+    .wrap {
+      max-width: 560px; margin: 0 auto;
+      padding: 56px 24px 80px;
+    }
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 32px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      margin: 0 0 8px;
+    }
+    .lede {
+      font-size: 14px;
+      color: var(--text-2);
+      margin: 0 0 24px;
+    }
+
+    .state {
+      display: none;
+      border-radius: var(--r-sm);
+      padding: 12px 14px;
+      font-size: 13px;
+      margin-bottom: 18px;
+    }
+    .state.show { display: block; }
+    .state.info  { background: rgba(56,139,253,0.10); border: 1px solid rgba(56,139,253,0.4); color: var(--blue); }
+    .state.warn  { background: rgba(210,153,34,0.10); border: 1px solid rgba(210,153,34,0.4); color: #E3B341; }
+    .state.error { background: rgba(248,81,73,0.10);  border: 1px solid rgba(248,81,73,0.4);  color: #FFA198; }
+
+    .actions {
+      display: flex; gap: 10px;
+      margin-top: 8px;
+    }
+    .btn-primary, .btn-ghost {
+      flex: 1;
+      padding: 10px 18px;
+      border-radius: var(--r-sm);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      border: 1px solid var(--blue);
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line-2);
+    }
+    .btn-ghost:hover { background: var(--bg-3); text-decoration: none; }
+
+    .small {
+      font-size: 12px;
+      color: var(--text-3);
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+    .loading {
+      font-size: 13px;
+      color: var(--text-3);
+      margin-bottom: 18px;
+    }
+
+    /* Big "school is ready" success panel — replaces the standard
+       confirmation body when the user is an organiser. Uses the
+       school's purple accent so it visually matches
+       school-organiser-dashboard.html. */
+    .ready-card {
+      display: none;
+      background: linear-gradient(135deg, rgba(163,113,247,0.10) 0%, var(--green-dim) 100%);
+      border: 1px solid rgba(163,113,247,0.4);
+      border-radius: var(--r-md);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .ready-card.show { display: block; }
+    .ready-card .check {
+      width: 48px; height: 48px;
+      background: var(--green); color: #fff;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 24px; font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .ready-card h2 {
+      margin: 0 0 6px;
+      font-size: 19px; font-weight: 600;
+    }
+    .ready-card p {
+      margin: 0 0 10px;
+      color: var(--text-2);
+      font-size: 13.5px;
+    }
+    .ready-card .code-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      background: var(--bg);
+      color: var(--green);
+      border: 1px solid rgba(63,185,80,0.4);
+      border-radius: var(--r-sm);
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 14px; font-weight: 700;
+      letter-spacing: 0.04em;
+      margin: 4px 0 6px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; }
+    }
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="../index.html"><img class="brand-mark" src="../logo.png" alt="Recall" /> Recall</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="card">
+    <h1 id="heading">Email confirmed</h1>
+    <p class="lede" id="cardLede">Verifying your account…</p>
+
+    <div class="state" id="state"></div>
+    <div class="loading" id="loading">One moment…</div>
+
+    <!-- Specialised success card for school organisers. Shows the
+         school code and a CTA to the organiser dashboard. Hidden
+         until we know the user is an organiser with a school. -->
+    <div class="ready-card" id="readyCard">
+      <div class="check">✓</div>
+      <h2>Your school is ready</h2>
+      <p id="readyCardSchool">Your school has been registered with Recall. You can sign in to invite teachers and set homework.</p>
+      <p style="font-size: 12.5px; color: var(--text-3);">Your school code is</p>
+      <div class="code-pill" id="readyCardCode">SCH-……</div>
+    </div>
+
+    <div id="ready" hidden>
+      <div class="actions">
+        <a class="btn-primary" id="ctaBtn" href="../school-organiser-dashboard.html">Go to your organiser console</a>
+        <a class="btn-ghost" href="../index.html">Back to home</a>
+      </div>
+      <p class="small">
+        Need help? Email <a href="mailto:hello@recalleducation.co.uk">hello@recalleducation.co.uk</a>.
+      </p>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Supabase client — same project as the rest of the site.
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const $ = (id) => document.getElementById(id);
+
+  function showState(msg, kind) {
+    const el = $('state');
+    el.textContent = msg;
+    el.className = 'state show ' + (kind || 'info');
+  }
+  function showReady() {
+    $('loading').hidden = true;
+    $('ready').hidden = false;
+  }
+  function showLoading() {
+    $('loading').hidden = false;
+    $('ready').hidden = true;
+    $('readyCard').classList.remove('show');
+    $('state').classList.remove('show');
+  }
+
+  // Build the organiser-ready state. Pulls the school code from the
+  // user's owned school row so the email link can hand it to them
+  // without a round-trip to the dashboard. If the school wasn't
+  // created during signup (e.g. signInWithPassword was blocked by
+  // the email-confirmation gate, so the RPC couldn't run), retry it
+  // here — we now have a confirmed session.
+  async function renderOrganiserReady(user) {
+    let school = null;
+    try {
+      const { data: s } = await supabaseClient
+        .from('schools')
+        .select('id, name, code, plan')
+        .eq('owner_user_id', user.id)
+        .maybeSingle();
+      school = s;
+    } catch (_) { /* best effort */ }
+
+    // No school yet? Try to create it now from the metadata the
+    // signup form stored. The form puts (school_name, plan) into
+    // data: { intended_role, full_name } — the user's full_name is
+    // already on the profile; the school name + plan need to be
+    // stashed somewhere readable. We use user_metadata.intended_school
+    // and user_metadata.intended_plan (set by signup-organisation.html).
+    if (!school) {
+      const meta = user.user_metadata || {};
+      const schoolName = meta.intended_school;
+      const plan       = meta.intended_plan || 'free';
+      if (schoolName) {
+        try {
+          const { data: cs, error: csErr } = await supabaseClient.rpc('create_school_and_organiser', {
+            p_user_id: newUserIdSafe(user, meta),
+            p_school_name: schoolName,
+            p_plan: plan,
+          });
+          if (!csErr && cs && cs.ok === true) {
+            school = { id: cs.school_id, name: cs.school_name, code: cs.school_code, plan: cs.plan };
+          }
+        } catch (_) { /* best effort */ }
+      }
+    }
+
+    try {
+      if (school) {
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .maybeSingle();
+        const first = ((profile && profile.full_name) || user.email || '').trim().split(/\s+/)[0] || 'there';
+        $('heading').textContent = 'Welcome, ' + first;
+        $('cardLede').textContent = school.name + ' is registered and ready to use.';
+        $('readyCardSchool').textContent =
+          'Share ' + school.code + ' with students so they can join your school. ' +
+          'From the organiser console you can generate teacher codes, set homework, and customise the dashboard your students see.';
+        $('readyCardCode').textContent = school.code;
+        $('readyCard').classList.add('show');
+        $('ctaBtn').textContent = 'Open your organiser console';
+        $('ctaBtn').setAttribute('href', '../school-organiser-dashboard.html');
+      } else {
+        // Organiser role but no school row yet — the metadata was
+        // missing, so we can't recover. Show a generic ready state
+        // and let the user contact support.
+        $('cardLede').textContent = 'Your organiser account is ready.';
+        $('readyCardSchool').textContent =
+          'We couldn\'t recreate your school automatically. Please sign in and contact support — we\'ll get it set up for you.';
+        $('readyCard').classList.add('show');
+        $('readyCardCode').textContent = '—';
+        $('ctaBtn').textContent = 'Open your organiser console';
+        $('ctaBtn').setAttribute('href', '../school-organiser-dashboard.html');
+      }
+    } catch (_) { /* best effort — the generic state still works */ }
+    showReady();
+    setTimeout(function () { window.location.href = '../school-organiser-dashboard.html'; }, 2500);
+  }
+
+  // user_metadata doesn't always contain the user's own id (Supabase
+  // stores it under different fields depending on the auth flow). The
+  // RPC wants a uuid; the canonical id is the auth user id.
+  function newUserIdSafe(user, _meta) {
+    return user.id;
+  }
+
+  // Pulled out of renderReady so it can handle a non-organiser user
+  // gracefully. Today we only get here from the organiser signup, but
+  // we still want role-aware routing in case the URL is shared.
+  async function renderReady(user) {
+    let role = user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) { /* RPC not installed */ }
+    }
+    if (role === 'school_organiser') {
+      await renderOrganiserReady(user);
+      return;
+    }
+    if (role === 'teacher') {
+      $('cardLede').textContent = 'Your teacher account is ready. Taking you to your dashboard…';
+      $('ctaBtn').textContent = 'Go to your teacher dashboard';
+      $('ctaBtn').setAttribute('href', '../teacher-dashboard.html');
+      showReady();
+      setTimeout(function () { window.location.href = '../teacher-dashboard.html'; }, 2000);
+      return;
+    }
+    // Default — student or unknown.
+    $('cardLede').textContent = 'Your account is ready. Taking you to your dashboard…';
+    $('ctaBtn').textContent = 'Go to your dashboard';
+    $('ctaBtn').setAttribute('href', '../dashboard.html');
+    showReady();
+    setTimeout(function () { window.location.href = '../dashboard.html'; }, 2000);
+  }
+
+  // Two ways the user can land here with a session:
+  //   1. They came in with no URL hash but already have a session (e.g.
+  //      opened the link in a browser that was already signed in). getSession()
+  //      returns the session.
+  //   2. They just clicked the email-confirmation link, which puts an
+  //      access_token in the URL hash. supabase-js processes the hash
+  //      asynchronously and emits SIGNED_IN. We listen for that.
+  let handled = false;
+
+  supabaseClient.auth.getSession().then(({ data, error }) => {
+    if (handled) return;
+    const session = data?.session;
+    if (error || !session || !session.user) return; // wait for onAuthStateChange
+    handled = true;
+    renderReady(session.user);
+  });
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (handled) return;
+    if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
+      handled = true;
+      renderReady(session.user);
+    }
+  });
+
+  // If after 4s nothing has resolved, the link is invalid or expired.
+  setTimeout(function () {
+    if (handled) return;
+    handled = true;
+    $('loading').hidden = true;
+    $('ready').hidden = true;
+    $('readyCard').classList.remove('show');
+    $('state') && showState(
+      'This confirmation link is invalid or has expired. Try signing in — if your account is verified, you\'ll be taken straight to your dashboard.',
+      'error'
+    );
+    const fallback = document.createElement('div');
+    fallback.className = 'actions';
+    fallback.innerHTML =
+      '<a class="btn-primary" href="../login.html">Sign in</a>' +
+      '<a class="btn-ghost" href="../signup.html">Sign up again</a>';
+    $('state').insertAdjacentElement('afterend', fallback);
+  }, 4000);
+</script>
+<script src="../bubbles.js" defer></script>
+</body>
+</html>

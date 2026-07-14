@@ -201,15 +201,26 @@
   }
 
   // Read the user's profile to decide which "ready" state to show:
-  //   - over-16 OR consent already granted:  "Go to your dashboard"
+  //   - school_organiser:    "Go to your organiser console"
+  //   - teacher:             "Go to your teacher dashboard"
+  //   - over-16 / consent granted student: "Go to your dashboard"
   //   - under-16 awaiting parent:           "We're waiting on your parent"
   async function renderReady(user) {
     try {
       const { data: profile } = await supabaseClient
         .from('profiles')
-        .select('requires_parental_consent, consent_status, full_name')
+        .select('requires_parental_consent, consent_status, full_name, role')
         .eq('id', user.id)
         .maybeSingle();
+
+      // Role check from the JWT first, fall back to the DB column.
+      let role = user.app_metadata?.role || (profile && profile.role) || null;
+      if (!role) {
+        try {
+          const r = await supabaseClient.rpc('current_role');
+          if (!r.error && r.data) role = r.data;
+        } catch (_) { /* RPC not installed — fall through */ }
+      }
 
       if (profile && profile.requires_parental_consent && profile.consent_status !== 'granted') {
         $('heading').textContent = 'Almost there';
@@ -222,8 +233,24 @@
         return;
       }
 
-      // Over-16 OR consent granted. Welcome them by first name.
+      // Over-16 OR consent granted. Route by role.
       const first = ((profile && profile.full_name) || user.email || '').trim().split(/\s+/)[0] || 'there';
+      if (role === 'school_organiser') {
+        $('cardLede').textContent = 'Welcome, ' + first + '. Your school is ready. Taking you to your organiser console…';
+        $('ctaBtn').textContent = 'Go to your organiser console';
+        $('ctaBtn').setAttribute('href', 'school-organiser-dashboard.html');
+        showReady();
+        setTimeout(function () { window.location.href = 'school-organiser-dashboard.html'; }, 2000);
+        return;
+      }
+      if (role === 'teacher') {
+        $('cardLede').textContent = 'Welcome, ' + first + '. Your teacher account is ready. Taking you to your dashboard…';
+        $('ctaBtn').textContent = 'Go to your teacher dashboard';
+        $('ctaBtn').setAttribute('href', 'teacher-dashboard.html');
+        showReady();
+        setTimeout(function () { window.location.href = 'teacher-dashboard.html'; }, 2000);
+        return;
+      }
       $('cardLede').textContent = 'Welcome, ' + first + '. Your account is ready. Taking you to your dashboard…';
       showReady();
       // Auto-redirect after 2s. The button is still there if they want to

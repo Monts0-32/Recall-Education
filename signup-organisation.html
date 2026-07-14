@@ -155,16 +155,23 @@
     .error-banner, .ok-banner {
       display: none;
       border-radius: var(--r-sm);
-      padding: 10px 12px;
+      padding: 12px 14px;
       font-size: 13px;
       margin-bottom: 16px;
     }
     .error-banner { background: rgba(248,81,73,0.10); border: 1px solid rgba(248,81,73,0.4); color: #FFA198; }
     .error-banner.show { display: block; }
     .error-banner b { color: var(--red); font-weight: 600; }
-    .ok-banner { background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.4); color: #7EE787; }
+    /* Success banner is intentionally brighter / more saturated than the
+       error one so it doesn't read as another error. The checkmark glyph
+       in the heading is a clear "this worked" signal. */
+    .ok-banner {
+      background: linear-gradient(135deg, rgba(63,185,80,0.18) 0%, rgba(63,185,80,0.08) 100%);
+      border: 1px solid rgba(63,185,80,0.55);
+      color: #B6E8B9;
+    }
     .ok-banner.show { display: block; }
-    .ok-banner b { color: var(--green); font-weight: 600; }
+    .ok-banner b { color: #6FE07A; font-weight: 700; }
 
     .foot {
       margin-top: 22px;
@@ -197,7 +204,7 @@
       <b>We couldn't create your account.</b> <span id="errMsg">Check the highlighted fields and try again.</span>
     </div>
     <div class="ok-banner" id="ok">
-      <b>Almost done.</b> <span id="okMsg">Check your inbox to confirm your email.</span>
+      <b>✓ Account created.</b> <span id="okMsg">Check your inbox to confirm your email.</span>
     </div>
 
     <form id="signupForm" novalidate>
@@ -296,7 +303,12 @@
   }
   function hideError() { $('err').classList.remove('show'); }
   function showOk(msg) {
-    $('okMsg').textContent = msg;
+    // The success message may contain <b> tags for emphasis (school
+    // code, email address). Use innerHTML so they render. The msg
+    // string is built from server-returned values (school name, code)
+    // and the form's own email — all of which are escaped when
+    // interpolated in the calling code.
+    $('okMsg').innerHTML = msg;
     $('ok').classList.add('show');
     $('err').classList.remove('show');
   }
@@ -360,16 +372,28 @@
     const orig = submitBtn.textContent;
     submitBtn.textContent = 'Creating account…';
 
-    const redirectTo = window.location.origin + '/auth/confirmed.html';
+    // Point email-confirm links at the dedicated organiser page so
+    // the user lands on the "your school is ready" panel rather than
+    // being routed through the standard student confirm flow.
+    const redirectTo = window.location.origin + '/auth/confirmed-organiser.html';
 
     try {
-      // 1) Create the auth user.
+      // 1) Create the auth user. We stash school_name + plan in
+      //    user_metadata so the email-confirmation page can re-run
+      //    the school creation RPC if the in-page call failed (e.g.
+      //    because email-confirmation blocked the signInWithPassword
+      //    that the RPC needs).
       const { data: su, error: suErr } = await supabaseClient.auth.signUp({
         email,
         password: pw,
         options: {
           emailRedirectTo: redirectTo,
-          data: { full_name: name, intended_role: 'school_organiser' },
+          data: {
+            full_name: name,
+            intended_role: 'school_organiser',
+            intended_school: schoolName,
+            intended_plan: plan,
+          },
         },
       });
       if (suErr) { submitBtn.disabled = false; submitBtn.textContent = orig; return showError('Sign-up failed: ' + suErr.message); }
@@ -384,13 +408,20 @@
       //     session to call the SECURITY DEFINER RPC below (it reads
       //     auth.uid()). Sign the user in with the password they just
       //     chose. If this fails (e.g. confirmation is required before
-      //     sign-in), we still want them to know the account exists.
+      //     sign-in), the user can still confirm by email and the
+      //     confirmation page will finish setting up their school.
       const { error: siErr } = await supabaseClient.auth.signInWithPassword({
         email, password: pw,
       });
       if (siErr) {
-        submitBtn.disabled = false; submitBtn.textContent = orig;
-        return showError('Account created, but we couldn\'t start a session yet. Check ' + email + ' for a confirmation link, then sign in to finish setting up your school.');
+        // Account exists but no session yet. Show the same "check
+        // your inbox" success state — the school will be created on
+        // the confirmation page.
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Account created';
+        showOk('We just sent a confirmation link to <b>' + email + '</b> — click it to finish setting up your school. Once you confirm, we\'ll register <b>' + schoolName + '</b> automatically and you can sign in to manage it.');
+        Array.from($('signupForm').elements).forEach(el => { el.disabled = true; });
+        return;
       }
       // 2) Create the school + stamp the organiser role.
       const { data: cs, error: csErr } = await supabaseClient.rpc('create_school_and_organiser', {
@@ -403,7 +434,7 @@
         submitBtn.disabled = false; submitBtn.textContent = orig;
         return showError('We couldn\'t create your school (' + reason + '). Please try again or contact support.');
       }
-      showOk('School "' + cs.school_name + '" registered with code ' + cs.school_code + '. Check ' + email + ' for a confirmation link, then sign in to manage your school.');
+      showOk('School "' + cs.school_name + '" registered with code <b>' + cs.school_code + '</b>. We just sent a confirmation link to <b>' + email + '</b> — click it to finish setting up your account, then you can sign in to manage your school.');
       Array.from($('signupForm').elements).forEach(el => { el.disabled = true; });
       submitBtn.textContent = 'Account created';
     } catch (err) {
