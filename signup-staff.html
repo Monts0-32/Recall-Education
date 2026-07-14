@@ -422,6 +422,28 @@
       } catch (err) {
         showOk('Account created. There was a problem applying the invitation — sign in and try the invite link again.');
       }
+
+      // Send the branded Resend confirmation email so the staff
+      // member gets a role-aware "welcome to the team" message
+      // instead of Supabase's generic "Confirm your email".
+      try {
+        const { error: fnErr } = await supabaseClient.functions.invoke(
+          'send-signup-email',
+          {
+            body: {
+              email: pendingInvite.email,
+              name,
+              intended_role: pendingInvite.role || 'admin',
+              origin: window.location.origin,
+              redirect_to: redirectTo,
+            },
+          }
+        );
+        if (fnErr) console.error('send-signup-email invoke failed:', fnErr);
+      } catch (err) {
+        console.error('send-signup-email threw:', err);
+      }
+
       Array.from($('signupForm').elements).forEach(el => { el.disabled = true; });
       submitBtn.textContent = 'Account created';
     } catch (err) {

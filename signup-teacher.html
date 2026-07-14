@@ -398,6 +398,28 @@
       });
       if (attachErr) console.warn('attach_teacher_to_school:', attachErr.message);
 
+      // Send the branded Resend confirmation email. We invoke the
+      // send-signup-email function which mints a magic link and
+      // emails it — replacing Supabase's generic confirmation email
+      // (which can't be role-branched and is hard to make school-aware).
+      try {
+        const { error: fnErr } = await supabaseClient.functions.invoke(
+          'send-signup-email',
+          {
+            body: {
+              email,
+              name,
+              intended_role: 'teacher',
+              origin: window.location.origin,
+              redirect_to: redirectTo,
+            },
+          }
+        );
+        if (fnErr) console.error('send-signup-email invoke failed:', fnErr);
+      } catch (err) {
+        console.error('send-signup-email threw:', err);
+      }
+
       showOk('Account created. Check ' + email + ' for a confirmation link, then sign in to access your teacher dashboard.');
       Array.from($('signupForm').elements).forEach(el => { el.disabled = true; });
       submitBtn.textContent = 'Account created';

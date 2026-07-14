@@ -992,6 +992,36 @@
           }
         }
 
+        // Send the branded Resend confirmation email. The custom
+        // send-signup-email Edge Function mints a magic link and
+        // emails it; clicking it signs the user in and lands them on
+        // /auth/confirmed.html where their profile / role / school
+        // is set up. We do this instead of relying on Supabase's
+        // built-in "Confirm signup" email (which is generic and
+        // can't be role-branched).
+        //
+        // If the function is unreachable (e.g. a transient network
+        // error), we don't block — the user can still sign in with
+        // email + password, and Supabase will let them in as long as
+        // the magic link was previously consumed.
+        try {
+          const { error: fnErr } = await supabaseClient.functions.invoke(
+            'send-signup-email',
+            {
+              body: {
+                email: email.value.trim(),
+                name: name.value.trim(),
+                intended_role: 'student',
+                origin: window.location.origin,
+                redirect_to: redirectTo,
+              },
+            }
+          );
+          if (fnErr) console.error('send-signup-email invoke failed:', fnErr);
+        } catch (err) {
+          console.error('send-signup-email threw:', err);
+        }
+
         // Lock the form.
         Array.from(form.elements).forEach(el => { el.disabled = true; });
         submitBtn.textContent = 'Account created';

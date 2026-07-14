@@ -421,6 +421,32 @@
         submitBtn.textContent = 'Account created';
         showOk('We just sent a confirmation link to <b>' + email + '</b> — click it to finish setting up your school. Once you confirm, we\'ll register <b>' + schoolName + '</b> automatically and you can sign in to manage it.');
         Array.from($('signupForm').elements).forEach(el => { el.disabled = true; });
+
+        // Send the branded Resend confirmation email. The function
+        // mints a magic link and emails it; the user clicks → signs
+        // in → lands on /auth/confirmed-organiser.html where the
+        // school is created from user_metadata.intended_school. If
+        // the function call fails we still log the error and the
+        // user can request a fresh magic link by signing in.
+        try {
+          const { error: fnErr } = await supabaseClient.functions.invoke(
+            'send-signup-email',
+            {
+              body: {
+                email,
+                name,
+                intended_role: 'school_organiser',
+                intended_school: schoolName,
+                intended_plan: plan,
+                origin: window.location.origin,
+                redirect_to: redirectTo,
+              },
+            }
+          );
+          if (fnErr) console.error('send-signup-email invoke failed:', fnErr);
+        } catch (err) {
+          console.error('send-signup-email threw:', err);
+        }
         return;
       }
       // 2) Create the school + stamp the organiser role.
@@ -434,6 +460,31 @@
         submitBtn.disabled = false; submitBtn.textContent = orig;
         return showError('We couldn\'t create your school (' + reason + '). Please try again or contact support.');
       }
+
+      // Send the branded Resend confirmation email. (See comment
+      // above for the rationale; this is the success path where
+      // signInWithPassword worked, so the school row already exists
+      // and the user just needs to confirm their email.)
+      try {
+        const { error: fnErr } = await supabaseClient.functions.invoke(
+          'send-signup-email',
+          {
+            body: {
+              email,
+              name,
+              intended_role: 'school_organiser',
+              intended_school: schoolName,
+              intended_plan: plan,
+              origin: window.location.origin,
+              redirect_to: redirectTo,
+            },
+          }
+        );
+        if (fnErr) console.error('send-signup-email invoke failed:', fnErr);
+      } catch (err) {
+        console.error('send-signup-email threw:', err);
+      }
+
       showOk('School "' + cs.school_name + '" registered with code <b>' + cs.school_code + '</b>. We just sent a confirmation link to <b>' + email + '</b> — click it to finish setting up your account, then you can sign in to manage your school.');
       Array.from($('signupForm').elements).forEach(el => { el.disabled = true; });
       submitBtn.textContent = 'Account created';

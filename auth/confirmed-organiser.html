@@ -368,12 +368,26 @@
     setTimeout(function () { window.location.href = '../dashboard.html'; }, 2000);
   }
 
+  // Mark the user's email as confirmed (idempotent). We use a custom
+  // Resend email via the send-signup-email Edge Function, which sends
+  // a magic link rather than the standard Supabase "confirm signup"
+  // link. Magic links sign the user in but don't set
+  // email_confirmed_at, so we do it here via this SECURITY DEFINER
+  // RPC. Best effort — failure doesn't block the rest of the ready
+  // state.
+  async function markEmailConfirmed() {
+    try {
+      const { error } = await supabaseClient.rpc('confirm_my_email');
+      if (error) console.warn('confirm_my_email failed:', error.message);
+    } catch (e) { /* best effort */ }
+  }
+
   // Two ways the user can land here with a session:
   //   1. They came in with no URL hash but already have a session (e.g.
   //      opened the link in a browser that was already signed in). getSession()
   //      returns the session.
-  //   2. They just clicked the email-confirmation link, which puts an
-  //      access_token in the URL hash. supabase-js processes the hash
+  //   2. They just clicked the magic-link confirmation email, which puts
+  //      an access_token in the URL hash. supabase-js processes the hash
   //      asynchronously and emits SIGNED_IN. We listen for that.
   let handled = false;
 
@@ -382,6 +396,7 @@
     const session = data?.session;
     if (error || !session || !session.user) return; // wait for onAuthStateChange
     handled = true;
+    markEmailConfirmed();
     renderReady(session.user);
   });
 
@@ -389,6 +404,7 @@
     if (handled) return;
     if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
       handled = true;
+      markEmailConfirmed();
       renderReady(session.user);
     }
   });
