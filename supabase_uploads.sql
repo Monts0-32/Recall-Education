@@ -93,7 +93,9 @@ alter table public.lesson_blocks
     -- layout & structure (4)
     'accordion','tabs','compare','timeline',
     -- study aids (4)
-    'objectives','prerequisites','glossary','summary'
+    'objectives','prerequisites','glossary','summary',
+    -- 6 new block kinds (2026-07)
+    'audio','divider','quote','cardset','steps','categorise'
   ));
 
 -- ============================================================================

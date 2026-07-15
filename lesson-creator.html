@@ -646,6 +646,71 @@
       padding: 12px; border-radius: var(--r-sm); margin: 6px 0;
       text-align: center; overflow-x: auto;
     }
+    /* ---------- new block kinds (2026-07) ---------- */
+    .preview audio { display: block; width: 100%; }
+    .preview hr.divider-rule { border: 0; border-top: 1px solid var(--line-2); margin: 14px 0; }
+    .preview .divider {
+      display: flex; align-items: center; gap: 10px; margin: 14px 0;
+      color: var(--text-3); font-size: 11.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .preview .divider hr { flex: 1; border: 0; border-top: 1px solid var(--line-2); margin: 0; }
+    .preview .pull-quote {
+      border-left: 3px solid var(--blue);
+      background: var(--blue-pale);
+      margin: 8px 0 10px; padding: 12px 16px;
+      font-size: 16px; font-weight: 500; color: var(--text);
+      font-style: italic; border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    }
+    .preview .pull-quote cite {
+      display: block; margin-top: 6px;
+      font-size: 12px; font-style: normal; font-weight: 500;
+      color: var(--text-3);
+    }
+    .preview .cardset-stack { display: flex; flex-direction: column; gap: 10px; }
+    .preview .steps-list { list-style: none; counter-reset: stepc; padding: 0; margin: 6px 0; display: flex; flex-direction: column; gap: 8px; }
+    .preview .step-item {
+      counter-increment: stepc; position: relative;
+      background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--r-sm);
+      padding: 10px 12px 10px 48px;
+    }
+    .preview .step-item::before {
+      content: counter(stepc);
+      position: absolute; left: 10px; top: 10px;
+      width: 28px; height: 28px;
+      display: grid; place-items: center;
+      background: var(--blue-dim); color: var(--blue);
+      border-radius: 50%; font-weight: 700; font-size: 13px;
+    }
+    .preview .step-title { font-weight: 600; color: var(--text); margin-bottom: 2px; font-size: 13.5px; }
+    .preview .step-body { color: var(--text-2); font-size: 13px; }
+    .preview .cat-items { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+    .preview .cat-item {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: 999px; padding: 5px 12px;
+      cursor: pointer; font-size: 12.5px; color: var(--text-2);
+      font-family: inherit;
+    }
+    .preview .cat-item:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .preview .cat-item.selected { border-color: var(--blue); background: var(--blue-pale); color: var(--text); }
+    .preview .cat-item.correct  { border-color: var(--green); background: var(--green-dim); color: var(--text); }
+    .preview .cat-item.wrong    { border-color: var(--red);   background: var(--red-dim);   color: var(--text); }
+    .preview .cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
+    .preview .cat-bucket {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); min-height: 90px;
+      display: flex; flex-direction: column;
+    }
+    .preview .cat-bucket.correct { border-color: var(--green); }
+    .preview .cat-bucket.wrong   { border-color: var(--red); }
+    .preview .cat-bucket-head {
+      padding: 6px 10px; font-size: 11.5px; font-weight: 600;
+      color: var(--text-2); border-bottom: 1px solid var(--line);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .preview .cat-bucket-body {
+      padding: 8px; display: flex; flex-wrap: wrap; gap: 4px; flex: 1;
+    }
 
     /* ---------- INTERACTIVE PRACTICE PREVIEWS ---------- */
     .preview .practice {
@@ -1193,6 +1258,71 @@
       background: var(--bg-3); border: 1px solid var(--line);
       padding: 12px; border-radius: var(--r-sm); margin: 6px 0;
       text-align: center; overflow-x: auto;
+    }
+    /* ---------- new block kinds (2026-07) — student preview mirror ---------- */
+    .student-preview-body audio { display: block; width: 100%; }
+    .student-preview-body hr.divider-rule { border: 0; border-top: 1px solid var(--line-2); margin: 18px 0; }
+    .student-preview-body .divider {
+      display: flex; align-items: center; gap: 10px; margin: 18px 0;
+      color: var(--text-3); font-size: 12px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .student-preview-body .divider hr { flex: 1; border: 0; border-top: 1px solid var(--line-2); margin: 0; }
+    .student-preview-body .pull-quote {
+      border-left: 3px solid var(--blue);
+      background: var(--blue-pale);
+      margin: 10px 0 12px; padding: 14px 18px;
+      font-size: 17px; font-weight: 500; color: var(--text);
+      font-style: italic; border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    }
+    .student-preview-body .pull-quote cite {
+      display: block; margin-top: 6px;
+      font-size: 12.5px; font-style: normal; font-weight: 500;
+      color: var(--text-3);
+    }
+    .student-preview-body .cardset-stack { display: flex; flex-direction: column; gap: 12px; }
+    .student-preview-body .steps-list { list-style: none; counter-reset: stepc; padding: 0; margin: 8px 0; display: flex; flex-direction: column; gap: 10px; }
+    .student-preview-body .step-item {
+      counter-increment: stepc; position: relative;
+      background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--r-sm);
+      padding: 12px 14px 12px 52px;
+    }
+    .student-preview-body .step-item::before {
+      content: counter(stepc);
+      position: absolute; left: 12px; top: 12px;
+      width: 30px; height: 30px;
+      display: grid; place-items: center;
+      background: var(--blue-dim); color: var(--blue);
+      border-radius: 50%; font-weight: 700; font-size: 14px;
+    }
+    .student-preview-body .step-title { font-weight: 600; color: var(--text); margin-bottom: 4px; font-size: 14.5px; }
+    .student-preview-body .step-body { color: var(--text-2); font-size: 13.5px; }
+    .student-preview-body .cat-items { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 12px; }
+    .student-preview-body .cat-item {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: 999px; padding: 6px 14px;
+      cursor: pointer; font-size: 13px; color: var(--text-2);
+      font-family: inherit;
+    }
+    .student-preview-body .cat-item:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .student-preview-body .cat-item.selected { border-color: var(--blue); background: var(--blue-pale); color: var(--text); }
+    .student-preview-body .cat-item.correct  { border-color: var(--green); background: var(--green-dim); color: var(--text); }
+    .student-preview-body .cat-item.wrong    { border-color: var(--red);   background: var(--red-dim);   color: var(--text); }
+    .student-preview-body .cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+    .student-preview-body .cat-bucket {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); min-height: 100px;
+      display: flex; flex-direction: column;
+    }
+    .student-preview-body .cat-bucket.correct { border-color: var(--green); }
+    .student-preview-body .cat-bucket.wrong   { border-color: var(--red); }
+    .student-preview-body .cat-bucket-head {
+      padding: 8px 12px; font-size: 12px; font-weight: 600;
+      color: var(--text-2); border-bottom: 1px solid var(--line);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .student-preview-body .cat-bucket-body {
+      padding: 10px; display: flex; flex-wrap: wrap; gap: 4px; flex: 1;
     }
 
     /* interactive practice in the student-style preview — full size, like lesson.html */
@@ -3051,10 +3181,10 @@
 
   // ---------- block picker (grouped) ----------
   const BLOCK_GROUPS = {
-    'Text & structure': ['heading', 'text', 'callout', 'image', 'video', 'math', 'keypoints', 'worked_example', 'reveal', 'flashcard'],
-    'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot'],
-    'Layout': ['accordion', 'tabs', 'compare', 'timeline'],
-    'Study aids': ['objectives', 'prerequisites', 'glossary', 'summary'],
+    'Text & structure': ['heading', 'text', 'callout', 'image', 'video', 'math', 'audio', 'divider', 'quote', 'keypoints', 'worked_example', 'reveal', 'flashcard'],
+    'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot', 'categorise'],
+    'Layout': ['accordion', 'tabs', 'compare', 'timeline', 'steps'],
+    'Study aids': ['objectives', 'prerequisites', 'glossary', 'summary', 'cardset'],
   };
 
   function renderBlockPicker() {
@@ -4067,6 +4197,226 @@
     renderBlocksList();
   };
 
+  // ----- Audio editor -----
+  function renderAudioEditor(b, i) {
+    return `
+      <div class="form-row">
+        <label>Audio URL</label>
+        <div style="display:flex;gap:6px;">
+          <input value="${escapeHtml(b.data.url||'')}" oninput="updateBlock(${i}, {url: this.value})" placeholder="https://…/narration.mp3" style="flex:1;" />
+          <button class="upload-btn" onclick="uploadAudio(${i})" title="Upload to lesson-audio bucket">↑ Upload</button>
+          <input type="file" id="audioFile-${i}" accept="audio/*" hidden onchange="handleAudioUpload(${i}, this)" />
+        </div>
+        <span class="hint">Paste a URL or upload an audio file (≤ 16 MB). Uploads go to the <code>lesson-audio</code> bucket.</span>
+      </div>
+      <div class="form-row">
+        <label>Caption (optional)</label>
+        <input value="${escapeHtml(b.data.caption||'')}" oninput="updateBlock(${i}, {caption: this.value})" placeholder="What the student is hearing" />
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.uploadAudio = (i) => {
+    const fileInput = document.getElementById(`audioFile-${i}`);
+    if (fileInput) fileInput.click();
+  };
+  window.handleAudioUpload = async (i, fileInput) => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    if (file.size > 16 * 1024 * 1024) { toast('Audio too large (max 16 MB).', 'error'); fileInput.value = ''; return; }
+    if (!state.currentLesson) { toast('Open a lesson first.', 'error'); return; }
+    const ext = (file.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '') || 'mp3';
+    const path = `lessons/${state.currentLesson.id}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabaseClient.storage
+      .from('lesson-audio')
+      .upload(path, file, { upsert: false, contentType: file.type });
+    if (error) { toast('Upload failed: ' + error.message, 'error'); fileInput.value = ''; return; }
+    const { data: pub } = supabaseClient.storage.from('lesson-audio').getPublicUrl(path);
+    if (pub && pub.publicUrl) {
+      state.currentLesson.blocks[i].data.url = pub.publicUrl;
+      state.dirty = true;
+      renderBlocksList();
+      renderEditorHeader();
+      toast('Audio uploaded', 'success');
+    }
+    fileInput.value = '';
+  };
+
+  // ----- Divider editor -----
+  function renderDividerEditor(b, i) {
+    return `
+      <div class="form-row">
+        <label>Section title (leave blank for a plain rule)</label>
+        <input value="${escapeHtml(b.data.title||'')}" oninput="updateBlock(${i}, {title: this.value})" placeholder="e.g. Part 2 — Application" />
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+
+  // ----- Pull-quote editor -----
+  function renderQuoteEditor(b, i) {
+    return `
+      <div class="form-row">
+        <label>Quote</label>
+        <textarea oninput="updateBlock(${i}, {text: this.value})" placeholder="The fact or statement to highlight">${escapeHtml(b.data.text || '')}</textarea>
+      </div>
+      <div class="form-row">
+        <label>Attribution (optional)</label>
+        <input value="${escapeHtml(b.data.attribution||'')}" oninput="updateBlock(${i}, {attribution: this.value})" placeholder="e.g. Albert Einstein" />
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+
+  // ----- Card set editor -----
+  function renderCardsetEditor(b, i) {
+    const cards = b.data.cards || [];
+    return `
+      <div class="form-row">
+        <label>Cards (front / back pairs)</label>
+        <div class="repeater">
+          ${cards.map((c, j) => `
+            <div class="gloss-row" style="display:grid;grid-template-columns:1fr 1fr 32px;gap:6px;">
+              <input type="text" value="${escapeHtml(c.front||'')}" oninput="updateCardsetCard(${i}, ${j}, 'front', this.value)" placeholder="Front (term)" />
+              <input type="text" value="${escapeHtml(c.back||'')}" oninput="updateCardsetCard(${i}, ${j}, 'back', this.value)" placeholder="Back (definition)" />
+              <button class="del" onclick="removeCardsetCard(${i}, ${j})">✕</button>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addCardsetCard(${i})">+ Add card</button>
+        </div>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview (click a card to flip)</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateCardsetCard = (i, j, field, val) => {
+    const cards = state.currentLesson.blocks[i].data.cards;
+    if (!cards[j]) cards[j] = { front: '', back: '' };
+    cards[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addCardsetCard = (i) => {
+    if (!state.currentLesson.blocks[i].data.cards) state.currentLesson.blocks[i].data.cards = [];
+    state.currentLesson.blocks[i].data.cards.push({ front: '', back: '' });
+    renderBlocksList();
+  };
+  window.removeCardsetCard = (i, j) => {
+    state.currentLesson.blocks[i].data.cards.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Steps editor -----
+  function renderStepsEditor(b, i) {
+    const items = b.data.items || [];
+    return `
+      <div class="form-row">
+        <label>Steps (in order)</label>
+        <div class="repeater">
+          ${items.map((it, j) => `
+            <div class="tl-row" style="flex-direction:column;align-items:stretch;gap:6px;">
+              <div style="display:flex;gap:6px;">
+                <input type="text" value="${escapeHtml(it.title||'')}" oninput="updateStepItem(${i}, ${j}, 'title', this.value)" placeholder="Step title" style="flex:1;" />
+                <button class="del" onclick="removeStepItem(${i}, ${j})">✕</button>
+              </div>
+              <textarea oninput="updateStepItem(${i}, ${j}, 'body', this.value)" placeholder="Step body (markdown)">${escapeHtml(it.body || '')}</textarea>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addStepItem(${i})">+ Add step</button>
+        </div>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateStepItem = (i, j, field, val) => {
+    const items = state.currentLesson.blocks[i].data.items;
+    if (!items[j]) items[j] = { title: '', body: '' };
+    items[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addStepItem = (i) => {
+    if (!state.currentLesson.blocks[i].data.items) state.currentLesson.blocks[i].data.items = [];
+    state.currentLesson.blocks[i].data.items.push({ title: '', body: '' });
+    renderBlocksList();
+  };
+  window.removeStepItem = (i, j) => {
+    state.currentLesson.blocks[i].data.items.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Categorise editor -----
+  function renderCategoriseEditor(b, i) {
+    const cats = b.data.categories || [];
+    return `
+      <div class="form-row">
+        <label>Prompt</label>
+        <input value="${escapeHtml(b.data.prompt||'')}" oninput="updateBlock(${i}, {prompt: this.value})" placeholder="Sort each item into the correct category." />
+      </div>
+      <div class="form-row">
+        <label>Categories (the items in each category are the correct answers)</label>
+        <div class="repeater">
+          ${cats.map((c, j) => `
+            <div class="cat-edit-row" style="background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 10px; margin-bottom: 6px;">
+              <div style="display:flex;gap:6px;margin-bottom:6px;">
+                <input type="text" value="${escapeHtml(c.name||'')}" oninput="updateCat(${i}, ${j}, 'name', this.value)" placeholder="Category name" style="flex:1;" />
+                <button class="del" onclick="removeCategory(${i}, ${j})">✕</button>
+              </div>
+              <textarea oninput="updateCatItems(${i}, ${j}, this.value)" placeholder="Items (one per line)">${escapeHtml((c.items || []).join('\n'))}</textarea>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addCategory(${i})">+ Add category</button>
+        </div>
+        <span class="hint">Use a newline to separate items. Each item is automatically assigned to the category it lives under.</span>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview (click an item, then click a category to place it)</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateCat = (i, j, field, val) => {
+    const cats = state.currentLesson.blocks[i].data.categories;
+    if (!cats[j]) cats[j] = { name: '', items: [] };
+    cats[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.updateCatItems = (i, j, val) => {
+    const cats = state.currentLesson.blocks[i].data.categories;
+    if (!cats[j]) cats[j] = { name: '', items: [] };
+    cats[j].items = val.split('\n').map(s => s.trim()).filter(Boolean);
+    state.dirty = true; renderEditorHeader();
+    // Refresh the preview only (textarea keeps focus).
+    const block = document.querySelector(`.block[data-block-index="${i}"]`);
+    if (!block) return;
+    const preview = block.querySelector('.preview');
+    if (preview) {
+      preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
+      bindInteractive(preview, state.currentLesson.blocks[i]);
+    }
+  };
+  window.addCategory = (i) => {
+    if (!state.currentLesson.blocks[i].data.categories) state.currentLesson.blocks[i].data.categories = [];
+    state.currentLesson.blocks[i].data.categories.push({ name: '', items: [] });
+    renderBlocksList();
+  };
+  window.removeCategory = (i, j) => {
+    state.currentLesson.blocks[i].data.categories.splice(j, 1);
+    renderBlocksList();
+  };
+
   // ============================================================
   // DISPATCH: route the new kinds to their editor renderers
   // by handling them in the switch below.
@@ -4647,14 +4997,20 @@
     match:         (b, i) => renderMatchEditor(b, i),
     ordering:      (b, i) => renderOrderingEditor(b, i),
     hotspot:       (b, i) => renderHotspotEditor(b, i),
+    categorise:    (b, i) => renderCategoriseEditor(b, i),
     accordion:     (b, i) => renderAccordionEditor(b, i),
     tabs:          (b, i) => renderTabsEditor(b, i),
     compare:       (b, i) => renderCompareEditor(b, i),
     timeline:      (b, i) => renderTimelineEditor(b, i),
+    steps:         (b, i) => renderStepsEditor(b, i),
     objectives:    (b, i) => renderObjectivesEditor(b, i),
     prerequisites: (b, i) => renderPrereqEditor(b, i),
     glossary:      (b, i) => renderGlossaryEditor(b, i),
     summary:       (b, i) => renderSummaryEditor(b, i),
+    audio:         (b, i) => renderAudioEditor(b, i),
+    divider:       (b, i) => renderDividerEditor(b, i),
+    quote:         (b, i) => renderQuoteEditor(b, i),
+    cardset:       (b, i) => renderCardsetEditor(b, i),
   };
 
   // ---------- go ----------

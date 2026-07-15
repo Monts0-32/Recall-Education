@@ -458,8 +458,120 @@
           <div class="body">${renderMarkdown(b.data.markdown || '')}</div>
         </div>`;
       }
+    },
+
+    // ---------- 6 new block kinds (2026-07) ----------
+    audio: {
+      label: 'Audio',
+      defaults: () => ({ url: '', caption: '' }),
+      render: (b) => {
+        const d = b.data || {};
+        if (!d.url) return '<p style="color:var(--text-4)">[Audio: paste a URL or upload a file]</p>';
+        const cap = d.caption ? `<figcaption>${escapeHtml(d.caption)}</figcaption>` : '';
+        return `<figure><audio controls src="${escapeHtml(d.url)}" style="width:100%;"></audio>${cap}</figure>`;
+      }
+    },
+    divider: {
+      label: 'Divider',
+      defaults: () => ({ title: '' }),
+      render: (b) => {
+        const t = (b.data && b.data.title || '').trim();
+        if (!t) return '<hr class="divider-rule" />';
+        return `<div class="divider"><hr /><span>${escapeHtml(t)}</span><hr /></div>`;
+      }
+    },
+    quote: {
+      label: 'Pull quote',
+      defaults: () => ({ text: 'Mitochondria are the powerhouse of the cell.', attribution: '' }),
+      render: (b) => {
+        const d = b.data || {};
+        const cite = d.attribution ? `<cite>— ${escapeHtml(d.attribution)}</cite>` : '';
+        return `<blockquote class="pull-quote">${escapeHtml(d.text || '')}${cite}</blockquote>`;
+      }
+    },
+    cardset: {
+      label: 'Card set',
+      defaults: () => ({ cards: [
+        { front: 'Mitochondrion', back: 'The site of aerobic respiration in eukaryotic cells.' },
+        { front: 'Ribosome',       back: 'The site of protein synthesis.' },
+        { front: 'Nucleus',        back: 'Contains the cell\'s DNA.' }
+      ] }),
+      render: (b) => {
+        const cards = (b.data && b.data.cards) || [];
+        if (!cards.length) return '<p style="color:var(--text-4)">[Card set: empty]</p>';
+        return `<div class="cardset-stack">${cards.map((c, i) => `
+          <div class="flashcard" onclick="this.classList.toggle('flipped')">
+            <div class="flashcard-inner">
+              <div class="flashcard-face flashcard-front">${escapeHtml(c.front || '')}</div>
+              <div class="flashcard-face flashcard-back">${escapeHtml(c.back || '')}</div>
+            </div>
+          </div>`).join('')}</div>`;
+      }
+    },
+    steps: {
+      label: 'Numbered steps',
+      defaults: () => ({ items: [
+        { title: 'Observe',  body: 'Make a careful observation of the phenomenon.' },
+        { title: 'Hypothesise', body: 'Form a testable hypothesis to explain it.' },
+        { title: 'Experiment', body: 'Design and run a controlled experiment.' },
+        { title: 'Conclude', body: 'Analyse the data and draw a conclusion.' }
+      ] }),
+      render: (b) => {
+        const items = (b.data && b.data.items) || [];
+        if (!items.length) return '<p style="color:var(--text-4)">[Steps: empty]</p>';
+        return `<ol class="steps-list">${items.map(it => `
+          <li class="step-item">
+            <div class="step-title">${escapeHtml(it.title || '')}</div>
+            <div class="step-body">${renderMarkdown(it.body || '')}</div>
+          </li>`).join('')}</ol>`;
+      }
+    },
+    categorise: {
+      label: 'Categorise',
+      defaults: () => ({ prompt: 'Sort each item into the correct category.', categories: [
+        { name: 'Acids',   items: ['Hydrochloric acid', 'Citric acid'] },
+        { name: 'Bases',   items: ['Sodium hydroxide', 'Ammonia'] },
+        { name: 'Oxides',  items: ['Carbon dioxide', 'Iron oxide'] }
+      ] }),
+      render: renderCategorise
     }
   };
+
+  // ---------- renderers for the new kinds ----------
+  // renderCategorise(b) — items live at the top, category buckets below.
+  // The student clicks an item, then a bucket; we record the assignment in
+  // data-pick-* attributes that bindCategorise later scores.
+  function renderCategorise(b) {
+    const d = b.data || {};
+    const cats = d.categories || [];
+    // Flatten items with their correct category index.
+    const items = [];
+    cats.forEach((c, ci) => (c.items || []).forEach(t => items.push({ text: t, correct: ci })));
+    if (!items.length) return practiceWrap(`<div class="prompt">[Categorise: add items in the editor]</div>`);
+    // Shuffle so the items aren't in a predictable order.
+    const shuffled = items.map(x => x);
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return practiceWrap(`
+      <div class="prompt">${escapeHtml(d.prompt || 'Sort each item into the correct category.')}</div>
+      <div class="cat-items" data-pbid="cat-items">
+        ${shuffled.map((it, i) => `<button type="button" class="cat-item" data-idx="${i}" data-correct="${it.correct}">${escapeHtml(it.text)}</button>`).join('')}
+      </div>
+      <div class="cat-grid" data-pbid="cat-buckets">
+        ${cats.map((c, ci) => `<div class="cat-bucket" data-cat="${ci}">
+          <div class="cat-bucket-head">${escapeHtml(c.name || `Category ${ci + 1}`)}</div>
+          <div class="cat-bucket-body" data-bucket-body="${ci}"></div>
+        </div>`).join('')}
+      </div>
+      <div class="check-row">
+        <button type="button" class="check-btn" data-pb="check">Check</button>
+        <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
+      </div>
+      <div data-pb="feedback"></div>
+    `);
+  }
 
   // ---------- interactivity wiring -----------------------------------------
   // attachInteractivity(blocks, container, onScore) walks every block in
@@ -730,6 +842,83 @@
     });
   }
 
+  // bindCategorise(rootEl, d, blockId, onScore) — student picks an item
+  // tile, then a bucket, to assign the item. Each bucket collects the
+  // item DOM nodes; the Check button compares each item's stored
+  // data-correct against its assigned bucket's data-cat.
+  function bindCategorise(rootEl, d, blockId, onScore) {
+    const items = rootEl.querySelectorAll('[data-pbid="cat-items"] .cat-item');
+    const buckets = rootEl.querySelectorAll('[data-pbid="cat-buckets"] .cat-bucket');
+    const check = rootEl.querySelector('[data-pb="check"]');
+    const reset = rootEl.querySelector('[data-pb="reset"]');
+    const feedback = rootEl.querySelector('[data-pb="feedback"]');
+    const itemPool = rootEl.querySelector('[data-pbid="cat-items"]');
+    let active = null;
+    function clearActive() { if (active) active.classList.remove('selected'); active = null; }
+    items.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.classList.contains('correct') || btn.classList.contains('wrong')) return;
+        if (active === btn) { clearActive(); return; }
+        clearActive();
+        active = btn; btn.classList.add('selected');
+      });
+    });
+    buckets.forEach(b => {
+      b.addEventListener('click', () => {
+        if (b.classList.contains('correct') || b.classList.contains('wrong')) return;
+        if (!active) return;
+        const body = b.querySelector('.cat-bucket-body');
+        active.classList.remove('selected');
+        // Move the item into the bucket body.
+        body.appendChild(active);
+        active = null;
+      });
+    });
+    check.addEventListener('click', () => {
+      // Anything still in the item pool is unplaced — score as wrong.
+      const placed = [...rootEl.querySelectorAll('.cat-item')];
+      const inPool = [...itemPool.querySelectorAll('.cat-item')];
+      if (!placed.length) { showFeedback(rootEl, 'Place each item into a category first.', 'info'); return; }
+      let correct = 0;
+      placed.forEach(btn => {
+        const expected = parseInt(btn.dataset.correct, 10);
+        const bucketEl = btn.closest('.cat-bucket');
+        const got = bucketEl ? parseInt(bucketEl.dataset.cat, 10) : -1;
+        btn.classList.remove('selected');
+        if (got === expected) { btn.classList.add('correct'); correct++; }
+        else { btn.classList.add('wrong'); }
+      });
+      inPool.forEach(btn => {
+        if (!btn.classList.contains('correct') && !btn.classList.contains('wrong')) {
+          btn.classList.add('wrong');
+        }
+      });
+      buckets.forEach(b => {
+        if (b.querySelector('.cat-item.correct')) b.classList.add('correct');
+        else if (b.querySelector('.cat-item.wrong')) b.classList.add('wrong');
+      });
+      const total = items.length;
+      const allRight = correct === total;
+      showFeedback(rootEl,
+        (allRight ? '✓ All sorted correctly!' : `You got ${correct} of ${total} in the right category.`),
+        allRight ? 'ok' : 'bad'
+      );
+      check.disabled = true; reset.hidden = false;
+      if (onScore) onScore(blockId, correct, total || 1);
+    });
+    reset.addEventListener('click', () => {
+      // Re-render to put items back in the pool with fresh listeners.
+      const fresh = renderCategorise({ data: d });
+      const tmp = document.createElement('div');
+      tmp.innerHTML = fresh;
+      const newRoot = tmp.querySelector('[data-block-id]') || tmp.firstElementChild;
+      // Replace in place.
+      rootEl.innerHTML = newRoot ? newRoot.innerHTML : fresh;
+      clearFeedback(rootEl); setCheckEnabled(rootEl, true);
+      bindCategorise(rootEl, d, blockId, onScore);
+    });
+  }
+
   function bindHotspot(rootEl, d, blockId, onScore) {
     const wrap = rootEl.querySelector('[data-pbid="hs-wrap"]');
     if (!wrap) return;
@@ -786,6 +975,7 @@
       case 'ordering':  bindOrdering(rootEl, b.data, blockId, onScore); break;
       case 'hotspot':   bindHotspot(rootEl, b.data, blockId, onScore); break;
       case 'tabs':      bindTabs(rootEl, b.data); break;
+      case 'categorise':bindCategorise(rootEl, b.data, blockId, onScore); break;
     }
   }
 
