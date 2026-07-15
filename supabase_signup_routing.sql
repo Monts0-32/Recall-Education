@@ -2,11 +2,19 @@
 -- Recall Education — Sign-up routing, schools, and teacher accounts
 -- Run this AFTER supabase_setup.sql, supabase_tables.sql, supabase_staff.sql,
 -- supabase_uploads.sql, supabase_consent_enforcement.sql, supabase_dashboard.sql,
--- supabase_admin.sql, and supabase_units.sql. Idempotent: safe to re-run.
+-- supabase_admin.sql, supabase_units.sql, and supabase_school_organisers.sql.
+-- Idempotent: safe to re-run.
 --
 -- What this does:
---   1. Widens profiles.role to include 'teacher' (in addition to the
---      existing student / staff_author / staff_reviewer / admin).
+--   1. Re-stamps profiles_role_check so it includes every role that
+--      has shipped so far (student / teacher / school_organiser /
+--      staff_author / staff_reviewer / admin). The constraint was
+--      first added in supabase_staff.sql with 2 values, widened in
+--      supabase_admin.sql to 4, and widened again in
+--      supabase_school_organisers.sql to 5 (adding 'school_organiser'
+--      and 'teacher'). This file drops and re-adds the constraint
+--      with the same 5 values so any future narrowing stays in one
+--      place, and the file is idempotent.
 --   2. Adds profiles.school_id so teachers can be linked to a school.
 --   3. Adds the public.schools table — one row per school, with a
 --      short code (e.g. 'BIRM-2024') that teachers can type during
@@ -26,15 +34,21 @@
 -- ============================================================================
 
 -- ---------- 1. WIDEN PROFILES.ROLE (school_id added in section 2) ---------
--- Drop the 4-value CHECK (student/staff_author/staff_reviewer/admin)
--- temporarily so we can add 'teacher'.
+-- Drop the 5-value CHECK (student/teacher/school_organiser/staff_author/
+-- staff_reviewer/admin — already in place from supabase_school_organisers.sql)
+-- temporarily, then re-add it. The constraint is unchanged in this
+-- migration; we drop+re-add so any future narrowing happens in one
+-- place, and the file stays idempotent if the constraint was renamed.
 alter table public.profiles drop constraint if exists profiles_role_check;
 
 alter table public.profiles
   alter column role set default 'student';
 alter table public.profiles
   add constraint profiles_role_check
-  check (role in ('student', 'teacher', 'staff_author', 'staff_reviewer', 'admin'));
+  check (role in (
+    'student', 'teacher', 'school_organiser',
+    'staff_author', 'staff_reviewer', 'admin'
+  ));
 
 -- ---------- 2. SCHOOLS TABLE ----------------------------------------------
 -- One row per school. The `code` is a short, human-typable string that
