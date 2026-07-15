@@ -28,8 +28,15 @@ create policy "lesson_images_read_all" on storage.objects
   using (bucket_id = 'lesson-images');
 
 -- Staff write: object path must start with 'lessons/', caller must have
--- profile.role = 'staff'. Update is allowed under the same conditions so
--- staff can swap an uploaded file.
+-- one of the staff roles ('staff_author' / 'staff_reviewer' / 'admin') set
+-- on profiles.role. The legacy 'staff' literal is no longer valid — the
+-- role enum was widened in supabase_admin.sql to four values, so any
+-- policy still checking role = 'staff' will silently reject every real
+-- user (the WITH CHECK fails, the upload returns
+-- "new row violates row-level security policy", and the editor shows
+-- "Upload failed" in the toast). Re-run supabase_uploads.sql after pulling
+-- these changes to drop and recreate the policies with the right
+-- allowlist.
 drop policy if exists "lesson_images_staff_write" on storage.objects;
 create policy "lesson_images_staff_write" on storage.objects
   for insert to authenticated
@@ -38,7 +45,8 @@ create policy "lesson_images_staff_write" on storage.objects
     and (storage.foldername(name))[1] = 'lessons'
     and exists (
       select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'staff'
+      where p.id = auth.uid()
+        and p.role in ('staff_author', 'staff_reviewer', 'admin')
     )
   );
 
@@ -60,6 +68,55 @@ create policy "lesson_images_staff_delete" on storage.objects
   for delete to authenticated
   using (
     bucket_id = 'lesson-images'
+    and owner = auth.uid()
+  );
+
+-- ---------- 2b. LESSON-AUDIO BUCKET + POLICIES ----------------------------
+-- The audio block in the lesson creator (see handleAudioUpload in
+-- lesson-creator.html) uploads to the 'lesson-audio' bucket. The bucket
+-- wasn't created by the original supabase_uploads.sql — the audio
+-- Upload button would fail with "bucket not found" on first click. Same
+-- RLS pattern as the image bucket: public read, staff-only writes under
+-- the 'lessons/' prefix, owner-scoped update + delete.
+insert into storage.buckets (id, name, public)
+values ('lesson-audio', 'lesson-audio', true)
+on conflict (id) do nothing;
+
+drop policy if exists "lesson_audio_read_all" on storage.objects;
+create policy "lesson_audio_read_all" on storage.objects
+  for select to anon, authenticated
+  using (bucket_id = 'lesson-audio');
+
+drop policy if exists "lesson_audio_staff_write" on storage.objects;
+create policy "lesson_audio_staff_write" on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'lesson-audio'
+    and (storage.foldername(name))[1] = 'lessons'
+    and exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid()
+        and p.role in ('staff_author', 'staff_reviewer', 'admin')
+    )
+  );
+
+drop policy if exists "lesson_audio_staff_update" on storage.objects;
+create policy "lesson_audio_staff_update" on storage.objects
+  for update to authenticated
+  using (
+    bucket_id = 'lesson-audio'
+    and owner = auth.uid()
+  )
+  with check (
+    bucket_id = 'lesson-audio'
+    and owner = auth.uid()
+  );
+
+drop policy if exists "lesson_audio_staff_delete" on storage.objects;
+create policy "lesson_audio_staff_delete" on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'lesson-audio'
     and owner = auth.uid()
   );
 
@@ -103,13 +160,17 @@ alter table public.lesson_blocks
 -- ============================================================================
 -- DONE.
 --
--- After running this, promote a user to staff if you haven't already:
+-- After running this, make sure your user has one of the staff roles on
+-- profiles.role. The legacy 'staff' literal was retired by supabase_admin.sql
+-- — set 'staff_author' for content authors, 'staff_reviewer' for reviewers,
+-- or 'admin' for full access. Example:
 --
 --   update public.profiles
---      set role = 'staff'
+--      set role = 'staff_author'
 --    where id = 'PASTE-USER-ID';
 --
--- Then sign in, open staff.html, and start authoring. The image block now
--- has an "Upload" button that uses this bucket, and the block picker shows
--- the 15 new kinds.
+-- Then sign in, open staff.html, and start authoring. The image block
+-- has an "Upload" button that uses the lesson-images bucket, the audio
+-- block uses the lesson-audio bucket, and the block picker shows the
+-- 15 new kinds.
 -- ============================================================================
