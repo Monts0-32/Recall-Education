@@ -3182,10 +3182,21 @@
   // ---------- block picker (grouped) ----------
   const BLOCK_GROUPS = {
     'Text & structure': ['heading', 'text', 'callout', 'image', 'video', 'math', 'audio', 'divider', 'quote', 'keypoints', 'worked_example', 'reveal', 'flashcard'],
-    'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot', 'categorise'],
+    'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot', 'categorise', 'html'],
     'Layout': ['accordion', 'tabs', 'compare', 'timeline', 'steps'],
     'Study aids': ['objectives', 'prerequisites', 'glossary', 'summary', 'cardset'],
   };
+
+  // Some block kinds can only be added by reviewers / admins. This is a
+  // UX gate (the button is disabled and tagged 🔒); the real safety is
+  // the sandboxed iframe + completion contract on the renderer side, but
+  // gating the author prevents a compromised staff_author account from
+  // sneaking interactive content into a draft.
+  const RESTRICTED_KINDS = { html: ['staff_reviewer', 'admin'] };
+  function canUseKind(kind) {
+    const allow = RESTRICTED_KINDS[kind];
+    return !allow || allow.includes(state.role);
+  }
 
   function renderBlockPicker() {
     const picker = document.getElementById('blockPicker');
@@ -3195,7 +3206,14 @@
       const label = `<span class="group-label">${escapeHtml(group)}</span>`;
       const btns = kinds.map(k => {
         if (!BLOCK_DEFS[k]) return '';
-        return `<button class="picker-btn" onclick="addBlock('${k}')" title="${escapeHtml(BLOCK_DEFS[k].label)}">+ ${escapeHtml(BLOCK_DEFS[k].label)}</button>`;
+        const allowed = canUseKind(k);
+        const onclick = allowed
+          ? `onclick="addBlock('${k}')"`
+          : `onclick="toast('${escapeHtml(BLOCK_DEFS[k].label)} can only be added by reviewers and admins.', 'error'); return false;"`;
+        const dis = allowed ? '' : 'disabled';
+        const lock = allowed ? '' : ' 🔒';
+        const title = allowed ? escapeHtml(BLOCK_DEFS[k].label) : 'Reviewer / admin only';
+        return `<button class="picker-btn" ${dis} title="${title}" ${onclick}>+ ${escapeHtml(BLOCK_DEFS[k].label)}${lock}</button>`;
       }).join('');
       return `${sep}${label}${btns}`;
     }).join('');
@@ -3333,6 +3351,7 @@
           <button class="icon-btn" title="Move up"   ${isFirst ? 'disabled' : ''} onclick="moveBlock(${i}, -1)">▲</button>
           <button class="icon-btn" title="Move down" ${isLast  ? 'disabled' : ''} onclick="moveBlock(${i}, +1)">▼</button>
           <button class="icon-btn" title="Duplicate" onclick="duplicateBlock(${i})">⎘</button>
+          ${b.kind === 'html' ? `<button class="icon-btn" title="HTML block settings" onclick="openHtmlBlockSettings(${i})">⚙</button>` : ''}
           <button class="icon-btn danger" title="Delete" onclick="deleteBlock(${i})">✕</button>
         </div>
         <div class="block-body">
@@ -4428,6 +4447,174 @@
   // behaviour in a switch that consults the extra table first.
 
   // block state mutations
+
+  // ---- HTML block editor ----
+  // Author can write freeform HTML / CSS / JS. The renderer builds a
+  // sandboxed iframe (sandbox="allow-scripts" only) and a tiny shim wires
+  // window.RecallGame.register({onComplete}) -> parent.postMessage so the
+  // student's "Mark complete" can be gated on this block.
+  //
+  // The settings modal is a quick-access surface for the few users who
+  // already know what they're doing — toggle required-completion or change
+  // the iframe height without scrolling the giant code area.
+  function renderHtmlEditor(b, i) {
+    const d = b.data || {};
+    const safe = (s) => escapeHtml(s == null ? '' : s);
+    const id = `htmlb-${i}`;
+    return `
+      <div class="form-row">
+        <label>HTML</label>
+        <textarea class="mono" rows="6" placeholder='<button id="finish">Mark activity done</button>' oninput="updateBlock(${i}, {html: this.value})">${safe(d.html)}</textarea>
+      </div>
+      <div class="form-row">
+        <label>CSS <span style="color:var(--text-4); font-weight:400;">(scoped to the iframe)</span></label>
+        <textarea class="mono" rows="4" placeholder='#finish { padding: 10px 16px; background: #58A6FF; color: #0D1117; border: 0; border-radius: 6px; cursor: pointer; }' oninput="updateBlock(${i}, {css: this.value})">${safe(d.css)}</textarea>
+      </div>
+      <div class="form-row">
+        <label>JS</label>
+        <textarea class="mono" rows="6" placeholder='document.getElementById("finish").onclick = function() {&#10;  parent.postMessage({ type: "recall-block-complete", score: 1, total: 1 }, "*");&#10;};' oninput="updateBlock(${i}, {js: this.value})">${safe(d.js)}</textarea>
+        <div style="color:var(--text-4); font-size:11px; margin-top:4px; line-height:1.45;">
+          Author's helper script: <span class="mono">window.RecallGame.register({ onComplete: function(payload) { ... } })</span>.
+          On completion call <span class="mono">onComplete({ score: 1, total: 1 })</span> and the parent will be notified.
+          (If you don't use the helper contract, post a message with <span class="mono">type: "recall-block-complete"</span> directly.)
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Optional script import <span style="color:var(--text-4); font-weight:400;">(URL of a JS file the author hosts — e.g. an educational game library)</span></label>
+        <input value="${safe(d.scriptImport)}" oninput="updateBlock(${i}, {scriptImport: this.value})" placeholder="https://example.com/my-game.js" />
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${d.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required — student must complete this before marking the lesson done
+        </label>
+      </div>
+      <div class="form-row inline">
+        <label>Iframe height (px)</label>
+        <input type="number" min="80" max="2000" step="10" value="${d.height || 360}" oninput="updateBlock(${i}, {height: parseInt(this.value, 10) || 360})" style="width:100px;" />
+      </div>
+      <div class="form-row">
+        <label>Live preview</label>
+        <div id="${id}-preview" class="html-block-preview-wrap"></div>
+        <div style="color:var(--text-4); font-size:11px; margin-top:4px;">
+          The preview iframe is identical to what the student sees (sandboxed). The "Mark activity done" button here
+          is a no-op in the editor — only the student-facing <em>Mark complete</em> is gated.
+        </div>
+      </div>
+    `;
+  }
+
+  // Re-render the live preview inside the html-block editor. Called from
+  // the input handlers via a debounced window.refreshHtmlPreview.
+  window.refreshHtmlPreview = (i) => {
+    const wrap = document.querySelector(`#htmlb-${i}-preview`);
+    if (!wrap) return;
+    const b = state.currentLesson.blocks[i];
+    if (!b) return;
+    // Use the same renderer the student sees (lesson-render.js). The
+    // renderer imports a global function in the staff page via the
+    // shared <script> include at the top of the file.
+    if (window.LessonRender && typeof window.LessonRender.renderBlock === 'function') {
+      wrap.innerHTML = window.LessonRender.renderBlock(b);
+    } else {
+      wrap.innerHTML = '<p style="color: var(--text-4)">Preview unavailable.</p>';
+    }
+  };
+
+  // Settings modal — quick access to required + height. The fields write
+  // through to the same data structure the main editor uses.
+  window.openHtmlBlockSettings = (i) => {
+    const b = state.currentLesson.blocks[i];
+    if (!b || b.kind !== 'html') return;
+    const existing = document.getElementById('htmlBlockSettingsModal');
+    if (existing) existing.remove();
+    const required = !!(b.data && b.data.required);
+    const height = (b.data && b.data.height) || 360;
+    const scriptImport = (b.data && b.data.scriptImport) || '';
+    const modal = document.createElement('div');
+    modal.id = 'htmlBlockSettingsModal';
+    modal.className = 'modal-backdrop';
+    modal.innerHTML = `
+      <div class="modal" role="dialog" aria-labelledby="htmlBlockSettingsTitle">
+        <div class="modal-head">
+          <h3 id="htmlBlockSettingsTitle">HTML block settings</h3>
+          <button class="icon-btn" onclick="closeHtmlBlockSettings()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <label>Script import (URL)</label>
+            <input id="htmlSetImport" value="${escapeHtml(scriptImport)}" placeholder="https://example.com/my-game.js" />
+            <div style="color:var(--text-4); font-size:11px; margin-top:4px;">
+              If set, the author has declared their game uses the RecallGame completion contract. The block can then
+              be marked <strong>required</strong> below so the student must finish it before marking the lesson done.
+            </div>
+          </div>
+          <div class="form-row">
+            <label style="display:flex;align-items:center;gap:6px;">
+              <input id="htmlSetRequired" type="checkbox" ${required ? 'checked' : ''} ${scriptImport ? '' : 'disabled'} />
+              Required to complete before continuing
+            </label>
+            <div id="htmlSetRequiredHint" style="color:var(--text-4); font-size:11px; margin-top:4px;">
+              ${scriptImport
+                ? 'A script import is set — required-completion is available.'
+                : 'Set a script import above before requiring completion. (The iframe can still signal completion via postMessage, but the intended contract uses RecallGame.)'}
+            </div>
+          </div>
+          <div class="form-row inline">
+            <label>Block height (px)</label>
+            <input id="htmlSetHeight" type="number" min="80" max="2000" step="10" value="${height}" style="width:100px;" />
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn" onclick="closeHtmlBlockSettings()">Cancel</button>
+          <button class="btn primary" onclick="saveHtmlBlockSettings(${i})">Save</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    // Toggle the "required" disabled state if the import changes
+    const importInput = modal.querySelector('#htmlSetImport');
+    const reqInput = modal.querySelector('#htmlSetRequired');
+    const hint = modal.querySelector('#htmlSetRequiredHint');
+    importInput.addEventListener('input', () => {
+      const hasImport = !!importInput.value.trim();
+      reqInput.disabled = !hasImport;
+      hint.textContent = hasImport
+        ? 'A script import is set — required-completion is available.'
+        : 'Set a script import above before requiring completion.';
+    });
+  };
+
+  window.closeHtmlBlockSettings = () => {
+    const m = document.getElementById('htmlBlockSettingsModal');
+    if (m) m.remove();
+  };
+
+  window.saveHtmlBlockSettings = (i) => {
+    const b = state.currentLesson.blocks[i];
+    if (!b || b.kind !== 'html') return;
+    const importVal = (document.getElementById('htmlSetImport').value || '').trim();
+    const requiredEl = document.getElementById('htmlSetRequired');
+    const height = parseInt(document.getElementById('htmlSetHeight').value, 10) || 360;
+    const patch = { scriptImport: importVal, height };
+    if (importVal) {
+      patch.required = !!requiredEl.checked;
+    } else {
+      // Strip required if the import was removed — otherwise the
+      // completion contract can't be relied on.
+      patch.required = false;
+    }
+    window.updateBlock(i, patch);
+    closeHtmlBlockSettings();
+    // Re-render the inline editor body so the inline form values stay in sync.
+    const block = document.querySelector(`.block[data-block-index="${i}"]`);
+    if (block) {
+      const body = block.querySelector('.block-body');
+      if (body) body.innerHTML = renderBlockEditorBody(state.currentLesson.blocks[i], i);
+      window.refreshHtmlPreview(i);
+    }
+  };
+
   window.updateBlock = (i, patch) => {
     Object.assign(state.currentLesson.blocks[i].data, patch);
     state.dirty = true;
@@ -4442,9 +4629,19 @@
       preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
       bindInteractive(preview, state.currentLesson.blocks[i]);
     }
+    // HTML block: refresh the live preview (debounced so we don't
+    // rebuild the iframe on every keystroke).
+    if (state.currentLesson.blocks[i] && state.currentLesson.blocks[i].kind === 'html') {
+      clearTimeout(window._htmlPreviewTimer);
+      window._htmlPreviewTimer = setTimeout(() => window.refreshHtmlPreview(i), 250);
+    }
   };
 
   window.addBlock = (kind) => {
+    if (!canUseKind(kind)) {
+      toast('You don\'t have permission to add this block.', 'error');
+      return;
+    }
     const def = BLOCK_DEFS[kind];
     if (!def) return;
     state.currentLesson.blocks.push({
@@ -5011,6 +5208,7 @@
     divider:       (b, i) => renderDividerEditor(b, i),
     quote:         (b, i) => renderQuoteEditor(b, i),
     cardset:       (b, i) => renderCardsetEditor(b, i),
+    html:          (b, i) => renderHtmlEditor(b, i),
   };
 
   // ---------- go ----------

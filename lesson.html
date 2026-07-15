@@ -335,6 +335,54 @@
     .summary-card .takeaways li { color: var(--text); margin-bottom: 4px; font-size: 13px; }
     .summary-card .body { color: var(--text-2); font-size: 13px; }
 
+    /* ---------- interactive HTML block (sandboxed iframe) ---------- */
+    .html-block {
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 8px;
+    }
+    .html-block.html-block-required {
+      border-color: var(--yellow);
+      box-shadow: 0 0 0 1px var(--yellow-dim);
+    }
+    .html-block.html-block-done {
+      border-color: var(--green);
+      box-shadow: 0 0 0 1px var(--green-dim);
+    }
+    .html-block-iframe {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      border-radius: var(--r-sm);
+      display: block;
+    }
+    .html-block-gate {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: var(--green-dim);
+      border: 1px solid var(--green);
+      border-radius: var(--r-sm);
+      color: var(--text);
+      font-size: 12.5px;
+      text-align: center;
+    }
+    /* "Custom interactive content" pill in the lesson header */
+    .interactive-pill {
+      display: inline-block;
+      margin-left: 10px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      background: rgba(210, 153, 34, 0.15);
+      color: #e3b341;
+      border: 1px solid rgba(210, 153, 34, 0.3);
+      vertical-align: middle;
+    }
+
     /* ---------- BOTTOM ACTION BAR ---------- */
     .action-bar {
       position: fixed; left: 0; right: 0; bottom: 0;
@@ -617,6 +665,13 @@
       ${L0.topic ? ' · ' + escapeHtml(L0.topic.name) : ''}
       · ${L0.duration_min ?? 20} min
     `;
+    // "Custom interactive content" pill — shown when the lesson contains
+    // at least one html block. Honest UX so the student knows what
+    // they're about to open.
+    const hasInteractive = session.blocks.some(b => b.kind === 'html');
+    $('lessonMeta').insertAdjacentHTML('beforeend',
+      hasInteractive ? ' <span class="interactive-pill" title="This lesson contains custom interactive content — your author wrote the HTML, CSS, and JavaScript inside it.">Custom interactive</span>' : ''
+    );
     $('progressText').textContent = `${session.blocks.length} block${session.blocks.length === 1 ? '' : 's'}`;
 
     // Render blocks.
@@ -632,7 +687,35 @@
     L.attachInteractivity(session.blocks, body, (blockId, score, total) => {
       session.blockScores.set(blockId, { score, total });
       updateProgress();
+      refreshMarkComplete();
     });
+
+    // postMessage listener — wired ONCE per render. The author's
+    // sandboxed iframe (kind='html') signals completion via
+    // parent.postMessage({type:'recall-block-complete', blockId, score, total}).
+    // We rely on content validation (type + matching blockId) rather
+    // than origin, because the sandboxed iframe has a null origin and
+    // event.source is opaque. This is the standard pattern for
+    // CodePen/JSFiddle-style sandboxes.
+    if (!session._msgListenerWired) {
+      session._msgListenerWired = true;
+      window.addEventListener('message', (e) => {
+        if (!e.data || e.data.type !== 'recall-block-complete' || !e.data.blockId) return;
+        const wrap = $('body').querySelector(`[data-block-id="${CSS.escape(e.data.blockId)}"]`);
+        if (!wrap || !wrap.classList.contains('html-block')) return;
+        // Mark the block as done. The score is informational — required
+        // html blocks unlock the Mark-complete button purely on receipt
+        // of this message.
+        const score = typeof e.data.score === 'number' ? e.data.score : 1;
+        const total = typeof e.data.total === 'number' ? e.data.total : 1;
+        session.blockScores.set(e.data.blockId, { score, total });
+        wrap.classList.add('html-block-done');
+        const gate = wrap.querySelector('.html-block-gate');
+        if (gate) gate.hidden = false;
+        updateProgress();
+        refreshMarkComplete();
+      });
+    }
 
     // Reveal everything.
     $('loadingBar').hidden = true;
@@ -640,6 +723,23 @@
     $('body').hidden = false;
     $('actionBar').hidden = false;
     updateProgress();
+    refreshMarkComplete();
+  }
+
+  // isLessonCompletable() — false when any html block marked required
+  // is still unfinished. Called on render, after each score, and from
+  // the Mark-complete click handler.
+  function isLessonCompletable() {
+    const required = $('body').querySelectorAll('.html-block[data-required="true"]');
+    if (!required.length) return true;
+    return [...required].every(w => w.classList.contains('html-block-done'));
+  }
+
+  function refreshMarkComplete() {
+    const btn = $('markCompleteBtn');
+    if (!btn) return;
+    btn.disabled = !isLessonCompletable();
+    btn.title = btn.disabled ? 'Complete the required activities above first.' : '';
   }
 
   function updateProgress() {
@@ -760,6 +860,13 @@
   // ---------- mark complete ----------
   $('markCompleteBtn').addEventListener('click', async () => {
     if (session.completed) return;
+    // Defence-in-depth: even though the button is disabled when a
+    // required html block is unfinished, an enterprising student could
+    // enable it via devtools. Refuse here too.
+    if (!isLessonCompletable()) {
+      toast('Complete the required activities above first.', 'error');
+      return;
+    }
     session.completed = true;
     $('markCompleteBtn').disabled = true;
     $('markCompleteBtn').textContent = 'Saving…';

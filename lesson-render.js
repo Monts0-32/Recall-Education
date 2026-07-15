@@ -534,8 +534,105 @@
         { name: 'Oxides',  items: ['Carbon dioxide', 'Iron oxide'] }
       ] }),
       render: renderCategorise
+    },
+
+    // ---------- html block (interactive iframe) ----------
+    // The HTML block lets an author drop in arbitrary HTML/CSS/JS as a
+    // sandboxed <iframe>. The iframe runs in a null origin (sandbox="allow-scripts"
+    // only) so it cannot reach the parent page's Supabase client, auth
+    // session, or DOM. The author signals "this activity is done" by
+    // declaring window.RecallGame = { register({onComplete}) { ... onComplete(); } }
+    // in the iframe; we route that to a postMessage the parent listens for.
+    // See supabase_uploads.sql (CHECK widening) and lesson.html
+    // (postMessage listener, completion gate) for the rest.
+    html: {
+      label: 'HTML (interactive)',
+      defaults: () => ({
+        html: '<button id="finish">Mark activity done</button>',
+        css:  '#finish { padding: 10px 16px; background: #58A6FF; color: white; border: 0; border-radius: 6px; font-size: 14px; cursor: pointer; }\n#finish:hover { background: #1F6FEB; }',
+        js:   'document.getElementById("finish").onclick = function() {\n  // Tell the parent the activity is done.\n  parent.postMessage({ type: "recall-block-complete", score: 1, total: 1 }, "*");\n};',
+        scriptImport: '',
+        required: false,
+        height: 360,
+      }),
+      render: renderHtmlBlock
     }
   };
+
+  // renderHtmlBlock(b) — wrap an iframe in a stable div that the student
+  // player can find via [data-block-id]. The iframe is the only render
+  // surface; the "Required to complete" UI is layered on by lesson.html
+  // once the postMessage fires.
+  function renderHtmlBlock(b) {
+    const d = b.data || {};
+    const height = Math.max(80, Math.min(2000, parseInt(d.height, 10) || 360));
+    const srcdoc = buildHtmlSrcdoc(d, b.id);
+    return `<div class="html-block" data-block-id="${escapeHtml(b.id || '')}" data-required="${d.required ? 'true' : 'false'}">
+      <iframe class="html-block-iframe" sandbox="allow-scripts" srcdoc="${srcdoc}" title="Interactive content" loading="lazy"></iframe>
+      ${d.required ? '<div class="html-block-gate" hidden><span>✓ Completed — you can continue.</span></div>' : ''}
+    </div>`;
+  }
+
+  // buildHtmlSrcdoc(data, blockId) — assemble the iframe's source document.
+  // Author content is concatenated into a single srcdoc string. We rely on
+  // the attribute-quote-escape performed by the caller (renderHtmlBlock),
+  // since we are inside an attribute value. Within the document itself the
+  // author's HTML/JS runs as written — we are not sanitising the author's
+  // own content. The sandbox prevents the content from reaching the
+  // parent; the parent validates postMessage by content (type +
+  // blockId), not origin, because the iframe has a null origin.
+  function buildHtmlSrcdoc(data, blockId) {
+    const safeId = String(blockId || '').replace(/[^A-Za-z0-9_-]/g, '');
+    const safeImport = String(data.scriptImport || '').trim();
+    // Validate the import URL: only http(s). The author's own page can
+    // be anything; we just refuse obvious nonsense like javascript:.
+    let importTag = '';
+    if (safeImport) {
+      let parsed = null;
+      try { parsed = new URL(safeImport, location.href); } catch (_) {}
+      if (parsed && (parsed.protocol === 'http:' || parsed.protocol === 'https:')) {
+        importTag = `<script src="${escapeHtml(safeImport)}"></script>`;
+      }
+    }
+    return [
+      '<!doctype html><html><head><meta charset="utf-8">',
+      '<style>html,body{margin:0;padding:0;background:transparent;color:#F0F6FC;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}',
+      String(data.css || ''),
+      '</style></head><body>',
+      String(data.html || ''),
+      importTag,
+      '<script>(function(){',
+        'var BLOCK_ID=' + JSON.stringify(safeId) + ';',
+        'var tries=0;',
+        'function wire(){',
+          'if (window.RecallGame && typeof window.RecallGame.register === "function") {',
+            'window.RecallGame.register({',
+              'onComplete: function(payload) {',
+                'parent.postMessage({',
+                  'type: "recall-block-complete",',
+                  'blockId: BLOCK_ID,',
+                  'score: (payload && typeof payload.score === "number") ? payload.score : 1,',
+                  'total: (payload && typeof payload.total === "number") ? payload.total : 1',
+                '}, "*");',
+              '}',
+            '});',
+          '} else if (tries++ < 50) {',
+            'setTimeout(wire, 100);',
+          '}',
+        '}',
+        'wire();',
+        'try{',
+          // Author's freeform JS runs after the shim is wired so
+          // window.RecallGame.register calls from the import can race
+          // with the author's inline code.
+          '(function(){' + String(data.js || '') + '})();',
+        '}catch(e){',
+          'console.error("Author JS error:", e);',
+        '}',
+      '})();</script>',
+      '</body></html>'
+    ].join('');
+  }
 
   // ---------- renderers for the new kinds ----------
   // renderCategorise(b) — items live at the top, category buckets below.
@@ -976,6 +1073,10 @@
       case 'hotspot':   bindHotspot(rootEl, b.data, blockId, onScore); break;
       case 'tabs':      bindTabs(rootEl, b.data); break;
       case 'categorise':bindCategorise(rootEl, b.data, blockId, onScore); break;
+      // 'html' is interactive but the interaction is a postMessage from
+      // the sandboxed iframe to the parent (lesson.html), not a
+      // bindInteractive call. See buildHtmlSrcdoc + lesson.html.
+      case 'html':      break;
     }
   }
 

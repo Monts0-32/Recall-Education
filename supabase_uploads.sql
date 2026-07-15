@@ -95,7 +95,9 @@ alter table public.lesson_blocks
     -- study aids (4)
     'objectives','prerequisites','glossary','summary',
     -- 6 new block kinds (2026-07)
-    'audio','divider','quote','cardset','steps','categorise'
+    'audio','divider','quote','cardset','steps','categorise',
+    -- 1 new block kind (2026-07-15) — interactive HTML/JS (sandboxed iframe)
+    'html'
   ));
 
 -- ============================================================================

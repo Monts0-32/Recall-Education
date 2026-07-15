@@ -1611,7 +1611,7 @@
 
     function hide() { out.hidden = true; out.innerHTML = ''; }
 
-    function showResults(rows, exactId) {
+    function showResults(rows, exactId, htmlLessonIds) {
       if (!rows.length) {
         out.innerHTML = `<div style="padding: 14px; color: var(--text-4); font-size: 13px;">No matches.</div>`;
         out.hidden = false;
@@ -1624,13 +1624,17 @@
         const tags = (l.tags || []).slice(0, 3)
           .map(t => `<span style="background: var(--bg-3); color: var(--text-3); padding: 1px 6px; border-radius: 999px; font-size: 10.5px; margin-right: 3px;">#${escapeHtml(t)}</span>`)
           .join('');
+        const hasHtml = htmlLessonIds && htmlLessonIds.has(l.id);
+        const htmlPill = hasHtml
+          ? `<span title="This lesson contains interactive HTML/JS content." style="background: rgba(210,153,34,0.15); color: #e3b341; padding: 1px 6px; border-radius: 999px; font-size: 10.5px; margin-left: 6px;">Custom interactive</span>`
+          : '';
         return `
           <a href="lesson.html?code=${encodeURIComponent(l.code || l.id)}"
              style="display: block; padding: 10px 12px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--text);"
              onmouseover="this.style.background='var(--bg-3)'"
              onmouseout="this.style.background='transparent'">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-              <div style="font-size: 13.5px; font-weight: 500;">${escapeHtml(l.title)}</div>
+              <div style="font-size: 13.5px; font-weight: 500; display: flex; align-items: center; gap: 6px;">${escapeHtml(l.title)}${htmlPill}</div>
               ${l.code ? `<code style="font-family: var(--font-mono); font-size: 11px; color: var(--text-4);">${escapeHtml(l.code)}</code>` : ''}
             </div>
             <div style="font-size: 11.5px; color: var(--text-3); margin-top: 2px;">${subjectPath} · ${l.duration_min ?? 20}m</div>
@@ -1666,7 +1670,21 @@
       if (q !== lastQuery) return;
       const exactRow = (exact.data || [])[0];
       const fuzzyRows = (fuzzy.data || []).filter(r => r.id !== exactRow?.id);
-      showResults([exactRow, ...fuzzyRows].filter(Boolean));
+      const allRows = [exactRow, ...fuzzyRows].filter(Boolean);
+      // 3. Detect which of the result lessons contain an 'html' block —
+      // these get a "Custom interactive" pill in the dropdown.
+      const htmlLessonIds = new Set();
+      if (allRows.length) {
+        const ids = allRows.map(r => r.id);
+        const { data: htmlRows } = await supabaseClient
+          .from('lesson_blocks')
+          .select('lesson_id')
+          .in('lesson_id', ids)
+          .eq('kind', 'html');
+        (htmlRows || []).forEach(r => htmlLessonIds.add(r.lesson_id));
+        if (q !== lastQuery) return;
+      }
+      showResults(allRows, null, htmlLessonIds);
     }
 
     input.addEventListener('input', () => {
