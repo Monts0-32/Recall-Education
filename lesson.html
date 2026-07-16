@@ -650,6 +650,12 @@
     profile: null,
     lesson: null,
     blocks: [],
+    blockFrames: new Map(),   // blockId -> the DOM element that carries
+                              // .block-pending / .block-revealed classes
+                              // (the "frame"). Used by the reveal
+                              // controller instead of querySelector, so
+                              // we don't have to disambiguate wrapper
+                              // vs non-wrapper kinds.
     startedAt: Date.now(),
     lastBeatAt: Date.now(),
     pendingSeconds: 0,
@@ -823,6 +829,14 @@
         frame.classList.add('block-pending');
       }
       body.appendChild(frame);
+      // Track the frame by id so the reveal controller can find it
+      // without a DOM query. The binder still finds the block via
+      // data-block-id (which is on the frame for wrapper kinds and
+      // on the inner div for non-wrapper kinds — both are reached
+      // by the binder's querySelector, which finds the *first*
+      // match; we leave that as-is and store our own frame ref
+      // here).
+      session.blockFrames.set(b.id, frame);
       // Append the Continue button under every block except the last.
       // (The last block needs no Continue — the student scrolls down
       // to the action bar and presses Mark complete from there.)
@@ -938,9 +952,15 @@
     btn.disabled = true;
     const nextBlock = session.blocks[currentIndex + 1];
     if (!nextBlock) return;
-    // Find the rendered frame by data-block-id (more robust than
-    // indexing since render order matches session.blocks order).
-    const nextEl = $('body').querySelector(`[data-block-id="${CSS.escape(nextBlock.id)}"]`);
+    // Look up the next frame in the map we built during the render
+    // loop. Using the map (rather than a DOM querySelector) avoids a
+    // subtle bug: for non-wrapper block kinds (heading, text, callout,
+    // image, etc.) the renderBlock output wraps the element in
+    // <div data-block-id="...">, and our outer .block-frame is *above*
+    // that — so a querySelector('[data-block-id=...]') would find the
+    // inner div, not the frame, and classList.remove('block-pending')
+    // would target the wrong element. The map sidesteps that.
+    const nextEl = session.blockFrames.get(nextBlock.id);
     if (!nextEl) return;
     nextEl.classList.remove('block-pending');
     nextEl.classList.add('block-revealed');
