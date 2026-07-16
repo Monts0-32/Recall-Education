@@ -519,28 +519,17 @@
        block starts with .block-pending. The reveal controller removes
        .block-pending and adds .block-revealed when the student presses
        the Continue button (after any required gating has passed). */
-    .block-pending {
-      opacity: 0;
-      transform: translateY(8px);
-      pointer-events: none;
-      max-height: 0;
-      overflow: hidden;
-      margin: 0 !important;
-      padding-top: 0 !important;
-      padding-bottom: 0 !important;
-      border-color: transparent !important;
-    }
+    .block-pending { display: none; }
     .block-revealed {
-      opacity: 1;
-      transform: none;
-      pointer-events: auto;
-      max-height: none;
-      overflow: visible;
-      transition: opacity 0.35s ease, transform 0.35s ease;
+      display: block;
+      animation: blockFadeIn 0.35s ease;
+    }
+    @keyframes blockFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: none; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .block-revealed { transition: opacity 0.2s linear; transform: none !important; }
-      .block-pending  { transform: none !important; }
+      .block-revealed { animation: none; }
     }
 
     /* ---------- CONTINUE BUTTON ---------- */
