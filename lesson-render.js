@@ -34,6 +34,45 @@
     return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
   }
 
+  // numericSynonyms(s) — turn digit and word forms of small numbers into
+  // a canonical (digit) form. Used by compareBlank() so that an answer
+  // of 'one' and a student input of '1' (or vice versa) match. We
+  // always normalise to the digit form so the comparison is symmetric:
+  //   numericSynonyms('one')  === '1'
+  //   numericSynonyms('1')    === '1'
+  //   numericSynonyms('two')  === '2'
+  // Bounded to 0–10 — extending past 10 is a one-line table edit.
+  const WORD_NUM = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10 };
+  function numericSynonyms(s) {
+    let out = ' ' + String(s || '').toLowerCase() + ' ';
+    // word → digit first, then digit stays as digit (no second pass needed).
+    out = out.replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\b/g, (w) => WORD_NUM[w] || w);
+    return out.trim();
+  }
+
+  // compareBlank(got, want) — true if `got` matches `want` leniently.
+  // Three rules, in order:
+  //   1. exact match after normText (case + whitespace tolerant)
+  //   2. synonym match via numericSynonyms (1 ↔ one, 2 ↔ two, …, 10 ↔ ten)
+  //   3. 70% prefix fill: when want has >= 4 chars and got is shorter
+  //      than want, the first ceil(0.7 * len(want)) characters of want
+  //      must match `got` exactly. Returns true in that case so the
+  //      Check handler can auto-complete the rest of the word.
+  // The 70% rule only fires for shorter inputs — typing more than the
+  // answer (e.g. an extra letter) falls through to strict equality.
+  function compareBlank(got, want) {
+    const a = normText(got);
+    const b = normText(want);
+    if (!a) return false;
+    if (a === b) return true;
+    if (numericSynonyms(a) === numericSynonyms(b)) return true;
+    if (b.length >= 4 && a.length < b.length) {
+      const need = Math.ceil(b.length * 0.7);
+      if (a.length >= need && b.startsWith(a)) return true;
+    }
+    return false;
+  }
+
   // Lightweight Markdown: fences, headings, lists, blockquote, inline
   // bold/italic/code/links. Input is escaped first so any user-supplied
   // HTML is rendered as text. Good enough for educational content; not
@@ -852,21 +891,29 @@
     const blanks = d.blanks || [];
     check.addEventListener('click', () => {
       if (![...inputs].some(i => i.value)) { showFeedback(rootEl, 'Fill in the blanks first.', 'info'); return; }
-      const results = [...inputs].map((inp, i) => ({
-        ok: normText(inp.value) === normText((blanks[i] || {}).answer),
-        input: inp
-      }));
+      const results = [...inputs].map((inp, i) => {
+        const want = (blanks[i] || {}).answer || '';
+        const ok = compareBlank(inp.value, want);
+        return { ok, inp, want };
+      });
       const correctCount = results.filter(r => r.ok).length;
       const total = blanks.length || 1;
       const allRight = correctCount === total;
-      results.forEach(r => r.input.classList.add(r.ok ? 'correct' : 'wrong'));
+      results.forEach(r => {
+        r.inp.classList.add(r.ok ? 'correct' : 'wrong');
+        if (r.ok && r.inp.value !== r.want) {
+          // 70% prefix fill: complete the answer in the input so the
+          // student sees what they got (a Check-time auto-complete,
+          // not a real-time one).
+          r.inp.value = r.want;
+        }
+      });
       results.forEach((r, i) => {
         if (!r.ok) {
-          const ans = (blanks[i] || {}).answer;
           const span = document.createElement('span');
           span.className = 'reveal-line';
-          span.textContent = ` (${ans})`;
-          r.input.insertAdjacentElement('afterend', span);
+          span.textContent = ` (${(blanks[i] || {}).answer})`;
+          r.inp.insertAdjacentElement('afterend', span);
         }
       });
       showFeedback(rootEl,

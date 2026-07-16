@@ -67,6 +67,23 @@ function makeFakeNode(tag) {
     node.childNodes.push(child);
     return child;
   };
+  node.insertAdjacentElement = (pos, newNode) => {
+    if (!node.parentNode) return null;
+    if (pos === 'afterend') {
+      const idx = node.parentNode.children.indexOf(node);
+      node.parentNode.children.splice(idx + 1, 0, newNode);
+      node.parentNode.childNodes.splice(idx + 1, 0, newNode);
+      newNode.parentNode = node.parentNode;
+    } else if (pos === 'beforebegin') {
+      const idx = node.parentNode.children.indexOf(node);
+      node.parentNode.children.splice(idx, 0, newNode);
+      node.parentNode.childNodes.splice(idx, 0, newNode);
+      newNode.parentNode = node.parentNode;
+    } else {
+      return node.appendChild(newNode);
+    }
+    return newNode;
+  };
   node.closest = function(sel) {
     let a = node;
     while (a) {
@@ -302,7 +319,13 @@ const fakeWindow = {
   // So we just need a writable host object.
 };
 const fakeDocument = {
-  // unused — lesson-render.js doesn't touch document
+  // Minimal createElement — the fill-blank wrong-answer branch builds
+  // a <span class="reveal-line"> via document.createElement. We just
+  // need a node with textContent and a className.
+  createElement(tag) {
+    const n = makeFakeNode(tag || 'div');
+    return n;
+  },
 };
 const sandbox = { window: fakeWindow, document: fakeDocument, console };
 // Provide a couple of safety nets the file might reference indirectly.
@@ -488,6 +511,150 @@ console.log('\n=== bindDenaryBinary: allowRetry=false hides reset, required adds
   assert(reset.hidden === true, 'denary_binary reset hidden when allowRetry=false');
   assert(wrap._classes.has('practice-done'), 'practice-done class added for required denary_binary');
   assert(wrap._attrs['data-required'] === 'true', 'data-required="true" on rendered wrapper');
+}
+
+console.log('\n=== bindFillBlank: exact match works (case-insensitive) ===');
+{
+  setup();
+  const b = block('fb1', 'fillblank', { text: 'The sky is ___.', blanks: [{ answer: 'blue' }], explanation: '' });
+  const html = renderBlock(b);
+  const root = parseHtml(html);
+  body.appendChild(root.querySelector('[data-block-id="fb1"]'));
+  const wrap = body.querySelector('[data-block-id="fb1"]');
+  bindInteractive(wrap, b, makeOnScore());
+  const inp = wrap.querySelector('[data-fb="0"]');
+  inp.value = 'BLUE'; // mixed case
+  inp.dispatchEvent({ type: 'input' });
+  wrap.querySelector('[data-pb="check"]').click();
+  assert(inp._classes.has('correct'), 'exact match (case-insensitive): input marked correct');
+  // The auto-fill normalises the input to the canonical answer form
+  // ('blue') even on exact match — this is intentional, the student
+  // sees the canonical case after Check, the same as the 70% fill.
+  assert(inp.value === 'blue', 'exact match: input normalised to canonical form');
+}
+
+console.log('\n=== bindFillBlank: 70% prefix auto-fills ===');
+{
+  setup();
+  // 'mitochondrion' is 14 chars; ceil(0.7*14) = 10 chars needed.
+  const b = block('fb1', 'fillblank', { text: 'Cell power: ___.', blanks: [{ answer: 'mitochondrion' }], explanation: '' });
+  const html = renderBlock(b);
+  const root = parseHtml(html);
+  body.appendChild(root.querySelector('[data-block-id="fb1"]'));
+  const wrap = body.querySelector('[data-block-id="fb1"]');
+  bindInteractive(wrap, b, makeOnScore());
+  const inp = wrap.querySelector('[data-fb="0"]');
+  // 10 chars: 'mitochondr' — should auto-fill to 'mitochondrion' and be marked correct.
+  inp.value = 'mitochondr';
+  inp.dispatchEvent({ type: 'input' });
+  wrap.querySelector('[data-pb="check"]').click();
+  assert(inp._classes.has('correct'), '70% prefix: input marked correct');
+  assert(inp.value === 'mitochondrion', '70% prefix: input auto-filled to full answer');
+}
+
+console.log('\n=== bindFillBlank: 70% rule does NOT fire for short input ===');
+{
+  setup();
+  const b = block('fb1', 'fillblank', { text: 'Cell power: ___.', blanks: [{ answer: 'mitochondrion' }], explanation: '' });
+  const html = renderBlock(b);
+  const root = parseHtml(html);
+  body.appendChild(root.querySelector('[data-block-id="fb1"]'));
+  const wrap = body.querySelector('[data-block-id="fb1"]');
+  bindInteractive(wrap, b, makeOnScore());
+  const inp = wrap.querySelector('[data-fb="0"]');
+  // 8 chars 'mitochon' < 10 needed.
+  inp.value = 'mitochon';
+  inp.dispatchEvent({ type: 'input' });
+  wrap.querySelector('[data-pb="check"]').click();
+  assert(inp._classes.has('wrong'), 'short prefix (< 70%): input marked wrong');
+  assert(inp.value === 'mitochon', 'short prefix: input unchanged (no auto-fill)');
+}
+
+console.log('\n=== bindFillBlank: 1 ↔ one synonym match ===');
+{
+  setup();
+  const b = block('fb1', 'fillblank', { text: 'I have ___ apple.', blanks: [{ answer: 'one' }], explanation: '' });
+  const html = renderBlock(b);
+  const root = parseHtml(html);
+  body.appendChild(root.querySelector('[data-block-id="fb1"]'));
+  const wrap = body.querySelector('[data-block-id="fb1"]');
+  bindInteractive(wrap, b, makeOnScore());
+  const inp = wrap.querySelector('[data-fb="0"]');
+  // Student typed the digit, answer is the word.
+  inp.value = '1';
+  inp.dispatchEvent({ type: 'input' });
+  wrap.querySelector('[data-pb="check"]').click();
+  assert(inp._classes.has('correct'), 'synonym "1" for "one": correct');
+}
+{
+  // Reverse direction: student types the word, answer is the digit.
+  setup();
+  const b = block('fb1', 'fillblank', { text: 'I have ___ apple.', blanks: [{ answer: '2' }], explanation: '' });
+  const html = renderBlock(b);
+  const root = parseHtml(html);
+  body.appendChild(root.querySelector('[data-block-id="fb1"]'));
+  const wrap = body.querySelector('[data-block-id="fb1"]');
+  bindInteractive(wrap, b, makeOnScore());
+  const inp = wrap.querySelector('[data-fb="0"]');
+  inp.value = 'TWO'; // mixed case + word
+  inp.dispatchEvent({ type: 'input' });
+  wrap.querySelector('[data-pb="check"]').click();
+  assert(inp._classes.has('correct'), 'synonym "TWO" for "2": correct');
+}
+
+console.log('\n=== bindFillBlank: synonym rejection (one !== two) ===');
+{
+  setup();
+  const b = block('fb1', 'fillblank', { text: 'I have ___ apple.', blanks: [{ answer: 'one' }], explanation: '' });
+  const html = renderBlock(b);
+  const root = parseHtml(html);
+  body.appendChild(root.querySelector('[data-block-id="fb1"]'));
+  const wrap = body.querySelector('[data-block-id="fb1"]');
+  bindInteractive(wrap, b, makeOnScore());
+  const inp = wrap.querySelector('[data-fb="0"]');
+  inp.value = 'two';
+  inp.dispatchEvent({ type: 'input' });
+  wrap.querySelector('[data-pb="check"]').click();
+  assert(inp._classes.has('wrong'), 'synonym "two" for "one" rejected (different numbers)');
+}
+
+console.log('\n=== bindFillBlank: 70% rule does NOT fire for non-prefix match ===');
+{
+  setup();
+  // 'dioxside' starts with 'diox' (a prefix of 'dioxide'), but is LONGER
+  // than 'dioxide' (8 vs 7 chars), so the 70% rule (which only fires
+  // for shorter inputs) doesn't apply. Strict equality fails. Wrong.
+  const b = block('fb1', 'fillblank', { text: 'Photosynthesis: CO2 and ___.', blanks: [{ answer: 'dioxide' }], explanation: '' });
+  const html = renderBlock(b);
+  const root = parseHtml(html);
+  body.appendChild(root.querySelector('[data-block-id="fb1"]'));
+  const wrap = body.querySelector('[data-block-id="fb1"]');
+  bindInteractive(wrap, b, makeOnScore());
+  const inp = wrap.querySelector('[data-fb="0"]');
+  inp.value = 'dioxside';
+  inp.dispatchEvent({ type: 'input' });
+  wrap.querySelector('[data-pb="check"]').click();
+  assert(inp._classes.has('wrong'), 'longer-than-answer input: marked wrong (no 70% rule)');
+}
+
+console.log('\n=== bindFillBlank: 70% rule does NOT fire for short answer (< 4 chars) ===');
+{
+  setup();
+  // 'a' is too short for 70% rule. 'a' !== 'a' fails (a IS equal — that's
+  // strict equality, not 70%). Now test 'I have a ___' with answer 'cat':
+  // Student types 'ca' (2 chars), 'cat' is 3 chars. Strict equality
+  // fails, 70% rule doesn't fire (need >= 4 chars), so wrong.
+  const b = block('fb1', 'fillblank', { text: 'I have a ___.', blanks: [{ answer: 'cat' }], explanation: '' });
+  const html = renderBlock(b);
+  const root = parseHtml(html);
+  body.appendChild(root.querySelector('[data-block-id="fb1"]'));
+  const wrap = body.querySelector('[data-block-id="fb1"]');
+  bindInteractive(wrap, b, makeOnScore());
+  const inp = wrap.querySelector('[data-fb="0"]');
+  inp.value = 'ca';
+  inp.dispatchEvent({ type: 'input' });
+  wrap.querySelector('[data-pb="check"]').click();
+  assert(inp._classes.has('wrong'), 'short answer (< 4 chars): 70% rule disabled, partial prefix is wrong');
 }
 
 console.log('\n=== Old block without allowRetry field: behaves as allowRetry=true ===');

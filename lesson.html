@@ -467,6 +467,123 @@
     a:focus-visible, button:focus-visible, input:focus-visible {
       outline: 2px solid var(--blue); outline-offset: 2px;
     }
+
+    /* ---------- LESSON POLISH (block cards + reveal) ---------- */
+    /* Block wrappers — every block (practice, html, accordion, tabs,
+       or a wrapped heading/text/callout/etc.) becomes a card with
+       a background, border, and breathing room. The .practice,
+       .accordion, .tabs, .html-block rules above already style the
+       inside; this just gives the *outer* frame a consistent feel. */
+    .block-frame,
+    .lesson-body .practice,
+    .lesson-body .accordion,
+    .lesson-body .tabs,
+    .lesson-body .html-block {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 18px 20px;
+    }
+    /* Headings inside blocks: section dividers, not inline text. */
+    .lesson-body h2 {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 6px;
+      margin-top: 4px;
+    }
+    /* Lesson body typography — denser, more readable. */
+    .lesson-body {
+      font-size: 15.5px;
+      line-height: 1.7;
+    }
+    .lesson-body p { margin: 0 0 12px; }
+    .lesson-body > div { margin-bottom: 28px; }
+    /* Lesson header — sticky-style card. */
+    .lesson-head {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 24px 24px 16px;
+      margin-top: 32px;
+    }
+    .progress-bar { height: 6px; }
+    /* Action bar — slightly taller, lifted off the page with a shadow. */
+    .action-bar {
+      padding: 14px 24px;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
+    }
+    .action-bar .row { gap: 14px; }
+    .action-bar .meta-text { font-size: 12.5px; }
+
+    /* ---------- BLOCK REVEAL (one-at-a-time) ---------- */
+    /* The first block is rendered with .block-revealed; every other
+       block starts with .block-pending. The reveal controller removes
+       .block-pending and adds .block-revealed when the student presses
+       the Continue button (after any required gating has passed). */
+    .block-pending {
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      max-height: 0;
+      overflow: hidden;
+      margin: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      border-color: transparent !important;
+    }
+    .block-revealed {
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+      max-height: none;
+      overflow: visible;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .block-revealed { transition: opacity 0.2s linear; transform: none !important; }
+      .block-pending  { transform: none !important; }
+    }
+
+    /* ---------- CONTINUE BUTTON ---------- */
+    /* A full-width button under each block. The student presses it to
+       reveal the next block. When a block is required, the button is
+       locked (greyed out, lock icon) until the student attempts the
+       block (the binder fires onScore on Check). */
+    .block-continue {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      margin-top: 18px;
+      padding: 10px 16px;
+      background: var(--blue-2);
+      color: #fff;
+      border: 0;
+      border-radius: var(--r-sm);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
+    }
+    .block-continue:hover { background: var(--blue); }
+    .block-continue:active { transform: translateY(1px); }
+    .block-continue:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .block-continue .arrow {
+      display: inline-block;
+      animation: continueBounce 1.6s ease-in-out infinite;
+    }
+    @keyframes continueBounce {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(3px); }
+    }
+    .block-continue.continue-locked {
+      background: var(--bg-3);
+      color: var(--text-3);
+      border: 1px solid var(--line-2);
+    }
+    .block-continue.continue-locked .arrow { animation: none; }
+    .block-continue .lock { font-size: 13px; }
   </style>
 </head>
 <body>
@@ -682,13 +799,45 @@
     );
     $('progressText').textContent = `${session.blocks.length} block${session.blocks.length === 1 ? '' : 's'}`;
 
-    // Render blocks.
+    // Render blocks one at a time. The first block is revealed
+    // immediately; the rest start with .block-pending (hidden by CSS)
+    // and are revealed when the student presses the Continue button
+    // under the current block. Required blocks gate the next button —
+    // see revealNext() and refreshContinueButton().
     const body = $('body');
     body.innerHTML = '';
-    session.blocks.forEach(b => {
-      const wrap = document.createElement('div');
-      wrap.innerHTML = L.renderBlock(b);
-      body.appendChild(wrap.firstElementChild || wrap);
+    session.blocks.forEach((b, i) => {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = L.renderBlock(b);
+      const node = tmp.firstElementChild;
+      // The renderer may return its own outer wrapper (practice /
+      // accordion / tabs / html-block) or a bare element (heading,
+      // text, callout, …). For wrapper-bearing kinds we re-use the
+      // existing element as the frame; for everything else we wrap
+      // the bare element in a fresh .block-frame so it gets the
+      // card styling.
+      let frame;
+      if (node && (node.classList.contains('practice')
+                || node.classList.contains('accordion')
+                || node.classList.contains('tabs')
+                || node.classList.contains('html-block'))) {
+        frame = node;
+      } else {
+        frame = document.createElement('div');
+        frame.className = 'block-frame';
+        if (node) frame.appendChild(node);
+      }
+      frame.dataset.blockIndex = String(i);
+      if (i === 0) {
+        frame.classList.add('block-revealed');
+      } else {
+        frame.classList.add('block-pending');
+      }
+      body.appendChild(frame);
+      // Append the Continue button under every block except the last.
+      // (The last block needs no Continue — the student scrolls down
+      // to the action bar and presses Mark complete from there.)
+      appendContinueButton(frame, b, i);
     });
 
     // Attach interactivity, capturing scores per block.
@@ -701,6 +850,14 @@
       // treats `practice-done` the same as `html-block-done`.
       const wrap = $('body').querySelector(`[data-block-id="${CSS.escape(blockId)}"]`);
       if (wrap && wrap.classList.contains('practice')) wrap.classList.add('practice-done');
+      // Update the Continue button under this block: if the block is
+      // required and not yet attempted, the button is locked; once
+      // attempted, it unlocks. For non-required blocks this is a no-op
+      // (the button is already unlocked).
+      if (wrap && wrap._continueBtn) {
+        const found = findBlock(blockId);
+        if (found) refreshContinueButton(wrap, found.block, found.index, wrap._continueBtn);
+      }
       updateProgress();
       refreshMarkComplete();
     });
@@ -727,18 +884,95 @@
         wrap.classList.add('html-block-done');
         const gate = wrap.querySelector('.html-block-gate');
         if (gate) gate.hidden = false;
+        // Same Continue-button refresh as the practice onScore path.
+        if (wrap._continueBtn) {
+          const found = findBlock(e.data.blockId);
+          if (found) refreshContinueButton(wrap, found.block, found.index, wrap._continueBtn);
+        }
         updateProgress();
         refreshMarkComplete();
       });
     }
 
-    // Reveal everything.
+    // Unhide the chrome (nav, head, body, action bar). Block visibility
+    // is now controlled per-block by the .block-pending / .block-revealed
+    // classes — see appendContinueButton() and revealNext().
     $('loadingBar').hidden = true;
     $('head').hidden = false;
     $('body').hidden = false;
     $('actionBar').hidden = false;
     updateProgress();
     refreshMarkComplete();
+  }
+
+  // ---------- reveal controller ----------
+
+  // findBlock(id) — look up a block by id, returning { block, index }
+  // or null. Used by the onScore callback and postMessage listener
+  // when refreshing the Continue button under a block.
+  function findBlock(id) {
+    const idx = session.blocks.findIndex(b => b.id === id);
+    return idx >= 0 ? { block: session.blocks[idx], index: idx } : null;
+  }
+
+  // appendContinueButton(frame, block, index) — append a "Continue"
+  // button to the frame (every block except the last). The button is
+  // the student's only way to reveal the next block. Required blocks
+  // lock the button until the binder fires onScore.
+  function appendContinueButton(frame, block, index) {
+    if (index === session.blocks.length - 1) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'block-continue';
+    btn.innerHTML = 'Continue <span class="arrow">↓</span>';
+    btn.addEventListener('click', () => revealNext(block, index, btn));
+    frame.appendChild(btn);
+    frame._continueBtn = btn;
+    refreshContinueButton(frame, block, index, btn);
+  }
+
+  // revealNext(currentBlock, currentIndex, btn) — gating logic + reveal.
+  // If the current block is required, the student must attempt it
+  // (binder fires onScore on Check) before the next block reveals.
+  function revealNext(currentBlock, currentIndex, btn) {
+    if (currentBlock.data && currentBlock.data.required
+        && !session.blockScores.has(currentBlock.id)) {
+      toast('Attempt the required activity above first.', 'error');
+      return;
+    }
+    btn.disabled = true; // prevent double-clicks during transition
+    const nextBlock = session.blocks[currentIndex + 1];
+    if (!nextBlock) return;
+    // Find the rendered frame by data-block-id (more robust than
+    // indexing since render order matches session.blocks order).
+    const nextEl = $('body').querySelector(`[data-block-id="${CSS.escape(nextBlock.id)}"]`);
+    if (!nextEl) return;
+    nextEl.classList.remove('block-pending');
+    nextEl.classList.add('block-revealed');
+    // Smooth-scroll the new block into view.
+    nextEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // refreshContinueButton(frame, block, index, btn) — recompute the
+  // Continue button's locked state. Called once per render and every
+  // time a block is scored (onScore callback + html postMessage).
+  function refreshContinueButton(frame, block, index, btn) {
+    if (!btn) return;
+    const isLast = index === session.blocks.length - 1;
+    if (isLast) { btn.remove(); return; }
+    const required = block.data && block.data.required;
+    const attempted = session.blockScores.has(block.id);
+    const locked = required && !attempted;
+    btn.classList.toggle('continue-locked', locked);
+    btn.disabled = locked;
+    btn.title = locked
+      ? 'Attempt the required activity above first.'
+      : '';
+    if (locked) {
+      btn.innerHTML = '<span class="lock">🔒</span> Attempt required activity first';
+    } else {
+      btn.innerHTML = 'Continue <span class="arrow">↓</span>';
+    }
   }
 
   // isLessonCompletable() — false when any block marked required (html
