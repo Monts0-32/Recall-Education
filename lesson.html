@@ -940,7 +940,13 @@
       toast('Attempt the required activity above first.', 'error');
       return;
     }
-    btn.disabled = true; // prevent double-clicks during transition
+    // Briefly disable the button to prevent double-clicks during the
+    // 350ms reveal animation, then re-enable. (A previous version of
+    // this function disabled the button without re-enabling it, which
+    // locked the button after the very first click and made the
+    // "click does nothing" symptom — the student could only ever
+    // advance one block.)
+    btn.disabled = true;
     const nextBlock = session.blocks[currentIndex + 1];
     if (!nextBlock) return;
     // Find the rendered frame by data-block-id (more robust than
@@ -951,6 +957,7 @@
     nextEl.classList.add('block-revealed');
     // Smooth-scroll the new block into view.
     nextEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => { btn.disabled = false; }, 400);
   }
 
   // refreshContinueButton(frame, block, index, btn) — recompute the
