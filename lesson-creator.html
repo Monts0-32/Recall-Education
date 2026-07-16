@@ -824,6 +824,14 @@
       background: var(--red-dim); border-color: var(--red);
     }
     .preview .practice .db-bit.wrong .db-bit-place { color: var(--red); }
+    /* Practice "done" indicator in the editor preview — mirrors the
+       .practice.practice-done rule in lesson.html. Set by the
+       attachInteractivity onScore callback when the staff clicks Check
+       inside the preview. */
+    .preview .practice.practice-done {
+      box-shadow: 0 0 0 1px var(--green);
+      border-radius: var(--r-sm);
+    }
 
     /* Match */
     .preview .practice .match-grid {
@@ -3700,6 +3708,16 @@
         <label>Explanation (shown after checking)</label>
         <textarea oninput="updateBlock(${i}, {explanation: this.value})">${escapeHtml(b.data.explanation || '')}</textarea>
       </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${b.data.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required — student must attempt before marking lesson done
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${b.data.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
+      </div>
       <div class="form-row" style="margin: 0;">
         <label>Preview (click options, then Check)</label>
         <div class="preview">${renderBlock(b)}</div>
@@ -3749,6 +3767,16 @@
         <label>Explanation (shown after checking)</label>
         <textarea oninput="updateBlock(${i}, {explanation: this.value})">${escapeHtml(b.data.explanation || '')}</textarea>
       </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${b.data.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required — student must attempt before marking lesson done
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${b.data.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
+      </div>
       <div class="form-row" style="margin: 0;">
         <label>Preview</label>
         <div class="preview">${renderBlock(b)}</div>
@@ -3771,6 +3799,16 @@
       <div class="form-row">
         <label>Explanation (shown after checking)</label>
         <textarea oninput="updateBlock(${i}, {explanation: this.value})">${escapeHtml(b.data.explanation || '')}</textarea>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${b.data.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required — student must attempt before marking lesson done
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${b.data.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
       </div>
       <div class="form-row" style="margin: 0;">
         <label>Preview</label>
@@ -3809,6 +3847,16 @@
       <div class="form-row">
         <label>Explanation (shown after checking)</label>
         <textarea oninput="updateBlock(${i}, {explanation: this.value})">${escapeHtml(b.data.explanation || '')}</textarea>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${b.data.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required — student must attempt before marking lesson done
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${b.data.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
       </div>
       <div class="form-row" style="margin: 0;">
         <label>Preview</label>
@@ -3897,6 +3945,16 @@
         <label>Explanation (shown after checking)</label>
         <textarea oninput="updateBlock(${i}, {explanation: this.value})" placeholder="e.g. 173 = 128 + 32 + 8 + 4 + 1 = 10101101 in 8-bit binary.">${escapeHtml(d.explanation || '')}</textarea>
       </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${d.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required — student must attempt before marking lesson done
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${d.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
+      </div>
       <div class="form-row" style="margin: 0;">
         <label>Preview (toggle the bits, then Check)</label>
         <div class="preview">${renderBlock(b)}</div>
@@ -3973,6 +4031,16 @@
           <button class="add" onclick="addMatchPair(${i})">+ Add pair</button>
         </div>
       </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${b.data.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required — student must attempt before marking lesson done
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${b.data.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
+      </div>
       <div class="form-row" style="margin: 0;">
         <label>Preview</label>
         <div class="preview">${renderBlock(b)}</div>
@@ -4018,6 +4086,16 @@
       <div class="form-row">
         <label>Explanation (shown after checking)</label>
         <textarea oninput="updateBlock(${i}, {explanation: this.value})">${escapeHtml(b.data.explanation || '')}</textarea>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${b.data.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required — student must attempt before marking lesson done
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${b.data.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
       </div>
       <div class="form-row" style="margin: 0;">
         <label>Preview</label>
@@ -4067,6 +4145,16 @@
           `).join('')}
           <button class="add" onclick="addHotspot(${i})">+ Add hotspot</button>
         </div>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${b.data.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required — student must attempt before marking lesson done
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${b.data.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
       </div>
       <div class="form-row" style="margin: 0;">
         <label>Preview (click the image to test)</label>
@@ -4584,6 +4672,16 @@
           <button class="add" onclick="addCategory(${i})">+ Add category</button>
         </div>
         <span class="hint">Use a newline to separate items. Each item is automatically assigned to the category it lives under.</span>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${b.data.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required — student must attempt before marking lesson done
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${b.data.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
       </div>
       <div class="form-row" style="margin: 0;">
         <label>Preview (click an item, then click a category to place it)</label>

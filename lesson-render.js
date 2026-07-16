@@ -464,14 +464,14 @@
     },
 
     // Interactive practice
-    mcq: { label: 'Multiple choice', defaults: () => ({ prompt: 'Which organelle is the powerhouse of the cell?', multi: false, options: [{ text: 'Nucleus', correct: false, feedback: 'The nucleus stores DNA, but it is not the energy producer.' }, { text: 'Mitochondrion', correct: true, feedback: 'Correct — mitochondria carry out aerobic respiration, producing ATP.' }, { text: 'Ribosome', correct: false, feedback: 'Ribosomes synthesise proteins, not ATP.' }, { text: 'Golgi apparatus', correct: false, feedback: 'The Golgi packages and ships proteins.' }], explanation: 'Mitochondria are often called the powerhouse of the cell because they generate most of the cell\'s ATP through aerobic respiration.' }), render: renderMCQ },
-    truefalse: { label: 'True / False', defaults: () => ({ prompt: 'The Earth orbits the Sun once every 365.25 days.', answer: true, explanation: 'A sidereal year is approximately 365.256 days; the .25 is why we add a leap day every four years.' }), render: renderTrueFalse },
-    shortanswer: { label: 'Short answer', defaults: () => ({ prompt: 'What is the chemical symbol for gold?', answers: ['Au', 'au'], explanation: 'Gold\'s symbol comes from its Latin name, *aurum*.' }), render: renderShortAnswer },
-    fillblank: { label: 'Fill in the blank', defaults: () => ({ text: 'Photosynthesis converts carbon ___ and water into glucose and ___ using sunlight.', blanks: [{ answer: 'dioxide' }, { answer: 'oxygen' }], explanation: 'The general equation is 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂.' }), render: renderFillBlank },
-    match: { label: 'Match pairs', defaults: () => ({ prompt: 'Match each scientist to their discovery.', pairs: [{ left: 'Newton', right: 'Laws of motion' }, { left: 'Darwin', right: 'Natural selection' }, { left: 'Mendel', right: 'Inheritance' }, { left: 'Curie', right: 'Radioactivity' }] }), render: renderMatch },
-    ordering: { label: 'Order steps', defaults: () => ({ prompt: 'Put these steps of the scientific method in the correct order.', items: [{ id: 'a', text: 'Form a hypothesis' }, { id: 'b', text: 'Make an observation' }, { id: 'c', text: 'Analyse the data' }, { id: 'd', text: 'Draw a conclusion' }], explanation: 'A typical scientific method: observe → hypothesise → experiment → analyse → conclude.' }), render: renderOrdering },
-    hotspot: { label: 'Image hotspot', defaults: () => ({ imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/640px-Cat03.jpg', alt: 'A cat', hotspots: [{ x: 50, y: 40, label: 'Ear', correct: true }, { x: 30, y: 70, label: 'Whiskers', correct: false }] }), render: renderHotspot },
-    denary_binary: { label: 'Denary → binary', defaults: () => ({ prompt: 'Convert the following denary number to binary.', denary: 173, bitWidth: 8, explanation: '' }), render: renderDenaryBinary },
+    mcq: { label: 'Multiple choice', defaults: () => ({ prompt: 'Which organelle is the powerhouse of the cell?', multi: false, options: [{ text: 'Nucleus', correct: false, feedback: 'The nucleus stores DNA, but it is not the energy producer.' }, { text: 'Mitochondrion', correct: true, feedback: 'Correct — mitochondria carry out aerobic respiration, producing ATP.' }, { text: 'Ribosome', correct: false, feedback: 'Ribosomes synthesise proteins, not ATP.' }, { text: 'Golgi apparatus', correct: false, feedback: 'The Golgi packages and ships proteins.' }], explanation: 'Mitochondria are often called the powerhouse of the cell because they generate most of the cell\'s ATP through aerobic respiration.', required: false, allowRetry: true }), render: renderMCQ },
+    truefalse: { label: 'True / False', defaults: () => ({ prompt: 'The Earth orbits the Sun once every 365.25 days.', answer: true, explanation: 'A sidereal year is approximately 365.256 days; the .25 is why we add a leap day every four years.', required: false, allowRetry: true }), render: renderTrueFalse },
+    shortanswer: { label: 'Short answer', defaults: () => ({ prompt: 'What is the chemical symbol for gold?', answers: ['Au', 'au'], explanation: 'Gold\'s symbol comes from its Latin name, *aurum*.', required: false, allowRetry: true }), render: renderShortAnswer },
+    fillblank: { label: 'Fill in the blank', defaults: () => ({ text: 'Photosynthesis converts carbon ___ and water into glucose and ___ using sunlight.', blanks: [{ answer: 'dioxide' }, { answer: 'oxygen' }], explanation: 'The general equation is 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂.', required: false, allowRetry: true }), render: renderFillBlank },
+    match: { label: 'Match pairs', defaults: () => ({ prompt: 'Match each scientist to their discovery.', pairs: [{ left: 'Newton', right: 'Laws of motion' }, { left: 'Darwin', right: 'Natural selection' }, { left: 'Mendel', right: 'Inheritance' }, { left: 'Curie', right: 'Radioactivity' }], required: false, allowRetry: true }), render: renderMatch },
+    ordering: { label: 'Order steps', defaults: () => ({ prompt: 'Put these steps of the scientific method in the correct order.', items: [{ id: 'a', text: 'Form a hypothesis' }, { id: 'b', text: 'Make an observation' }, { id: 'c', text: 'Analyse the data' }, { id: 'd', text: 'Draw a conclusion' }], explanation: 'A typical scientific method: observe → hypothesise → experiment → analyse → conclude.', required: false, allowRetry: true }), render: renderOrdering },
+    hotspot: { label: 'Image hotspot', defaults: () => ({ imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/640px-Cat03.jpg', alt: 'A cat', hotspots: [{ x: 50, y: 40, label: 'Ear', correct: true }, { x: 30, y: 70, label: 'Whiskers', correct: false }], required: false, allowRetry: true }), render: renderHotspot },
+    denary_binary: { label: 'Denary → binary', defaults: () => ({ prompt: 'Convert the following denary number to binary.', denary: 173, bitWidth: 8, explanation: '', required: false, allowRetry: true }), render: renderDenaryBinary },
 
     // Layout & structure
     accordion: { label: 'Accordion', defaults: () => ({ items: [{ title: 'What is mitosis?', markdown: 'Mitosis is the process of cell division that produces two genetically identical daughter cells.' }, { title: 'What is meiosis?', markdown: 'Meiosis produces four non-identical gametes, halving the chromosome number.' }] }), render: renderAccordion },
@@ -587,7 +587,7 @@
         { name: 'Acids',   items: ['Hydrochloric acid', 'Citric acid'] },
         { name: 'Bases',   items: ['Sodium hydroxide', 'Ammonia'] },
         { name: 'Oxides',  items: ['Carbon dioxide', 'Iron oxide'] }
-      ] }),
+      ], required: false, allowRetry: true }),
       render: renderCategorise
     },
 
@@ -784,7 +784,7 @@
       } else {
         showFeedback(rootEl, `✗ Not quite.${d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''}${extra}`, 'bad');
       }
-      check.disabled = true; reset.hidden = false;
+      check.disabled = true; reset.hidden = (d.allowRetry === false);
       if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
     });
     reset.addEventListener('click', () => {
@@ -813,7 +813,7 @@
         else o.classList.add('wrong');
       });
       showFeedback(rootEl, `${right ? '✓ Correct!' : '✗ Not quite.'}${d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''}`, right ? 'ok' : 'bad');
-      check.disabled = true; reset.hidden = false;
+      check.disabled = true; reset.hidden = (d.allowRetry === false);
       if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
     });
     reset.addEventListener('click', () => {
@@ -836,7 +836,7 @@
         (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
         right ? 'ok' : 'bad'
       );
-      input.disabled = true; check.disabled = true; reset.hidden = false;
+      input.disabled = true; check.disabled = true; reset.hidden = (d.allowRetry === false);
       if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
     });
     reset.addEventListener('click', () => {
@@ -875,7 +875,7 @@
         allRight ? 'ok' : 'bad'
       );
       inputs.forEach(i => i.disabled = true);
-      check.disabled = true; reset.hidden = false;
+      check.disabled = true; reset.hidden = (d.allowRetry === false);
       if (onScore) onScore(blockId, correctCount, total);
     });
     reset.addEventListener('click', () => {
@@ -933,7 +933,7 @@
       const allRight = correct === pairs.length && pairs.length > 0;
       showFeedback(rootEl, `${allRight ? '✓ All paired correctly!' : `You got ${correct} of ${pairs.length} right.`}`,
         allRight ? 'ok' : 'bad');
-      check.disabled = true; reset.hidden = false;
+      check.disabled = true; reset.hidden = (d.allowRetry === false);
       if (onScore) onScore(blockId, correct, pairs.length || 1);
     });
     reset.addEventListener('click', () => {
@@ -982,7 +982,7 @@
         (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
         allRight ? 'ok' : 'bad');
       list.querySelectorAll('.order-item').forEach(i => i.setAttribute('draggable', 'false'));
-      check.disabled = true; reset.hidden = false;
+      check.disabled = true; reset.hidden = (d.allowRetry === false);
       if (onScore) onScore(blockId, correctCount, total);
     });
     reset.addEventListener('click', () => {
@@ -1055,7 +1055,7 @@
         (allRight ? '✓ All sorted correctly!' : `You got ${correct} of ${total} in the right category.`),
         allRight ? 'ok' : 'bad'
       );
-      check.disabled = true; reset.hidden = false;
+      check.disabled = true; reset.hidden = (d.allowRetry === false);
       if (onScore) onScore(blockId, correct, total || 1);
     });
     reset.addEventListener('click', () => {
@@ -1149,7 +1149,7 @@
         (right ? '✓ Correct!' : `✗ Not quite — the answer was <code>${escapeHtml(expected)}</code> (denary ${denary}).`) +
         (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
         right ? 'ok' : 'bad');
-      check.disabled = true; reset.hidden = false;
+      check.disabled = true; reset.hidden = (d.allowRetry === false);
       if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
     });
     reset.addEventListener('click', () => {
@@ -1228,8 +1228,14 @@
     // wrapper so the listener attachment still works. For other types
     // wrap in a generic <div data-block-id>.
     if (html.startsWith('<div class="practice">') || html.startsWith('<div class="accordion">') || html.startsWith('<div class="tabs"')) {
-      // Inject the data-block-id on the first outer div.
-      return html.replace(/^<div /, `<div data-block-id="${escapeHtml(b.id)}" `);
+      // Inject the data-block-id (and data-required for practice blocks —
+      // the gating in lesson.html's isLessonCompletable reads both) on
+      // the first outer div.
+      const requiredAttr = (b.data && b.data.required) ? 'true' : 'false';
+      return html.replace(
+        /^<div /,
+        `<div data-block-id="${escapeHtml(b.id)}" data-required="${requiredAttr}" `
+      );
     }
     return `<div data-block-id="${escapeHtml(b.id)}">${html}</div>`;
   }

@@ -350,6 +350,14 @@
       border-color: var(--green);
       box-shadow: 0 0 0 1px var(--green-dim);
     }
+    /* Practice "done" indicator — a green ring drawn via box-shadow so
+       it doesn't shift layout. Set by the attachInteractivity onScore
+       callback the moment the student presses Check, mirroring the
+       html-block-done treatment above. */
+    .practice.practice-done {
+      box-shadow: 0 0 0 1px var(--green);
+      border-radius: var(--r-sm);
+    }
     .html-block-iframe {
       width: 100%;
       border: 0;
@@ -686,6 +694,13 @@
     // Attach interactivity, capturing scores per block.
     L.attachInteractivity(session.blocks, body, (blockId, score, total) => {
       session.blockScores.set(blockId, { score, total });
+      // Mark the practice wrapper as 'done' for completion-gating. The
+      // html block does this via its own postMessage listener below;
+      // practice kinds don't fire postMessages, so we do it here in the
+      // unified score callback. The gating in isLessonCompletable() then
+      // treats `practice-done` the same as `html-block-done`.
+      const wrap = $('body').querySelector(`[data-block-id="${CSS.escape(blockId)}"]`);
+      if (wrap && wrap.classList.contains('practice')) wrap.classList.add('practice-done');
       updateProgress();
       refreshMarkComplete();
     });
@@ -726,13 +741,15 @@
     refreshMarkComplete();
   }
 
-  // isLessonCompletable() — false when any html block marked required
-  // is still unfinished. Called on render, after each score, and from
-  // the Mark-complete click handler.
+  // isLessonCompletable() — false when any block marked required (html
+  // or practice) is still unfinished. Called on render, after each
+  // score, and from the Mark-complete click handler.
   function isLessonCompletable() {
-    const required = $('body').querySelectorAll('.html-block[data-required="true"]');
-    if (!required.length) return true;
-    return [...required].every(w => w.classList.contains('html-block-done'));
+    const reqHtml     = $('body').querySelectorAll('.html-block[data-required="true"]');
+    const reqPractice = $('body').querySelectorAll('.practice[data-required="true"]');
+    const all = [...reqHtml, ...reqPractice];
+    if (!all.length) return true;
+    return all.every(w => w.classList.contains('html-block-done') || w.classList.contains('practice-done'));
   }
 
   function refreshMarkComplete() {
