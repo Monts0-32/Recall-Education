@@ -241,6 +241,64 @@
     `);
   }
 
+  // renderDenaryBinary(b) — show a denary number; student toggles bits
+  // (MSB on the left) to build the binary answer. Correctness is derived
+  // from the stored denary value, so there's no per-student state to
+  // persist — every Check computes the expected string from d.denary and
+  // compares to the live bit state. bitWidth controls how many bits are
+  // shown (1–16); the editor clamps denary to fit.
+  function renderDenaryBinary(b) {
+    const d = b.data || {};
+    const bitWidth = clampBitWidth(d.bitWidth);
+    const denary = clampDenary(d.denary, bitWidth);
+    // Bit place values, MSB first. For 8 bits: 128, 64, 32, 16, 8, 4, 2, 1.
+    const placeValues = [];
+    for (let i = bitWidth - 1; i >= 0; i--) placeValues.push(Math.pow(2, i));
+    return practiceWrap(`
+      <div class="prompt">${escapeHtml(d.prompt || 'Convert the following denary number to binary.')}</div>
+      <div class="db-denary">
+        <span class="db-denary-label">Denary</span>
+        <span class="db-denary-value" data-pbid="db-denary">${denary}</span>
+      </div>
+      <div class="db-bits" data-pbid="db-bits" data-bit-width="${bitWidth}">
+        ${placeValues.map((pv, i) => `
+          <button type="button" class="db-bit" data-pbid="db-bit" data-place="${pv}" data-pos="${i}" aria-pressed="false">
+            <span class="db-bit-val">0</span>
+            <span class="db-bit-place">${pv}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div class="db-readout">
+        <span class="db-readout-label">Your answer</span>
+        <span class="db-readout-value" data-pbid="db-readout">0</span>
+      </div>
+      <div class="check-row">
+        <button type="button" class="check-btn" data-pb="check">Check</button>
+        <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
+      </div>
+      <div data-pb="feedback"></div>
+    `);
+  }
+
+  function clampBitWidth(w) {
+    const n = parseInt(w, 10);
+    if (!Number.isFinite(n)) return 8;
+    return Math.max(1, Math.min(16, n));
+  }
+  function clampDenary(d, bitWidth) {
+    const n = parseInt(d, 10);
+    if (!Number.isFinite(n)) return 0;
+    const max = Math.pow(2, bitWidth) - 1;
+    return Math.max(0, Math.min(max, n));
+  }
+  // expectedBits(denary, bitWidth) — left-pad the binary representation
+  // of denary to bitWidth bits so the comparison handles leading zeros
+  // (e.g. denary 5 in 8 bits is "00000101", not "101").
+  function expectedBits(denary, bitWidth) {
+    const bin = (parseInt(denary, 10) || 0).toString(2);
+    return bin.padStart(bitWidth, '0');
+  }
+
   function renderAccordion(b) {
     const d = b.data;
     const items = d.items || [];
@@ -417,6 +475,7 @@
     match: { label: 'Match pairs', defaults: () => ({ prompt: 'Match each scientist to their discovery.', pairs: [{ left: 'Newton', right: 'Laws of motion' }, { left: 'Darwin', right: 'Natural selection' }, { left: 'Mendel', right: 'Inheritance' }, { left: 'Curie', right: 'Radioactivity' }] }), render: renderMatch },
     ordering: { label: 'Order steps', defaults: () => ({ prompt: 'Put these steps of the scientific method in the correct order.', items: [{ id: 'a', text: 'Form a hypothesis' }, { id: 'b', text: 'Make an observation' }, { id: 'c', text: 'Analyse the data' }, { id: 'd', text: 'Draw a conclusion' }], explanation: 'A typical scientific method: observe → hypothesise → experiment → analyse → conclude.' }), render: renderOrdering },
     hotspot: { label: 'Image hotspot', defaults: () => ({ imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/640px-Cat03.jpg', alt: 'A cat', hotspots: [{ x: 50, y: 40, label: 'Ear', correct: true }, { x: 30, y: 70, label: 'Whiskers', correct: false }] }), render: renderHotspot },
+    denary_binary: { label: 'Denary → binary', defaults: () => ({ prompt: 'Convert the following denary number to binary.', denary: 173, bitWidth: 8, explanation: '' }), render: renderDenaryBinary },
 
     // Layout & structure
     accordion: { label: 'Accordion', defaults: () => ({ items: [{ title: 'What is mitosis?', markdown: 'Mitosis is the process of cell division that produces two genetically identical daughter cells.' }, { title: 'What is meiosis?', markdown: 'Meiosis produces four non-identical gametes, halving the chromosome number.' }] }), render: renderAccordion },
@@ -1047,6 +1106,76 @@
     });
   }
 
+  // bindDenaryBinary — toggle bits, live numeric readout, Check compares
+  // the built value against the expected (denary -> zero-padded binary).
+  // Correctness is derived from the stored denary, so reset just re-renders
+  // the block to clear the toggle state.
+  function bindDenaryBinary(rootEl, d, blockId, onScore) {
+    const bitsWrap = rootEl.querySelector('[data-pbid="db-bits"]');
+    if (!bitsWrap) return;
+    const bitWidth = clampBitWidth(d.bitWidth);
+    const denary = clampDenary(d.denary, bitWidth);
+    const expected = expectedBits(denary, bitWidth);
+    const bitButtons = [...bitsWrap.querySelectorAll('.db-bit')];
+    const readout = rootEl.querySelector('[data-pbid="db-readout"]');
+    const check = rootEl.querySelector('[data-pb="check"]');
+    const reset = rootEl.querySelector('[data-pb="reset"]');
+    function recomputeReadout() {
+      let total = 0;
+      bitButtons.forEach(btn => {
+        if (btn.getAttribute('aria-pressed') === 'true') {
+          total += parseInt(btn.dataset.place, 10);
+        }
+      });
+      if (readout) readout.textContent = String(total);
+    }
+    bitButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Locked once the student has Checked — Try-again resets.
+        if (btn.classList.contains('correct') || btn.classList.contains('wrong')) return;
+        const on = btn.getAttribute('aria-pressed') === 'true';
+        const next = !on;
+        btn.setAttribute('aria-pressed', next ? 'true' : 'false');
+        const valEl = btn.querySelector('.db-bit-val');
+        if (valEl) valEl.textContent = next ? '1' : '0';
+        recomputeReadout();
+      });
+    });
+    check.addEventListener('click', () => {
+      let total = 0;
+      bitButtons.forEach(btn => {
+        if (btn.getAttribute('aria-pressed') === 'true') {
+          total += parseInt(btn.dataset.place, 10);
+        }
+      });
+      const right = total === denary;
+      bitButtons.forEach((btn, i) => {
+        // expected[i] is the bit at position i (MSB first).
+        const expectOn = expected[i] === '1';
+        const gotOn = btn.getAttribute('aria-pressed') === 'true';
+        if (expectOn) btn.classList.add('correct');
+        else if (gotOn) btn.classList.add('wrong');
+        // unset bits that match (expected 0, got 0) just stay neutral
+      });
+      showFeedback(rootEl,
+        (right ? '✓ Correct!' : `✗ Not quite — the answer was <code>${escapeHtml(expected)}</code> (denary ${denary}).`) +
+        (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
+        right ? 'ok' : 'bad');
+      check.disabled = true; reset.hidden = false;
+      if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
+    });
+    reset.addEventListener('click', () => {
+      // Re-render the whole block to wipe toggle state and feedback.
+      const fresh = renderDenaryBinary({ data: d });
+      const tmp = document.createElement('div');
+      tmp.innerHTML = fresh;
+      const newRoot = tmp.querySelector('[data-block-id]') || tmp.firstElementChild;
+      rootEl.innerHTML = newRoot ? newRoot.innerHTML : fresh;
+      clearFeedback(rootEl); setCheckEnabled(rootEl, true);
+      bindDenaryBinary(rootEl, d, blockId, onScore);
+    });
+  }
+
   function bindTabs(rootEl, d) {
     const tabs = rootEl.querySelectorAll('[data-pbid="tabs-root"] .tab');
     const body = rootEl.querySelector('[data-pbid="tabs-root"] .tab-body');
@@ -1073,6 +1202,7 @@
       case 'hotspot':   bindHotspot(rootEl, b.data, blockId, onScore); break;
       case 'tabs':      bindTabs(rootEl, b.data); break;
       case 'categorise':bindCategorise(rootEl, b.data, blockId, onScore); break;
+      case 'denary_binary': bindDenaryBinary(rootEl, b.data, blockId, onScore); break;
       // 'html' is interactive but the interaction is a postMessage from
       // the sandboxed iframe to the parent (lesson.html), not a
       // bindInteractive call. See buildHtmlSrcdoc + lesson.html.

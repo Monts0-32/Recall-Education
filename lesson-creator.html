@@ -775,6 +775,68 @@
     .preview .practice .fb-sentence .fb-input.wrong   { background: var(--red-dim);   border-color: var(--red); }
     .preview .practice .reveal-line { color: var(--text-3); font-size: 12px; margin-left: 4px; }
 
+    /* Denary → binary (toggles) */
+    .preview .practice .db-denary {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--blue-pale); border: 1px solid var(--blue);
+      border-radius: var(--r-sm); padding: 6px 12px;
+      align-self: flex-start;
+    }
+    .preview .practice .db-denary-label {
+      font-size: 11px; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+    }
+    .preview .practice .db-denary-value {
+      font-family: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+      font-size: 18px; font-weight: 700; color: var(--text);
+    }
+    .preview .practice .db-bits {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      justify-content: center;
+    }
+    .preview .practice .db-bit {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      width: 44px; height: 56px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; font-family: inherit;
+      transition: background 0.1s ease, border-color 0.1s ease;
+    }
+    .preview .practice .db-bit:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .preview .practice .db-bit[aria-pressed="true"] {
+      background: var(--blue-dim); border-color: var(--blue); color: var(--text);
+    }
+    .preview .practice .db-bit .db-bit-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px; font-weight: 700; color: var(--text);
+    }
+    .preview .practice .db-bit .db-bit-place {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text-4);
+      margin-top: 2px;
+    }
+    .preview .practice .db-bit[aria-pressed="true"] .db-bit-place { color: var(--blue); }
+    .preview .practice .db-bit.correct {
+      background: var(--green-dim); border-color: var(--green);
+    }
+    .preview .practice .db-bit.correct .db-bit-place { color: var(--green); }
+    .preview .practice .db-bit.wrong {
+      background: var(--red-dim); border-color: var(--red);
+    }
+    .preview .practice .db-bit.wrong .db-bit-place { color: var(--red); }
+    .preview .practice .db-readout {
+      display: flex; align-items: baseline; gap: 6px;
+      font-size: 12.5px; color: var(--text-3);
+    }
+    .preview .practice .db-readout-label {
+      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+      font-size: 10.5px;
+    }
+    .preview .practice .db-readout-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px; font-weight: 700; color: var(--text);
+    }
+
     /* Match */
     .preview .practice .match-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
@@ -1377,6 +1439,64 @@
     .student-preview-body .practice .fb-sentence .fb-input.correct { background: var(--green-dim); border-color: var(--green); }
     .student-preview-body .practice .fb-sentence .fb-input.wrong   { background: var(--red-dim);   border-color: var(--red); }
     .student-preview-body .practice .fb-sentence .reveal-line { color: var(--text-3); font-size: 12px; margin-left: 4px; }
+    .student-preview-body .practice .db-denary {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--blue-pale); border: 1px solid var(--blue);
+      border-radius: var(--r-sm); padding: 8px 14px;
+      align-self: flex-start;
+    }
+    .student-preview-body .practice .db-denary-label {
+      font-size: 11px; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+    }
+    .student-preview-body .practice .db-denary-value {
+      font-family: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+      font-size: 20px; font-weight: 700; color: var(--text);
+    }
+    .student-preview-body .practice .db-bits {
+      display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+    }
+    .student-preview-body .practice .db-bit {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      width: 50px; height: 64px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; font-family: inherit;
+      transition: background 0.1s ease, border-color 0.1s ease;
+    }
+    .student-preview-body .practice .db-bit:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .student-preview-body .practice .db-bit[aria-pressed="true"] {
+      background: var(--blue-dim); border-color: var(--blue); color: var(--text);
+    }
+    .student-preview-body .practice .db-bit .db-bit-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px; font-weight: 700; color: var(--text);
+    }
+    .student-preview-body .practice .db-bit .db-bit-place {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px; color: var(--text-4); margin-top: 2px;
+    }
+    .student-preview-body .practice .db-bit[aria-pressed="true"] .db-bit-place { color: var(--blue); }
+    .student-preview-body .practice .db-bit.correct {
+      background: var(--green-dim); border-color: var(--green);
+    }
+    .student-preview-body .practice .db-bit.correct .db-bit-place { color: var(--green); }
+    .student-preview-body .practice .db-bit.wrong {
+      background: var(--red-dim); border-color: var(--red);
+    }
+    .student-preview-body .practice .db-bit.wrong .db-bit-place { color: var(--red); }
+    .student-preview-body .practice .db-readout {
+      display: flex; align-items: baseline; gap: 6px;
+      font-size: 13px; color: var(--text-3);
+    }
+    .student-preview-body .practice .db-readout-label {
+      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+      font-size: 11px;
+    }
+    .student-preview-body .practice .db-readout-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px; font-weight: 700; color: var(--text);
+    }
     .student-preview-body .practice .match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .student-preview-body .practice .match-col { display: flex; flex-direction: column; gap: 6px; }
     .student-preview-body .practice .match-col h5 {
@@ -3182,7 +3302,7 @@
   // ---------- block picker (grouped) ----------
   const BLOCK_GROUPS = {
     'Text & structure': ['heading', 'text', 'callout', 'image', 'video', 'math', 'audio', 'divider', 'quote', 'keypoints', 'worked_example', 'reveal', 'flashcard'],
-    'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot', 'categorise', 'html'],
+    'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot', 'categorise', 'denary_binary', 'html'],
     'Layout': ['accordion', 'tabs', 'compare', 'timeline', 'steps'],
     'Study aids': ['objectives', 'prerequisites', 'glossary', 'summary', 'cardset'],
   };
@@ -3227,6 +3347,11 @@
       label: 'MCQ — photosynthesis',
       hint:  'A 4-option MCQ about photosynthesis.',
       blocks: () => [{ kind: 'mcq', data: BLOCK_DEFS.mcq.defaults() }]
+    },
+    'denary-binary': {
+      label: 'Denary → binary — 173',
+      hint:  'Convert denary 173 to an 8-bit binary number.',
+      blocks: () => [{ kind: 'denary_binary', data: BLOCK_DEFS.denary_binary.defaults() }]
     },
     'worked-quadratic': {
       label: 'Worked example — quadratic equation',
@@ -3766,6 +3891,90 @@
     if (data.blanks.length > count) data.blanks.length = count;
     renderBlocksList();
   };
+
+  // ----- Denary → binary editor -----
+  // The denary value is clamped to [0, 2^bitWidth - 1] so it always
+  // fits in the visible bit row. Bit width is clamped to [1, 16]. When
+  // bitWidth changes we also re-clamp the denary value so the two stay
+  // consistent. After every edit we refresh the preview only — the
+  // surrounding inputs keep their focus so the author can type freely.
+  function renderDenaryBinaryEditor(b, i) {
+    const d = b.data || {};
+    return `
+      <div class="form-row">
+        <label>Prompt</label>
+        <input value="${escapeHtml(d.prompt || '')}" oninput="updateBlock(${i}, {prompt: this.value})" placeholder="Convert the following denary number to binary." />
+      </div>
+      <div class="two-col">
+        <div class="form-row" style="margin: 0;">
+          <label>Denary value</label>
+          <input id="db-denary-${i}" type="number" min="0" step="1" value="${Number.isFinite(parseInt(d.denary, 10)) ? parseInt(d.denary, 10) : 0}" oninput="updateDenaryValue(${i}, this.value)" />
+          <span class="hint" id="db-denary-hint-${i}"></span>
+        </div>
+        <div class="form-row" style="margin: 0;">
+          <label>Bit width (1–16)</label>
+          <input id="db-bw-${i}" type="number" min="1" max="16" step="1" value="${parseInt(d.bitWidth, 10) || 8}" oninput="updateBitWidth(${i}, this.value)" />
+          <span class="hint">Number of bits the student toggles. Max 8 = denary 0–255, max 16 = 0–65535.</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Explanation (shown after checking)</label>
+        <textarea oninput="updateBlock(${i}, {explanation: this.value})" placeholder="e.g. 173 = 128 + 32 + 8 + 4 + 1 = 10101101 in 8-bit binary.">${escapeHtml(d.explanation || '')}</textarea>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview (toggle the bits, then Check)</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  // updateDenaryValue — clamp the denary value into [0, 2^bitWidth - 1]
+  // and refresh the preview only. The surrounding inputs keep focus.
+  window.updateDenaryValue = (i, raw) => {
+    const data = state.currentLesson.blocks[i].data || {};
+    const bitWidth = Math.max(1, Math.min(16, parseInt(data.bitWidth, 10) || 8));
+    const max = Math.pow(2, bitWidth) - 1;
+    const parsed = parseInt(raw, 10);
+    const clamped = Number.isFinite(parsed) ? Math.max(0, Math.min(max, parsed)) : 0;
+    data.denary = clamped;
+    state.dirty = true; renderEditorHeader();
+    // Sync the input back to the clamped value (so the author sees it).
+    const inp = document.getElementById(`db-denary-${i}`);
+    if (inp && inp.value !== String(clamped)) inp.value = String(clamped);
+    // Refresh the hint with the max range.
+    const hint = document.getElementById(`db-denary-hint-${i}`);
+    if (hint) hint.textContent = `0–${max}`;
+    // Refresh the preview only.
+    refreshDenaryBinaryPreview(i);
+  };
+  // updateBitWidth — clamp the bit width and re-clamp the denary value
+  // to fit the new range, then refresh the preview. The hint updates too.
+  window.updateBitWidth = (i, raw) => {
+    const data = state.currentLesson.blocks[i].data || {};
+    const parsed = parseInt(raw, 10);
+    const bitWidth = Math.max(1, Math.min(16, Number.isFinite(parsed) ? parsed : 8));
+    data.bitWidth = bitWidth;
+    // Re-clamp denary to fit.
+    const max = Math.pow(2, bitWidth) - 1;
+    const den = parseInt(data.denary, 10);
+    data.denary = Number.isFinite(den) ? Math.max(0, Math.min(max, den)) : 0;
+    state.dirty = true; renderEditorHeader();
+    // Sync both inputs.
+    const bw = document.getElementById(`db-bw-${i}`);
+    if (bw && bw.value !== String(bitWidth)) bw.value = String(bitWidth);
+    const denaryInp = document.getElementById(`db-denary-${i}`);
+    if (denaryInp) denaryInp.value = String(data.denary);
+    const hint = document.getElementById(`db-denary-hint-${i}`);
+    if (hint) hint.textContent = `0–${max}`;
+    refreshDenaryBinaryPreview(i);
+  };
+  function refreshDenaryBinaryPreview(i) {
+    const block = document.querySelector(`.block[data-block-index="${i}"]`);
+    if (!block) return;
+    const preview = block.querySelector('.preview');
+    if (!preview) return;
+    preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
+    if (window.bindInteractive) bindInteractive(preview, state.currentLesson.blocks[i]);
+  }
 
   // ----- Match editor -----
   function renderMatchEditor(b, i) {
@@ -5209,6 +5418,7 @@
     quote:         (b, i) => renderQuoteEditor(b, i),
     cardset:       (b, i) => renderCardsetEditor(b, i),
     html:          (b, i) => renderHtmlEditor(b, i),
+    denary_binary: (b, i) => renderDenaryBinaryEditor(b, i),
   };
 
   // ---------- go ----------

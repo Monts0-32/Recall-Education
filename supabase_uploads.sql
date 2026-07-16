@@ -154,7 +154,9 @@ alter table public.lesson_blocks
     -- 6 new block kinds (2026-07)
     'audio','divider','quote','cardset','steps','categorise',
     -- 1 new block kind (2026-07-15) — interactive HTML/JS (sandboxed iframe)
-    'html'
+    'html',
+    -- 1 new block kind (2026-07-16) — denary → binary conversion (toggleable bits)
+    'denary_binary'
   ));
 
 -- ============================================================================
