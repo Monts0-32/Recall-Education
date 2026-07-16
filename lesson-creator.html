@@ -824,18 +824,6 @@
       background: var(--red-dim); border-color: var(--red);
     }
     .preview .practice .db-bit.wrong .db-bit-place { color: var(--red); }
-    .preview .practice .db-readout {
-      display: flex; align-items: baseline; gap: 6px;
-      font-size: 12.5px; color: var(--text-3);
-    }
-    .preview .practice .db-readout-label {
-      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
-      font-size: 10.5px;
-    }
-    .preview .practice .db-readout-value {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 14px; font-weight: 700; color: var(--text);
-    }
 
     /* Match */
     .preview .practice .match-grid {
@@ -1485,18 +1473,6 @@
       background: var(--red-dim); border-color: var(--red);
     }
     .student-preview-body .practice .db-bit.wrong .db-bit-place { color: var(--red); }
-    .student-preview-body .practice .db-readout {
-      display: flex; align-items: baseline; gap: 6px;
-      font-size: 13px; color: var(--text-3);
-    }
-    .student-preview-body .practice .db-readout-label {
-      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
-      font-size: 11px;
-    }
-    .student-preview-body .practice .db-readout-value {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 16px; font-weight: 700; color: var(--text);
-    }
     .student-preview-body .practice .match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .student-preview-body .practice .match-col { display: flex; flex-direction: column; gap: 6px; }
     .student-preview-body .practice .match-col h5 {
@@ -3302,7 +3278,7 @@
   // ---------- block picker (grouped) ----------
   const BLOCK_GROUPS = {
     'Text & structure': ['heading', 'text', 'callout', 'image', 'video', 'math', 'audio', 'divider', 'quote', 'keypoints', 'worked_example', 'reveal', 'flashcard'],
-    'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot', 'categorise', 'denary_binary', 'html'],
+    'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot', 'categorise', 'html'],
     'Layout': ['accordion', 'tabs', 'compare', 'timeline', 'steps'],
     'Study aids': ['objectives', 'prerequisites', 'glossary', 'summary', 'cardset'],
   };

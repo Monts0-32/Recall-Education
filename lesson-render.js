@@ -268,10 +268,6 @@
           </button>
         `).join('')}
       </div>
-      <div class="db-readout">
-        <span class="db-readout-label">Your answer</span>
-        <span class="db-readout-value" data-pbid="db-readout">0</span>
-      </div>
       <div class="check-row">
         <button type="button" class="check-btn" data-pb="check">Check</button>
         <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
@@ -1106,10 +1102,13 @@
     });
   }
 
-  // bindDenaryBinary — toggle bits, live numeric readout, Check compares
-  // the built value against the expected (denary -> zero-padded binary).
-  // Correctness is derived from the stored denary, so reset just re-renders
-  // the block to clear the toggle state.
+  // bindDenaryBinary — toggle bits, Check compares the built value
+  // against the expected (denary -> zero-padded binary). Reset clears
+  // the toggle state in place rather than re-rendering, which strips
+  // the .practice wrapper (lesson-render.js itself doesn't have a
+  // wrapper-safe reset helper) and would break the styling. The
+  // in-place reset matches what bindMCQ / bindTrueFalse / bindShortAnswer
+  // already do for this same reason.
   function bindDenaryBinary(rootEl, d, blockId, onScore) {
     const bitsWrap = rootEl.querySelector('[data-pbid="db-bits"]');
     if (!bitsWrap) return;
@@ -1117,18 +1116,8 @@
     const denary = clampDenary(d.denary, bitWidth);
     const expected = expectedBits(denary, bitWidth);
     const bitButtons = [...bitsWrap.querySelectorAll('.db-bit')];
-    const readout = rootEl.querySelector('[data-pbid="db-readout"]');
     const check = rootEl.querySelector('[data-pb="check"]');
     const reset = rootEl.querySelector('[data-pb="reset"]');
-    function recomputeReadout() {
-      let total = 0;
-      bitButtons.forEach(btn => {
-        if (btn.getAttribute('aria-pressed') === 'true') {
-          total += parseInt(btn.dataset.place, 10);
-        }
-      });
-      if (readout) readout.textContent = String(total);
-    }
     bitButtons.forEach(btn => {
       btn.addEventListener('click', () => {
         // Locked once the student has Checked — Try-again resets.
@@ -1138,7 +1127,6 @@
         btn.setAttribute('aria-pressed', next ? 'true' : 'false');
         const valEl = btn.querySelector('.db-bit-val');
         if (valEl) valEl.textContent = next ? '1' : '0';
-        recomputeReadout();
       });
     });
     check.addEventListener('click', () => {
@@ -1165,14 +1153,13 @@
       if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
     });
     reset.addEventListener('click', () => {
-      // Re-render the whole block to wipe toggle state and feedback.
-      const fresh = renderDenaryBinary({ data: d });
-      const tmp = document.createElement('div');
-      tmp.innerHTML = fresh;
-      const newRoot = tmp.querySelector('[data-block-id]') || tmp.firstElementChild;
-      rootEl.innerHTML = newRoot ? newRoot.innerHTML : fresh;
+      bitButtons.forEach(btn => {
+        btn.setAttribute('aria-pressed', 'false');
+        btn.classList.remove('correct', 'wrong');
+        const valEl = btn.querySelector('.db-bit-val');
+        if (valEl) valEl.textContent = '0';
+      });
       clearFeedback(rootEl); setCheckEnabled(rootEl, true);
-      bindDenaryBinary(rootEl, d, blockId, onScore);
     });
   }
 
