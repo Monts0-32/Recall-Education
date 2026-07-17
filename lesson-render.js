@@ -73,6 +73,36 @@
     return false;
   }
 
+  // prefixFillEligible(got, want) — returns the canonical completion
+  // string when `got` has reached the 70% prefix threshold of `want`,
+  // or null when it's not eligible. Used for real-time auto-fill as
+  // the student types (so the rest of the answer drops in the moment
+  // they've typed enough) and on Check (to complete a still-short
+  // input that already counts as correct).
+  //
+  // Mirrors the prefix rule in compareBlank so both the live-typing
+  // and Check-time paths agree on what "70%" means. `got` is the
+  // raw input value (we compare on normText, so trailing spaces and
+  // case differences don't break the match); `want` is the answer.
+  // Returns the answer (case-folded to match the student's casing of
+  // the typed prefix) when eligible, otherwise null.
+  function prefixFillEligible(got, want) {
+    const a = normText(got);
+    const b = normText(want);
+    if (!a) return null;
+    if (b.length < 4) return null;       // threshold only meaningful on longer words
+    if (a.length >= b.length) return null; // already at/past the answer
+    const need = Math.ceil(b.length * 0.7);
+    if (a.length < need) return null;
+    if (!b.startsWith(a)) return null;
+    // Preserve the student's casing of the typed prefix; copy the
+    // rest verbatim from the answer. e.g. student types "pho" +
+    // want "photosynthesis" → "pho" + "tosynthesis" = "photosynthesis".
+    // If the student typed "Pho" we get "Pho" + "tosynthesis" =
+    // "Phot osynthesis" — preserve the typed case exactly.
+    return got + b.slice(a.length);
+  }
+
   // Lightweight Markdown: fences, headings, lists, blockquote, inline
   // bold/italic/code/links. Input is escaped first so any user-supplied
   // HTML is rendered as text. Good enough for educational content; not
@@ -889,6 +919,48 @@
     const check = rootEl.querySelector('[data-pb="check"]');
     const reset = rootEl.querySelector('[data-pb="reset"]');
     const blanks = d.blanks || [];
+    // Real-time 70% auto-fill: as the student types, the moment they
+    // cross the prefix threshold the rest of the answer drops in and
+    // the input is locked into the completed word. A second keystroke
+    // (any edit) unlocks it again so the student can correct a typo.
+    // The 'input' event fires on every change — including the
+    // auto-fill itself, which we guard against with .dataset.autofilled.
+    inputs.forEach((inp, i) => {
+      const want = (blanks[i] || {}).answer || '';
+      inp.addEventListener('input', () => {
+        if (inp.disabled) return;
+        // If the student edits a previously-autofilled input, clear
+        // the autofilled flag and the green styling — they're now in
+        // control again.
+        if (inp.dataset.autofilled === '1') {
+          inp.dataset.autofilled = '0';
+          inp.classList.remove('correct');
+          // Strip the auto-filled tail so the student edits just what
+          // they typed. We snapshot the typed length in the dataset
+          // at fill time (see below) and restore to that prefix.
+          const typedLen = parseInt(inp.dataset.typedLen || '0', 10);
+          inp.value = inp.value.slice(0, typedLen);
+          // Restore the caret to the end of what the student now has.
+          const end = inp.value.length;
+          try { inp.setSelectionRange(end, end); } catch (_) {}
+          return;
+        }
+        if (!want) return;
+        const completion = prefixFillEligible(inp.value, want);
+        if (!completion) return;
+        // Remember how many characters the student actually typed so
+        // a follow-up edit can restore to that prefix.
+        const typedLen = normText(inp.value).length;
+        inp.value = completion;
+        inp.dataset.autofilled = '1';
+        inp.dataset.typedLen = String(typedLen);
+        inp.classList.add('correct');
+        // Move the caret to the end of the completed word so the
+        // student sees the rest appear after their cursor.
+        const end = inp.value.length;
+        try { inp.setSelectionRange(end, end); } catch (_) {}
+      });
+    });
     check.addEventListener('click', () => {
       if (![...inputs].some(i => i.value)) { showFeedback(rootEl, 'Fill in the blanks first.', 'info'); return; }
       const results = [...inputs].map((inp, i) => {
@@ -902,9 +974,12 @@
       results.forEach(r => {
         r.inp.classList.add(r.ok ? 'correct' : 'wrong');
         if (r.ok && r.inp.value !== r.want) {
-          // 70% prefix fill: complete the answer in the input so the
-          // student sees what they got (a Check-time auto-complete,
-          // not a real-time one).
+          // 70% prefix fill — also done in real time on input. We
+          // only reach this branch when the student typed a shorter
+          // answer that compareBlank accepted (e.g. numeric synonym
+          // for a word answer) but the stored value still differs
+          // from the canonical answer. Snap it to the canonical form
+          // so the student sees the full word they got.
           r.inp.value = r.want;
         }
       });
@@ -926,7 +1001,15 @@
       if (onScore) onScore(blockId, correctCount, total);
     });
     reset.addEventListener('click', () => {
-      inputs.forEach(i => { i.disabled = false; i.value = ''; i.classList.remove('correct', 'wrong'); });
+      inputs.forEach(i => {
+        i.disabled = false; i.value = '';
+        i.classList.remove('correct', 'wrong');
+        // Clear the auto-fill state so the input is back to "empty,
+        // untouched". Without this, the next typed character would
+        // think the input is still in autofilled mode.
+        delete i.dataset.autofilled;
+        delete i.dataset.typedLen;
+      });
       rootEl.querySelectorAll('.reveal-line').forEach(s => s.remove());
       clearFeedback(rootEl); setCheckEnabled(rootEl, true);
     });
