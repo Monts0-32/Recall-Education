@@ -235,6 +235,57 @@
     .practice .fb-sentence .fb-input.correct { background: var(--green-dim); border-color: var(--green); }
     .practice .fb-sentence .fb-input.wrong   { background: var(--red-dim);   border-color: var(--red); }
     .practice .fb-sentence .reveal-line { color: var(--text-3); font-size: 12px; margin-left: 4px; }
+
+    /* ---------- DENARY → BINARY (toggle bits) ---------- */
+    /* Mirrors the styling in lesson-creator.html's student-preview-body
+       so the practice block looks the same in the creator's preview as
+       in the live lesson player. */
+    .practice .db-denary {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--blue-pale); border: 1px solid var(--blue);
+      border-radius: var(--r-sm); padding: 8px 14px;
+      align-self: flex-start;
+    }
+    .practice .db-denary-label {
+      font-size: 11px; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+    }
+    .practice .db-denary-value {
+      font-family: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+      font-size: 20px; font-weight: 700; color: var(--text);
+    }
+    .practice .db-bits {
+      display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+    }
+    .practice .db-bit {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      width: 50px; height: 64px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; font-family: inherit;
+      transition: background 0.1s ease, border-color 0.1s ease;
+    }
+    .practice .db-bit:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .practice .db-bit[aria-pressed="true"] {
+      background: var(--blue-dim); border-color: var(--blue); color: var(--text);
+    }
+    .practice .db-bit .db-bit-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px; font-weight: 700; color: var(--text);
+    }
+    .practice .db-bit .db-bit-place {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px; color: var(--text-4); margin-top: 2px;
+    }
+    .practice .db-bit[aria-pressed="true"] .db-bit-place { color: var(--blue); }
+    .practice .db-bit.correct {
+      background: var(--green-dim); border-color: var(--green);
+    }
+    .practice .db-bit.correct .db-bit-place { color: var(--green); }
+    .practice .db-bit.wrong {
+      background: var(--red-dim); border-color: var(--red);
+    }
+    .practice .db-bit.wrong .db-bit-place { color: var(--red); }
     .practice .match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .practice .match-col { display: flex; flex-direction: column; gap: 6px; }
     .practice .match-col h5 { margin: 0 0 4px; font-size: 11px; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
