@@ -83,7 +83,7 @@
 
     /* ---------- LESSON HEADER ---------- */
     .lesson-head {
-      max-width: 800px; margin: 0 auto;
+      max-width: 1200px; margin: 0 auto;
       padding: 32px 24px 16px;
     }
     .crumb-row {
@@ -121,8 +121,8 @@
 
     /* ---------- MAIN COLUMN ---------- */
     .lesson-body {
-      max-width: 800px; margin: 0 auto;
-      padding: 24px 24px 120px;
+      max-width: 1200px; margin: 0 auto;
+      padding: 24px 24px 140px;
       color: var(--text-2);
       font-size: 14.5px; line-height: 1.65;
     }
@@ -401,7 +401,7 @@
       z-index: 40;
     }
     .action-bar .row {
-      max-width: 800px; margin: 0 auto;
+      max-width: 1200px; margin: 0 auto;
       display: flex; align-items: center; gap: 12px;
     }
     .action-bar .spacer { flex: 1; }
@@ -532,47 +532,19 @@
       .block-revealed { animation: none; }
     }
 
-    /* ---------- CONTINUE BUTTON ---------- */
-    /* A full-width button under each block. The student presses it to
-       reveal the next block. When a block is required, the button is
-       locked (greyed out, lock icon) until the student attempts the
-       block (the binder fires onScore on Check). */
-    .block-continue {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      width: 100%;
-      margin-top: 18px;
-      padding: 10px 16px;
-      background: var(--blue-2);
-      color: #fff;
-      border: 0;
-      border-radius: var(--r-sm);
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
-    }
-    .block-continue:hover { background: var(--blue); }
-    .block-continue:active { transform: translateY(1px); }
-    .block-continue:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .block-continue .arrow {
-      display: inline-block;
-      animation: continueBounce 1.6s ease-in-out infinite;
-    }
-    @keyframes continueBounce {
-      0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(3px); }
-    }
-    .block-continue.continue-locked {
+    /* ---------- CONTINUE BUTTON (bottom action bar) ---------- */
+    /* The Continue button lives on the action bar — not under each
+       block. It shows the next block on click, gates on the current
+       block's `required` switch, and disables itself when there is
+       no next block (Mark complete then takes its place). */
+    #continueBtn.continue-locked {
       background: var(--bg-3);
       color: var(--text-3);
-      border: 1px solid var(--line-2);
+      border-color: var(--line-2);
+      cursor: not-allowed;
+      opacity: 0.7;
     }
-    .block-continue.continue-locked .arrow { animation: none; }
-    .block-continue .lock { font-size: 13px; }
+    #continueBtn.continue-locked:hover { background: var(--bg-3); }
   </style>
 </head>
 <body>
@@ -607,7 +579,8 @@
     <span class="meta-text" id="actionMeta">Time on this lesson: 0:00</span>
     <span class="spacer"></span>
     <a class="btn-ghost" href="dashboard.html">Back to dashboard</a>
-    <button class="btn-success" id="markCompleteBtn" type="button">Mark complete</button>
+    <button class="btn-primary" id="continueBtn" type="button" hidden>Continue ↓</button>
+    <button class="btn-success" id="markCompleteBtn" type="button" hidden>Mark complete</button>
   </div>
 </div>
 
@@ -837,11 +810,12 @@
       // match; we leave that as-is and store our own frame ref
       // here).
       session.blockFrames.set(b.id, frame);
-      // Append the Continue button under every block except the last.
-      // (The last block needs no Continue — the student scrolls down
-      // to the action bar and presses Mark complete from there.)
-      appendContinueButton(frame, b, i);
     });
+    // The first block is the "current" block to start. The bottom
+    // Continue button reflects the current block's state and reveals
+    // the next one when clicked.
+    session.currentIndex = 0;
+    refreshContinueButton();
 
     // Attach interactivity, capturing scores per block.
     L.attachInteractivity(session.blocks, body, (blockId, score, total) => {
@@ -853,14 +827,10 @@
       // treats `practice-done` the same as `html-block-done`.
       const wrap = $('body').querySelector(`[data-block-id="${CSS.escape(blockId)}"]`);
       if (wrap && wrap.classList.contains('practice')) wrap.classList.add('practice-done');
-      // Update the Continue button under this block: if the block is
-      // required and not yet attempted, the button is locked; once
-      // attempted, it unlocks. For non-required blocks this is a no-op
-      // (the button is already unlocked).
-      if (wrap && wrap._continueBtn) {
-        const found = findBlock(blockId);
-        if (found) refreshContinueButton(wrap, found.block, found.index, wrap._continueBtn);
-      }
+      // The bottom Continue button reflects the *current* block's
+      // state — if the current block is required and we just scored
+      // it, the Continue button unlocks.
+      refreshContinueButton();
       updateProgress();
       refreshMarkComplete();
     });
@@ -887,11 +857,9 @@
         wrap.classList.add('html-block-done');
         const gate = wrap.querySelector('.html-block-gate');
         if (gate) gate.hidden = false;
-        // Same Continue-button refresh as the practice onScore path.
-        if (wrap._continueBtn) {
-          const found = findBlock(e.data.blockId);
-          if (found) refreshContinueButton(wrap, found.block, found.index, wrap._continueBtn);
-        }
+        // Refresh the bottom Continue button — if the current block
+        // is required and just got completed, the button unlocks.
+        refreshContinueButton();
         updateProgress();
         refreshMarkComplete();
       });
@@ -910,85 +878,75 @@
 
   // ---------- reveal controller ----------
 
-  // findBlock(id) — look up a block by id, returning { block, index }
-  // or null. Used by the onScore callback and postMessage listener
-  // when refreshing the Continue button under a block.
-  function findBlock(id) {
-    const idx = session.blocks.findIndex(b => b.id === id);
-    return idx >= 0 ? { block: session.blocks[idx], index: idx } : null;
-  }
-
-  // appendContinueButton(frame, block, index) — append a "Continue"
-  // button to the frame (every block except the last). The button is
-  // the student's only way to reveal the next block. Required blocks
-  // lock the button until the binder fires onScore.
-  function appendContinueButton(frame, block, index) {
-    if (index === session.blocks.length - 1) return;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'block-continue';
-    btn.innerHTML = 'Continue <span class="arrow">↓</span>';
-    btn.addEventListener('click', () => revealNext(block, index, btn));
-    frame.appendChild(btn);
-    frame._continueBtn = btn;
-    refreshContinueButton(frame, block, index, btn);
-  }
-
-  // revealNext(currentBlock, currentIndex, btn) — gating logic + reveal.
-  // If the current block is required, the student must attempt it
-  // (binder fires onScore on Check) before the next block reveals.
-  function revealNext(currentBlock, currentIndex, btn) {
-    if (currentBlock.data && currentBlock.data.required
-        && !session.blockScores.has(currentBlock.id)) {
+  // revealNext() — handler for the bottom Continue button. Reveals
+  // the next block. If the *current* block is required, the student
+  // must have attempted it (binder fired onScore) before this runs.
+  // After the reveal, session.currentIndex advances to the new
+  // current block, and refreshContinueButton() updates the bottom
+  // button to match.
+  function revealNext() {
+    const current = session.blocks[session.currentIndex];
+    if (!current) return;
+    if (current.data && current.data.required
+        && !session.blockScores.has(current.id)) {
       toast('Attempt the required activity above first.', 'error');
       return;
     }
-    // Briefly disable the button to prevent double-clicks during the
-    // 350ms reveal animation, then re-enable. (A previous version of
-    // this function disabled the button without re-enabling it, which
-    // locked the button after the very first click and made the
-    // "click does nothing" symptom — the student could only ever
-    // advance one block.)
-    btn.disabled = true;
-    const nextBlock = session.blocks[currentIndex + 1];
+    const nextIndex = session.currentIndex + 1;
+    const nextBlock = session.blocks[nextIndex];
     if (!nextBlock) return;
-    // Look up the next frame in the map we built during the render
-    // loop. Using the map (rather than a DOM querySelector) avoids a
-    // subtle bug: for non-wrapper block kinds (heading, text, callout,
-    // image, etc.) the renderBlock output wraps the element in
-    // <div data-block-id="...">, and our outer .block-frame is *above*
-    // that — so a querySelector('[data-block-id=...]') would find the
-    // inner div, not the frame, and classList.remove('block-pending')
-    // would target the wrong element. The map sidesteps that.
     const nextEl = session.blockFrames.get(nextBlock.id);
     if (!nextEl) return;
     nextEl.classList.remove('block-pending');
     nextEl.classList.add('block-revealed');
+    session.currentIndex = nextIndex;
     // Smooth-scroll the new block into view.
     nextEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setTimeout(() => { btn.disabled = false; }, 400);
+    // The bottom button now reflects the *new* current block.
+    refreshContinueButton();
   }
 
-  // refreshContinueButton(frame, block, index, btn) — recompute the
-  // Continue button's locked state. Called once per render and every
-  // time a block is scored (onScore callback + html postMessage).
-  function refreshContinueButton(frame, block, index, btn) {
-    if (!btn) return;
-    const isLast = index === session.blocks.length - 1;
-    if (isLast) { btn.remove(); return; }
-    const required = block.data && block.data.required;
-    const attempted = session.blockScores.has(block.id);
+  // refreshContinueButton() — sync the bottom action bar to the
+  // state of the current block. There are three cases:
+  //   1. On the last block: hide Continue, show Mark complete
+  //      (the student can now finish the lesson).
+  //   2. On any non-last block, but the current block is required
+  //      and not yet attempted: lock Continue (greyed, "Attempt
+  //      required activity first").
+  //   3. Otherwise: show Continue, enabled.
+  // Called on render, after every onScore, and after every revealNext.
+  function refreshContinueButton() {
+    const cont = $('continueBtn');
+    const mark = $('markCompleteBtn');
+    if (!cont || !mark) return;
+    const i = session.currentIndex;
+    const cur = session.blocks[i];
+    if (!cur) {
+      cont.hidden = true; mark.hidden = true; return;
+    }
+    const isLast = i === session.blocks.length - 1;
+    if (isLast) {
+      // Last block — there's nothing more to reveal. Hide Continue,
+      // show Mark complete (subject to the existing required-gating
+      // done in refreshMarkComplete).
+      cont.hidden = true;
+      mark.hidden = false;
+      return;
+    }
+    // Mid-lesson: show Continue, hide Mark complete.
+    cont.hidden = false;
+    mark.hidden = true;
+    const required = cur.data && cur.data.required;
+    const attempted = session.blockScores.has(cur.id);
     const locked = required && !attempted;
-    btn.classList.toggle('continue-locked', locked);
-    btn.disabled = locked;
-    btn.title = locked
+    cont.classList.toggle('continue-locked', locked);
+    cont.disabled = locked;
+    cont.title = locked
       ? 'Attempt the required activity above first.'
       : '';
-    if (locked) {
-      btn.innerHTML = '<span class="lock">🔒</span> Attempt required activity first';
-    } else {
-      btn.innerHTML = 'Continue <span class="arrow">↓</span>';
-    }
+    cont.textContent = locked
+      ? '🔒 Attempt required activity first'
+      : 'Continue ↓';
   }
 
   // isLessonCompletable() — false when any block marked required (html
@@ -1125,6 +1083,7 @@
   }
 
   // ---------- mark complete ----------
+  $('continueBtn').addEventListener('click', () => revealNext());
   $('markCompleteBtn').addEventListener('click', async () => {
     if (session.completed) return;
     // Defence-in-depth: even though the button is disabled when a
