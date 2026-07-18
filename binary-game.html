@@ -6,7 +6,7 @@
   <title>Binary — Recall</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg:    #0D1117;
@@ -24,6 +24,8 @@
       --red:   #F85149;
       --red-dim:   rgba(248,81,73,0.12);
       --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --purple:    #A371F7;
       --r: 8px;
     }
     * { box-sizing: border-box; }
@@ -40,7 +42,32 @@
     }
     .stage { width: 100%; max-width: 560px; }
 
-    /* ---------- HUD (top strip) ---------- */
+    /* ---------- Effects vocabulary (shared across the Recall stack) ---------- */
+    @keyframes fxPop       { 0%{transform:scale(1)} 45%{transform:scale(1.18)} 100%{transform:scale(1)} }
+    @keyframes fxShake     { 10%,90%{transform:translateX(-2px)} 20%,80%{transform:translateX(3px)} 30%,50%,70%{transform:translateX(-5px)} 40%,60%{transform:translateX(5px)} }
+    @keyframes fxGlow      { 0%{box-shadow:0 0 0 0 rgba(63,185,80,.55)} 100%{box-shadow:0 0 0 18px rgba(63,185,80,0)} }
+    @keyframes fxFadeUp    { 0%{opacity:0;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)} }
+    @keyframes fxScoreRoll { 0%{transform:translateY(-6px);opacity:.3} 100%{transform:translateY(0);opacity:1} }
+    @keyframes fxConfetti  { 0%{transform:translate(0,0) rotate(0); opacity:1} 100%{transform:translate(var(--tx,40px),140px) rotate(540deg); opacity:0} }
+    .fx-pop        { animation: fxPop .35s cubic-bezier(.34,1.56,.64,1); }
+    .fx-shake      { animation: fxShake .45s; }
+    .fx-glow       { animation: fxGlow .8s ease-out; }
+    .fx-fade-up    { animation: fxFadeUp .35s ease-out both; }
+    .fx-score-roll { animation: fxScoreRoll .35s ease-out; }
+
+    /* Confetti pieces are absolutely positioned inside a relative host.
+       They animate via the keyframe and self-remove on animationend. */
+    .confetti-host { position: relative; overflow: visible; }
+    .confetti-piece {
+      position: absolute; width: 8px; height: 12px;
+      border-radius: 2px;
+      top: 0; left: 50%;
+      pointer-events: none;
+      animation: fxConfetti .9s cubic-bezier(.2,.7,.4,1) forwards;
+      will-change: transform, opacity;
+    }
+
+    /* ---------- HUD ---------- */
     .hud {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -52,7 +79,6 @@
       border: 1px solid var(--line);
       border-radius: var(--r);
       padding: 10px 12px;
-      display: flex; align-items: center; gap: 10px;
     }
     .hud-label {
       font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
@@ -60,14 +86,17 @@
     }
     .hud-val {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 18px; font-weight: 700;
-      line-height: 1;
+      font-size: 22px; font-weight: 700;
+      line-height: 1; margin-top: 4px;
+      display: inline-block;
     }
     .hud-val.flash-up    { color: var(--green); }
     .hud-val.flash-down  { color: var(--red); }
-    .lives { display: flex; gap: 4px; font-size: 14px; }
-    .life { color: var(--red); }
+    .hud-val.flash-x     { color: var(--yellow); }
+    .lives { display: flex; gap: 4px; font-size: 16px; margin-top: 4px; }
+    .life { color: var(--red); transition: color 0.2s, transform 0.2s; }
     .life.gone { color: var(--text-4); }
+    .life.lost { animation: fxShake .4s; }
 
     /* ---------- Question card ---------- */
     .card {
@@ -75,6 +104,7 @@
       border: 1px solid var(--line);
       border-radius: var(--r);
       padding: 28px 24px;
+      position: relative;
     }
     .q-title {
       font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
@@ -124,6 +154,56 @@
     .bit.right .v, .bit.right .p { color: var(--green); }
     .bit.wrong { background: var(--red-dim); border-color: var(--red); }
     .bit.wrong .v, .bit.wrong .p { color: var(--red); }
+    .bit.locked { cursor: not-allowed; opacity: 0.85; }
+
+    /* ---------- Number input + keypad (bin→dec mode) ---------- */
+    .num-wrap {
+      display: flex; align-items: center; gap: 8px;
+      justify-content: center; margin: 24px 0 12px;
+    }
+    .num-input {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r);
+      padding: 14px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 32px; font-weight: 700;
+      text-align: center;
+      width: 220px; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .num-input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-dim);
+    }
+    .num-input.correct { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+    .num-input.wrong   { background: var(--red-dim);   border-color: var(--red);   color: var(--red); }
+    .num-input.locked:focus { box-shadow: none; }
+    .num-suffix {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px; color: var(--text-3); font-weight: 600;
+    }
+    .keypad {
+      display: grid; grid-template-columns: repeat(3, 64px);
+      gap: 6px; justify-content: center; margin: 0 auto 12px;
+    }
+    .keypad button {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px; font-weight: 600;
+      padding: 12px 0; cursor: pointer;
+      transition: background 0.1s, border-color 0.1s;
+    }
+    .keypad button:hover  { background: var(--bg-2); border-color: var(--line-3); }
+    .keypad .key-clear {
+      grid-column: span 3;
+      font-size: 12px; font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-3);
+      padding: 8px 0;
+    }
 
     /* ---------- Actions ---------- */
     .actions {
@@ -137,7 +217,7 @@
     .btn {
       background: var(--blue); color: #fff;
       border: 1px solid var(--blue);
-      padding: 9px 20px;
+      padding: 9px 22px;
       font-size: 13px; font-weight: 600;
     }
     .btn:hover { filter: brightness(1.1); }
@@ -152,9 +232,18 @@
 
     /* ---------- Feedback ---------- */
     .feedback {
-      margin-top: 12px; min-height: 36px;
+      margin-top: 14px; min-height: 40px;
       text-align: center;
-      font-size: 13px; color: var(--text-3);
+      font-size: 14px; color: var(--text-3);
+    }
+    .feedback .combo {
+      display: inline-block; margin-left: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      color: var(--yellow);
+      background: var(--yellow-dim);
+      padding: 3px 10px; border-radius: 999px;
+      letter-spacing: 0.04em;
     }
     .feedback.ok  { color: var(--green); }
     .feedback.bad { color: var(--red); }
@@ -174,36 +263,103 @@
     .timer-fill.critical { background: var(--red); }
     .timer-fill.ended    { background: var(--text-4); }
 
-    /* ---------- End screen ---------- */
-    .end { text-align: center; }
-    .end h1 {
-      font-size: 28px; font-weight: 700; margin: 0 0 4px;
-      letter-spacing: -0.01em;
+    /* ---------- Start / end screens ---------- */
+    .menu, .end { text-align: center; }
+    .menu h1, .end h1 {
+      font-size: 30px; font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0 0 4px;
     }
-    .end p { color: var(--text-3); margin: 0 0 24px; }
+    .menu p, .end p { color: var(--text-3); margin: 0 0 22px; }
+    .menu h2 {
+      font-size: 11px; font-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-3); font-weight: 700; margin: 22px 0 10px;
+    }
+    .menu-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      margin-bottom: 8px;
+    }
+    .menu-card {
+      background: var(--bg); border: 1px solid var(--line-2);
+      border-radius: var(--r);
+      padding: 16px 14px;
+      cursor: pointer; text-align: left;
+      color: var(--text); font-family: inherit;
+      transition: background 0.1s, border-color 0.1s, transform 0.1s;
+    }
+    .menu-card:hover { background: var(--bg-2); border-color: var(--blue); }
+    .menu-card:active { transform: scale(0.99); }
+    .menu-card.sel { background: var(--blue-dim); border-color: var(--blue); }
+    .menu-card .ic {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700; color: var(--blue);
+      font-size: 13px; margin-bottom: 6px;
+    }
+    .menu-card h3 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+    .menu-card .desc { font-size: 12.5px; color: var(--text-3); margin: 0; }
+    .menu-diffs {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+      margin-bottom: 22px;
+    }
+    .menu-diff {
+      background: var(--bg); border: 1px solid var(--line-2);
+      border-radius: var(--r);
+      padding: 12px 12px;
+      cursor: pointer; text-align: left;
+      color: var(--text); font-family: inherit;
+      transition: background 0.1s, border-color 0.1s, transform 0.1s;
+    }
+    .menu-diff:hover { background: var(--bg-2); border-color: var(--blue); }
+    .menu-diff:active { transform: scale(0.99); }
+    .menu-diff.sel { background: var(--blue-dim); border-color: var(--blue); }
+    .menu-diff .name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .menu-diff .desc { font-size: 11.5px; color: var(--text-3); }
+    .menu-diff .best {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px; color: var(--text-4);
+      margin-top: 6px;
+    }
+    .menu-actions {
+      display: flex; gap: 8px; justify-content: center; align-items: center;
+    }
+    .menu .mode-info {
+      font-size: 12px; color: var(--text-4); margin: 0;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
     .final-score {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 56px; font-weight: 700; color: var(--blue);
+      font-size: 60px; font-weight: 800; color: var(--blue);
       line-height: 1; margin-bottom: 8px;
     }
     .final-sub {
       display: flex; justify-content: center; gap: 24px;
       color: var(--text-3); font-size: 13px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
     .final-sub b {
       color: var(--text); font-family: 'JetBrains Mono', monospace;
       font-weight: 700;
     }
+    .new-record {
+      display: inline-block; margin-left: 8px;
+      font-size: 11px; font-weight: 700;
+      color: var(--yellow);
+      background: var(--yellow-dim);
+      padding: 3px 10px; border-radius: 999px;
+      letter-spacing: 0.04em; vertical-align: middle;
+    }
 
     @media (max-width: 480px) {
       .card { padding: 22px 16px; }
       .q-value { font-size: 36px; }
-      .bit { width: 38px; height: 60px; }
+      .bit { width: 40px; height: 60px; }
       .bit .v { font-size: 18px; }
+      .num-input { font-size: 26px; width: 180px; }
+      .menu-grid, .menu-diffs { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { transition: none !important; }
+      *, *::before, *::after { animation: none !important; transition: none !important; }
     }
   </style>
 </head>
@@ -215,31 +371,52 @@
   'use strict';
 
   // ---------- config ----------
-  const BITS = 8;
-  const MAX  = 255;
-  const TIME = 60;        // seconds
+  // Easy: 4 bits, no timer. Mirrors "your first introduction to binary".
+  // Medium: 8 bits, 60s. The byte-sized 0-255 range.
+  // Hard: 8 bits, 30s. Same range, half the time.
+  const DIFFS = {
+    easy:   { bitWidth: 4, timeLimit: 0  },
+    medium: { bitWidth: 8, timeLimit: 60 },
+    hard:   { bitWidth: 8, timeLimit: 30 },
+  };
   const LIVES = 3;
-  const STORE_KEY = 'recall.binaryGame.minimal.v1';
+  const STORE_KEY = 'recall.binaryGame.v2';
   const root = document.getElementById('root');
 
   // ---------- state ----------
-  let score = 0, streak = 0, bestStreak = 0, lives = LIVES;
-  let correct = 0, wrong = 0;
-  let bits = new Array(BITS).fill(0);  // bits[0] = LSB
-  let target = 0;
-  let locked = false;
-  let endsAt = 0, rafId = null, timeLeft = TIME;
+  const state = {
+    mode: null,        // 'dec2bin' | 'bin2dec'
+    diff: 'medium',
+    bitWidth: 8,
+    timeLimit: 60,
+    timeLeft: 60,
+    score: 0, streak: 0, bestStreak: 0, multiplier: 1.0,
+    lives: LIVES, correct: 0, wrong: 0, skipped: 0,
+    bits: [],
+    target: 0,         // the denary value to convert
+    locked: false,
+    endsAt: 0, rafId: null,
+  };
 
   // ---------- storage ----------
-  const best = (() => {
+  // Per (mode, diff) best score. Key shape is the same as v1 plus a
+  // version bump so old keys don't clash with the new shape.
+  function loadBest() {
     try {
-      const v = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
-      return v && typeof v.score === 'number' ? v : { score: 0, streak: 0 };
-    } catch (_) { return { score: 0, streak: 0 }; }
-  })();
-  const saveBest = () => {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(best)); } catch (_) {}
-  };
+      const v = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+      return v && typeof v === 'object' ? v : {};
+    } catch (_) { return {}; }
+  }
+  function saveBest(map) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(map)); } catch (_) {}
+  }
+  function bestKey() { return state.mode + '/' + state.diff; }
+  function getBest() { return loadBest()[bestKey()] || null; }
+  function setBest(score, streak) {
+    const m = loadBest();
+    m[bestKey()] = { score, streak, at: Date.now() };
+    saveBest(m);
+  }
 
   // ---------- helpers ----------
   const $ = (s) => root.querySelector(s);
@@ -247,7 +424,7 @@
     const e = document.createElement(tag);
     for (const k in attrs) {
       if (k === 'class') e.className = attrs[k];
-      else if (k === 'html') e.innerHTML = attrs[k];
+      else if (k === 'style') e.setAttribute('style', attrs[k]);
       else if (k.startsWith('on') && typeof attrs[k] === 'function') e.addEventListener(k.slice(2), attrs[k]);
       else e.setAttribute(k, attrs[k]);
     }
@@ -258,68 +435,225 @@
     return e;
   };
 
-  // ---------- render: play ----------
+  // ---------- fx helper ----------
+  // Tiny effects vocabulary — see the matching CSS keyframes above.
+  // Each function restarts the animation by toggling the class off
+  // and forcing a reflow. fx.confetti() spawns a handful of
+  // absolutely-positioned <span>s at the host element and lets the
+  // keyframe carry them off; they self-remove on animationend.
+  const fx = {
+    pop(el_)     { el_ && (el_.classList.remove('fx-pop'),     void el_.offsetWidth, el_.classList.add('fx-pop')); },
+    shake(el_)   { el_ && (el_.classList.remove('fx-shake'),   void el_.offsetWidth, el_.classList.add('fx-shake')); },
+    glow(el_)    { el_ && (el_.classList.remove('fx-glow'),    void el_.offsetWidth, el_.classList.add('fx-glow')); },
+    fadeUp(el_)  { el_ && (el_.classList.remove('fx-fade-up'), void el_.offsetWidth, el_.classList.add('fx-fade-up')); },
+    scoreRoll(el_, newText) {
+      if (!el_) return;
+      el_.textContent = newText;
+      el_.classList.remove('fx-score-roll');
+      void el_.offsetWidth;
+      el_.classList.add('fx-score-roll');
+    },
+    confetti(host, count = 14) {
+      if (!host) return;
+      // Position host needs to be relative — apply the class if missing.
+      if (!host.classList.contains('confetti-host')) host.classList.add('confetti-host');
+      const colours = ['#58A6FF', '#3FB950', '#D29922', '#A371F7', '#F85149', '#56D4DD'];
+      const w = host.offsetWidth || 100;
+      for (let i = 0; i < count; i++) {
+        const piece = document.createElement('span');
+        piece.className = 'confetti-piece';
+        const x0 = Math.random() * w - w / 2;
+        const tx = x0 + (Math.random() * 80 - 40);
+        piece.style.left = `calc(50% + ${x0}px)`;
+        piece.style.background = colours[i % colours.length];
+        piece.style.setProperty('--tx', tx + 'px');
+        piece.style.animationDelay = (Math.random() * 100) + 'ms';
+        host.appendChild(piece);
+        piece.addEventListener('animationend', () => piece.remove(), { once: true });
+      }
+    },
+  };
+
+  // ---------- start screen ----------
+  function renderStart() {
+    stopTimer();
+    state.mode = null;
+    root.innerHTML = '';
+    const card = el('div', { class: 'card menu' },
+      el('h1', null, 'Binary game'),
+      el('p', null, 'Convert between decimal and binary. Build a streak for a score multiplier. Three wrong answers and the game ends.'),
+      el('h2', null, 'Mode'),
+      el('div', { class: 'menu-grid', id: 'modeRow' },
+        modeCard('dec2bin', 'dec → bin', 'Decimal to binary', 'See a decimal number. Toggle the bits to build the binary answer.'),
+        modeCard('bin2dec', 'bin → dec', 'Binary to decimal', 'See a binary number. Type the decimal value.'),
+      ),
+      el('h2', null, 'Difficulty'),
+      el('div', { class: 'menu-diffs', id: 'diffRow' },
+        diffCard('easy',   'Easy',   '4 bits · no timer · 0–15'),
+        diffCard('medium', 'Medium', '8 bits · 60s · 0–255'),
+        diffCard('hard',   'Hard',   '8 bits · 30s · 0–255'),
+      ),
+      el('div', { class: 'menu-actions' },
+        el('button', { class: 'btn', id: 'startBtn' }, 'Start')
+      ),
+      el('p', { class: 'mode-info', id: 'modeInfo' }, 'Decimal → binary · Medium')
+    );
+    root.appendChild(card);
+    refreshBestLabels();
+    // Wire mode + diff selection.
+    root.querySelectorAll('.menu-card').forEach(b => {
+      b.addEventListener('click', () => {
+        state.mode = b.dataset.mode;
+        root.querySelectorAll('.menu-card').forEach(x => x.classList.toggle('sel', x === b));
+        updateModeInfo();
+        fx.pop(b);
+      });
+    });
+    root.querySelectorAll('.menu-diff').forEach(b => {
+      b.addEventListener('click', () => {
+        state.diff = b.dataset.diff;
+        root.querySelectorAll('.menu-diff').forEach(x => x.classList.toggle('sel', x === b));
+        updateModeInfo();
+        fx.pop(b);
+      });
+    });
+    // Default selection: medium difficulty, first mode card visually
+    // highlighted. The user can change either before pressing Start.
+    const defaultDiff = root.querySelector('[data-diff="medium"]');
+    defaultDiff.classList.add('sel');
+    root.querySelector('[data-mode="dec2bin"]').classList.add('sel');
+    state.mode = 'dec2bin';
+    state.diff = 'medium';
+    $('#startBtn').addEventListener('click', start);
+    // Keyboard: Enter starts the game from the start screen.
+    const onKey = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); start(); }
+    };
+    document.addEventListener('keydown', onKey, { once: true });
+  }
+
+  function modeCard(mode, ic, name, desc) {
+    return el('button', { class: 'menu-card', 'data-mode': mode },
+      el('div', { class: 'ic' }, ic),
+      el('h3', null, name),
+      el('p', { class: 'desc' }, desc)
+    );
+  }
+  function diffCard(diff, name, desc) {
+    return el('button', { class: 'menu-diff', 'data-diff': diff },
+      el('div', { class: 'name' }, name),
+      el('div', { class: 'desc' }, desc),
+      el('div', { class: 'best', 'data-best': diff }, 'best —')
+    );
+  }
+
+  function updateModeInfo() {
+    const info = $('#modeInfo');
+    if (!info) return;
+    const modeName = state.mode === 'bin2dec' ? 'Binary → decimal' :
+                     state.mode === 'dec2bin' ? 'Decimal → binary' : '— pick —';
+    info.textContent = modeName + ' · ' + (state.diff || 'medium');
+  }
+  function refreshBestLabels() {
+    const all = loadBest();
+    document.querySelectorAll('[data-best]').forEach(el_ => {
+      const diff = el_.dataset.best;
+      // Show the best across both modes for this difficulty so the
+      // user can see their high water mark at a glance.
+      const a = all[('dec2bin/' + diff)] || null;
+      const b = all[('bin2dec/' + diff)] || null;
+      const best = Math.max(a ? a.score : 0, b ? b.score : 0);
+      el_.textContent = 'best ' + (best || '—');
+    });
+  }
+
+  // ---------- play screen ----------
   function renderPlay() {
     root.innerHTML = '';
     const hud = el('div', { class: 'hud' },
-      hudCell('Score', String(score), 'scoreVal'),
-      hudCell('Streak', String(streak), 'streakVal'),
+      hudCell('Score', String(state.score), 'scoreVal'),
+      hudCell('Streak', String(state.streak) + (state.multiplier > 1 ? ' ×' + state.multiplier.toFixed(1) : ''), 'streakVal'),
       hudLives(),
     );
     const timer = el('div', { class: 'timer' },
       el('div', { class: 'timer-fill', id: 'timerFill' })
     );
-    const card = el('div', { class: 'card' },
-      el('p', { class: 'q-title' }, 'Convert to binary'),
-      el('p', { class: 'q-value' },
-        String(target),
+    const card = el('div', { class: 'card', id: 'card' });
+    if (state.mode === 'dec2bin') {
+      card.appendChild(el('p', { class: 'q-title' }, 'Convert to binary'));
+      card.appendChild(el('p', { class: 'q-value' },
+        String(state.target),
         el('span', { class: 'suffix' }, 'decimal')
-      ),
-      el('div', { class: 'bits', id: 'bits' },
+      ));
+      card.appendChild(el('div', { class: 'bits', id: 'bits' },
         ...bitButtons()
-      ),
-      el('div', { class: 'actions' },
-        el('button', { class: 'btn', id: 'submit', onclick: submit }, 'Submit'),
-        el('button', { class: 'btn-ghost', id: 'skip', onclick: skip }, 'Skip')
-      ),
-      el('div', { class: 'feedback', id: 'fb' })
-    );
+      ));
+    } else {
+      // bin2dec
+      const binStr = state.target.toString(2).padStart(state.bitWidth, '0');
+      card.appendChild(el('p', { class: 'q-title' }, 'Convert to decimal'));
+      card.appendChild(el('p', { class: 'q-value' },
+        binStr,
+        el('span', { class: 'suffix' }, 'binary (' + state.bitWidth + '-bit)')
+      ));
+      card.appendChild(el('div', { class: 'num-wrap' },
+        el('input', { class: 'num-input', id: 'numInput', type: 'text',
+                      inputmode: 'numeric', maxlength: '3', autocomplete: 'off' }),
+        el('span', { class: 'num-suffix' }, 'decimal')
+      ));
+      card.appendChild(el('div', { class: 'keypad', id: 'keypad' },
+        ...keypadButtons()
+      ));
+    }
+    card.appendChild(el('div', { class: 'actions' },
+      el('button', { class: 'btn', id: 'submit', onclick: submit }, 'Submit'),
+      el('button', { class: 'btn-ghost', id: 'skip', onclick: skip }, 'Skip')
+    ));
+    card.appendChild(el('div', { class: 'feedback', id: 'fb' }));
     root.appendChild(hud);
     root.appendChild(timer);
     root.appendChild(card);
+
+    // Per-render entrance: card fades up. Bits / input do their own
+    // micro-fade (small delay so the card lands first).
+    fx.fadeUp(card);
+    setTimeout(() => {
+      const target = state.mode === 'dec2bin' ? $('#bits') : $('#numInput');
+      if (target) fx.fadeUp(target);
+      if (state.mode === 'bin2dec') {
+        const kp = $('#keypad'); if (kp) fx.fadeUp(kp);
+        $('#numInput').focus();
+      }
+    }, 80);
+
+    $('#submit').disabled = false;
   }
 
   function hudCell(label, val, id) {
     return el('div', { class: 'hud-cell' },
-      el('div', null,
-        el('div', { class: 'hud-label' }, label),
-        el('div', { class: 'hud-val', id }, val)
-      )
+      el('div', { class: 'hud-label' }, label),
+      el('div', { class: 'hud-val', id }, val)
     );
   }
   function hudLives() {
-    const cell = el('div', { class: 'hud-cell' },
-      el('div', null,
-        el('div', { class: 'hud-label' }, 'Lives'),
-        el('div', { class: 'hud-val' },
-          el('div', { class: 'lives', id: 'lives' },
-            ...Array.from({ length: LIVES }, (_, i) =>
-              el('span', { class: 'life' + (i >= lives ? ' gone' : '') }, '♥')
-            )
+    return el('div', { class: 'hud-cell' },
+      el('div', { class: 'hud-label' }, 'Lives'),
+      el('div', { class: 'hud-val' },
+        el('div', { class: 'lives', id: 'lives' },
+          ...Array.from({ length: LIVES }, (_, i) =>
+            el('span', { class: 'life' + (i >= state.lives ? ' gone' : '') }, '♥')
           )
         )
       )
     );
-    return cell;
   }
 
   function bitButtons() {
     const out = [];
-    // MSB on the left → visible index i maps to bit BITS-1-i
-    for (let i = 0; i < BITS; i++) {
-      const bitIdx = BITS - 1 - i;
+    for (let i = 0; i < state.bitWidth; i++) {
+      const bitIdx = state.bitWidth - 1 - i;
       const place = Math.pow(2, bitIdx);
-      const on = bits[bitIdx] === 1;
+      const on = state.bits[bitIdx] === 1;
       out.push(
         el('button', {
           class: 'bit' + (on ? ' on' : ''),
@@ -334,91 +668,186 @@
     return out;
   }
 
+  function keypadButtons() {
+    const keys = ['1','2','3','4','5','6','7','8','9','clear','0','⌫'];
+    return keys.map(k => {
+      if (k === 'clear') return el('button', { class: 'key-clear', 'data-key': 'clear' }, 'Clear');
+      return el('button', { 'data-key': k }, k);
+    });
+  }
+
+  // ---------- input handlers ----------
   function toggleBit(idx) {
-    if (locked) return;
-    bits[idx] = bits[idx] ? 0 : 1;
-    // Update only the toggled bit's button — cheaper than re-rendering.
-    const btn = root.querySelector(`.bit[data-idx="${idx}"]`);
+    if (state.locked) return;
+    state.bits[idx] = state.bits[idx] ? 0 : 1;
+    const btn = root.querySelector('.bit[data-idx="' + idx + '"]');
     if (btn) {
-      const on = bits[idx] === 1;
+      const on = state.bits[idx] === 1;
       btn.classList.toggle('on', on);
       btn.querySelector('.v').textContent = on ? '1' : '0';
+      // Satisfying click pop. Restarts the animation if the bit was
+      // already on then off again.
+      fx.pop(btn);
     }
+  }
+
+  function wireKeypad() {
+    const input = $('#numInput');
+    if (!input) return;
+    root.querySelectorAll('#keypad button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (state.locked) return;
+        const k = btn.dataset.key;
+        if (k === 'clear') input.value = '';
+        else if (k === '⌫') input.value = input.value.slice(0, -1);
+        else if (/^\d$/.test(k)) {
+          if (input.value.length < 3) input.value += k;
+        }
+        fx.pop(btn);
+        input.focus();
+      });
+    });
   }
 
   // ---------- next question ----------
   function nextQuestion() {
-    locked = false;
-    target = Math.floor(Math.random() * (MAX + 1));
-    bits = new Array(BITS).fill(0);
+    state.locked = false;
+    const max = Math.pow(2, state.bitWidth) - 1;
+    // Skip 0 on the very first question — it's confusing as a
+    // first impression ("convert 0 to binary" doesn't teach much).
+    // After that 0 is fair game.
+    if (state.correct + state.wrong === 0) {
+      state.target = 1 + Math.floor(Math.random() * max);
+    } else {
+      state.target = Math.floor(Math.random() * (max + 1));
+    }
+    state.bits = new Array(state.bitWidth).fill(0);
     renderPlay();
-    $('#submit').disabled = false;
+    if (state.mode === 'bin2dec') wireKeypad();
   }
 
-  // ---------- submit / check ----------
+  // ---------- check ----------
   function checkAnswer() {
-    const got = bits.slice().reverse().join('');
-    const want = target.toString(2).padStart(BITS, '0');
-    return got === want;
+    if (state.mode === 'dec2bin') {
+      const got = state.bits.slice().reverse().join('');
+      const want = state.target.toString(2).padStart(state.bitWidth, '0');
+      return got === want;
+    } else {
+      const v = parseInt(($('#numInput').value || '').trim(), 10);
+      if (!Number.isFinite(v)) return null;
+      return v === state.target;
+    }
   }
 
   function showBitsResult() {
-    const wantBits = target.toString(2).padStart(BITS, '0').split('').map(Number);
+    const wantBits = state.target.toString(2).padStart(state.bitWidth, '0').split('').map(Number);
     root.querySelectorAll('.bit').forEach(b => {
       const idx = parseInt(b.dataset.idx, 10);
-      const got = bits[idx];
-      const want = wantBits[BITS - 1 - idx];
+      const got = state.bits[idx];
+      const want = wantBits[state.bitWidth - 1 - idx];
       b.classList.remove('on');
       b.classList.add(got === want ? 'right' : 'wrong');
     });
   }
 
-  function flash(el_, kind) {
-    el_.classList.remove('flash-up', 'flash-down');
-    void el_.offsetWidth;
-    el_.classList.add(kind === 'up' ? 'flash-up' : 'flash-down');
-  }
-
+  // ---------- submit / skip ----------
   function submit() {
-    if (locked) return;
-    if (!checkAnswer()) {
-      locked = true;
-      wrong += 1;
-      streak = 0;
-      lives -= 1;
+    if (state.locked) return;
+    const ok = checkAnswer();
+    if (ok === null) {
+      // bin2dec with empty input — gentle nudge, don't lock.
+      const fb = $('#fb');
+      fb.className = 'feedback';
+      fb.textContent = 'Type a number first.';
+      return;
+    }
+    state.locked = true;
+    $('#submit').disabled = true;
+
+    if (!ok) {
+      // Wrong: shake, lose a life, reset streak.
+      state.wrong += 1;
+      state.streak = 0;
+      state.multiplier = 1.0;
+      state.lives -= 1;
+      loseLife();
       const fb = $('#fb');
       fb.className = 'feedback bad';
-      fb.textContent = 'Not quite — ' + target + ' = ' + target.toString(2).padStart(BITS, '0');
-      flash($('#scoreVal'), 'down');
+      const wantBits = state.target.toString(2).padStart(state.bitWidth, '0');
+      const hint = state.mode === 'dec2bin'
+        ? 'Not quite — ' + state.target + ' in binary is ' + wantBits
+        : 'Not quite — ' + wantBits + ' is ' + state.target;
+      fb.innerHTML = hint;
+      fx.shake($('#card'));
+      fx.fadeUp(fb);
+      const sv = $('#scoreVal'); sv.classList.remove('flash-down'); void sv.offsetWidth; sv.classList.add('flash-down');
       showBitsResult();
-      $('#submit').disabled = true;
-      // update lives display
-      const ls = $('#lives').children;
-      if (ls[lives]) ls[lives].classList.add('gone');
-      if (lives <= 0) {
+      // Shake the wrong bits individually — small, fast, staggered.
+      root.querySelectorAll('.bit.wrong').forEach((b, i) => {
+        setTimeout(() => fx.shake(b), i * 30);
+      });
+      if (state.mode === 'bin2dec') {
+        const ni = $('#numInput');
+        ni.classList.add('wrong', 'locked');
+        ni.disabled = true;
+      }
+      updateHud();
+      if (state.lives <= 0) {
         setTimeout(endGame, 1200);
         return;
       }
       setTimeout(nextQuestion, 1100);
       return;
     }
-    locked = true;
-    correct += 1;
-    streak += 1;
-    bestStreak = Math.max(bestStreak, streak);
-    const mult = Math.min(3, 1 + Math.floor(streak / 3) * 0.5);
-    score += Math.round(10 * mult);
+
+    // Correct: pop, glow, roll the score, confetti at milestones.
+    state.correct += 1;
+    state.streak += 1;
+    state.bestStreak = Math.max(state.bestStreak, state.streak);
+    state.multiplier = Math.min(3, 1 + Math.floor(state.streak / 3) * 0.5);
+    const gain = Math.round(10 * state.multiplier);
+    state.score += gain;
+
     const fb = $('#fb');
     fb.className = 'feedback ok';
-    fb.textContent = 'Correct · ' + streak + ' in a row' + (mult > 1 ? ' · ×' + mult.toFixed(1) : '');
-    flash($('#scoreVal'), 'up');
-    $('#scoreVal').textContent = String(score);
-    $('#streakVal').textContent = String(streak);
+    const wantBits = state.target.toString(2).padStart(state.bitWidth, '0');
+    let detail = state.mode === 'dec2bin'
+      ? 'Correct · ' + wantBits + ' · streak ' + state.streak
+      : 'Correct · streak ' + state.streak;
+    if (state.multiplier > 1) detail += ' · +' + gain + ' pts';
+    fb.innerHTML = detail + (state.multiplier > 1 ? '<span class="combo">×' + state.multiplier.toFixed(1) + '</span>' : '');
+    fx.fadeUp(fb);
+
+    // Score rolls + flashes up.
+    const sv = $('#scoreVal');
+    sv.classList.remove('flash-up', 'flash-down');
+    void sv.offsetWidth;
+    sv.classList.add('flash-up');
+    fx.scoreRoll(sv, String(state.score));
+    // Streak label updates with the multiplier on the side.
+    const streakEl = $('#streakVal');
+    fx.scoreRoll(streakEl, String(state.streak) + (state.multiplier > 1 ? ' ×' + state.multiplier.toFixed(1) : ''));
+
     showBitsResult();
-    $('#submit').disabled = true;
+    // Glow each correct bit — gives the green ring expanding effect.
+    root.querySelectorAll('.bit.right').forEach((b, i) => {
+      setTimeout(() => fx.glow(b), i * 20);
+    });
+    if (state.mode === 'bin2dec') {
+      const ni = $('#numInput');
+      ni.classList.add('correct', 'locked');
+      ni.disabled = true;
+      fx.glow(ni);
+    }
+    if (state.multiplier >= 2) {
+      // Confetti from the score cell on milestone multipliers.
+      fx.confetti($('#scoreVal'), 16);
+    }
+    updateHud();
+
     // Activity-lesson postMessage — first correct answer marks the
     // lesson complete when the game is hosted as an iframe inside
-    // lesson.html. BlockId is overridable via window.__recallBlockId
+    // lesson.html. blockId is overridable via window.__recallBlockId
     // (lesson.html sets that to the lesson id).
     if (!window._posted) {
       window._posted = true;
@@ -430,74 +859,141 @@
         }, '*');
       } catch (_) {}
     }
-    setTimeout(nextQuestion, 700);
+
+    setTimeout(nextQuestion, 750);
   }
 
   function skip() {
-    if (locked) return;
-    locked = true;
-    streak = 0;
+    if (state.locked) return;
+    state.locked = true;
+    state.skipped += 1;
+    state.streak = 0;
+    state.multiplier = 1.0;
     const fb = $('#fb');
     fb.className = 'feedback';
-    fb.textContent = 'Skipped — ' + target + ' = ' + target.toString(2).padStart(BITS, '0');
+    const wantBits = state.target.toString(2).padStart(state.bitWidth, '0');
+    fb.textContent = 'Skipped — ' + state.target + ' = ' + wantBits;
+    fx.fadeUp(fb);
     showBitsResult();
+    if (state.mode === 'bin2dec') {
+      const ni = $('#numInput');
+      ni.classList.add('wrong', 'locked');
+      ni.value = String(state.target);
+      ni.disabled = true;
+    }
     $('#submit').disabled = true;
     setTimeout(nextQuestion, 1000);
   }
 
+  function loseLife() {
+    const ls = $('#lives').children;
+    if (ls[state.lives]) {
+      ls[state.lives].classList.add('lost');
+      setTimeout(() => {
+        ls[state.lives].classList.remove('lost');
+        ls[state.lives].classList.add('gone');
+      }, 400);
+    }
+  }
+
   // ---------- timer ----------
   function startTimer() {
-    endsAt = performance.now() + TIME * 1000;
+    if (state.timerRaf) cancelAnimationFrame(state.timerRaf);
+    if (!state.timeLimit) {
+      $('#timerBar') && ($('#timerBar').hidden = true);
+      return;
+    }
+    state.endsAt = performance.now() + state.timeLimit * 1000;
     const tick = () => {
-      const left = Math.max(0, (endsAt - performance.now()) / 1000);
-      timeLeft = left;
+      const left = Math.max(0, (state.endsAt - performance.now()) / 1000);
+      state.timeLeft = left;
       const fill = $('#timerFill');
       if (!fill) return; // screen changed
-      const pct = (left / TIME) * 100;
+      const pct = (left / state.timeLimit) * 100;
       fill.style.width = pct + '%';
       fill.classList.toggle('low', pct < 35 && pct >= 15);
       fill.classList.toggle('critical', pct < 15);
       if (left <= 0) { endGame(); return; }
-      rafId = requestAnimationFrame(tick);
+      state.timerRaf = requestAnimationFrame(tick);
     };
-    rafId = requestAnimationFrame(tick);
+    state.timerRaf = requestAnimationFrame(tick);
   }
-  function stopTimer() { if (rafId) cancelAnimationFrame(rafId); rafId = null; }
+  function stopTimer() {
+    if (state.timerRaf) cancelAnimationFrame(state.timerRaf);
+    state.timerRaf = null;
+  }
 
-  // ---------- end ----------
+  // ---------- hud ----------
+  function updateHud() {
+    const sv = $('#scoreVal'); if (sv) sv.textContent = String(state.score);
+    const sk = $('#streakVal'); if (sk) sk.textContent = String(state.streak) + (state.multiplier > 1 ? ' ×' + state.multiplier.toFixed(1) : '');
+  }
+
+  // ---------- end screen ----------
   function endGame() {
     stopTimer();
-    const isNew = score > best.score;
-    if (isNew) { best.score = score; best.streak = bestStreak; saveBest(); }
+    const isNew = state.score > ((getBest() || {}).score || 0);
+    if (isNew) setBest(state.score, state.bestStreak);
     root.innerHTML = '';
-    const wrap = el('div', { class: 'card end' },
-      el('h1', null, timeLeft <= 0 ? "Time's up" : 'Out of lives'),
-      el('p', null, isNew ? 'New best.' : 'Best: ' + best.score + ' · Try again?'),
-      el('div', { class: 'final-score' }, String(score)),
+    const card = el('div', { class: 'card end' },
+      el('h1', null, state.timeLeft <= 0 && state.lives > 0 ? "Time's up" : 'Out of lives'),
+      el('p', null, isNew ? 'New best for this mode and difficulty.' : 'Best: ' + ((getBest() || {}).score || 0) + ' · Try again?'),
+      el('div', { class: 'final-score', id: 'finalScore' }, String(state.score),
+        isNew ? el('span', { class: 'new-record' }, 'New best') : null
+      ),
       el('div', { class: 'final-sub' },
-        el('span', null, 'Best streak ', el('b', null, String(bestStreak))),
-        el('span', null, 'Correct ', el('b', null, String(correct))),
+        el('span', null, 'Best streak ', el('b', null, String(state.bestStreak))),
+        el('span', null, 'Correct ', el('b', null, String(state.correct))),
       ),
       el('div', { class: 'actions' },
-        el('button', { class: 'btn', onclick: start }, 'Play again')
+        el('button', { class: 'btn', id: 'againBtn' }, 'Play again'),
+        el('button', { class: 'btn-ghost', id: 'menuBtn' }, 'Menu')
       )
     );
-    root.appendChild(wrap);
+    root.appendChild(card);
+    fx.fadeUp(card);
+    setTimeout(() => {
+      const fs = $('#finalScore');
+      if (fs) {
+        fx.scoreRoll(fs, String(state.score));
+        if (isNew) fx.confetti(fs, 22);
+      }
+      const btn = $('#againBtn');
+      if (btn) setTimeout(() => fx.fadeUp(btn), 200);
+    }, 120);
+    $('#againBtn').addEventListener('click', start);
+    $('#menuBtn').addEventListener('click', renderStart);
   }
 
-  // ---------- start ----------
+  // ---------- start game ----------
   function start() {
-    score = 0; streak = 0; bestStreak = 0;
-    lives = LIVES; correct = 0; wrong = 0;
-    locked = false; timeLeft = TIME;
+    if (!state.mode) state.mode = 'dec2bin';
+    if (!state.diff) state.diff = 'medium';
+    const d = DIFFS[state.diff];
+    state.bitWidth = d.bitWidth;
+    state.timeLimit = d.timeLimit;
+    state.timeLeft = d.timeLimit;
+    state.score = 0;
+    state.streak = 0;
+    state.bestStreak = 0;
+    state.multiplier = 1.0;
+    state.lives = LIVES;
+    state.correct = 0;
+    state.wrong = 0;
+    state.skipped = 0;
+    state.locked = false;
     stopTimer();
     nextQuestion();
     startTimer();
   }
-  start();
 
-  // Keyboard: Enter submits, Esc skips.
+  // ---------- boot ----------
+  renderStart();
+
+  // Keyboard: Enter submits, Esc skips (only while playing).
   document.addEventListener('keydown', (e) => {
+    if (!state.mode) return; // on start screen
+    if (e.target && e.target.tagName === 'INPUT') return; // let the number input handle its own keys
     if (e.key === 'Enter') { e.preventDefault(); submit(); }
     else if (e.key === 'Escape') { e.preventDefault(); skip(); }
   });

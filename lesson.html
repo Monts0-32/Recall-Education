@@ -513,7 +513,7 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { transition: none !important; }
+      *, *::before, *::after { transition: none !important; animation: none !important; }
     }
     a:focus-visible, button:focus-visible, input:focus-visible {
       outline: 2px solid var(--blue); outline-offset: 2px;
@@ -582,6 +582,18 @@
     @media (prefers-reduced-motion: reduce) {
       .block-revealed { animation: none; }
     }
+
+    /* ---------- Effects vocabulary (shared with binary-game + lesson-creator) ---------- */
+    @keyframes fx-pop     { 0%{transform:scale(1)} 45%{transform:scale(1.12)} 100%{transform:scale(1)} }
+    @keyframes fx-shake   { 10%,90%{transform:translateX(-2px)} 20%,80%{transform:translateX(3px)} 30%,50%,70%{transform:translateX(-5px)} 40%,60%{transform:translateX(5px)} }
+    @keyframes fx-glow    { 0%{box-shadow:0 0 0 0 rgba(63,185,80,.55)} 100%{box-shadow:0 0 0 14px rgba(63,185,80,0)} }
+    @keyframes fx-fade-up { 0%{opacity:0;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)} }
+    @keyframes fx-pulse   { 0%{transform:scale(1)} 50%{transform:scale(1.05)} 100%{transform:scale(1)} }
+    .fx-pop     { animation: fx-pop .3s cubic-bezier(.34,1.56,.64,1); }
+    .fx-shake   { animation: fx-shake .4s; }
+    .fx-glow    { animation: fx-glow .8s ease-out; }
+    .fx-fade-up { animation: fx-fade-up .3s ease-out both; }
+    .fx-pulse   { animation: fx-pulse .4s ease-out; }
 
     /* ---------- CONTINUE BUTTON (bottom action bar) ---------- */
     /* The Continue button lives on the action bar — not under each
@@ -667,6 +679,37 @@
 
   const $ = (id) => document.getElementById(id);
   const L = window.LessonRender;
+
+  // Effects helper — wraps the fx-* CSS classes with restart-on-repeat
+  // semantics. See the binary-game + lesson-creator files for the
+  // matching CSS. fx.glowOnce(el) is a small variant: it adds a
+  // data-fx-done attribute the first time it runs, so repeat calls
+  // (e.g. onScore firing twice for the same block) don't re-trigger
+  // the glow — that would feel like the save event is unstuck.
+  const fx = {
+    pop(el_)  { el_ && (el_.classList.remove('fx-pop'),     void el_.offsetWidth, el_.classList.add('fx-pop')); },
+    shake(el_){ el_ && (el_.classList.remove('fx-shake'),   void el_.offsetWidth, el_.classList.add('fx-shake')); },
+    glow(el_) { el_ && (el_.classList.remove('fx-glow'),    void el_.offsetWidth, el_.classList.add('fx-glow')); },
+    fadeUp(el_){
+      if (!el_) return;
+      el_.classList.remove('fx-fade-up');
+      void el_.offsetWidth;
+      el_.classList.add('fx-fade-up');
+    },
+    pulse(el_){ el_ && (el_.classList.remove('fx-pulse'),   void el_.offsetWidth, el_.classList.add('fx-pulse')); },
+    glowOnce(el_) {
+      if (!el_) return;
+      if (el_.dataset.fxDone === '1') return;
+      el_.dataset.fxDone = '1';
+      fx.glow(el_);
+    },
+    fadeUpOnce(el_) {
+      if (!el_) return;
+      if (el_.dataset.fxDone === '1') return;
+      el_.dataset.fxDone = '1';
+      fx.fadeUp(el_);
+    },
+  };
 
   // ---------- state ----------
   const session = {
@@ -892,6 +935,14 @@
       // treats `practice-done` the same as `html-block-done`.
       const wrap = $('body').querySelector(`[data-block-id="${CSS.escape(blockId)}"]`);
       if (wrap && wrap.classList.contains('practice')) wrap.classList.add('practice-done');
+      // Fade-up + glow the block once it's done so the user sees the
+      // green ring expand. glowOnce is keyed on data-fx-done so a
+      // re-fire (e.g. the user clicks Check twice) doesn't replay the
+      // animation — that would feel like a stuck event.
+      if (wrap) {
+        fx.fadeUpOnce(wrap);
+        fx.glowOnce(wrap);
+      }
       // The bottom Continue button reflects the *current* block's
       // state — if the current block is required and we just scored
       // it, the Continue button unlocks.
@@ -922,6 +973,13 @@
         wrap.classList.add('html-block-done');
         const gate = wrap.querySelector('.html-block-gate');
         if (gate) gate.hidden = false;
+        // Satisfying block-completion: glow the wrapper so the green
+        // ring is visible (the static html-block-done border is
+        // already there; the keyframe makes the transition feel
+        // intentional). glowOnce is keyed on data-fx-done so repeat
+        // posts from the same iframe don't replay the animation.
+        fx.fadeUpOnce(wrap);
+        fx.glowOnce(wrap);
         // Refresh the bottom Continue button — if the current block
         // is required and just got completed, the button unlocks.
         refreshContinueButton();
@@ -937,6 +995,12 @@
     $('head').hidden = false;
     $('body').hidden = false;
     $('actionBar').hidden = false;
+    // Stagger the page assembly so the lesson doesn't pop in all at
+    // once — head first, body 80ms later, action bar 80ms after that.
+    // The head/body fade the same way so a long page settles naturally.
+    fx.fadeUp($('head'));
+    setTimeout(() => fx.fadeUp($('body')), 80);
+    setTimeout(() => fx.fadeUp($('actionBar')), 160);
     updateProgress();
     refreshMarkComplete();
   }
@@ -1025,6 +1089,8 @@
       ${required ? '<div class="html-block-gate" hidden><span>✓ Completed — you can finish the lesson.</span></div>' : ''}
     `;
     body.appendChild(frame);
+    // Fade the placeholder up so the activity doesn't pop in.
+    fx.fadeUp(frame);
 
     // Fetch the file, then swap the placeholder for the real iframe
     // with srcdoc set to the file contents. We use a cache-buster
@@ -1034,6 +1100,11 @@
     fetch(src + cacheBuster, { cache: 'no-store' })
       .then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))
       .then(html => {
+        // The placeholder fades out as the real iframe fades in. The
+        // frame keeps its data-block-id (set above) so the postMessage
+        // listener matches it — we re-apply it after the innerHTML
+        // reset below.
+        frame.dataset.blockId = L0.id;
         // Inject window.__recallBlockId so the activity's postMessage
         // (if it follows the same convention) uses the lesson id, not
         // a hardcoded literal. The activity already falls back to its
@@ -1062,6 +1133,12 @@
           gate.innerHTML = '<span>✓ Completed — you can finish the lesson.</span>';
           frame.appendChild(gate);
         }
+        // Fade the new iframe up so the placeholder → real-iframe
+        // swap doesn't feel like a hard cut. The iframe itself
+        // doesn't need a class — animating the frame's contents via
+        // opacity is enough to take the edge off the transition.
+        // (The iframe's own document handles its own entrance.)
+        fx.fadeUp(frame);
       })
       .catch(err => {
         frame.innerHTML = `
@@ -1103,6 +1180,12 @@
         wrap.classList.add('html-block-done');
         const gate = wrap.querySelector('.html-block-gate');
         if (gate) gate.hidden = false;
+        // Glow the activity wrapper so the user sees the green ring
+        // expand when the activity iframe reports completion. This is
+        // the activity-equivalent of the per-block glow in the block
+        // lesson path — same one-shot keying via glowOnce.
+        fx.fadeUpOnce(wrap);
+        fx.glowOnce(wrap);
         refreshMarkComplete();
         updateProgress();
       });
@@ -1333,9 +1416,14 @@
       toast('Complete the required activities above first.', 'error');
       return;
     }
+    // Satisfying button press: pop the button so the click feels
+    // weighty, then save in the background. The pop is a CSS scale
+    // animation, so it doesn't block the async save.
+    const btn = $('markCompleteBtn');
+    fx.pop(btn);
     session.completed = true;
-    $('markCompleteBtn').disabled = true;
-    $('markCompleteBtn').textContent = 'Saving…';
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
 
     // Drain any pending seconds first, then write the completed flag.
     await flush(false);
@@ -1348,12 +1436,15 @@
     };
     try {
       await supabaseClient.rpc('log_lesson_session', payload);
+      // Glow the button green on success — the user sees the
+      // completion event land, then the redirect fires.
+      fx.glow(btn);
       toast('Lesson marked as complete. Nice work!', 'success');
       setTimeout(() => { location.href = 'dashboard.html'; }, 800);
     } catch (e) {
       session.completed = false;
-      $('markCompleteBtn').disabled = false;
-      $('markCompleteBtn').textContent = 'Mark complete';
+      btn.disabled = false;
+      btn.textContent = 'Mark complete';
       toast('Could not save — try again.', 'error');
       console.error(e);
     }

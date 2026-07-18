@@ -1175,6 +1175,37 @@
       to   { transform: translateY(0); opacity: 1; }
     }
 
+    /* ---------- Effects vocabulary (shared with binary-game + lesson.html) ---------- */
+    @keyframes fx-pop     { 0%{transform:scale(1)} 45%{transform:scale(1.12)} 100%{transform:scale(1)} }
+    @keyframes fx-shake   { 10%,90%{transform:translateX(-2px)} 20%,80%{transform:translateX(3px)} 30%,50%,70%{transform:translateX(-5px)} 40%,60%{transform:translateX(5px)} }
+    @keyframes fx-glow    { 0%{box-shadow:0 0 0 0 rgba(63,185,80,.55)} 100%{box-shadow:0 0 0 14px rgba(63,185,80,0)} }
+    @keyframes fx-fade-up { 0%{opacity:0;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)} }
+    @keyframes fx-pulse   { 0%{transform:scale(1)} 50%{transform:scale(1.05)} 100%{transform:scale(1)} }
+    .fx-pop     { animation: fx-pop .3s cubic-bezier(.34,1.56,.64,1); }
+    .fx-shake   { animation: fx-shake .4s; }
+    .fx-glow    { animation: fx-glow .8s ease-out; }
+    .fx-fade-up { animation: fx-fade-up .3s ease-out both; }
+    .fx-pulse   { animation: fx-pulse .4s ease-out; }
+
+    /* Lift on hover for sidebar rows. Pure CSS — no JS needed.
+       The class is `topic-row` because that's what renderLessonRow +
+       renderTopicLevel emit. We exclude `.active` so the currently-
+       selected row doesn't jiggle under the user's cursor. */
+    .topic-row {
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .topic-row:hover:not(.active) { transform: translateX(2px); }
+
+    /* Reduced motion: kill all fx animations. */
+    @media (prefers-reduced-motion: reduce) {
+      .fx-pop, .fx-shake, .fx-glow, .fx-fade-up, .fx-pulse,
+      .toast, .topic-row {
+        animation: none !important;
+        transition: none !important;
+      }
+      .topic-row:hover:not(.active) { transform: none; }
+    }
+
     /* ---------- STUDENT-STYLE PREVIEW MODAL ----------
        The "Preview" button opens a modal that mirrors what students see
        in lesson.html: a wider, more spacious reading column with proper
@@ -1746,6 +1777,39 @@
     if (!name) return 'R';
     const p = name.trim().split(/\s+/);
     return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || 'R';
+  };
+
+  // Effects helper — wraps the fx-* CSS classes with restart-on-repeat
+  // semantics (the void offsetWidth trick). fadeUp / pop / shake /
+  // glow / pulse each accept an element and re-trigger the animation.
+  // fadeUpChildren(container, stagger) is the only non-trivial one:
+  // it walks the children, removes any prior fx-fade-up class, and
+  // applies the class again with an inline animation-delay so the
+  // list animates in waves of `stagger` ms.
+  const fx = {
+    pop(el_)  { el_ && (el_.classList.remove('fx-pop'),     void el_.offsetWidth, el_.classList.add('fx-pop')); },
+    shake(el_){ el_ && (el_.classList.remove('fx-shake'),   void el_.offsetWidth, el_.classList.add('fx-shake')); },
+    glow(el_) { el_ && (el_.classList.remove('fx-glow'),    void el_.offsetWidth, el_.classList.add('fx-glow')); },
+    fadeUp(el_){
+      if (!el_) return;
+      el_.classList.remove('fx-fade-up');
+      void el_.offsetWidth;
+      el_.classList.add('fx-fade-up');
+    },
+    pulse(el_){ el_ && (el_.classList.remove('fx-pulse'),   void el_.offsetWidth, el_.classList.add('fx-pulse')); },
+    fadeUpChildren(container, stagger = 30) {
+      if (!container) return;
+      let i = 0;
+      for (const c of container.children) {
+        c.classList.remove('fx-fade-up');
+        // Use animation-delay via inline style so a repeat call
+        // re-staggers cleanly. setTimeout to apply the class after
+        // the offsetWidth flush so the animation actually restarts.
+        c.style.animationDelay = (i * stagger) + 'ms';
+        c.classList.add('fx-fade-up');
+        i++;
+      }
+    },
   };
 
   // Lightweight Markdown for the block previews. Mirrors the
@@ -3397,6 +3461,10 @@
     const input = document.getElementById('activityReplaceFile');
     btn?.addEventListener('click', () => input?.click());
     input?.addEventListener('change', () => window.handleActivityFileReplace(L, input));
+    // Fade the activity card up so it doesn't just snap into place
+    // after a replace — feels like the preview is fresh, not stale.
+    const card = wrap.querySelector('.block');
+    if (card) fx.fadeUp(card);
   }
 
   // handleActivityFileReplace(L, fileInput) — upload a new HTML file
@@ -3425,6 +3493,9 @@
     }
     toast('Activity file uploaded', 'success');
     fileInput.value = '';
+    // Pop the upload button to confirm the upload landed; the
+    // renderActivityEditor call below re-fades the preview card up.
+    if (btn) fx.pop(btn);
     renderActivityEditor(L);
   };
 
@@ -3465,11 +3536,20 @@
       // in the editor can render. On re-publish the existing code is
       // returned too — we update unconditionally.
       if (data && data.code) L.code = data.code;
+      // Pulse the publish button so the user sees the event land,
+      // then render the editor (which will swap the button to its
+      // post-publish state). The button gets a brief pop that draws
+      // the eye to the area where the share code pill will appear.
+      fx.pop(btn);
       toast(wantPublish
         ? (L.code ? `Lesson published · code ${L.code}` : 'Lesson published')
         : 'Lesson unpublished', 'success');
       // Re-render the editor so the pill + button text + code chip update.
       renderEditor();
+      // The status pill in the breadcrumb (rendered by renderEditor)
+      // gets a green/red glow so the state change is visible.
+      const pill = document.querySelector('.status-pill, [class*="status"]');
+      if (pill) fx.glow(pill);
       // Refresh the catalog so the new code shows next to the title in
       // the left rail.
       await loadTree();
@@ -3535,6 +3615,11 @@
       // the whole tree on every keystroke is wasteful.
       await loadTree();
       renderCatalog();
+      // Glow the saved pill so the user sees the save event, not just
+      // the toast. Restarts the animation in case the user saved
+      // twice in a row.
+      const saved = document.querySelector('.editor-actions .saved');
+      if (saved) fx.glow(saved);
       toast('Lesson details saved', 'success');
     }
   }
@@ -3548,6 +3633,11 @@
       return;
     }
     list.innerHTML = L.blocks.map((b, i) => renderBlockEditor(b, i)).join('');
+    // Stagger the fade-in for the block rows — 30ms between each one
+    // so the list assembles in front of the author's eyes rather than
+    // all at once. Restart-on-repeat is handled by fadeUpChildren
+    // (it removes the prior class and resets the animation-delay).
+    fx.fadeUpChildren(list, 30);
     // Wire interactivity for any block whose editor body includes a .preview
     // (callout, image, video, math, worked_example, reveal, flashcard, plus
     // all the new interactive practice / layout / study-aid kinds).
@@ -5627,7 +5717,16 @@
     L._serverBlocks = JSON.parse(JSON.stringify(L.blocks));
     state.dirty = state.metaDirty || isBlocksDirty();
     renderEditorHeader();
-    if (!opts.silent) toast('Blocks saved', 'success');
+    if (!opts.silent) {
+      // Pop the Save button + glow the saved pill so the user sees
+      // the save event. This is the same pattern as the meta-save
+      // glow above; kept parallel so the editor feels consistent.
+      const saveBtn = document.getElementById('saveBlocksBtn');
+      if (saveBtn) fx.pop(saveBtn);
+      const saved = document.querySelector('.editor-actions .saved');
+      if (saved) fx.glow(saved);
+      toast('Blocks saved', 'success');
+    }
   }
 
   // isBlocksDirty(): do the in-memory blocks differ from what the
