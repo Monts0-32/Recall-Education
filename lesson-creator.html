@@ -3004,9 +3004,18 @@
             if (!head.includes('<')) { toast('That doesn\'t look like an HTML file.', 'error'); return; }
           } catch (_) { /* File API unavailable — let the upload proceed */ }
           const path = `activities/${created.id}/index.html`;
+          // Force contentType on the File object itself. Supabase
+          // Storage's upload() honours file.type for the object's
+          // metadata, and the explicit contentType option in the
+          // third arg sets the Content-Type the bucket will return.
+          // Some browsers leave file.type empty for .html files
+          // dragged from the filesystem, which would otherwise cause
+          // the public URL to serve the file as text/plain — and the
+          // browser then renders the source as text.
+          try { if (!file.type) Object.defineProperty(file, 'type', { value: 'text/html' }); } catch (_) {}
           const { error: upErr } = await supabaseClient.storage
             .from('lesson-activities')
-            .upload(path, file, { upsert: true, contentType: 'text/html' });
+            .upload(path, file, { upsert: true, contentType: 'text/html', cacheControl: '3600' });
           if (upErr) {
             // Roll back the lesson row so we don't leave a stranded
             // activity with no file. The storage bucket is the source
@@ -3407,7 +3416,7 @@
     if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
     const { error } = await supabaseClient.storage
       .from('lesson-activities')
-      .upload(L.activity_path, file, { upsert: true, contentType: 'text/html' });
+      .upload(L.activity_path, file, { upsert: true, contentType: 'text/html', cacheControl: '3600' });
     if (btn) { btn.disabled = false; btn.textContent = 'Replace HTML'; }
     if (error) { toast('Upload failed: ' + error.message, 'error'); fileInput.value = ''; return; }
     // Persist activity_path in case we just assigned it.

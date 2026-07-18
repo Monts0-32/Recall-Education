@@ -1006,19 +1006,74 @@
     // it. data-block-id is the lesson id (not a real block row id) —
     // that's what the activity iframe will post in its
     // recall-block-complete message.
+    //
+    // The iframe is loaded via srcdoc, with the activity file's
+    // contents fetched and injected as a string. This sidesteps a
+    // Supabase Storage quirk: the public object's Content-Type is
+    // sometimes served as text/plain, which makes the browser render
+    // the source as text instead of HTML. srcdoc always interprets
+    // its content as HTML, so the game always renders. The trade-off
+    // is that all assets (images, fonts) must be inlined or
+    // self-contained — the uploaded file is a single HTML document
+    // anyway, so this is fine.
     const frame = document.createElement('div');
     frame.className = 'html-block';
     frame.dataset.blockId = L0.id;
     frame.dataset.required = required ? 'true' : 'false';
     frame.innerHTML = `
-      <iframe class="html-block-iframe" sandbox="allow-scripts"
-              src="${escapeHtml(src)}"
-              style="width: 100%; height: ${height}px; border: 0; display: block; background: #fff;"
-              title="Activity"
-              loading="lazy"></iframe>
+      <div style="width:100%;height:${height}px;background:var(--bg-3);display:grid;place-items:center;color:var(--text-3);font-size:13px;">Loading activity…</div>
       ${required ? '<div class="html-block-gate" hidden><span>✓ Completed — you can finish the lesson.</span></div>' : ''}
     `;
     body.appendChild(frame);
+
+    // Fetch the file, then swap the placeholder for the real iframe
+    // with srcdoc set to the file contents. We use a cache-buster
+    // because the activity editor uses upserts with the same path —
+    // an old version may be cached in the browser or CDN.
+    const cacheBuster = `?v=${Date.now()}`;
+    fetch(src + cacheBuster, { cache: 'no-store' })
+      .then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))
+      .then(html => {
+        // Inject window.__recallBlockId so the activity's postMessage
+        // (if it follows the same convention) uses the lesson id, not
+        // a hardcoded literal. The activity already falls back to its
+        // own literal if this global isn't set. The injected <script>
+        // runs first because it appears before the activity's own
+        // scripts in the source order.
+        //
+        // srcdoc is set as a property (not an attribute) so we don't
+        // have to HTML-escape the body — the browser handles the
+        // parsing. Setting it as an attribute would require escaping
+        // every quote, which is fragile and would mangle the file.
+        const injected = `<script>window.__recallBlockId=${JSON.stringify(L0.id)};<\/script>` + html;
+        const iframe = document.createElement('iframe');
+        iframe.className = 'html-block-iframe';
+        iframe.setAttribute('sandbox', 'allow-scripts');
+        iframe.srcdoc = injected;
+        iframe.style.cssText = `width: 100%; height: ${height}px; border: 0; display: block; background: #fff;`;
+        iframe.title = 'Activity';
+        iframe.setAttribute('loading', 'lazy');
+        frame.innerHTML = '';
+        frame.appendChild(iframe);
+        if (required) {
+          const gate = document.createElement('div');
+          gate.className = 'html-block-gate';
+          gate.hidden = true;
+          gate.innerHTML = '<span>✓ Completed — you can finish the lesson.</span>';
+          frame.appendChild(gate);
+        }
+      })
+      .catch(err => {
+        frame.innerHTML = `
+          <div style="width:100%;height:${height}px;background:var(--bg-3);display:grid;place-items:center;padding:24px;text-align:center;">
+            <div>
+              <div style="color:var(--red);font-size:14px;font-weight:600;margin-bottom:6px;">Couldn't load the activity file</div>
+              <div style="color:var(--text-3);font-size:12.5px;">${escapeHtml(String(err.message || err))}<br>Path: <code>${escapeHtml(L0.activity_path)}</code></div>
+            </div>
+          </div>
+          ${required ? '<div class="html-block-gate" hidden><span>✓ Completed — you can finish the lesson.</span></div>' : ''}
+        `;
+      });
 
     // The reveal controller's continueButton is not needed — there's
     // nothing to reveal. Hide it, leave Mark complete (gated on the

@@ -1,0 +1,1176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Binary game — Recall</title>
+  <meta name="description" content="Convert between decimal and binary. Score points, build combos, beat the clock." />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --teal:      #56D4DD;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---------- LAYOUT ---------- */
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 24px 20px 80px;
+    }
+
+    /* ---------- TOP BAR ---------- */
+    .topbar {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 15px;
+      color: var(--text);
+    }
+    .brand-mark {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      border-radius: var(--r-sm);
+      display: grid; place-items: center;
+      font-weight: 800; color: #fff; font-size: 14px;
+    }
+    .topbar .right { margin-left: auto; display: flex; gap: 8px; }
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .pill.live { background: var(--green-dim); color: var(--green); }
+    .pill.idle { background: var(--bg-3); color: var(--text-3); }
+
+    /* ---------- HUD ---------- */
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .hud-cell {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 12px 14px;
+    }
+    .hud-label {
+      font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-4); font-weight: 700; margin-bottom: 4px;
+    }
+    .hud-value {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 24px; font-weight: 700; color: var(--text);
+      line-height: 1.1;
+    }
+    .hud-value.flash-up    { color: var(--green); transition: color 0.4s ease; }
+    .hud-value.flash-down  { color: var(--red);   transition: color 0.4s ease; }
+    .hud-value.flash-x     { color: var(--yellow); }
+    .hud-sub {
+      font-size: 11px; color: var(--text-3); margin-top: 2px;
+    }
+    .hud-sub b { color: var(--text); font-weight: 600; }
+
+    /* ---------- PROGRESS BAR ---------- */
+    .timer {
+      height: 6px; background: var(--bg-3); border-radius: 999px;
+      overflow: hidden; margin-bottom: 22px; border: 1px solid var(--line);
+    }
+    .timer-fill {
+      height: 100%; background: var(--blue);
+      width: 100%; transition: width 0.2s linear;
+    }
+    .timer-fill.low { background: var(--yellow); }
+    .timer-fill.critical { background: var(--red); }
+    .timer-fill.ended { background: var(--text-4); }
+
+    /* ---------- LIVES ---------- */
+    .lives {
+      display: flex; gap: 6px; align-items: center;
+      font-size: 18px; letter-spacing: 2px;
+    }
+    .life { color: var(--red); transition: color 0.2s ease, transform 0.2s ease; }
+    .life.gone { color: var(--text-4); }
+    .life.lost { animation: lifeLost 0.4s ease; }
+    @keyframes lifeLost {
+      0%   { transform: scale(1);   }
+      30%  { transform: scale(1.4); }
+      100% { transform: scale(1);   }
+    }
+
+    /* ---------- CARD ---------- */
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 24px;
+    }
+    .card h2 {
+      margin: 0 0 4px;
+      font-size: 13px; font-weight: 600;
+      color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .card .problem {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 38px; font-weight: 700;
+      color: var(--text);
+      margin: 0 0 4px;
+      letter-spacing: 0.02em;
+    }
+    .card .problem-suffix {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px; color: var(--text-3);
+      font-weight: 500; margin-left: 6px;
+    }
+    .card .hint {
+      font-size: 12.5px; color: var(--text-3); margin: 0;
+    }
+
+    /* ---------- ANSWER: BITS ---------- */
+    .bits {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      justify-content: center; margin: 22px 0 16px;
+    }
+    .bit {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      width: 64px; height: 86px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; font-family: inherit;
+      transition: background 0.1s ease, border-color 0.1s ease, transform 0.1s ease;
+      user-select: none;
+    }
+    .bit:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .bit:active { transform: scale(0.97); }
+    .bit .bit-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px; font-weight: 700; color: var(--text-4);
+      transition: color 0.1s ease;
+    }
+    .bit .bit-place {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text-4);
+      margin-top: 4px;
+    }
+    .bit.on {
+      background: var(--blue-dim); border-color: var(--blue);
+    }
+    .bit.on .bit-val {
+      color: var(--blue);
+    }
+    .bit.on .bit-place { color: var(--blue); }
+    .bit.correct {
+      background: var(--green-dim); border-color: var(--green);
+    }
+    .bit.correct .bit-val, .bit.correct .bit-place { color: var(--green); }
+    .bit.wrong {
+      background: var(--red-dim); border-color: var(--red);
+    }
+    .bit.wrong .bit-val, .bit.wrong .bit-place { color: var(--red); }
+    .bit.locked { cursor: not-allowed; opacity: 0.8; }
+
+    /* ---------- ANSWER: NUMBER INPUT ---------- */
+    .num-input-wrap {
+      display: flex; align-items: center; gap: 8px;
+      justify-content: center; margin: 22px 0 16px;
+    }
+    .num-input {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 14px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 32px; font-weight: 700;
+      text-align: center;
+      width: 240px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .num-input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .num-input.correct {
+      background: var(--green-dim); border-color: var(--green); color: var(--green);
+    }
+    .num-input.wrong {
+      background: var(--red-dim); border-color: var(--red); color: var(--red);
+    }
+    .num-suffix {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px; color: var(--text-3); font-weight: 600;
+    }
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 64px);
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+    .keypad button {
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px; font-weight: 600;
+      padding: 12px 0;
+      cursor: pointer;
+      transition: background 0.1s ease, border-color 0.1s ease;
+    }
+    .keypad button:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .keypad button:active { background: var(--bg-2); }
+    .keypad .key-clear {
+      grid-column: span 3;
+      font-size: 12.5px; font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-3);
+      padding: 8px 0;
+    }
+
+    /* ---------- ACTIONS ---------- */
+    .actions {
+      display: flex; gap: 8px; align-items: center; justify-content: center;
+      margin-top: 8px;
+    }
+    .btn {
+      background: var(--blue); color: #fff;
+      padding: 10px 18px; border-radius: var(--r-md);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      border: 1px solid var(--blue);
+      cursor: pointer;
+      transition: background 0.1s ease, border-color 0.1s ease, transform 0.1s ease;
+    }
+    .btn:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-ghost {
+      background: var(--bg-3); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 9px 16px; border-radius: var(--r-md);
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-ghost:hover { background: var(--bg-4); border-color: var(--line-3); color: var(--text); }
+    .btn-danger {
+      background: transparent; color: var(--red);
+      border: 1px solid rgba(248,81,73,0.3);
+      padding: 9px 16px; border-radius: var(--r-md);
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-danger:hover { background: var(--red-dim); border-color: var(--red); }
+
+    /* ---------- FEEDBACK ---------- */
+    .feedback {
+      margin-top: 14px;
+      min-height: 56px;
+      border-radius: var(--r-md);
+      padding: 12px 14px;
+      font-size: 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .feedback:empty { display: none; }
+    .feedback.ok {
+      background: var(--green-dim); border-left: 3px solid var(--green);
+      color: var(--text);
+    }
+    .feedback.bad {
+      background: var(--red-dim); border-left: 3px solid var(--red);
+      color: var(--text);
+    }
+    .feedback .icon { font-size: 18px; line-height: 1; }
+    .feedback .body { flex: 1; }
+    .feedback .body b { color: var(--text); }
+    .feedback .combo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      color: var(--yellow); text-transform: uppercase; letter-spacing: 0.04em;
+      padding: 2px 8px; border-radius: 999px;
+      background: var(--yellow-dim);
+    }
+
+    /* ---------- COMBO COUNTER ---------- */
+    .combo-banner {
+      position: fixed; top: 60px; right: 24px;
+      background: var(--bg-2);
+      border: 1px solid var(--yellow);
+      color: var(--yellow);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700; font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      transform: translateX(120%);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+    }
+    .combo-banner.show { transform: translateX(0); }
+
+    /* ---------- SCREENS ---------- */
+    .screen {
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 32px;
+    }
+    .screen h1 {
+      font-size: 28px; font-weight: 700; margin: 0 0 6px;
+      letter-spacing: -0.01em;
+    }
+    .screen p { margin: 0 0 16px; color: var(--text-2); }
+
+    .modes {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      margin: 18px 0;
+    }
+    .mode {
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      border-radius: var(--r-md); padding: 14px 16px;
+      cursor: pointer; text-align: left;
+      font-family: inherit; color: var(--text);
+      transition: background 0.1s ease, border-color 0.1s ease, transform 0.1s ease;
+    }
+    .mode:hover { background: var(--bg-4); border-color: var(--blue); }
+    .mode:active { transform: scale(0.99); }
+    .mode h3 {
+      margin: 0 0 4px; font-size: 14px; font-weight: 600;
+    }
+    .mode p {
+      margin: 0; font-size: 12.5px; color: var(--text-3);
+    }
+    .mode .icon {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700; color: var(--blue);
+      font-size: 14px;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+
+    .diffs {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+      margin: 18px 0 22px;
+    }
+    .diff {
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      border-radius: var(--r-md); padding: 12px 14px;
+      cursor: pointer; text-align: left;
+      font-family: inherit; color: var(--text);
+      transition: background 0.1s ease, border-color 0.1s ease, transform 0.1s ease;
+    }
+    .diff:hover { background: var(--bg-4); border-color: var(--blue); }
+    .diff:active { transform: scale(0.99); }
+    .diff .name {
+      font-size: 13.5px; font-weight: 600; margin-bottom: 2px;
+    }
+    .diff .desc {
+      font-size: 11.5px; color: var(--text-3);
+    }
+    .diff .best {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px; color: var(--text-4);
+      margin-top: 6px;
+    }
+
+    /* ---------- GAME OVER ---------- */
+    .gameover-stats {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      margin: 18px 0 22px;
+    }
+    .stat {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 12px 14px;
+    }
+    .stat .lbl {
+      font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-4); font-weight: 700; margin-bottom: 4px;
+    }
+    .stat .val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 22px; font-weight: 700; color: var(--text);
+    }
+    .stat .val.big { font-size: 32px; color: var(--blue); }
+    .new-record {
+      display: inline-block; margin-left: 6px;
+      font-size: 11px; font-weight: 700; color: var(--yellow);
+      background: var(--yellow-dim);
+      padding: 2px 8px; border-radius: 999px;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+
+    .footer-row {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 32px; padding-top: 18px;
+      border-top: 1px solid var(--line);
+      font-size: 12px; color: var(--text-4);
+    }
+    .footer-row .actions { margin: 0; }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 640px) {
+      .wrap { padding: 16px 12px 60px; }
+      .hud { grid-template-columns: repeat(2, 1fr); }
+      .modes { grid-template-columns: 1fr; }
+      .diffs { grid-template-columns: 1fr; }
+      .bit { width: 50px; height: 70px; }
+      .bit .bit-val { font-size: 22px; }
+      .card { padding: 18px; }
+      .card .problem { font-size: 30px; }
+      .num-input { font-size: 26px; width: 200px; }
+    }
+
+    /* ---------- REDUCED MOTION ---------- */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        transition: none !important;
+        animation: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <span class="brand-mark">01</span>
+        <span>Binary game</span>
+      </div>
+      <div class="right">
+        <span class="pill idle" id="statusPill">Idle</span>
+        <button class="btn-ghost" id="resetBtn" hidden>End game</button>
+      </div>
+    </div>
+
+    <!-- HUD: shown during play -->
+    <div class="hud" id="hud" hidden>
+      <div class="hud-cell">
+        <div class="hud-label">Score</div>
+        <div class="hud-value" id="scoreVal">0</div>
+        <div class="hud-sub">best <b id="bestVal">0</b></div>
+      </div>
+      <div class="hud-cell">
+        <div class="hud-label">Streak</div>
+        <div class="hud-value" id="streakVal">0</div>
+        <div class="hud-sub">×<span id="multVal">1.0</span> multiplier</div>
+      </div>
+      <div class="hud-cell">
+        <div class="hud-label">Lives</div>
+        <div class="hud-value">
+          <div class="lives" id="livesRow"></div>
+        </div>
+        <div class="hud-sub"><span id="livesSub">3 left</span></div>
+      </div>
+      <div class="hud-cell">
+        <div class="hud-label">Time</div>
+        <div class="hud-value" id="timeVal">60.0</div>
+        <div class="hud-sub">seconds</div>
+      </div>
+    </div>
+    <div class="timer" id="timerBar" hidden>
+      <div class="timer-fill" id="timerFill"></div>
+    </div>
+
+    <!-- START SCREEN -->
+    <div class="screen" id="startScreen">
+      <h1>Binary game</h1>
+      <p>Convert between decimal and binary. Build a streak for a score multiplier, but three wrong answers and the game ends.</p>
+
+      <h2 style="margin-top: 22px; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3);">Pick a mode</h2>
+      <div class="modes">
+        <button class="mode" data-mode="dec2bin">
+          <span class="icon">dec → bin</span>
+          <h3>Decimal to binary</h3>
+          <p>See a decimal number. Toggle the bits to build the binary answer.</p>
+        </button>
+        <button class="mode" data-mode="bin2dec">
+          <span class="icon">bin → dec</span>
+          <h3>Binary to decimal</h3>
+          <p>See a binary number. Type the decimal value.</p>
+        </button>
+      </div>
+
+      <h2 style="margin-top: 22px; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3);">Pick a difficulty</h2>
+      <div class="diffs" id="diffsRow">
+        <button class="diff" data-diff="easy">
+          <div class="name">Easy</div>
+          <div class="desc">4 bits · no timer · numbers 0–15</div>
+          <div class="best" data-best="easy">best —</div>
+        </button>
+        <button class="diff" data-diff="medium">
+          <div class="name">Medium</div>
+          <div class="desc">8 bits · 60-second timer · 0–255</div>
+          <div class="best" data-best="medium">best —</div>
+        </button>
+        <button class="diff" data-diff="hard">
+          <div class="name">Hard</div>
+          <div class="desc">8 bits · 30-second timer · 0–255</div>
+          <div class="best" data-best="hard">best —</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- PLAY SCREEN -->
+    <div id="playScreen" hidden>
+      <div class="card">
+        <h2 id="promptTitle">Convert to binary</h2>
+        <p class="problem">
+          <span id="problemValue">—</span>
+          <span class="problem-suffix" id="problemSuffix">decimal</span>
+        </p>
+        <p class="hint" id="problemHint">Click the bits to toggle them on or off.</p>
+
+        <div id="bitsArea" hidden>
+          <div class="bits" id="bitsRow"></div>
+        </div>
+
+        <div id="numArea" hidden>
+          <div class="num-input-wrap">
+            <input type="text" inputmode="numeric" autocomplete="off" class="num-input" id="numInput" maxlength="3" />
+            <span class="num-suffix">decimal</span>
+          </div>
+          <div class="keypad" id="keypad"></div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="submitBtn">Submit</button>
+          <button class="btn-ghost" id="skipBtn">Skip</button>
+        </div>
+
+        <div class="feedback" id="feedback" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div class="screen" id="endScreen" hidden>
+      <h1 id="endTitle">Game over</h1>
+      <p id="endSubtitle">Nice work. Here's how it went.</p>
+      <div class="gameover-stats">
+        <div class="stat"><div class="lbl">Final score</div><div class="val big" id="finalScore">0<span class="new-record" id="newRecord" hidden>New best</span></div></div>
+        <div class="stat"><div class="lbl">Best streak</div><div class="val" id="finalStreak">0</div></div>
+        <div class="stat"><div class="lbl">Correct</div><div class="val" id="finalCorrect">0</div></div>
+        <div class="stat"><div class="lbl">Accuracy</div><div class="val" id="finalAccuracy">0%</div></div>
+      </div>
+      <div class="actions" style="justify-content: flex-start;">
+        <button class="btn" id="playAgainBtn">Play again</button>
+        <button class="btn-ghost" id="backToMenuBtn">Back to menu</button>
+      </div>
+    </div>
+
+    <div class="footer-row">
+      <span>Recall · binary game · single-file · works offline</span>
+      <span class="actions">
+        <button class="btn-ghost" id="helpBtn" hidden>How scoring works</button>
+      </span>
+    </div>
+  </div>
+
+  <!-- Floating combo banner -->
+  <div class="combo-banner" id="comboBanner">×2 combo</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- state ----------
+  const state = {
+    mode: null,        // 'dec2bin' | 'bin2dec'
+    diff: null,        // 'easy' | 'medium' | 'hard'
+    bitWidth: 8,
+    timeLimit: 0,      // 0 = no timer
+    timeLeft: 0,
+    score: 0,
+    streak: 0,
+    bestStreak: 0,
+    multiplier: 1.0,
+    lives: 3,
+    correct: 0,
+    wrong: 0,
+    skipped: 0,
+    current: null,     // { denary, bits } for the active question
+    timerId: null,
+    locked: false,     // input locked during feedback
+    endsAt: 0,
+  };
+
+  // ---------- difficulty presets ----------
+  // Easy: 4 bits, no timer — pure practice. The whole number fits in a
+  // single hex digit, so the mental math is "1-2-4-8", which mirrors
+  // what students meet when they first see binary.
+  // Medium: 8 bits, 60s timer. The standard 0–255 range that matches
+  // what an IPv4 octet or a byte can hold.
+  // Hard: 8 bits, 30s timer. Same range, less time per question.
+  const DIFFS = {
+    easy:   { bitWidth: 4, timeLimit: 0  },
+    medium: { bitWidth: 8, timeLimit: 60 },
+    hard:   { bitWidth: 8, timeLimit: 30 },
+  };
+
+  // ---------- storage ----------
+  // Persist best score per (mode, diff) in localStorage. Versioned key
+  // so we can change the scoring shape later without crashing on old
+  // values.
+  const STORE_KEY = 'recall.binaryGame.v1';
+  function loadBest() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_) { return {}; }
+  }
+  function saveBest(map) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(map)); } catch (_) {}
+  }
+  function bestKey(mode, diff) { return mode + '/' + diff; }
+  function getBest(mode, diff) {
+    const m = loadBest();
+    const e = m[bestKey(mode, diff)];
+    return e && typeof e.score === 'number' ? e : null;
+  }
+  function setBest(mode, diff, score, streak) {
+    const m = loadBest();
+    m[bestKey(mode, diff)] = { score, streak, at: Date.now() };
+    saveBest(m);
+  }
+
+  // ---------- DOM helpers ----------
+  const $ = (id) => document.getElementById(id);
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // ---------- screen routing ----------
+  function show(id) {
+    ['startScreen', 'playScreen', 'endScreen'].forEach(s => {
+      const el = $(s);
+      if (el) el.hidden = (s !== id);
+    });
+  }
+
+  // ---------- question generation ----------
+  // For dec2bin: pick a random denary in [0, 2^bitWidth - 1].
+  // For bin2dec: pick a random denary in the same range, then show its
+  // bitWidth-bit binary representation.
+  function pickDenary() {
+    const max = Math.pow(2, state.bitWidth) - 1;
+    // Avoid 0 in the first question — students learning binary find
+    // "convert 0" confusing as a first impression. After the first
+    // question 0 is fair game.
+    if (state.correct + state.wrong === 0) {
+      return 1 + Math.floor(Math.random() * max);
+    }
+    return Math.floor(Math.random() * (max + 1));
+  }
+
+  // Render a question into the play card and reset per-question state.
+  function nextQuestion() {
+    state.locked = false;
+    const denary = pickDenary();
+    state.current = { denary, bits: new Array(state.bitWidth).fill(0) };
+    $('feedback').className = 'feedback';
+    $('feedback').innerHTML = '';
+    if (state.mode === 'dec2bin') {
+      $('promptTitle').textContent = 'Convert to binary';
+      $('problemValue').textContent = denary;
+      $('problemSuffix').textContent = 'decimal';
+      $('problemHint').textContent = 'Click the bits to toggle them. Submit when you\'re done.';
+      $('bitsArea').hidden = false;
+      $('numArea').hidden = true;
+      renderBits();
+    } else {
+      // bin2dec
+      const binStr = denary.toString(2).padStart(state.bitWidth, '0');
+      $('promptTitle').textContent = 'Convert to decimal';
+      $('problemValue').textContent = binStr;
+      $('problemSuffix').textContent = 'binary (' + state.bitWidth + '-bit)';
+      $('problemHint').textContent = 'Type the decimal value, or use the on-screen keypad.';
+      $('bitsArea').hidden = true;
+      $('numArea').hidden = false;
+      $('numInput').value = '';
+      $('numInput').className = 'num-input';
+      $('numInput').disabled = false;
+      $('numInput').focus();
+      renderKeypad();
+    }
+    $('submitBtn').disabled = false;
+  }
+
+  function renderBits() {
+    const placeValues = [];
+    for (let i = state.bitWidth - 1; i >= 0; i--) placeValues.push(Math.pow(2, i));
+    $('bitsRow').innerHTML = placeValues.map((pv, i) => {
+      // i is the position from the left, but the bits array is
+      // index 0 = LSB. The visible position i corresponds to bit
+      // index (bitWidth - 1 - i) in state.current.bits.
+      const bitIdx = state.bitWidth - 1 - i;
+      const on = state.current.bits[bitIdx] === 1;
+      return `<button type="button" class="bit ${on ? 'on' : ''}" data-bit="${bitIdx}" aria-pressed="${on}">
+        <span class="bit-val">${on ? '1' : '0'}</span>
+        <span class="bit-place">${pv}</span>
+      </button>`;
+    }).join('');
+    $('bitsRow').querySelectorAll('.bit').forEach(b => {
+      b.addEventListener('click', () => {
+        if (state.locked) return;
+        const idx = parseInt(b.dataset.bit, 10);
+        state.current.bits[idx] = state.current.bits[idx] ? 0 : 1;
+        const on = state.current.bits[idx] === 1;
+        b.classList.toggle('on', on);
+        b.querySelector('.bit-val').textContent = on ? '1' : '0';
+        b.setAttribute('aria-pressed', String(on));
+      });
+    });
+  }
+
+  // On-screen keypad — mirrors the system keyboard so touchscreen users
+  // don't have to bring up the soft keyboard. The system keyboard is
+  // still used if the user focuses the input.
+  function renderKeypad() {
+    const keys = ['1','2','3','4','5','6','7','8','9','clear','0','⌫'];
+    $('keypad').innerHTML = keys.map(k => {
+      if (k === 'clear') return `<button type="button" class="key-clear" data-key="clear">Clear</button>`;
+      return `<button type="button" data-key="${escapeHtml(k)}">${escapeHtml(k)}</button>`;
+    }).join('');
+    $('keypad').querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (state.locked) return;
+        const k = btn.dataset.key;
+        const input = $('numInput');
+        if (k === 'clear') input.value = '';
+        else if (k === '⌫') input.value = input.value.slice(0, -1);
+        else if (/^\d$/.test(k)) {
+          if (input.value.length < 3) input.value += k;
+        }
+        input.focus();
+      });
+    });
+  }
+
+  // ---------- submit / check ----------
+  // Returns 'correct', 'wrong', or 'invalid' (no answer).
+  function checkAnswer() {
+    if (state.mode === 'dec2bin') {
+      const got = state.current.bits.slice().reverse().join(''); // MSB first
+      const want = state.current.denary.toString(2).padStart(state.bitWidth, '0');
+      return got === want ? 'correct' : 'wrong';
+    } else {
+      // bin2dec
+      const v = parseInt(($('numInput').value || '').trim(), 10);
+      if (!Number.isFinite(v)) return 'invalid';
+      return v === state.current.denary ? 'correct' : 'wrong';
+    }
+  }
+
+  // Flash a +N badge on the score cell by adding a temporary class.
+  function flashScore(direction) {
+    const el = $('scoreVal');
+    el.classList.remove('flash-up', 'flash-down');
+    void el.offsetWidth; // restart transition
+    el.classList.add(direction === 'up' ? 'flash-up' : 'flash-down');
+    setTimeout(() => el.classList.remove('flash-up', 'flash-down'), 600);
+  }
+
+  function showFeedback(kind, message, combo) {
+    const el = $('feedback');
+    el.className = 'feedback ' + (kind === 'correct' ? 'ok' : kind === 'wrong' ? 'bad' : '');
+    const icon = kind === 'correct' ? '✓' : kind === 'wrong' ? '✗' : 'ℹ';
+    el.innerHTML =
+      `<span class="icon">${icon}</span>` +
+      `<div class="body">${message}</div>` +
+      (combo > 1 ? `<span class="combo">×${combo.toFixed(1)}</span>` : '');
+  }
+
+  function submit() {
+    if (state.locked) return;
+    const result = checkAnswer();
+    if (result === 'invalid') {
+      showFeedback(null, 'Type or build an answer first.');
+      return;
+    }
+    state.locked = true;
+    $('submitBtn').disabled = true;
+
+    if (result === 'correct') {
+      // Streak + multiplier. Multiplier grows 1.0 → 1.5 → 2.0 → 2.5
+      // → 3.0, then caps at 3.0. Reset on wrong.
+      state.streak += 1;
+      state.bestStreak = Math.max(state.bestStreak, state.streak);
+      state.multiplier = Math.min(3.0, 1.0 + Math.floor(state.streak / 3) * 0.5);
+      const gain = Math.round(10 * state.multiplier);
+      state.score += gain;
+      state.correct += 1;
+      flashScore('up');
+      // Send the postMessage contract once on the first correct answer
+      // so the host page (lesson.html) can mark the activity complete
+      // without the student having to finish a full game. Matches the
+      // recall-block-complete contract used by the html block kind.
+      // The blockId defaults to 'binary-game' for standalone use; when
+      // the page is hosted as an activity the host can override it
+      // by setting window.__recallBlockId before this script runs (e.g.
+      // via the iframe's `name` attribute or a parent-set global).
+      if (!state._postedComplete) {
+        state._postedComplete = true;
+        try {
+          parent.postMessage({
+            type: 'recall-block-complete',
+            blockId: (typeof window.__recallBlockId === 'string' && window.__recallBlockId) || 'binary-game',
+            score: 1,
+            total: 1,
+          }, '*');
+        } catch (_) { /* not embedded */ }
+      }
+      const detail = state.mode === 'dec2bin'
+        ? `+${gain} pts. Streak <b>${state.streak}</b>.`
+        : `+${gain} pts. Streak <b>${state.streak}</b>.`;
+      showFeedback('correct',
+        (state.multiplier > 1 ? `<b>Correct.</b> ` : '<b>Correct.</b> ') + detail,
+        state.multiplier);
+      if (state.multiplier >= 2) {
+        const banner = $('comboBanner');
+        banner.textContent = '×' + state.multiplier.toFixed(1) + ' combo';
+        banner.classList.add('show');
+        clearTimeout(banner._t);
+        banner._t = setTimeout(() => banner.classList.remove('show'), 1400);
+      }
+      // For dec2bin, mark the bits as correct/wrong by comparing to the
+      // target so the student sees which bits they got right.
+      if (state.mode === 'dec2bin') {
+        const wantBits = state.current.denary.toString(2).padStart(state.bitWidth, '0').split('').map(Number);
+        $('bitsRow').querySelectorAll('.bit').forEach(b => {
+          const idx = parseInt(b.dataset.bit, 10);
+          const got = state.current.bits[idx];
+          // The visible position from the left is bitWidth-1-idx, so
+          // the corresponding digit in wantBits (MSB-first) is also
+          // bitWidth-1-idx.
+          const want = wantBits[state.bitWidth - 1 - idx];
+          b.classList.add(got === want ? 'correct' : 'wrong');
+          b.classList.remove('on');
+        });
+      } else {
+        $('numInput').classList.add('correct');
+        $('numInput').disabled = true;
+      }
+    } else {
+      // Wrong: lose a life, reset streak. Show the correct answer.
+      state.wrong += 1;
+      state.streak = 0;
+      state.multiplier = 1.0;
+      loseLife();
+      flashScore('down');
+      const wantBits = state.current.denary.toString(2).padStart(state.bitWidth, '0');
+      let hint = 'The answer was <b>' + state.current.denary + '</b> in decimal, <code>' + wantBits + '</code> in binary.';
+      if (state.mode === 'dec2bin') {
+        $('bitsRow').querySelectorAll('.bit').forEach(b => {
+          const idx = parseInt(b.dataset.bit, 10);
+          const want = wantBits[state.bitWidth - 1 - idx] === '1';
+          b.classList.add(want ? 'correct' : 'wrong');
+          b.classList.remove('on');
+        });
+      } else {
+        $('numInput').classList.add('wrong');
+        $('numInput').disabled = true;
+        hint = 'The binary <code>' + wantBits + '</code> is <b>' + state.current.denary + '</b> in decimal.';
+      }
+      showFeedback('wrong', '<b>Not quite.</b> ' + hint);
+      if (state.lives <= 0) {
+        // End the game after the feedback has been read.
+        setTimeout(endGame, 900);
+        return;
+      }
+    }
+
+    updateHud();
+    // Auto-advance after a short pause. The pause is shorter for
+    // correct (600ms) than wrong (1100ms) so the student can read the
+    // explanation.
+    setTimeout(nextQuestion, result === 'correct' ? 600 : 1100);
+  }
+
+  function skipQuestion() {
+    if (state.locked) return;
+    state.locked = true;
+    state.skipped += 1;
+    state.streak = 0;
+    state.multiplier = 1.0;
+    const wantBits = state.current.denary.toString(2).padStart(state.bitWidth, '0');
+    showFeedback(null, 'Skipped. The answer was <b>' + state.current.denary + '</b> (binary <code>' + wantBits + '</code>).');
+    if (state.mode === 'dec2bin') {
+      $('bitsRow').querySelectorAll('.bit').forEach(b => {
+        const idx = parseInt(b.dataset.bit, 10);
+        const want = wantBits[state.bitWidth - 1 - idx] === '1';
+        b.classList.add(want ? 'correct' : 'wrong');
+        b.classList.remove('on');
+      });
+    } else {
+      $('numInput').classList.add('wrong');
+      $('numInput').value = String(state.current.denary);
+    }
+    setTimeout(nextQuestion, 1000);
+  }
+
+  // ---------- lives ----------
+  function renderLives() {
+    const row = $('livesRow');
+    row.innerHTML = '';
+    for (let i = 0; i < 3; i++) {
+      const span = document.createElement('span');
+      span.className = 'life' + (i >= state.lives ? ' gone' : '');
+      span.textContent = '♥';
+      row.appendChild(span);
+    }
+    $('livesSub').textContent = state.lives + ' left';
+  }
+  function loseLife() {
+    state.lives = Math.max(0, state.lives - 1);
+    const row = $('livesRow');
+    const life = row.children[state.lives];
+    if (life) {
+      life.classList.add('lost');
+      setTimeout(() => {
+        life.classList.remove('lost');
+        life.classList.add('gone');
+      }, 400);
+    }
+    $('livesSub').textContent = state.lives + ' left';
+  }
+
+  // ---------- timer ----------
+  // Timer state is held as endsAt (epoch ms) so the bar is robust to
+  // background-tab throttling. On every animation frame we recompute
+  // the remaining fraction. rAF is paused when the tab is hidden, so
+  // when the student comes back we sync against the wall clock.
+  function startTimer() {
+    if (state.timerId) cancelAnimationFrame(state.timerId);
+    if (!state.timeLimit) {
+      $('timerBar').hidden = true;
+      $('timeVal').textContent = '∞';
+      return;
+    }
+    $('timerBar').hidden = false;
+    state.endsAt = performance.now() + state.timeLimit * 1000;
+    const fill = $('timerFill');
+    const tick = () => {
+      const left = Math.max(0, (state.endsAt - performance.now()) / 1000);
+      state.timeLeft = left;
+      $('timeVal').textContent = left.toFixed(1);
+      const pct = (left / state.timeLimit) * 100;
+      fill.style.width = pct + '%';
+      fill.classList.toggle('low', pct < 35 && pct >= 15);
+      fill.classList.toggle('critical', pct < 15);
+      if (left <= 0) {
+        fill.classList.add('ended');
+        $('timeVal').textContent = '0.0';
+        endGame();
+        return;
+      }
+      state.timerId = requestAnimationFrame(tick);
+    };
+    state.timerId = requestAnimationFrame(tick);
+  }
+  function stopTimer() {
+    if (state.timerId) { cancelAnimationFrame(state.timerId); state.timerId = null; }
+  }
+
+  // ---------- HUD ----------
+  function updateHud() {
+    $('scoreVal').textContent = String(state.score);
+    $('streakVal').textContent = String(state.streak);
+    $('multVal').textContent = state.multiplier.toFixed(1);
+    const best = getBest(state.mode, state.diff);
+    $('bestVal').textContent = best ? String(best.score) : '0';
+  }
+
+  // ---------- game flow ----------
+  function startGame(mode, diff) {
+    state.mode = mode;
+    state.diff = diff;
+    const d = DIFFS[diff];
+    state.bitWidth = d.bitWidth;
+    state.timeLimit = d.timeLimit;
+    state.timeLeft = d.timeLimit;
+    state.score = 0;
+    state.streak = 0;
+    state.bestStreak = 0;
+    state.multiplier = 1.0;
+    state.lives = 3;
+    state.correct = 0;
+    state.wrong = 0;
+    state.skipped = 0;
+    state.locked = false;
+    stopTimer();
+    renderLives();
+    updateHud();
+    $('hud').hidden = false;
+    $('resetBtn').hidden = false;
+    $('statusPill').textContent = 'Playing';
+    $('statusPill').className = 'pill live';
+    show('playScreen');
+    nextQuestion();
+    startTimer();
+  }
+
+  function endGame() {
+    stopTimer();
+    state.locked = true;
+    $('submitBtn').disabled = true;
+    $('statusPill').textContent = 'Game over';
+    $('statusPill').className = 'pill idle';
+    // Persist best.
+    const prev = getBest(state.mode, state.diff);
+    const isNew = !prev || state.score > prev.score;
+    if (isNew) setBest(state.mode, state.diff, state.score, state.bestStreak);
+    $('finalScore').innerHTML = String(state.score) + (isNew ? ' <span class="new-record" id="newRecord">New best</span>' : '');
+    $('finalStreak').textContent = String(state.bestStreak);
+    $('finalCorrect').textContent = String(state.correct);
+    const total = state.correct + state.wrong;
+    const acc = total ? Math.round((state.correct / total) * 100) : 0;
+    $('finalAccuracy').textContent = acc + '%';
+    if (isNew && state.correct === 0) {
+      $('newRecord').hidden = true;
+    }
+    $('endTitle').textContent = state.lives <= 0 ? 'Out of lives' : "Time's up";
+    const subtitle = isNew
+      ? 'New best for this mode and difficulty.'
+      : 'Better luck next time — your best is ' + ((prev && prev.score) || 0) + '.';
+    $('endSubtitle').textContent = subtitle;
+    show('endScreen');
+    $('resetBtn').hidden = true;
+  }
+
+  function backToMenu() {
+    stopTimer();
+    state.mode = null;
+    state.diff = null;
+    show('startScreen');
+    $('hud').hidden = true;
+    $('timerBar').hidden = true;
+    $('resetBtn').hidden = true;
+    $('statusPill').textContent = 'Idle';
+    $('statusPill').className = 'pill idle';
+    refreshBestLabels();
+  }
+
+  function refreshBestLabels() {
+    Object.keys(DIFFS).forEach(diff => {
+      const row = document.querySelector('[data-best="' + diff + '"]');
+      if (!row) return;
+      // Show the best score across both modes for this difficulty.
+      const a = getBest('dec2bin', diff);
+      const b = getBest('bin2dec', diff);
+      const best = Math.max(a ? a.score : 0, b ? b.score : 0);
+      row.textContent = 'best ' + (best || '—');
+    });
+  }
+
+  // ---------- event wiring ----------
+  document.querySelectorAll('.mode').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      // If the difficulty hasn't been picked yet, default to medium
+      // for a one-click start. The user can still pick before.
+      const diff = state._pickedDiff || 'medium';
+      if (!state._pickedDiff) {
+        // visual hint
+        document.querySelectorAll('.diff').forEach(d => d.style.borderColor = '');
+        document.querySelector('[data-diff="medium"]').style.borderColor = 'var(--blue)';
+      }
+      startGame(mode, diff);
+    });
+  });
+  document.querySelectorAll('.diff').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state._pickedDiff = btn.dataset.diff;
+      document.querySelectorAll('.diff').forEach(d => d.style.borderColor = '');
+      btn.style.borderColor = 'var(--blue)';
+    });
+  });
+  $('submitBtn').addEventListener('click', submit);
+  $('skipBtn').addEventListener('click', skipQuestion);
+  $('playAgainBtn').addEventListener('click', () => {
+    // Re-use the previous mode+diff if known, otherwise stay in the
+    // menu. The user can pick a different combo from the end screen
+    // via "Back to menu".
+    if (state.mode && state.diff) {
+      const m = state.mode, d = state.diff;
+      state.mode = null; state.diff = null;
+      startGame(m, d);
+    } else {
+      backToMenu();
+    }
+  });
+  $('backToMenuBtn').addEventListener('click', backToMenu);
+  $('resetBtn').addEventListener('click', () => {
+    if (state.mode && (state.correct + state.wrong + state.skipped) > 0 &&
+        !confirm('End the current game?')) return;
+    backToMenu();
+  });
+
+  // Keyboard shortcuts: Enter submits, Esc skips. For bin2dec the
+  // number input also accepts typed digits.
+  $('numInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+    else if (e.key === 'Escape') { e.preventDefault(); skipQuestion(); }
+  });
+  document.addEventListener('keydown', (e) => {
+    if ($('playScreen').hidden) return;
+    if (e.key === 'Enter' && document.activeElement !== $('numInput')) {
+      e.preventDefault(); submit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault(); skipQuestion();
+    }
+  });
+
+  // ---------- boot ----------
+  refreshBestLabels();
+})();
+</script>
+</body>
+</html>
