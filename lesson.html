@@ -753,7 +753,7 @@
     // Load lesson
     const { data: lesson, error: lessonErr } = await supabaseClient
       .from('lessons')
-      .select('id, title, duration_min, order_index, topic_id, topic:topics(name, subject:subjects(id, name, color_key, exam_board, level))')
+      .select('id, title, duration_min, order_index, topic_id, kind, activity_path, activity_height, activity_required, topic:topics(name, subject:subjects(id, name, color_key, exam_board, level))')
       .eq('id', lessonId)
       .single();
     if (lessonErr || !lesson) {
@@ -762,7 +762,11 @@
     }
     session.lesson = lesson;
 
-    // Load blocks
+    // Load blocks. Activity lessons (kind='activity') have no rows in
+    // lesson_blocks — the body is a single HTML file in Supabase Storage
+    // rendered via renderActivity() below. We still want session.blocks
+    // to be an empty array so the rest of the render path (progress,
+    // completion) treats it as a zero-block lesson.
     const { data: blocks, error: blocksErr } = await supabaseClient
       .from('lesson_blocks')
       .select('id, kind, data, order_index')
@@ -793,6 +797,17 @@
 
   // ---------- rendering ----------
   function render() {
+    // Activity lessons (kind='activity') are a single HTML file in
+    // Supabase Storage. The whole lesson is one sandboxed iframe; the
+    // per-block reveal controller and progress bar don't apply. The
+    // postMessage contract is the same as the inline 'html' block:
+    // the iframe fires {type:'recall-block-complete', blockId: <id>}
+    // when the activity is done, and the Mark-complete button
+    // unlocks.
+    if (session.lesson && session.lesson.kind === 'activity') {
+      renderActivity();
+      return;
+    }
     const L0 = session.lesson;
     const subj = L0.topic?.subject;
     const dot  = subj?.color_key ? `style="background:${subj.color_key};"` : '';
@@ -867,7 +882,6 @@
     // the next one when clicked.
     session.currentIndex = 0;
     refreshContinueButton();
-
     // Attach interactivity, capturing scores per block.
     L.attachInteractivity(session.blocks, body, (blockId, score, total) => {
       session.blockScores.set(blockId, { score, total });
@@ -919,6 +933,126 @@
     // Unhide the chrome (nav, head, body, action bar). Block visibility
     // is now controlled per-block by the .block-pending / .block-revealed
     // classes — see appendContinueButton() and revealNext().
+    $('loadingBar').hidden = true;
+    $('head').hidden = false;
+    $('body').hidden = false;
+    $('actionBar').hidden = false;
+    updateProgress();
+    refreshMarkComplete();
+  }
+
+  // renderActivity() — student-side render path for activity lessons
+  // (kind='activity'). The whole lesson is a single sandboxed iframe
+  // loaded from the lesson-activities Storage bucket. The completion
+  // gate reuses the same postMessage contract as the inline 'html'
+  // block: the iframe fires {type:'recall-block-complete', blockId:
+  // <lesson-id>} when the student finishes the activity, and the
+  // existing isLessonCompletable() / refreshMarkComplete() treat the
+  // activity iframe as a single required (or not) html-block.
+  function renderActivity() {
+    const L0 = session.lesson;
+    const subj = L0.topic?.subject;
+    const dot  = subj?.color_key ? `style="background:${subj.color_key};"` : '';
+    $('crumbRow').innerHTML = `
+      <a href="dashboard.html">Dashboard</a> ›
+      ${subj ? `<a href="dashboard.html">${escapeHtml(subj.name)}</a> ›` : ''}
+      ${L0.topic ? `<span>${escapeHtml(L0.topic.name)}</span> ›` : ''}
+      <span style="color: var(--text-2);">${escapeHtml(L0.title)}</span>
+    `;
+    $('lessonTitle').textContent = L0.title;
+    $('lessonMeta').innerHTML = `
+      <span class="subject-dot" ${dot}></span>
+      ${subj ? escapeHtml(subj.name) : ''}
+      ${L0.topic ? ' · ' + escapeHtml(L0.topic.name) : ''}
+      · ${L0.duration_min ?? 20} min
+      <span class="interactive-pill" title="This lesson is a single HTML file written by the author.">Custom interactive</span>
+    `;
+    // "1 block" — the activity is treated as a single block for the
+    // progress display, so the bar starts at 0% and jumps to 100%
+    // when the activity's postMessage arrives.
+    $('progressText').textContent = `1 block`;
+
+    // If the lesson has no activity_path (the upload failed or the
+    // bucket isn't seeded), show a clear error instead of a broken
+    // iframe. The postMessage contract still uses the lesson id as
+    // the blockId, so the existing listener (registered on first
+    // render in render()) matches.
+    const body = $('body');
+    body.innerHTML = '';
+    if (!L0.activity_path) {
+      const err = document.createElement('div');
+      err.className = 'block-frame';
+      err.style.padding = '24px';
+      err.style.color = 'var(--red)';
+      err.style.fontSize = '14px';
+      err.textContent = 'This activity has no file yet. Please ask your teacher to upload the HTML file.';
+      body.appendChild(err);
+      $('loadingBar').hidden = true;
+      $('head').hidden = false;
+      $('body').hidden = false;
+      $('actionBar').hidden = true;
+      return;
+    }
+    const { data: pubData } = supabaseClient.storage
+      .from('lesson-activities')
+      .getPublicUrl(L0.activity_path);
+    const src = pubData?.publicUrl || '';
+    const required = L0.activity_required !== false; // default true
+    const height = Math.max(200, Math.min(2000, parseInt(L0.activity_height, 10) || 720));
+
+    // Build a single .html-block wrapper. The class name and
+    // data-required mirror the inline 'html' block kind so the
+    // existing completion-gate query in isLessonCompletable() finds
+    // it. data-block-id is the lesson id (not a real block row id) —
+    // that's what the activity iframe will post in its
+    // recall-block-complete message.
+    const frame = document.createElement('div');
+    frame.className = 'html-block';
+    frame.dataset.blockId = L0.id;
+    frame.dataset.required = required ? 'true' : 'false';
+    frame.innerHTML = `
+      <iframe class="html-block-iframe" sandbox="allow-scripts"
+              src="${escapeHtml(src)}"
+              style="width: 100%; height: ${height}px; border: 0; display: block; background: #fff;"
+              title="Activity"
+              loading="lazy"></iframe>
+      ${required ? '<div class="html-block-gate" hidden><span>✓ Completed — you can finish the lesson.</span></div>' : ''}
+    `;
+    body.appendChild(frame);
+
+    // The reveal controller's continueButton is not needed — there's
+    // nothing to reveal. Hide it, leave Mark complete (gated on the
+    // postMessage via the existing listener). session.currentIndex is
+    // also set so any later callback that reads it doesn't trip on
+    // undefined.
+    session.currentIndex = 0;
+    const cont = $('continueBtn');
+    if (cont) cont.hidden = true;
+    const mark = $('markCompleteBtn');
+    if (mark) mark.hidden = false;
+
+    // Wire the postMessage listener — same shape as the block lesson
+    // path. The activity iframe fires blockId=<lesson-id>, and the
+    // frame above carries the same data-block-id, so the listener
+    // marks the frame as html-block-done, which isLessonCompletable()
+    // already checks for.
+    if (!session._msgListenerWired) {
+      session._msgListenerWired = true;
+      window.addEventListener('message', (e) => {
+        if (!e.data || e.data.type !== 'recall-block-complete' || !e.data.blockId) return;
+        const wrap = $('body').querySelector(`[data-block-id="${CSS.escape(e.data.blockId)}"]`);
+        if (!wrap) return;
+        const score = typeof e.data.score === 'number' ? e.data.score : 1;
+        const total = typeof e.data.total === 'number' ? e.data.total : 1;
+        session.blockScores.set(e.data.blockId, { score, total });
+        wrap.classList.add('html-block-done');
+        const gate = wrap.querySelector('.html-block-gate');
+        if (gate) gate.hidden = false;
+        refreshMarkComplete();
+        updateProgress();
+      });
+    }
+
     $('loadingBar').hidden = true;
     $('head').hidden = false;
     $('body').hidden = false;

@@ -2045,7 +2045,10 @@
             <span>General</span>
             <span style="color: var(--text-4); font-weight: 400; text-transform: none;">${lessons.length}</span>
           </div>
-          <button class="add-btn" onclick="openGeneralLessonModal()">+ Lesson</button>
+          <div style="display: flex; gap: 4px;">
+            <button class="add-btn" onclick="openGeneralLessonModal()" title="New block-based lesson">+ Lesson</button>
+            <button class="add-btn" onclick="openGeneralActivityModal()" title="New activity (single HTML file)" style="color: #A371F7;">+ Activity</button>
+          </div>
         </div>
         <div class="catalog-section-body">${rows}</div>
       </div>
@@ -2269,12 +2272,19 @@
     const codeChip = l.code
       ? `<span style="font-family: var(--font-mono); font-size: 10.5px; color: var(--text-4); margin-left: 4px;" title="Share code">${escapeHtml(l.code)}</span>`
       : '';
+    // Activity lessons are tagged with a small purple "Activity" chip
+    // so authors can spot them at a glance in a long lesson list.
+    // Same colour family as the in-editor pill (see renderEditor).
+    const activityChip = l.kind === 'activity'
+      ? `<span style="display: inline-block; padding: 1px 6px; background: rgba(163,113,247,0.15); color: #A371F7; border: 1px solid rgba(163,113,247,0.3); border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; margin-left: 6px;" title="This lesson is a single HTML file">Activity</span>`
+      : '';
     const topicId = opts.general ? '' : topic.id;
     return `
       <div class="topic-row ${isActive ? 'active' : ''}"
            style="padding-left:${opts.general ? 8 : 28}px; font-size:12px; color:var(--text-3);"
            onclick="openLesson('${l.id}')">
         <span class="name">${escapeHtml(l.title)}</span>
+        ${activityChip}
         ${codeChip}
         <span style="color:var(--text-4); font-size:11px;">${l.duration_min ?? 20}m</span>
         <button class="row-btn" title="Rename" onclick="event.stopPropagation(); openLessonModal('${topicId}', '${l.id}')">✎</button>
@@ -2803,7 +2813,8 @@
   };
 
   window.openLessonModal = (topicId, id, mode = 'topic') => {
-    // mode: 'topic' (default — under a topic) or 'general' (loose, no subject).
+    // mode: 'topic' (default — under a topic), 'general' (loose, no subject),
+    // or 'activity' (a single HTML file rendered as a sandboxed iframe).
     // For an existing lesson the mode is inferred from the row, not the arg.
     let existing, parentTopic;
     if (id) {
@@ -2811,7 +2822,8 @@
       existing = found?.lesson;
       parentTopic = found?.topic;
       topicId = existing?.topic_id;
-      mode = existing?.is_general ? 'general' : 'topic';
+      if (existing?.kind === 'activity') mode = 'activity';
+      else mode = existing?.is_general ? 'general' : 'topic';
     } else {
       parentTopic = findTopic(topicId);
     }
@@ -2822,31 +2834,50 @@
     // (use a different tool for that to avoid silent data loss).
     const kindToggle = id ? '' : `
       <div class="form-row" style="margin-bottom: 4px;">
-        <label>Where does this lesson live?</label>
-        <div style="display: flex; gap: 6px; margin-top: 4px;">
+        <label>What kind of lesson?</label>
+        <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
           <label class="btn-ghost" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; border-radius: var(--r-md); border: 1px solid var(--line-2);">
             <input type="radio" name="kind" value="topic" ${mode === 'topic' ? 'checked' : ''} />
-            In a topic
+            Lesson (in a topic)
           </label>
           <label class="btn-ghost" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; border-radius: var(--r-md); border: 1px solid var(--line-2);">
             <input type="radio" name="kind" value="general" ${mode === 'general' ? 'checked' : ''} />
             General (loose)
           </label>
+          <label class="btn-ghost" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; border-radius: var(--r-md); border: 1px solid var(--line-2);">
+            <input type="radio" name="kind" value="activity" />
+            Activity (HTML file)
+          </label>
         </div>
       </div>
       <div id="kindHelp" style="font-size: 12px; color: var(--text-3); margin: 0 0 12px;">
-        General lessons aren't filed under a subject. Add tags so students can find them by topic.
+        ${mode === 'general'
+          ? 'General lessons aren\'t filed under a subject. Add tags so students can find them by topic.'
+          : mode === 'activity'
+            ? 'Activity lessons are a single HTML file. The file is sandboxed and rendered as an iframe when students open the lesson.'
+            : 'This lesson will be filed under the topic you opened this modal from.'}
       </div>
     `;
 
     const tagsValue = (existing?.tags || []).join(', ');
+
+    // The activity-file picker only shows up for new activity lessons.
+    // For existing activity lessons the file lives in the editor page
+    // (a "Replace HTML" button), not in this rename modal.
+    const fileRow = (!id && mode === 'activity') ? `
+      <div class="form-row" id="activityFileRow">
+        <label>HTML file <span style="color: var(--text-4); font-weight: 400; font-size: 12px;">.html, ≤ 8 MB. Uploaded to the <code>lesson-activities</code> bucket.</span></label>
+        <input type="file" id="activityFile" accept="text/html,.html,.htm" required />
+        <span class="hint">The file is rendered as a sandboxed iframe. Call <code>parent.postMessage({{type:&quot;recall-block-complete&quot;}}, &quot;*&quot;)</code> from the iframe to mark the activity complete.</span>
+      </div>
+    ` : '';
 
     openModal(existing ? 'Rename lesson' : 'New lesson', `
       <form id="lessonForm" class="editor" style="padding: 0;">
         ${kindToggle}
         <div class="form-row">
           <label>Title</label>
-          <input name="title" required value="${escapeHtml(existing?.title || '')}" placeholder="e.g. Mitochondria" />
+          <input name="title" required value="${escapeHtml(existing?.title || '')}" placeholder="${mode === 'activity' ? 'e.g. Photosynthesis drag-and-drop' : 'e.g. Mitochondria'}" />
         </div>
         <div class="form-row">
           <label>Duration (minutes)</label>
@@ -2856,25 +2887,31 @@
           <label>Tags <span style="color: var(--text-4); font-weight: 400; font-size: 12px;">comma-separated, e.g. algebra, gcse-foundation</span></label>
           <input name="tags" value="${escapeHtml(tagsValue)}" placeholder="algebra, year-10" />
         </div>
+        ${fileRow}
         <div style="display: flex; gap: 8px; justify-content: flex-end;">
           <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
           <button type="submit" class="btn-primary">${existing ? 'Save' : 'Create'}</button>
         </div>
       </form>
     `);
-    // Show/hide the tags row when the kind toggle changes (new lessons
-    // only — the toggle isn't rendered for existing lessons).
+    // Show/hide the tags row + file row when the kind toggle changes
+    // (new lessons only — the toggle isn't rendered for existing lessons).
     const form = $('lessonForm');
     if (!id) {
+      const updateKindUi = () => {
+        const v = form.querySelector('input[name="kind"]:checked')?.value || 'topic';
+        $('tagsRow').style.display = v === 'general' ? '' : 'none';
+        $('kindHelp').textContent =
+          v === 'general' ? 'General lessons aren\'t filed under a subject. Add tags so students can find them by topic.' :
+          v === 'activity' ? 'Activity lessons are a single HTML file. The file is sandboxed and rendered as an iframe when students open the lesson.' :
+          'This lesson will be filed under the topic you opened this modal from.';
+      };
       form.querySelectorAll('input[name="kind"]').forEach(r => {
-        r.addEventListener('change', () => {
-          const isGeneral = form.querySelector('input[name="kind"]:checked').value === 'general';
-          $('tagsRow').style.display = isGeneral ? '' : 'none';
-          $('kindHelp').textContent = isGeneral
-            ? 'General lessons aren\'t filed under a subject. Add tags so students can find them by topic.'
-            : 'This lesson will be filed under the topic you opened this modal from.';
-        });
+        r.addEventListener('change', updateKindUi);
       });
+      // Sync initial state in case the user re-opens the modal with mode
+      // preset to 'activity' (e.g. from a future "New activity" button).
+      updateKindUi();
     }
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -2899,13 +2936,64 @@
         if (kind === 'general') {
           insert.is_general = true;
           insert.topic_id   = null;
+        } else if (kind === 'activity') {
+          // Activity lessons live in the same tree as normal lessons —
+          // either under a topic (when topicId was provided) or loose
+          // (when opened from the General section). The body is a
+          // single HTML file; lesson_blocks is unused.
+          insert.is_general = !topicId;
+          insert.topic_id   = topicId || null;
+          insert.kind       = 'activity';
+          if (!topicId) insert.order_index = (state.generalLessons || []).length;
+          else insert.order_index = (parentTopic?.lessons || []).length;
         } else {
           insert.is_general = false;
           insert.topic_id   = topicId;
           insert.order_index = (parentTopic?.lessons || []).length;
         }
-        const { error } = await supabaseClient.from('lessons').insert(insert);
+        const { data: created, error } = await supabaseClient
+          .from('lessons')
+          .insert(insert)
+          .select('id')
+          .single();
         if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+
+        // For activity lessons: upload the chosen file to the
+        // lesson-activities bucket at activities/<id>/index.html, then
+        // persist the path on the lesson row. The activity editor will
+        // pick this up on first open.
+        if (kind === 'activity') {
+          const fileInput = document.getElementById('activityFile');
+          const file = fileInput?.files?.[0];
+          if (!file) { toast('Choose an HTML file for the activity.', 'error'); return; }
+          if (file.size > 8 * 1024 * 1024) { toast('Activity file too large (max 8 MB).', 'error'); return; }
+          // Sniff the first 256 bytes for a '<' to reject non-HTML.
+          // (Cheap, no full parsing — matches the spirit of the inline
+          // html block: we accept any text the author says is HTML, but
+          // refuse obvious binaries like .exe or .png renamed .html.)
+          try {
+            const head = await file.slice(0, 256).text();
+            if (!head.includes('<')) { toast('That doesn\'t look like an HTML file.', 'error'); return; }
+          } catch (_) { /* File API unavailable — let the upload proceed */ }
+          const path = `activities/${created.id}/index.html`;
+          const { error: upErr } = await supabaseClient.storage
+            .from('lesson-activities')
+            .upload(path, file, { upsert: true, contentType: 'text/html' });
+          if (upErr) {
+            // Roll back the lesson row so we don't leave a stranded
+            // activity with no file. The storage bucket is the source
+            // of truth for the activity body; without it the lesson
+            // would just show an empty iframe.
+            await supabaseClient.from('lessons').delete().eq('id', created.id);
+            toast('Upload failed: ' + upErr.message, 'error');
+            return;
+          }
+          const { error: pathErr } = await supabaseClient
+            .from('lessons')
+            .update({ activity_path: path })
+            .eq('id', created.id);
+          if (pathErr) { toast('Save failed: ' + pathErr.message, 'error'); return; }
+        }
         toast('Lesson created', 'success');
       }
       closeModal();
@@ -2915,6 +3003,8 @@
 
   // Shorthand for the left-rail "+ New general lesson" button.
   window.openGeneralLessonModal = () => openLessonModal(null, null, 'general');
+  // Shorthand for the left-rail "+ New activity" button.
+  window.openGeneralActivityModal = () => openLessonModal(null, null, 'activity');
 
   window.deleteLesson = async (id) => {
     if (!confirm('Delete this lesson and all its blocks?')) return;
@@ -3002,6 +3092,12 @@
     const topic = state.currentTopic;
     const subj  = state.currentSubject;
     const isGeneral = !!L.is_general;
+    // Activity lessons are a second lesson type: the body is a single
+    // HTML file in Supabase Storage rather than a sequence of blocks.
+    // They share the same topic tree and the same lifecycle (draft,
+    // publish, share-code) as block-based lessons — only the editor
+    // body and the student player differ.
+    const isActivity = L.kind === 'activity';
 
     // Build the breadcrumb for the editor topbar. When the editor was
     // opened from a unit (i.e. the browse path is set), include the
@@ -3018,6 +3114,7 @@
         <a href="#" onclick="renderEmpty(); goToSubject(); return false;">General</a>
         <span class="sep">/</span>
         <span class="current">${escapeHtml(L.title)}</span>
+        ${isActivity ? '<span class="status-pill" style="background: rgba(163,113,247,0.15); color: #A371F7; border: 1px solid rgba(163,113,247,0.3); margin-left: 6px;">Activity</span>' : ''}
         <span class="status-pill ${L.status || 'draft'}" id="lessonStatusPill">${L.status === 'published' ? 'Published' : 'Draft'}</span>`;
     } else {
       breadcrumb = `
@@ -3041,6 +3138,7 @@
         <span>${escapeHtml(topic.name)}</span>
         <span class="sep">/</span>
         <span class="current">${escapeHtml(L.title)}</span>
+        ${isActivity ? '<span class="status-pill" style="background: rgba(163,113,247,0.15); color: #A371F7; border: 1px solid rgba(163,113,247,0.3); margin-left: 6px;">Activity</span>' : ''}
         <span class="status-pill ${L.status || 'draft'}" id="lessonStatusPill">${L.status === 'published' ? 'Published' : 'Draft'}</span>`;
     }
 
@@ -3051,11 +3149,11 @@
         </div>
         <div class="right">
           <button class="btn-ghost" id="previewBtn">Preview</button>
-          <button class="btn-primary" id="saveBlocksBtn">Save blocks</button>
+          <button class="btn-primary" id="saveBlocksBtn">${isActivity ? 'Save details' : 'Save blocks'}</button>
         </div>
       </div>
       <div class="editor">
-        <div class="editor-meta">
+        <div class="editor-meta" ${isActivity ? 'style="grid-template-columns: 1fr 100px 100px 100px;"' : ''}>
           <div class="form-row" style="margin: 0;">
             <label>Lesson title</label>
             <input id="lessonTitle" value="${escapeHtml(L.title)}" />
@@ -3064,10 +3162,23 @@
             <label>Duration (min)</label>
             <input id="lessonDuration" type="number" min="1" max="600" value="${L.duration_min ?? 20}" />
           </div>
-          <div class="form-row" style="margin: 0;">
-            <label>Order</label>
-            <input id="lessonOrder" type="number" value="${L.order_index ?? 0}" />
-          </div>
+          ${isActivity ? `
+            <div class="form-row" style="margin: 0;">
+              <label>Frame height (px)</label>
+              <input id="lessonActivityHeight" type="number" min="200" max="2000" value="${L.activity_height ?? 720}" />
+            </div>
+            <div class="form-row" style="margin: 0; display: flex; align-items: flex-end; gap: 8px;">
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12.5px; color: var(--text-2);">
+                <input id="lessonActivityRequired" type="checkbox" ${L.activity_required === false ? '' : 'checked'} />
+                Required to complete
+              </label>
+            </div>
+          ` : `
+            <div class="form-row" style="margin: 0;">
+              <label>Order</label>
+              <input id="lessonOrder" type="number" value="${L.order_index ?? 0}" />
+            </div>
+          `}
           ${isGeneral ? `
             <div class="form-row" style="margin: 0; grid-column: 1 / -1;">
               <label>Tags <span style="color: var(--text-4); font-weight: 400; font-size: 12px;">comma-separated — these are how students find this lesson</span></label>
@@ -3086,7 +3197,7 @@
             </span>
           ` : ''}
           <span class="spacer"></span>
-          <span class="shortcuts"><kbd>⌘S</kbd> save · <kbd>⌘Z</kbd> undo block</span>
+          <span class="shortcuts"><kbd>⌘S</kbd> save${isActivity ? '' : ' · <kbd>⌘Z</kbd> undo block'}</span>
           ${state.canPublish ? `
             <button class="btn-ghost" id="publishBtn" data-publishing="${L.status === 'published' ? 'true' : 'false'}">
               ${L.status === 'published' ? 'Unpublish' : 'Publish'}
@@ -3094,16 +3205,27 @@
           ` : ''}
           <button class="btn-ghost" id="saveMetaBtn">Save lesson details</button>
         </div>
-        <div class="blocks" id="blocksList"></div>
-        <div class="block-add" id="blockPicker"></div>
+        ${isActivity
+          ? '<div id="activityEditor"></div>'
+          : '<div class="blocks" id="blocksList"></div><div class="block-add" id="blockPicker"></div>'}
       </div>
     `;
-    renderBlocksList();
-    renderBlockPicker();
+    if (isActivity) {
+      renderActivityEditor(L);
+    } else {
+      renderBlocksList();
+      renderBlockPicker();
+    }
 
     document.getElementById('previewBtn').addEventListener('click', openPreview);
     document.getElementById('saveMetaBtn').addEventListener('click', saveLessonMeta);
-    document.getElementById('saveBlocksBtn').addEventListener('click', saveBlocks);
+    document.getElementById('saveBlocksBtn').addEventListener('click', () => {
+      // For activity lessons, the only thing to "save" is the lesson
+      // meta (the file is uploaded on replace). For block lessons this
+      // button is wired to saveBlocks().
+      if (isActivity) saveLessonMeta();
+      else saveBlocks();
+    });
     // Copy-code: just puts the share URL on the clipboard. Plain
     // navigator.clipboard would also work but falls back to nothing
     // on insecure contexts; execCommand is older but works everywhere.
@@ -3150,7 +3272,29 @@
     };
     wireMetaInput('lessonTitle',    'title',        v => v);
     wireMetaInput('lessonDuration', 'duration_min', v => parseInt(v, 10) || 20);
-    wireMetaInput('lessonOrder',    'order_index',  v => parseInt(v, 10) || 0);
+    if (isActivity) {
+      // Activity lessons use activity_height in place of order_index.
+      // Required is a checkbox, not a text input — we use 'change' so
+      // a single click triggers a debounced save.
+      const heightEl = document.getElementById('lessonActivityHeight');
+      if (heightEl) wireMetaInput('lessonActivityHeight', 'activity_height', v => Math.max(200, Math.min(2000, parseInt(v, 10) || 720)));
+      const reqEl = document.getElementById('lessonActivityRequired');
+      if (reqEl) {
+        let metaTimer = null;
+        reqEl.addEventListener('change', () => {
+          L.activity_required = !!reqEl.checked;
+          state.dirty = true;
+          state.metaDirty = true;
+          renderEditorHeader();
+          clearTimeout(metaTimer);
+          metaTimer = setTimeout(() => {
+            if (state.currentLesson === L) saveLessonMeta({ silent: true });
+          }, 800);
+        });
+      }
+    } else {
+      wireMetaInput('lessonOrder',    'order_index',  v => parseInt(v, 10) || 0);
+    }
     // Tags is a string in the input but an array in L.tags. The parser
     // does the comma-split + trim + lowercase. Only present for
     // general lessons.
@@ -3160,6 +3304,92 @@
       );
     }
   }
+
+  // renderActivityEditor(L) — the editor body for activity lessons.
+  // Shows a live iframe preview of the file in the lesson-activities
+  // bucket, a "Replace HTML" button that upserts the file, and a small
+  // status footer. The form (title / duration / height / required) is
+  // rendered by renderEditor() above; this function only paints the
+  // iframe + replace control.
+  function renderActivityEditor(L) {
+    const wrap = document.getElementById('activityEditor');
+    if (!wrap) return;
+    if (!L.activity_path) {
+      // No file uploaded yet (e.g. an activity lesson whose upload
+      // failed mid-create). Show a one-shot upload prompt.
+      wrap.innerHTML = `
+        <div class="block" style="background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 24px; text-align: center;">
+          <p style="margin: 0 0 12px; color: var(--text-3); font-size: 13px;">This activity has no HTML file yet. Upload one to make it visible to students.</p>
+          <button class="btn-primary" id="activityUploadBtn">Upload HTML</button>
+          <input type="file" id="activityReplaceFile" accept="text/html,.html,.htm" hidden />
+        </div>
+      `;
+      const btn = document.getElementById('activityUploadBtn');
+      const input = document.getElementById('activityReplaceFile');
+      btn?.addEventListener('click', () => input?.click());
+      input?.addEventListener('change', () => window.handleActivityFileReplace(L, input));
+      return;
+    }
+    const pub = supabaseClient.storage.from('lesson-activities').getPublicUrl(L.activity_path).data?.publicUrl || '';
+    // Cache-bust on every render so a fresh upload shows up immediately.
+    const cacheBuster = `v=${Date.now()}`;
+    const src = pub ? `${pub}${pub.includes('?') ? '&' : '?'}${cacheBuster}` : '';
+    wrap.innerHTML = `
+      <div class="block" style="background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden;">
+        <div class="block-head">
+          <span class="kind-label">ACTIVITY FILE</span>
+          <span class="spacer"></span>
+          <button class="btn-ghost" id="activityReplaceBtn">Replace HTML</button>
+          <input type="file" id="activityReplaceFile" accept="text/html,.html,.htm" hidden />
+        </div>
+        <div class="block-body" style="padding: 0; background: var(--bg);">
+          ${src
+            ? `<iframe id="activityPreview" src="${escapeHtml(src)}" sandbox="allow-scripts" style="width: 100%; height: ${L.activity_height || 720}px; border: 0; display: block; background: #fff;" title="Activity preview"></iframe>`
+            : `<div style="padding: 24px; text-align: center; color: var(--red); font-size: 13px;">Storage path "${escapeHtml(L.activity_path)}" produced no public URL. Check the lesson-activities bucket.</div>`}
+        </div>
+        <div style="padding: 10px 14px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--text-4); display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <span>Path: <code style="font-family: var(--font-mono); color: var(--text-2);">${escapeHtml(L.activity_path)}</code></span>
+          <span style="color: var(--text-4);">·</span>
+          <span>Bucket: <code style="font-family: var(--font-mono); color: var(--text-2);">lesson-activities</code></span>
+          <span style="color: var(--text-4);">·</span>
+          <span>Public read · staff write</span>
+        </div>
+      </div>
+    `;
+    const btn = document.getElementById('activityReplaceBtn');
+    const input = document.getElementById('activityReplaceFile');
+    btn?.addEventListener('click', () => input?.click());
+    input?.addEventListener('change', () => window.handleActivityFileReplace(L, input));
+  }
+
+  // handleActivityFileReplace(L, fileInput) — upload a new HTML file
+  // to the lesson-activities bucket at the lesson's path, then refresh
+  // the preview. Path is always activities/<id>/index.html so the
+  // public URL is stable; we just bump a cache-buster on the iframe.
+  window.handleActivityFileReplace = async (L, fileInput) => {
+    const file = fileInput?.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) { toast('Activity file too large (max 8 MB).', 'error'); fileInput.value = ''; return; }
+    if (!L.activity_path) {
+      // No path yet (the "no file uploaded" state) — assign one and
+      // persist, mirroring the create flow.
+      L.activity_path = `activities/${L.id}/index.html`;
+    }
+    const btn = document.getElementById('activityReplaceBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
+    const { error } = await supabaseClient.storage
+      .from('lesson-activities')
+      .upload(L.activity_path, file, { upsert: true, contentType: 'text/html' });
+    if (btn) { btn.disabled = false; btn.textContent = 'Replace HTML'; }
+    if (error) { toast('Upload failed: ' + error.message, 'error'); fileInput.value = ''; return; }
+    // Persist activity_path in case we just assigned it.
+    if (L.activity_path) {
+      await supabaseClient.from('lessons').update({ activity_path: L.activity_path }).eq('id', L.id);
+    }
+    toast('Activity file uploaded', 'success');
+    fileInput.value = '';
+    renderActivityEditor(L);
+  };
 
   // Publish / unpublish. The publish_lesson RPC is SECURITY DEFINER
   // and refuses to run for users whose role isn't reviewer / admin.
@@ -3223,11 +3453,23 @@
   async function saveLessonMeta(opts = {}) {
     const L = state.currentLesson;
     if (!L) return;
+    // For activity lessons the form uses activity_height + activity_required
+    // instead of order_index; the input IDs differ, so look each up
+    // individually and skip the missing ones.
+    const isActivity = L.kind === 'activity';
+    const orderEl = document.getElementById('lessonOrder');
+    const heightEl = document.getElementById('lessonActivityHeight');
+    const reqEl = document.getElementById('lessonActivityRequired');
     const payload = {
       title: document.getElementById('lessonTitle').value.trim(),
       duration_min: parseInt(document.getElementById('lessonDuration').value, 10) || 20,
-      order_index: parseInt(document.getElementById('lessonOrder').value, 10) || 0,
     };
+    if (isActivity) {
+      if (heightEl) payload.activity_height = Math.max(200, Math.min(2000, parseInt(heightEl.value, 10) || 720));
+      if (reqEl)    payload.activity_required = !!reqEl.checked;
+    } else {
+      payload.order_index = parseInt(orderEl?.value, 10) || 0;
+    }
     // Tags: only meaningful for general lessons (regular lessons are
     // filed under a topic, so tags would be redundant with the path).
     // The input only renders for general lessons, so the null-check
