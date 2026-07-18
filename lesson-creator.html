@@ -2951,12 +2951,40 @@
           insert.topic_id   = topicId;
           insert.order_index = (parentTopic?.lessons || []).length;
         }
+        // Pre-check the (topic_id, title) uniqueness constraint
+        // (lessons_topic_title_uniq, supabase_tables.sql:327). Postgres
+        // raises a generic "duplicate key value" error if it trips,
+        // which isn't helpful — do a local check first so the user
+        // sees a clear message and can rename without a wasted insert
+        // round-trip. For general lessons the index is the same shape
+        // but topic_id is NULL, so the bucket key is (NULL, title) —
+        // duplicate titles ARE allowed there, so we only check the
+        // in-topic case.
+        if (insert.topic_id) {
+          const collision = (parentTopic?.lessons || []).some(
+            l => l.title.trim().toLowerCase() === insert.title.trim().toLowerCase()
+          );
+          if (collision) {
+            toast('A lesson with that title already exists in this topic. Pick a unique title.', 'error');
+            return;
+          }
+        }
         const { data: created, error } = await supabaseClient
           .from('lessons')
           .insert(insert)
           .select('id')
           .single();
-        if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+        if (error) {
+          // Translate the most common constraint violations into
+          // something a human can act on. The actual index is
+          // lessons_topic_title_uniq (topic_id, title).
+          if (/lessons_topic_title_uniq/i.test(error.message)) {
+            toast('A lesson with that title already exists in this topic. Pick a unique title.', 'error');
+          } else {
+            toast('Save failed: ' + error.message, 'error');
+          }
+          return;
+        }
 
         // For activity lessons: upload the chosen file to the
         // lesson-activities bucket at activities/<id>/index.html, then
