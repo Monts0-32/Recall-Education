@@ -1,0 +1,2058 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Binary Factory — Recall</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" type="image/png" href="favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ----------------------------------------------------------------------
+     Theme: matches the Recall site (warm dark greys, teal accent, rounded
+     "bubble" surfaces). Heavy 3D pass — perspective stage, parallelogram
+     belt drawn in canvas, 3D mushrooms + clear plastic cap, isometric
+     package boxes with cast shadows.
+     ---------------------------------------------------------------------- */
+  :root {
+    --bg:        #1A1D22;
+    --bg-2:      #232629;
+    --bg-3:      #2B2F33;
+    --bg-4:      #353A3F;
+    --line:      #2A2E33;
+    --line-2:    #3A3F45;
+    --line-3:    #4D535A;
+    --text:      #F5F7FA;
+    --text-2:    #C9D1D9;
+    --text-3:    #9098A4;
+    --text-4:    #6B7280;
+    --teal:      #56D4DD;
+    --teal-2:    #3FB8C4;
+    --teal-soft: #7CE0E8;
+    --teal-dim:  rgba(86, 212, 221, 0.18);
+    --teal-pale: rgba(86, 212, 221, 0.10);
+    --teal-glow: rgba(86, 212, 221, 0.30);
+    --green:     #4FBE6A;
+    --red:       #F26B62;
+    --amber:     #D8B14A;
+    --r-sm: 12px;
+    --r-md: 18px;
+    --r-lg: 24px;
+    --r-pill: 999px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+  }
+  body {
+    /* Stage is set up in 3D so the floor recedes; canvas draws the belt
+       scene in true parallelogram. */
+    perspective: 1100px;
+    perspective-origin: 50% 65%;
+    background-image:
+      radial-gradient(ellipse 1400px 700px at 0% -10%, rgba(86, 212, 221, 0.07), transparent 60%),
+      radial-gradient(ellipse 900px 500px at 100% 20%, rgba(86, 212, 221, 0.04), transparent 70%);
+    background-attachment: fixed;
+  }
+
+  #stage {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    transform-style: preserve-3d;
+  }
+
+  /* --- Top bar --- */
+  #topbar {
+    position: absolute;
+    inset: 18px 24px auto 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    z-index: 10;
+    pointer-events: none;
+    gap: 16px;
+  }
+  #score {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 12px 16px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+    pointer-events: auto;
+  }
+  #score b { color: var(--teal-soft); font-size: 1.15em; margin-left: 4px; }
+  #score .sub { display: block; font-size: 11px; color: var(--text-3); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 2px; }
+
+  /* --- Lives display --- */
+  #lives {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 10px 14px;
+    display: flex; gap: 4px; align-items: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+    font-size: 20px;
+    line-height: 1;
+  }
+  #lives .heart {
+    color: var(--red);
+    text-shadow: 0 0 8px rgba(242,107,98,0.4);
+    transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
+  }
+  #lives .heart.lost {
+    color: var(--text-4);
+    text-shadow: none;
+    opacity: 0.35;
+  }
+  #lives.shake { animation: shake 0.4s ease; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  /* --- Modal overlays (start page + game over) --- */
+  .modal {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(11, 15, 20, 0.78);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 1000;
+    padding: 24px;
+    pointer-events: auto;
+  }
+  .modal * { pointer-events: auto; }
+  .modal.hidden { display: none; }
+  .modal .card {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    padding: 32px;
+    max-width: 720px;
+    width: 100%;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .modal h1 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+  .modal .sub {
+    color: var(--text-3);
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .modal .diffs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .diff-card {
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 18px 20px;
+    cursor: pointer;
+    text-align: left;
+    color: var(--text);
+    font-family: inherit;
+    transition: transform 0.1s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .diff-card:hover {
+    background: var(--bg-4);
+    border-color: var(--teal);
+    transform: translateY(-2px);
+  }
+  .diff-card .name {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .diff-card .meta {
+    font-size: 12px;
+    color: var(--text-3);
+    letter-spacing: 0.5px;
+  }
+  .diff-card .meta b { color: var(--teal-soft); font-weight: 700; }
+  .diff-card.easy   .name { color: var(--teal-soft); }
+  .diff-card.medium .name { color: var(--amber); }
+  .diff-card.hard   .name { color: #F2A06B; }
+  .diff-card.expert .name { color: var(--red); }
+  .diff-card .preview {
+    margin-top: 10px;
+    font-family: "JetBrains Mono", "Consolas", monospace;
+    font-size: 13px;
+    color: var(--text-2);
+    background: var(--bg);
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    display: inline-block;
+  }
+  .gameover .stats {
+    display: flex; gap: 24px; margin: 16px 0 24px;
+  }
+  .gameover .stat {
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 14px 18px;
+    flex: 1;
+    text-align: center;
+  }
+  .gameover .stat .num {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--teal-soft);
+    display: block;
+    line-height: 1;
+  }
+  .gameover .stat .lbl {
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 6px;
+    display: block;
+  }
+  .gameover .actions {
+    display: flex; gap: 12px;
+  }
+  .btn-primary {
+    flex: 1;
+    background: var(--teal);
+    color: #0B0D0F;
+    border: none;
+    border-radius: var(--r-md);
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-family: inherit;
+    transition: filter 0.15s ease;
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-primary:active { transform: translateY(1px); }
+  .btn-secondary {
+    background: var(--bg-3);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-secondary:hover { background: var(--bg-4); }
+
+  /* --- Target screen --- */
+  #screen {
+    position: relative;
+    width: 280px;
+    height: 150px;
+    border-radius: var(--r-md);
+    background: linear-gradient(180deg, var(--bg-3) 0%, var(--bg) 100%);
+    box-shadow:
+      0 0 0 1px var(--line),
+      0 14px 30px rgba(0,0,0,0.4),
+      inset 0 1px 0 rgba(255,255,255,0.05);
+    overflow: hidden;
+    pointer-events: auto;
+  }
+  #screen .label {
+    position: absolute;
+    top: 8px; left: 0; right: 0;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--text-4);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  #screen .display {
+    position: absolute;
+    inset: 28px 14px 32px 14px;
+    border-radius: 10px;
+    background: #0B0D0F;
+    box-shadow: inset 0 0 24px rgba(0,0,0,0.9), inset 0 0 0 1px rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "JetBrains Mono", "Consolas", "Courier New", monospace;
+    font-size: 64px;
+    font-weight: 800;
+    color: var(--amber);
+    text-shadow: 0 0 14px rgba(216, 177, 74, 0.55);
+    transition: color 0.18s ease, text-shadow 0.18s ease;
+    letter-spacing: 2px;
+  }
+  #screen .result {
+    position: absolute;
+    bottom: 10px; left: 0; right: 0;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-4);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  #screen.win  .display { color: var(--green); text-shadow: 0 0 18px rgba(79, 190, 106, 0.85); }
+  #screen.lose .display { color: var(--red);   text-shadow: 0 0 18px rgba(242, 107, 98, 0.85); }
+  #screen.win  .result  { color: var(--green); }
+  #screen.lose .result  { color: var(--red); }
+
+  /* --- Difficulty / time pill --- */
+  #difficulty {
+    margin-top: 10px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-pill);
+    padding: 6px 12px;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-3);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #difficulty .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 8px var(--teal-glow); }
+  #difficulty b { color: var(--text); font-weight: 700; }
+
+  .stack { display: flex; flex-direction: column; align-items: flex-end; }
+
+  /* --- Canvas scene --- */
+  #factory {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+
+  /* --- Bottom control panel (sits on a 3D riser) --- */
+  #panel {
+    position: absolute;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%) rotateX(8deg);
+    transform-origin: 50% 100%;
+    display: flex;
+    align-items: flex-end;
+    gap: 32px;
+    z-index: 10;
+    padding: 22px 28px 18px;
+    background: linear-gradient(180deg, rgba(35,38,41,0.92) 0%, rgba(26,29,34,0.92) 100%);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    box-shadow:
+      0 24px 40px rgba(0,0,0,0.45),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .group { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .group .label {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    color: var(--text-4);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* 3D bit button. The .btnWrap gives each button its own positioning
+     context so the .key label centres reliably under the button face. */
+  .btnRow {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;     /* all wraps share the same top baseline */
+    gap: 18px;
+  }
+  .btnWrap {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;          /* face + key share the same horizontal centre */
+    flex: 0 0 auto;
+    width: 104px;                 /* fixed width so the .key centres against it */
+  }
+  .btn3d {
+    position: relative;
+    width: 104px;
+    height: 104px;
+    border: none;
+    cursor: pointer;
+    border-radius: var(--r-md);
+    color: transparent;            /* hide the native button text — the .face shows the digit */
+    font-family: "JetBrains Mono", "Consolas", "Courier New", monospace;
+    font-weight: 800;
+    font-size: 0;                  /* zero out in-flow text so the .face is the only visible glyph */
+    text-shadow: none;
+    user-select: none;
+    transition: transform 0.06s ease, filter 0.15s ease;
+    background: transparent;
+    padding: 0;
+    flex: 0 0 auto;
+  }
+  .btn3d .face {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--r-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 48px;
+    line-height: 1;
+    padding-bottom: 6px;          /* optical baseline shift for digits/symbols */
+    text-shadow: 0 2px 0 rgba(0,0,0,0.35);
+    box-shadow:
+      inset 0 -8px 0 rgba(0,0,0,0.32),
+      inset 0 6px 0 rgba(255,255,255,0.22),
+      inset 0 0 0 1px rgba(0,0,0,0.25),
+      0 10px 18px rgba(0,0,0,0.4);
+  }
+  .btnWrap .key {
+    /* The .key is rendered as a sibling of the .btn3d (inside .btnWrap),
+       so it's no longer affected by the button's font-size:0 / color:transparent
+       overrides. Centring is guaranteed by the parent's align-items:center. */
+    display: block;
+    margin-top: 10px;
+    height: 12px;
+    line-height: 12px;
+    white-space: nowrap;
+    font-size: 10px;
+    color: var(--text-4);
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    text-shadow: none;
+    font-family: 'Inter', sans-serif;
+    text-align: center;
+  }
+  .btn3d.zero .face {
+    background: linear-gradient(180deg, #7CE0E8 0%, #3FB8C4 55%, #1F6E76 100%);
+  }
+  .btn3d.one .face {
+    background: linear-gradient(180deg, #F0C76B 0%, #D8B14A 55%, #8A6D1F 100%);
+  }
+  .btn3d.back .face {
+    background: linear-gradient(180deg, #5A5E66 0%, #3B3E45 55%, #1E2026 100%);
+    color: #E8E8EA;
+    font-size: 44px;             /* match digit buttons so all faces share the same optical centre */
+  }
+  .btn3d.back:hover .face { filter: brightness(1.15); }
+  .btn3d:hover .face { filter: brightness(1.08); }
+  .btn3d:active,
+  .btn3d.pressed { transform: translateY(4px); }
+  .btn3d:active .face,
+  .btn3d.pressed .face {
+    box-shadow:
+      inset 0 -2px 0 rgba(0,0,0,0.32),
+      inset 0 2px 0 rgba(255,255,255,0.10),
+      inset 0 0 0 1px rgba(0,0,0,0.3),
+      0 4px 8px rgba(0,0,0,0.4);
+    filter: brightness(0.95);
+  }
+
+  /* --- Binary guide screen (next to the bit buttons) --- */
+  #guide {
+    width: 240px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 12px 14px 14px;
+    box-shadow: 0 12px 26px rgba(0,0,0,0.35);
+    font-family: "JetBrains Mono", "Consolas", "Courier New", monospace;
+  }
+  #guide .head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  #guide .head .label {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    color: var(--text-4);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  #guide .head .total {
+    font-size: 12px;
+    color: var(--teal-soft);
+    font-weight: 700;
+  }
+  #guide table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 4px 4px;
+    table-layout: fixed;
+  }
+  #guide th, #guide td {
+    text-align: center;
+    font-weight: 700;
+    border-radius: 8px;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+  /* Header row: place values */
+  #guide th {
+    padding: 6px 0;
+    font-size: 14px;
+    background: var(--bg-3);
+    color: var(--text-3);
+    border: 1px solid var(--line);
+  }
+  /* Bit rows: 0 / 1 cells */
+  #guide td {
+    padding: 8px 0;
+    font-size: 16px;
+    background: var(--bg-3);
+    color: var(--text-4);
+    border: 1px solid var(--line);
+  }
+  /* Highlight a column when a '1' is dropped in that position. */
+  #guide td.bit1 {
+    background: linear-gradient(180deg, #F0C76B 0%, #D8B14A 60%, #8A6D1F 100%);
+    color: #1A1D22;
+    border-color: #8A6D1F;
+    box-shadow: 0 4px 10px rgba(216,177,74,0.25), inset 0 1px 0 rgba(255,255,255,0.35);
+    transform: translateY(-1px);
+  }
+  #guide th.head1 {
+    color: var(--amber);
+    background: linear-gradient(180deg, #2A2E33 0%, #232629 100%);
+  }
+  /* Live "what you've sent" footer */
+  #guide .bits {
+    margin-top: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px;
+    background: #0B0D0F;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 18px;
+    color: var(--amber);
+    letter-spacing: 6px;
+  }
+  #guide .bits small {
+    font-size: 10px;
+    color: var(--text-4);
+    letter-spacing: 1.5px;
+  }
+
+  /* --- Big red SEND button + jukebox/arcade clear plastic cover --- */
+  #sendWrap {
+    position: relative;
+    width: 200px;
+    height: 200px;
+  }
+
+  /* The clear plastic push-up cap. Drawn entirely with CSS. */
+  #sendCover {
+    position: absolute;
+    inset: 0;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    z-index: 3;
+    transform-style: preserve-3d;
+  }
+  #sendCover .cap {
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 30% 25%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.18) 18%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0) 70%),
+      radial-gradient(circle at 70% 80%, rgba(86,212,221,0.25), rgba(86,212,221,0) 60%),
+      linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.10) 50%, rgba(0,0,0,0.10) 100%);
+    box-shadow:
+      0 0 0 2px rgba(0,0,0,0.5),
+      0 18px 28px rgba(0,0,0,0.45),
+      inset 0 6px 14px rgba(255,255,255,0.55),
+      inset 0 -10px 18px rgba(0,0,0,0.30);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.3, 1.2), opacity 0.18s ease;
+    transform-origin: 50% 100%;
+  }
+  /* The hinge bar at the back of the cap */
+  #sendCover .hinge {
+    position: absolute;
+    top: 2px; left: 50%;
+    transform: translateX(-50%);
+    width: 80px; height: 10px;
+    background: linear-gradient(180deg, #4a2010, #2a1006);
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    z-index: 1;
+  }
+  #sendCover .ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow:
+      inset 0 0 0 4px rgba(0,0,0,0.5),
+      inset 0 0 0 5px rgba(86,212,221,0.45);
+    pointer-events: none;
+  }
+  #sendCover .hint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.9);
+    text-shadow: 0 1px 0 rgba(0,0,0,0.5);
+    text-transform: uppercase;
+    z-index: 2;
+  }
+  #sendCover .hint small {
+    display: block;
+    margin-top: 4px;
+    font-size: 9px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 1.5px;
+  }
+  /* Open state: cap pops up & tilts back as if hinged at the top */
+  #sendCover.open .cap {
+    transform: translateY(-30px) rotateX(-60deg) scale(0.92);
+    opacity: 0.0;
+  }
+  #sendCover:hover .cap { filter: brightness(1.06); }
+
+  /* Red mushroom button behind the cover */
+  #sendBtn {
+    position: absolute;
+    inset: 22px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 0 rgba(0,0,0,0.45);
+    background:
+      radial-gradient(circle at 35% 30%, #FFB0A5 0%, #F26B62 45%, #8A2A24 100%);
+    box-shadow:
+      0 0 0 6px #2a0c0a,
+      0 0 0 7px #4a1410,
+      0 18px 0 #5a1a16,
+      0 24px 36px rgba(0,0,0,0.5),
+      inset 0 -10px 0 rgba(0,0,0,0.32),
+      inset 0 8px 0 rgba(255,255,255,0.28),
+      inset 0 0 0 1px rgba(0,0,0,0.30);
+    transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.15s ease;
+    z-index: 2;
+  }
+  #sendBtn .label { display: block; }
+  #sendBtn .key {
+    display: block;
+    margin-top: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.85);
+  }
+  #sendBtn:hover { filter: brightness(1.05); }
+  #sendBtn:active,
+  #sendBtn.pressed {
+    transform: translateY(10px);
+    box-shadow:
+      0 0 0 6px #2a0c0a,
+      0 0 0 7px #4a1410,
+      0 8px 0 #5a1a16,
+      0 10px 18px rgba(0,0,0,0.5),
+      inset 0 -4px 0 rgba(0,0,0,0.32),
+      inset 0 4px 0 rgba(255,255,255,0.15),
+      inset 0 0 0 1px rgba(0,0,0,0.3);
+  }
+  /* Visually dimmed when the cover is closed, but still clickable.
+     The click handler decides whether to open the cover or send. */
+  #sendBtn.locked {
+    filter: grayscale(0.6) brightness(0.6);
+    cursor: pointer;
+  }
+
+  /* Countdown ring around the send button */
+  #ringSvg {
+    position: absolute;
+    inset: -6px;
+    width: calc(100% + 12px);
+    height: calc(100% + 12px);
+    transform: rotate(-90deg);
+    pointer-events: none;
+    z-index: 4;
+  }
+  #ringSvg circle.track { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 4; }
+  #ringSvg circle.progress {
+    fill: none;
+    stroke: var(--teal);
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke 0.2s ease;
+    filter: drop-shadow(0 0 4px var(--teal-glow));
+  }
+  #ringSvg.urgent circle.progress { stroke: var(--red); filter: drop-shadow(0 0 4px rgba(242,107,98,0.5)); }
+  #ringSvg.idle circle.progress { stroke: rgba(255,255,255,0.15); filter: none; }
+
+  /* --- Help bar --- */
+  #help {
+    position: absolute;
+    top: 18px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-pill);
+    padding: 6px 16px;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    pointer-events: none;
+    font-weight: 600;
+  }
+  #help b { color: var(--teal-soft); font-weight: 700; }
+
+  /* Flash overlay */
+  #flash {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    mix-blend-mode: screen;
+  }
+  #flash.win  { background: radial-gradient(circle at 50% 40%, rgba(79, 190, 106, 0.35), transparent 60%); opacity: 1; }
+  #flash.lose { background: radial-gradient(circle at 50% 40%, rgba(242, 107, 98, 0.35), transparent 60%); opacity: 1; }
+
+  button:focus-visible { outline: 2px solid var(--teal); outline-offset: 4px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="factory"></canvas>
+
+  <div id="topbar">
+    <div style="display:flex; gap:12px; align-items:flex-start; pointer-events:auto;">
+      <div id="score">
+        Score <b id="scoreVal">0</b>
+        <span class="sub">Correct rounds</span>
+      </div>
+      <div id="lives" aria-label="Lives remaining">
+        <span class="heart">♥</span>
+        <span class="heart">♥</span>
+        <span class="heart">♥</span>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div id="screen">
+        <div class="label">Target</div>
+        <div class="display" id="display">0</div>
+        <div class="result" id="resultText">Build the binary</div>
+      </div>
+      <div id="difficulty"><span class="dot"></span> Time <b id="timeVal">30.0</b>s &middot; <span id="diffLabel">Easy</span></div>
+    </div>
+  </div>
+
+  <div id="help">Press <b>0</b> or <b>1</b> to drop a package &middot; <b>Backspace</b> to flick one off &middot; <b>Enter</b> to open / send</div>
+
+  <div id="panel">
+    <div class="group">
+      <div class="label">Drop &middot; Flick</div>
+      <div class="btnRow">
+        <span class="btnWrap">
+          <button class="btn3d zero" id="btn0" aria-label="Drop zero">
+            <span class="face">0</span>
+          </button>
+          <span class="key">KEY 0</span>
+        </span>
+        <span class="btnWrap">
+          <button class="btn3d one" id="btn1" aria-label="Drop one">
+            <span class="face">1</span>
+          </button>
+          <span class="key">KEY 1</span>
+        </span>
+        <span class="btnWrap">
+          <button class="btn3d back" id="btnBack" aria-label="Flick last package off the belt" title="Backspace">
+            <span class="face">⌫</span>
+          </button>
+          <span class="key">BACKSPACE</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="label">Guide</div>
+      <div id="guide">
+        <div class="head">
+          <span class="label">Place value</span>
+        </div>
+        <table>
+          <thead>
+            <tr id="guideHeader">
+              <th>8</th><th>4</th><th>2</th><th>1</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="guideBits">
+              <td data-pos="3">0</td>
+              <td data-pos="2">0</td>
+              <td data-pos="1">0</td>
+              <td data-pos="0">0</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="bits"><span id="guideString">0000</span><small>binary</small></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="label">Send</div>
+      <div id="sendWrap">
+        <svg id="ringSvg" viewBox="0 0 200 200" class="idle">
+          <circle class="track"   cx="100" cy="100" r="92"></circle>
+          <circle class="progress" cx="100" cy="100" r="92"
+                  stroke-dasharray="578" stroke-dashoffset="0"></circle>
+        </svg>
+        <button id="sendCover" aria-label="Open safety cover">
+          <div class="hinge"></div>
+          <div class="cap">
+            <div class="ring"></div>
+            <div class="hint">Lift<small>Enter</small></div>
+          </div>
+        </button>
+        <button id="sendBtn" aria-label="Send packages" class="locked">
+          <span class="label">Send</span>
+          <span class="key">Enter</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="flash"></div>
+</div>
+
+<!-- Modals: outside #stage so they sit at the top of the body stacking
+     context and can never be blocked by game elements. -->
+<div id="startModal" class="modal">
+  <div class="card">
+    <h1>Binary Factory</h1>
+    <div class="sub">Convert denary to binary &middot; 3 lives</div>
+    <div class="diffs">
+      <button class="diff-card easy" data-diff="easy">
+        <div class="name">Easy</div>
+        <div class="meta"><b>3</b> bits &middot; 1–7 &middot; 30s per round</div>
+        <div class="preview">111 = 7</div>
+      </button>
+      <button class="diff-card medium" data-diff="medium">
+        <div class="name">Medium</div>
+        <div class="meta"><b>4</b> bits &middot; 1–15 &middot; 25s per round</div>
+        <div class="preview">1111 = 15</div>
+      </button>
+      <button class="diff-card hard" data-diff="hard">
+        <div class="name">Hard</div>
+        <div class="meta"><b>5</b> bits &middot; 1–31 &middot; 20s per round</div>
+        <div class="preview">11111 = 31</div>
+      </button>
+      <button class="diff-card expert" data-diff="expert">
+        <div class="name">Expert</div>
+        <div class="meta"><b>6</b> bits &middot; 1–63 &middot; 15s per round</div>
+        <div class="preview">111111 = 63</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="gameOverModal" class="modal gameover hidden">
+  <div class="card">
+    <h1>Game Over</h1>
+    <div class="sub" id="gameOverSub">Out of lives</div>
+    <div class="stats">
+      <div class="stat">
+        <span class="num" id="finalScore">0</span>
+        <span class="lbl">Correct</span>
+      </div>
+      <div class="stat">
+        <span class="num" id="finalDifficulty">Easy</span>
+        <span class="lbl">Difficulty</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-secondary" id="btnMenu">Change difficulty</button>
+      <button class="btn-primary" id="btnReplay">Play again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- Canvas / Scene Setup ----------
+  const canvas = document.getElementById('factory');
+  const ctx = canvas.getContext('2d');
+  let DPR = Math.max(1, window.devicePixelRatio || 1);
+  let W = 0, H = 0;
+
+  function resize() {
+    DPR = Math.max(1, window.devicePixelRatio || 1);
+    W = canvas.clientWidth = window.innerWidth;
+    H = canvas.clientHeight = window.innerHeight;
+    canvas.width  = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    recomputeScene();
+  }
+  window.addEventListener('resize', resize);
+
+  // ---------- Game State ----------
+  const packages = [];
+  // Top-down with a heavy 3/4 perspective. Belt is drawn as a parallelogram
+  // using these endpoints.
+  const BELT = { p1:{x:0,y:0}, p2:{x:0,y:0}, p3:{x:0,y:0}, p4:{x:0,y:0}, w:0 };
+  let beltOffset = 0;
+  let beltMoving = false;
+  let beltPhase = 'idle'; // 'idle' | 'run' | 'drain'
+
+  let target = 0;
+  let score = 0;
+  let wrongRounds = 0;             // total misses across the run (incl. timeouts)
+  let canSend = true;
+  let coverOpen = false;
+  let lives = 3;
+  let gameState = 'menu'; // 'menu' | 'playing' | 'gameover'
+
+  // ---------- Difficulty configurations ----------
+  // Each difficulty sets the number of bits, the time per round, and the
+  // range of target values. Higher difficulties use more bits and less time.
+  const DIFFICULTIES = {
+    easy:   { name: 'Easy',   bits: 3, time: 30, minVal: 1, maxVal: 7   },
+    medium: { name: 'Medium', bits: 4, time: 25, minVal: 1, maxVal: 15  },
+    hard:   { name: 'Hard',   bits: 5, time: 20, minVal: 1, maxVal: 31  },
+    expert: { name: 'Expert', bits: 6, time: 15, minVal: 1, maxVal: 63  },
+  };
+  let currentDiff = DIFFICULTIES.easy;
+
+  // Auto-send timing: fixed per difficulty
+  let timeLimit = 30.0;
+  let timeLeft = 30.0;
+  let autoSendHandle = null;
+  const ringSvg    = document.getElementById('ringSvg');
+  const ringProg   = ringSvg.querySelector('circle.progress');
+  const RING_LEN   = 2 * Math.PI * 92;
+
+  const displayEl = document.getElementById('display');
+  const resultEl  = document.getElementById('resultText');
+  const screenEl  = document.getElementById('screen');
+  const scoreEl   = document.getElementById('scoreVal');
+  const flashEl   = document.getElementById('flash');
+  const btn0      = document.getElementById('btn0');
+  const btn1      = document.getElementById('btn1');
+  const btnBack   = document.getElementById('btnBack');
+  const sendBtn   = document.getElementById('sendBtn');
+  const sendCover = document.getElementById('sendCover');
+  const timeValEl = document.getElementById('timeVal');
+  const diffLabel = document.getElementById('diffLabel');
+  const livesEl   = document.getElementById('lives');
+  const heartEls  = Array.from(livesEl.querySelectorAll('.heart'));
+  const startModal = document.getElementById('startModal');
+  const gameOverModal = document.getElementById('gameOverModal');
+  const finalScoreEl = document.getElementById('finalScore');
+  const finalDiffEl  = document.getElementById('finalDifficulty');
+  const gameOverSub  = document.getElementById('gameOverSub');
+
+  function setDisplayImmediate(text) { displayEl.textContent = text; }
+
+  function newTarget() {
+    const { minVal, maxVal, bits, time } = currentDiff;
+    let t;
+    do { t = minVal + Math.floor(Math.random() * (maxVal - minVal + 1)); } while (t === target);
+    target = t;
+    timeLimit = time;
+    timeLeft = timeLimit;
+    timeValEl.textContent = timeLimit.toFixed(1);
+    diffLabel.textContent = `${currentDiff.name} · ${bits}b`;
+    screenEl.classList.remove('win', 'lose', 'loading');
+    resultEl.textContent = 'Build the binary';
+    flashEl.classList.remove('win', 'lose');
+    updateRing(1);
+    rebuildGuideTable();
+    updateGuide();
+
+    const scrambleMs = 900;
+    const start = performance.now();
+    function tick(now) {
+      const t01 = (now - start) / scrambleMs;
+      if (t01 >= 1) { setDisplayImmediate(String(target)); return; }
+      const slow = 1 - Math.pow(1 - t01, 3);
+      if (Math.random() < 0.25 + slow * 0.6) {
+        setDisplayImmediate(String(Math.floor(Math.random() * 10)));
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    setTimeout(() => {
+      if (!canSend) return;
+      if (gameState !== 'playing') return;
+      startAutoSend();
+    }, scrambleMs);
+  }
+
+  // ---------- Auto-send timer ----------
+  function startAutoSend() {
+    cancelAutoSend();
+    timeLeft = timeLimit;
+    updateRing(1);
+    ringSvg.classList.remove('idle', 'urgent');
+    autoSendHandle = setInterval(() => {
+      if (!canSend) { cancelAutoSend(); return; }
+      timeLeft = Math.max(0, timeLeft - 0.1);
+      timeValEl.textContent = timeLeft.toFixed(1);
+      updateRing(timeLeft / timeLimit);
+      if (timeLeft / timeLimit < 0.30) ringSvg.classList.add('urgent');
+      else ringSvg.classList.remove('urgent');
+      if (timeLeft <= 0) {
+        cancelAutoSend();
+        if (!coverOpen) openCover();
+        setTimeout(() => sendPackages(true), 200);
+      }
+    }, 100);
+  }
+  function cancelAutoSend() {
+    if (autoSendHandle) { clearInterval(autoSendHandle); autoSendHandle = null; }
+  }
+  function updateRing(frac) {
+    frac = Math.max(0, Math.min(1, frac));
+    ringProg.setAttribute('stroke-dashoffset', String(RING_LEN * (1 - frac)));
+  }
+  function pauseAutoSend() {
+    cancelAutoSend();
+    updateRing(1);
+    ringSvg.classList.add('idle');
+    ringSvg.classList.remove('urgent');
+  }
+
+  // ---------- Cover state machine ----------
+  let coverCloseHandle = null;
+  function openCover() {
+    coverOpen = true;
+    sendCover.classList.add('open');
+    sendBtn.classList.remove('locked');
+    ringSvg.classList.remove('idle');
+    clearTimeout(coverCloseHandle);
+    coverCloseHandle = setTimeout(() => {
+      if (coverOpen) closeCover();
+    }, 5000);
+  }
+  function closeCover() {
+    coverOpen = false;
+    sendCover.classList.remove('open');
+    sendBtn.classList.add('locked');
+    clearTimeout(coverCloseHandle);
+    coverCloseHandle = null;
+    ringSvg.classList.add('idle');
+  }
+  sendCover.addEventListener('click', () => { if (!coverOpen) openCover(); });
+  window.addEventListener('keydown', (e) => {
+    if (e.repeat) return;
+    if (gameState !== 'playing') return;
+    if (e.key === '0') handleBit(0, btn0);
+    else if (e.key === '1') handleBit(1, btn1);
+    else if (e.key === 'Backspace' || e.key === 'Delete') {
+      e.preventDefault();
+      flickLastPackage(btnBack);
+    }
+    else if (e.key === 'Enter') {
+      if (!coverOpen) openCover();
+      else sendPackages(false);
+    } else if (e.key.toLowerCase() === 'c') {
+      if (!canSend) return;
+      packages.length = 0;
+      updateGuide();
+      resultEl.textContent = 'Cleared';
+      screenEl.classList.remove('win', 'lose', 'loading');
+    }
+  });
+
+  // ---------- Scene geometry (parallelogram belt) ----------
+  function recomputeScene() {
+    // Belt is a parallelogram: p1 (back-left), p2 (back-right), p3 (front-right), p4 (front-left)
+    // The "depth" direction gives us the 3D feel.
+    const marginX = 60;
+    const topReserved = 200;
+    const bottomReserved = 320;
+    const w = Math.max(520, W - marginX * 2);
+    const cx = W / 2;
+    const backY = topReserved;
+    const frontY = H - bottomReserved;
+    const depth = 90; // how much the front extends toward the camera
+    BELT.w = w;
+    BELT.p1 = { x: cx - w/2, y: backY };
+    BELT.p2 = { x: cx + w/2, y: backY };
+    BELT.p3 = { x: cx + w/2 + depth*0.6, y: frontY };
+    BELT.p4 = { x: cx - w/2 + depth*0.6, y: frontY };
+  }
+  recomputeScene();
+
+  // Project a point along the belt: t in [0,1] is distance along the belt
+  // centreline; u in [0,1] is across (0 = back, 1 = front).
+  function beltPoint(t, u) {
+    // Interpolate between back and front edges
+    const back  = lerpP(BELT.p1, BELT.p2, t);
+    const front = lerpP(BELT.p4, BELT.p3, t);
+    return lerpP(back, front, u);
+  }
+  function lerpP(a, b, t) { return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; }
+
+  // Drop a package onto the belt. The first dropped lands at the RIGHT
+  // (largest t, LSB column on the guide). Each subsequent drop shifts the
+  // existing queue LEFT (toward smaller t) so the new package can take the
+  // LSB slot. This matches the "additive" mental model: drop bits to add
+  // to the number, where the first bit is worth 1, the next worth 2, etc.
+  // (Visually the belt fills from right to left, mirroring the guide
+  // columns 8, 4, 2, 1 where the LSB column is on the right.)
+  const PACKAGE_SPACING = 0.09; // t-units; ~9% of the belt length per slot
+  const MAX_T = 0.96;
+  function dropPackage(bit) {
+    // Shift every on-belt package LEFT (toward smaller t) by one slot so
+    // the new package can take the LSB slot (rightmost, largest t).
+    for (const p of packages) {
+      if (p.sent || !p.onBelt) continue;
+      p.t -= PACKAGE_SPACING;
+    }
+    const t = MAX_T;
+    packages.push({
+      bit,
+      t,
+      u: 0.5,
+      w: 78, h: 78, d: 78,
+      vy: 0, fallY: -300,
+      onBelt: false, sent: false, exit: 0, anim: 0,
+    });
+    updateGuide();
+  }
+
+  function pressVisual(el) {
+    el.classList.add('pressed');
+    setTimeout(() => el.classList.remove('pressed'), 110);
+  }
+  function handleBit(bit, srcEl) {
+    if (gameState !== 'playing') return;
+    if (!canSend) return;
+    if (srcEl) pressVisual(srcEl);
+    dropPackage(bit);
+  }
+  btn0.addEventListener('click', () => handleBit(0, btn0));
+  btn1.addEventListener('click', () => handleBit(1, btn1));
+
+  // Fling the most recent on-belt package off to the right with a spin
+  // (a "backspace" that physically removes a misdrop).
+  function flickLastPackage(srcEl) {
+    if (gameState !== 'playing') return;
+    if (!canSend) return;
+    // Find the last package that is on the belt and not yet sent
+    let idx = -1;
+    for (let i = packages.length - 1; i >= 0; i--) {
+      const p = packages[i];
+      if (p.onBelt && !p.sent) { idx = i; break; }
+    }
+    if (idx < 0) return; // nothing to remove — no visual press either
+    if (srcEl) pressVisual(srcEl);
+    const p = packages[idx];
+    p.flicking = true;
+    p.flyTime = 0;
+    p.flyDur  = 0.55; // total fling duration in seconds
+    p.flyRot  = 0;
+    p.flyX    = 0;
+    p.flyY    = 0;
+    p.flyAlpha = 1;
+    p.flyScale = 1;
+    p.flyStartT = p.t;
+    p.flyStartU = p.u;
+    // Make sure the guide isn't locked, so the table updates as the
+    // package leaves and the remaining ones shift right.
+    guideLocked = false;
+    updateGuide();
+  }
+  btnBack.addEventListener('click', () => flickLastPackage(btnBack));
+
+  sendBtn.addEventListener('click', () => {
+    if (gameState !== 'playing') return;
+    if (!coverOpen) { openCover(); return; }
+    sendPackages(false);
+  });
+
+  // ---------- Send / Score ----------
+  // While a round is resolving, we freeze a snapshot of the guide so the
+  // player can see "what they sent" alongside the screen's verdict.
+  let frozenGuide = null;
+  function freezeGuide() {
+    // Capture the current belt state. ordered[0] is the first dropped,
+    // which with the shifting model ends up at the MSB.
+    const ordered = packages.filter(p => !p.sent).slice().sort((a,b) => a.t - b.t);
+    const n = ordered.length;
+    let v = 0;
+    for (let i = 0; i < n; i++) v |= (ordered[i].bit << (n - 1 - i));
+    frozenGuide = { ordered, value: v };
+  }
+  function renderFrozenGuide() {
+    if (!frozenGuide) return;
+    const { ordered, value } = frozenGuide;
+    const n = ordered.length;
+    const bits = guideBitCount;
+    for (let i = 0; i < bits; i++) {
+      const cell = guideCells[i];
+      const head = guideHeaderCells[i];
+      const place = bits - 1 - i;
+      const idx = n - 1 - place;
+      const bit = (idx >= 0 && idx < n) ? ordered[idx] : null;
+      const v = bit ? bit.bit : 0;
+      cell.textContent = String(v);
+      cell.classList.toggle('bit1', v === 1);
+      head.classList.toggle('head1', v === 1);
+    }
+    const msbFirst = [];
+    for (let place = bits - 1; place >= 0; place--) {
+      const idx = n - 1 - place;
+      const bit = (idx >= 0 && idx < n) ? ordered[idx] : null;
+      msbFirst.push(bit ? bit.bit : 0);
+    }
+    guideStringEl.textContent = msbFirst.join('');
+  }
+
+  function sendPackages(auto) {
+    if (!canSend) return;
+    const onBelt = packages.filter(p => p.onBelt && !p.sent);
+    if (onBelt.length === 0 && !auto) {
+      resultEl.textContent = 'Nothing to send';
+      return;
+    }
+    onBelt.forEach(p => p.sent = true);
+    canSend = false;
+    pauseAutoSend();
+    closeCover();
+
+    const value = currentValueFrom(onBelt);
+    const correct = value === target;
+    if (correct) { score++; scoreEl.textContent = String(score); }
+    else         { wrongRounds++; }
+
+    // Freeze the guide for the duration of the reveal so the player can
+    // compare what they sent against the target on the screen.
+    freezeGuide();
+    renderFrozenGuide();
+    guideLocked = true;
+
+    beltPhase = 'run';
+    beltMoving = true;
+    onBelt.forEach(p => p.exit = 0);
+
+    setTimeout(() => {
+      screenEl.classList.add('loading');
+      resultEl.textContent = 'Checking…';
+      const sStart = performance.now();
+      const sDur = 700;
+      function sTick(now) {
+        const k = (now - sStart) / sDur;
+        if (k >= 1) { setDisplayImmediate(String(target)); }
+        else {
+          if (Math.random() < 0.4) setDisplayImmediate(String(Math.floor(Math.random() * 10)));
+          requestAnimationFrame(sTick);
+        }
+      }
+      requestAnimationFrame(sTick);
+
+      setTimeout(() => {
+        screenEl.classList.remove('loading');
+        if (correct) {
+          screenEl.classList.add('win');
+          resultEl.textContent = `Correct! ${value} = ${target}`;
+          flashEl.classList.add('win');
+          setTimeout(() => flashEl.classList.remove('win'), 400);
+        } else {
+          screenEl.classList.add('lose');
+          resultEl.textContent = auto ? `Time's up — target was ${target}` : `Wrong — you sent ${value}`;
+          flashEl.classList.add('lose');
+          setTimeout(() => flashEl.classList.remove('lose'), 400);
+          loseLife(auto ? `Time's up` : `Wrong answer (sent ${value}, target ${target})`);
+        }
+        setTimeout(() => { beltPhase = 'drain'; }, 1100);
+      }, sDur);
+    }, 350);
+  }
+
+  function currentValueFrom(arr) {
+    let v = 0;
+    arr.forEach((p, i) => {
+      const shift = arr.length - 1 - i;
+      v |= (p.bit << shift);
+    });
+    return v;
+  }
+
+  // ---------- Binary guide ----------
+  // The guide is built dynamically based on the current difficulty's bit
+  // count. The table shows place values from MSB (left) to LSB (right).
+  // We keep references to the table rows so we can re-query cells after
+  // rebuilding the table.
+  const guideHeader  = document.getElementById('guideHeader');
+  const guideBitsRow = document.getElementById('guideBits');
+  const guideStringEl = document.getElementById('guideString');
+  let guideLocked = false; // when true, live updates are ignored (round in progress)
+  let guideBitCount = 4;   // number of columns currently rendered
+
+  function rebuildGuideTable() {
+    const bits = currentDiff.bits;
+    guideBitCount = bits;
+    // Place values: 2^(bits-1) on the left down to 2^0 on the right
+    const placeValues = [];
+    for (let i = bits - 1; i >= 0; i--) placeValues.push(1 << i);
+    // Rebuild header: clear and add new <th> elements
+    while (guideHeader.firstChild) guideHeader.removeChild(guideHeader.firstChild);
+    placeValues.forEach(v => {
+      const th = document.createElement('th');
+      th.textContent = String(v);
+      guideHeader.appendChild(th);
+    });
+    // Rebuild bit row: clear and add new <td> elements
+    while (guideBitsRow.firstChild) guideBitsRow.removeChild(guideBitsRow.firstChild);
+    placeValues.forEach((v, i) => {
+      const td = document.createElement('td');
+      td.setAttribute('data-pos', String(bits - 1 - i));
+      td.textContent = '0';
+      guideBitsRow.appendChild(td);
+    });
+    // Binary string placeholder
+    guideStringEl.textContent = '0'.repeat(bits);
+    // Re-query the cell references
+    refreshGuideRefs();
+  }
+  function refreshGuideRefs() {
+    // After rebuilding, the cell references need to be re-collected.
+    // (We mutate the existing arrays so closures that captured them still
+    // see the latest DOM nodes.)
+    const newCells = Array.from(guideBitsRow.querySelectorAll('td'));
+    const newHeads = Array.from(guideHeader.querySelectorAll('th'));
+    guideCells.length = 0;
+    guideHeaderCells.length = 0;
+    newCells.forEach(c => guideCells.push(c));
+    newHeads.forEach(h => guideHeaderCells.push(h));
+  }
+  const guideCells = [];
+  const guideHeaderCells = [];
+
+  function orderedBeltPackages() {
+    // The guide represents the player's *intent* — what they've put on the
+    // line so far. Include any package that's not been sent yet.
+    //
+    // On the belt, the i-th drop (0-indexed) is at the position
+    //   t = MAX_T - i * PACKAGE_SPACING
+    // because each new drop shifts the queue LEFT (smaller t) by one slot.
+    // So sorted by t ASCENDING, the FIRST dropped is first. The i-th entry
+    // in this sorted list is at place value 2^i (LSB = first, MSB = last).
+    return packages
+      .filter(p => !p.sent)
+      .slice()
+      .sort((a, b) => a.t - b.t);
+  }
+  function updateGuide() {
+    if (guideLocked) return;
+    const ordered = orderedBeltPackages();
+    const n = ordered.length;
+    const bits = guideBitCount;
+    for (let i = 0; i < bits; i++) {
+      const cell = guideCells[i];
+      const head = guideHeaderCells[i];
+      if (!cell || !head) continue; // guide not yet built
+      const place = bits - 1 - i;
+      const idx = n - 1 - place;
+      const bit = (idx >= 0 && idx < n) ? ordered[idx] : null;
+      const v = bit ? bit.bit : 0;
+      cell.textContent = String(v);
+      cell.classList.toggle('bit1', v === 1);
+      head.classList.toggle('head1', v === 1);
+    }
+    // Binary string MSB-first (standard reading, left-to-right)
+    const msbFirst = [];
+    for (let place = bits - 1; place >= 0; place--) {
+      const idx = n - 1 - place;
+      const bit = (idx >= 0 && idx < n) ? ordered[idx] : null;
+      msbFirst.push(bit ? bit.bit : 0);
+    }
+    guideStringEl.textContent = msbFirst.join('');
+  }
+  // Note: updateGuide() is called after rebuildGuideTable() at boot to make
+  // sure the table cells exist before we try to write to them.
+
+  // ---------- Drawing ----------
+  function drawBackground() {
+    // Receding ground: a warm dark gradient with a perspective grid.
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#1f232a');
+    g.addColorStop(1, '#15181d');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // Perspective floor grid
+    const horizon = H * 0.25;
+    ctx.strokeStyle = 'rgba(86, 212, 221, 0.06)';
+    ctx.lineWidth = 1;
+    // Lines from a vanishing point near top-centre, fanning down.
+    const vx = W / 2, vy = horizon;
+    const stepAng = 24;
+    for (let a = -80; a <= 80; a += stepAng) {
+      const rad = a * Math.PI / 180;
+      const dx = Math.sin(rad), dy = Math.cos(rad);
+      ctx.beginPath();
+      ctx.moveTo(vx, vy);
+      ctx.lineTo(vx + dx * 1500, vy + dy * 1500);
+      ctx.stroke();
+    }
+    // Horizontal lines, getting closer together as they recede
+    for (let i = 1; i <= 8; i++) {
+      const k = i / 8;
+      const y = vy + (H - vy) * (k * k); // ease in
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+
+    // Vignette
+    const vg = ctx.createRadialGradient(W/2, H*0.55, Math.min(W,H)*0.2, W/2, H*0.55, Math.max(W,H)*0.7);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawMachine() {
+    // Outer dark plate around the belt parallelogram
+    const p = BELT;
+    // Compute the parallelogram's bounding box plus padding
+    const pad = 36;
+    const minX = Math.min(p.p1.x, p.p4.x) - pad;
+    const maxX = Math.max(p.p2.x, p.p3.x) + pad;
+    const minY = p.p1.y - pad;
+    const maxY = p.p3.y + pad;
+
+    // Plate background
+    const g = ctx.createLinearGradient(0, minY, 0, maxY);
+    g.addColorStop(0, '#2A2E33');
+    g.addColorStop(1, '#1A1D22');
+    ctx.fillStyle = g;
+    // A slightly bigger rounded plate
+    roundRect(ctx, minX, minY, maxX - minX, maxY - minY, 22);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(86,212,221,0.18)';
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, minX + 4, minY + 4, maxX - minX - 8, maxY - minY - 8, 18);
+    ctx.stroke();
+
+    // Bolts
+    ctx.fillStyle = '#0B0D0F';
+    const boltPositions = [
+      [minX + 14, minY + 14], [maxX - 14, minY + 14],
+      [minX + 14, maxY - 14], [maxX - 14, maxY - 14],
+    ];
+    boltPositions.forEach(([x,y]) => circle(ctx, x, y, 4));
+
+    // Label
+    ctx.fillStyle = '#9098A4';
+    ctx.font = '600 11px Inter, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('BINARY LINE 01', (minX + maxX) / 2, minY + 22);
+  }
+
+  // ---------- Recall logo (loaded once for the belt side decal) ----------
+  // Resolve the logo URL with fallbacks so the decal works both when the
+  // page is opened standalone (logo.png sits next to this HTML file in
+  // the repo) and when it's embedded as an activity inside a lesson
+  // iframe (the host page sits at the same origin and can serve logo.png
+  // via a `../` resolution). If everything fails we still draw a
+  // fallback text decal so the front face never looks blank.
+  const recallLogo = new Image();
+  let recallLogoReady = false;
+  const logoSrcCandidates = [
+    'logo.png',
+    './logo.png',
+    '../logo.png',
+  ];
+  function tryLoadLogo(i) {
+    if (i >= logoSrcCandidates.length) return; // give up — fallback text will render
+    recallLogo.onload  = () => { recallLogoReady = true; };
+    recallLogo.onerror = () => { tryLoadLogo(i + 1); };
+    recallLogo.src = logoSrcCandidates[i];
+  }
+  tryLoadLogo(0);
+
+  function drawBelt() {
+    const p = BELT;
+
+    // Belt side / depth (the "thickness" of the belt visible at the front)
+    const thickness = 28;
+    const frontL = { x: p.p4.x, y: p.p4.y + thickness };
+    const frontR = { x: p.p3.x, y: p.p3.y + thickness };
+    // Side faces (left & right) using gradients for 3D feel
+    const leftFace = ctx.createLinearGradient(p.p4.x, p.p4.y, p.p4.x, frontL.y);
+    leftFace.addColorStop(0, '#3A3F45');
+    leftFace.addColorStop(1, '#1A1D22');
+    ctx.fillStyle = leftFace;
+    ctx.beginPath();
+    ctx.moveTo(p.p1.x, p.p1.y);
+    ctx.lineTo(p.p4.x, p.p4.y);
+    ctx.lineTo(frontL.x, frontL.y);
+    ctx.lineTo(p.p1.x, p.p1.y + thickness);
+    ctx.closePath();
+    ctx.fill();
+
+    const rightFace = ctx.createLinearGradient(p.p2.x, p.p2.y, p.p2.x, frontR.y);
+    rightFace.addColorStop(0, '#3A3F45');
+    rightFace.addColorStop(1, '#15181d');
+    ctx.fillStyle = rightFace;
+    ctx.beginPath();
+    ctx.moveTo(p.p2.x, p.p2.y);
+    ctx.lineTo(p.p3.x, p.p3.y);
+    ctx.lineTo(frontR.x, frontR.y);
+    ctx.lineTo(p.p2.x, p.p2.y + thickness);
+    ctx.closePath();
+    ctx.fill();
+
+    // Front face — the long horizontal strip running along the front
+    // edge of the belt. This is the most visible "side" the player
+    // sees and is the natural place to put the Recall logo.
+    const frontFace = ctx.createLinearGradient(0, p.p4.y, 0, frontL.y);
+    frontFace.addColorStop(0, '#3A3F45');
+    frontFace.addColorStop(1, '#15181d');
+    ctx.fillStyle = frontFace;
+    ctx.beginPath();
+    ctx.moveTo(p.p4.x, p.p4.y);
+    ctx.lineTo(p.p3.x, p.p3.y);
+    ctx.lineTo(frontR.x, frontR.y);
+    ctx.lineTo(frontL.x, frontL.y);
+    ctx.closePath();
+    ctx.fill();
+
+    // Belt top surface
+    const topGrad = ctx.createLinearGradient(0, p.p1.y, 0, p.p4.y);
+    topGrad.addColorStop(0, '#2B2F33');
+    topGrad.addColorStop(1, '#1A1D22');
+    ctx.fillStyle = topGrad;
+    ctx.beginPath();
+    ctx.moveTo(p.p1.x, p.p1.y);
+    ctx.lineTo(p.p2.x, p.p2.y);
+    ctx.lineTo(p.p3.x, p.p3.y);
+    ctx.lineTo(p.p4.x, p.p4.y);
+    ctx.closePath();
+    ctx.fill();
+
+    // Slats — diagonal across the belt
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(p.p1.x, p.p1.y);
+    ctx.lineTo(p.p2.x, p.p2.y);
+    ctx.lineTo(p.p3.x, p.p3.y);
+    ctx.lineTo(p.p4.x, p.p4.y);
+    ctx.closePath();
+    ctx.clip();
+
+    // Project slat width in t-space
+    const slatT = 0.025, gapT = 0.022;
+    const period = slatT + gapT;
+    const speed = beltMoving ? 0.30 : 0; // t per second
+    beltOffset = (beltOffset + speed * (1/60)) % period;
+    let t = -period + (beltOffset - period);
+    while (t < 1.2) {
+      // Draw slat as a quad across the belt at t and t+slatT
+      const a1 = beltPoint(t, 0);
+      const a2 = beltPoint(t + slatT, 0);
+      const a3 = beltPoint(t + slatT, 1);
+      const a4 = beltPoint(t, 1);
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      ctx.beginPath();
+      ctx.moveTo(a1.x, a1.y);
+      ctx.lineTo(a2.x, a2.y);
+      ctx.lineTo(a3.x, a3.y);
+      ctx.lineTo(a4.x, a4.y);
+      ctx.closePath();
+      ctx.fill();
+      t += period;
+    }
+    ctx.restore();
+
+    // Centre dashed guide line on the belt
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(p.p1.x, p.p1.y);
+    ctx.lineTo(p.p2.x, p.p2.y);
+    ctx.lineTo(p.p3.x, p.p3.y);
+    ctx.lineTo(p.p4.x, p.p4.y);
+    ctx.closePath();
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(86, 212, 221, 0.18)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([6, 8]);
+    const c1 = beltPoint(0, 0.5);
+    const c2 = beltPoint(1, 0.5);
+    ctx.beginPath();
+    ctx.moveTo(c1.x, c1.y);
+    ctx.lineTo(c2.x, c2.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // End rollers (front & back) drawn as small capsules spanning the belt width
+    drawRoller(p.p1, p.p2, 0.6);
+    drawRoller(p.p4, p.p3, 0.6);
+
+    // Recall logo decal on the front face of the belt. We clip the draw
+    // to the front-face quad so the decal can never spill onto the top
+    // surface, then place it centered with a soft white halo for
+    // contrast against the dark belt.
+    const faceH = thickness;
+    const cxF = (p.p4.x + p.p3.x) / 2;
+    const cyF = (p.p4.y + frontL.y) / 2;
+    const size = faceH * 0.72;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(p.p4.x, p.p4.y);
+    ctx.lineTo(p.p3.x, p.p3.y);
+    ctx.lineTo(frontR.x, frontR.y);
+    ctx.lineTo(frontL.x, frontL.y);
+    ctx.closePath();
+    ctx.clip();
+    if (recallLogoReady) {
+      // Soft white halo behind the logo so it pops on the dark belt
+      const haloGrad = ctx.createRadialGradient(cxF, cyF, 0, cxF, cyF, size * 0.9);
+      haloGrad.addColorStop(0, 'rgba(255,255,255,0.18)');
+      haloGrad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = haloGrad;
+      ctx.beginPath();
+      ctx.arc(cxF, cyF, size * 0.9, 0, Math.PI * 2);
+      ctx.fill();
+      // Subtle teal accent ring so the decal ties into the brand palette
+      ctx.strokeStyle = 'rgba(86, 212, 221, 0.22)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(cxF, cyF, size * 0.42, 0, Math.PI * 2);
+      ctx.stroke();
+      // Draw the logo itself
+      ctx.drawImage(recallLogo, cxF - size / 2, cyF - size / 2, size, size);
+    } else {
+      // Fallback text decal — keeps the front face from looking empty
+      // when the logo image fails to resolve (e.g. embedded iframe with
+      // a restrictive base URL).
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.font = `700 ${Math.round(faceH * 0.34)}px "Inter", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('RECALL', cxF, cyF);
+    }
+    ctx.restore();
+  }
+
+  function drawRoller(a, b, offset) {
+    // Roller sits just past the edge of the belt
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy);
+    const ux = dx / len, uy = dy / len;
+    // Perpendicular (toward the camera) for offsetting outward
+    const px = -uy, py = ux;
+    const thickness = 22;
+    // Endcap circle on each end
+    const r = 9;
+    const c1 = { x: a.x + px * offset, y: a.y + py * offset };
+    const c2 = { x: b.x + px * offset, y: b.y + py * offset };
+    // Body
+    const grad = ctx.createLinearGradient(c1.x - ux * r, c1.y - uy * r, c1.x + ux * r, c1.y + uy * r);
+    grad.addColorStop(0, '#5A6473');
+    grad.addColorStop(0.5, '#3A3F45');
+    grad.addColorStop(1, '#1A1D22');
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = thickness;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(c1.x, c1.y);
+    ctx.lineTo(c2.x, c2.y);
+    ctx.stroke();
+    // Endcap dots
+    ctx.fillStyle = '#0B0D0F';
+    circle(ctx, c1.x, c1.y, 3);
+    circle(ctx, c2.x, c2.y, 3);
+  }
+
+  function drawPackage(p) {
+    // Determine current world position
+    const t = p.t;
+    const u = p.u;
+    const beltPos = beltPoint(t, u);
+    // The package sits ON the belt: its bottom rests on the belt surface,
+    // so the centre is h/2 above beltPos.y. While falling, the package
+    // is offset further up by fallY * (1 - anim).
+    const w = p.w, h = p.h;
+    const cx = beltPos.x;
+    // Once on the belt, anim is 0 and the package sits at its landed
+    // position. While falling, anim goes 0→1 and the package descends.
+    // For flicked packages, p.flyX/p.flyY override the world position.
+    const flyX = p.flyX || 0;
+    const flyY = p.flyY || 0;
+    const cy = beltPos.y - h / 2 + p.fallY * (1 - (p.onBelt ? 1 : p.anim)) + flyY;
+    const drawX = cx + flyX;
+
+    // Ground shadow on belt — only when near belt. The shadow sits ON the
+    // belt surface, fading as the package gets higher. We also dim it as
+    // the package flicks off the belt (flyAlpha) and fade it more when
+    // the package is well above/below the belt surface.
+    const distanceFromBelt = Math.abs(flyY);
+    const heightFade = Math.max(0, 1 - distanceFromBelt / 60);
+    const shadowAlpha = Math.max(0, 0.55 * (1 - (p.onBelt ? 1 : p.anim)) * (p.flyAlpha ?? 1) * heightFade);
+    if (shadowAlpha > 0.02) {
+      ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
+      ellipse(ctx, drawX, beltPos.y + 4, w*0.45, 10);
+    }
+
+    // 3D box — top, front, right faces
+    const isOne = p.bit === 1;
+    // Refined palette: brighter top highlight, richer front, deeper side shadow
+    const top   = isOne ? '#FFE39A' : '#A8EEF3';
+    const top2  = isOne ? '#F0C76B' : '#7CE0E8';
+    const front = isOne ? '#E2B14A' : '#3FB8C4';
+    const side  = isOne ? '#9E7E2E' : '#2A8E98';
+    const side2 = isOne ? '#5A4818' : '#143A3F';
+
+    // pop scale: start small while falling, grow to full size on landing
+    const a = p.onBelt ? 1 : p.anim;
+    const s = (0.6 + 0.4 * a) * (p.flyScale ?? 1);
+
+    ctx.save();
+    ctx.translate(drawX, cy);
+    // Apply fling rotation if the package is being flicked off
+    if (p.flyRot) ctx.rotate(p.flyRot);
+    ctx.scale(s, s);
+    // Fade out if the package is mid-fling
+    if (p.flyAlpha !== undefined) ctx.globalAlpha = p.flyAlpha;
+
+    const depth = 18;
+    const skew = 10; // how much the top face shifts back/right (3/4 perspective)
+
+    // ---- Front face (with subtle vertical gradient) ----
+    const frontG = ctx.createLinearGradient(0, -h/2, 0, h/2);
+    frontG.addColorStop(0, front);
+    frontG.addColorStop(0.55, side);
+    frontG.addColorStop(1, side2);
+    ctx.fillStyle = frontG;
+    roundRect(ctx, -w/2, -h/2, w, h, 10); ctx.fill();
+
+    // ---- Top face (skewed quad) ----
+    const topG = ctx.createLinearGradient(0, -h/2 - depth, 0, -h/2);
+    topG.addColorStop(0, top);
+    topG.addColorStop(1, top2);
+    ctx.fillStyle = topG;
+    ctx.beginPath();
+    ctx.moveTo(-w/2,        -h/2);
+    ctx.lineTo( w/2,        -h/2);
+    ctx.lineTo( w/2 - skew, -h/2 - depth);
+    ctx.lineTo(-w/2 - skew, -h/2 - depth);
+    ctx.closePath();
+    ctx.fill();
+
+    // ---- Right side face (with horizontal gradient for shading) ----
+    const sideG = ctx.createLinearGradient(w/2 - skew, 0, w/2, 0);
+    sideG.addColorStop(0, side);
+    sideG.addColorStop(1, side2);
+    ctx.fillStyle = sideG;
+    ctx.beginPath();
+    ctx.moveTo(w/2,        -h/2);
+    ctx.lineTo(w/2,         h/2);
+    ctx.lineTo(w/2 - skew,  h/2 - depth);
+    ctx.lineTo(w/2 - skew, -h/2 - depth);
+    ctx.closePath();
+    ctx.fill();
+
+    // ---- Top edge highlight (thin lighter line along the front-top edge) ----
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-w/2 + 1,        -h/2 + 0.5);
+    ctx.lineTo( w/2 - 1,        -h/2 + 0.5);
+    ctx.stroke();
+
+    // ---- Inner card / label panel (white-ish rounded inset) ----
+    const padX = 14, padY = 14;
+    const cardX = -w/2 + padX;
+    const cardY = -h/2 + padY;
+    const cardW = w - padX*2;
+    const cardH = h - padY*2;
+    const cardG = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
+    cardG.addColorStop(0, 'rgba(255,255,255,0.92)');
+    cardG.addColorStop(1, 'rgba(238,238,232,0.85)');
+    ctx.fillStyle = cardG;
+    roundRect(ctx, cardX, cardY, cardW, cardH, 6); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, cardX, cardY, cardW, cardH, 6); ctx.stroke();
+
+    // ---- Big digit label ----
+    const digitColor = isOne ? '#9E7E2E' : '#1F6E76';
+    ctx.fillStyle = digitColor;
+    ctx.font = 'bold 38px "JetBrains Mono", "Consolas", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(p.bit), -skew*0.15, 2);
+
+    // ---- Tape band across the front (decorative, below the card) ----
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.fillRect(-w/2, h/2 - 6, w, 3);
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    ctx.fillRect(-w/2, -h/2 - 1, w, 1);
+
+    // ---- Front edge stroke (for definition) ----
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, -w/2, -h/2, w, h, 10); ctx.stroke();
+
+    // ---- Stamp dots on the top face ----
+    ctx.fillStyle = front;
+    circle(ctx, -w/2 - skew*0.5 + 6, -h/2 - depth + 5, 1.8);
+    circle(ctx,  w/2 - skew*0.5 - 6, -h/2 - depth + 5, 1.8);
+    ctx.restore();
+  }
+
+  // ---------- Utility ----------
+  function roundRect(ctx, x, y, w, h, r) {
+    if (typeof r === 'number') r = {tl:r, tr:r, br:r, bl:r};
+    ctx.beginPath();
+    ctx.moveTo(x + r.tl, y);
+    ctx.lineTo(x + w - r.tr, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r.tr);
+    ctx.lineTo(x + w, y + h - r.br);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h);
+    ctx.lineTo(x + r.bl, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r.bl);
+    ctx.lineTo(x, y + r.tl);
+    ctx.quadraticCurveTo(x, y, x + r.tl, y);
+    ctx.closePath();
+  }
+  function circle(ctx, x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+  function ellipse(ctx, x, y, rx, ry) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); }
+
+  // ---------- Game state management ----------
+  function startGame(diffKey) {
+    currentDiff = DIFFICULTIES[diffKey];
+    lives = 3;
+    score = 0;
+    wrongRounds = 0;
+    scoreEl.textContent = '0';
+    updateLivesDisplay();
+    canSend = true;
+    gameState = 'playing';
+    startModal.classList.add('hidden');
+    gameOverModal.classList.add('hidden');
+    packages.length = 0;
+    frozenGuide = null;
+    guideLocked = false;
+    closeCover();
+    newTarget();
+  }
+
+  function backToMenu() {
+    gameState = 'menu';
+    cancelAutoSend();
+    pauseAutoSend();
+    closeCover();
+    packages.length = 0;
+    canSend = true;
+    beltPhase = 'idle';
+    beltMoving = false;
+    startModal.classList.remove('hidden');
+    gameOverModal.classList.add('hidden');
+  }
+
+  function loseLife(reason) {
+    if (gameState !== 'playing') return;
+    lives--;
+    updateLivesDisplay();
+    livesEl.classList.add('shake');
+    setTimeout(() => livesEl.classList.remove('shake'), 400);
+    if (lives <= 0) {
+      // Game over after a short delay so the player sees the result
+      setTimeout(() => gameOver(reason || 'Out of lives'), 800);
+    }
+  }
+
+  function gameOver(reason) {
+    gameState = 'gameover';
+    cancelAutoSend();
+    closeCover();
+    finalScoreEl.textContent = String(score);
+    finalDiffEl.textContent = `${currentDiff.name} (${currentDiff.bits}b)`;
+    gameOverSub.textContent = reason || 'Out of lives';
+    gameOverModal.classList.remove('hidden');
+    // ---------- Activity host bridge ----------
+    // When this game is embedded as an iframe activity inside a Recall
+    // lesson (window.parent !== window), notify the host via postMessage
+    // so the lesson can mark the activity complete. We send the
+    // lesson/block id from the `__recallBlockId` global that the host
+    // injects into our srcdoc (lesson-creator.html / lesson.html both
+    // do this). Falls back to a generic id if the host didn't set it.
+    //
+    // `score` = correct rounds, `total` = correct + wrong (so a perfect
+    // run is 100%, missed rounds are visible as a gap).
+    if (window.parent !== window) {
+      const total = score + wrongRounds;
+      const blockId = (typeof window.__recallBlockId === 'string' && window.__recallBlockId)
+        ? window.__recallBlockId
+        : 'binary-factory';
+      try {
+        window.parent.postMessage({
+          type: 'recall-block-complete',
+          blockId,
+          score,
+          total,
+        }, '*');
+      } catch (_) { /* parent is gone — nothing to do */ }
+    }
+  }
+
+  function updateLivesDisplay() {
+    heartEls.forEach((h, i) => {
+      h.classList.toggle('lost', i >= lives);
+    });
+  }
+
+  // Wire up start page difficulty buttons
+  document.querySelectorAll('.diff-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const diff = card.dataset.diff;
+      if (DIFFICULTIES[diff]) startGame(diff);
+    });
+  });
+
+  // Wire up game over buttons
+  document.getElementById('btnReplay').addEventListener('click', () => {
+    startGame(Object.keys(DIFFICULTIES).find(k => DIFFICULTIES[k] === currentDiff));
+  });
+  document.getElementById('btnMenu').addEventListener('click', backToMenu);
+
+  // ---------- Main loop ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+
+    for (let i = packages.length - 1; i >= 0; i--) {
+      const p = packages[i];
+      if (p.flicking) {
+        // Fling animation: arc to the right, rotate, fade out
+        p.flyTime += dt;
+        const t = Math.min(1, p.flyTime / p.flyDur);
+        const ease = 1 - Math.pow(1 - t, 2); // ease-out quad
+        // Arc: x travels right, y goes slightly up then down
+        const arcX = ease * 360;                // 0 → 360 px right
+        const arcY = -80 * Math.sin(t * Math.PI) + ease * 80; // up then drop
+        p.flyX = arcX;
+        p.flyY = arcY;
+        p.flyRot = ease * Math.PI * 1.5;        // spin up to 270°
+        p.flyScale = 1 + ease * 0.3;            // grow slightly as it leaves
+        p.flyAlpha = 1 - Math.pow(t, 2.5);      // fade out
+        if (t >= 1) {
+          // Remove the flicked package and shift remaining packages RIGHT
+          // by one slot (reverse of dropPackage's left-shift).
+          packages.splice(i, 1);
+          for (const q of packages) {
+            if (q.sent || !q.onBelt || q.flicking) continue;
+            q.t += PACKAGE_SPACING;
+          }
+          updateGuide();
+        }
+      } else if (!p.onBelt) {
+        p.anim = Math.min(1, p.anim + dt * 4);
+        if (p.anim >= 1) { p.onBelt = true; p.anim = 0; }
+      } else if (!p.sent) {
+        // sit on belt
+      } else {
+        p.exit += dt;
+        p.t += (0.35 + p.exit * 0.4) * dt;
+      }
+      // Cull
+      if (p.t > 1.25) packages.splice(i, 1);
+    }
+
+    if (beltPhase === 'drain') {
+      const stillOnBelt = packages.some(p => p.onBelt && p.sent && p.t < 1.05);
+      if (!stillOnBelt) {
+        beltPhase = 'idle';
+        beltMoving = false;
+        packages.length = 0;
+        frozenGuide = null;
+        guideLocked = false;
+        updateGuide();
+        canSend = true;
+        // Only start a new round if the game is still in progress.
+        // If the player lost their last life, the game over modal is shown
+        // and we should not roll a new target.
+        if (gameState === 'playing') newTarget();
+      }
+    }
+
+    drawBackground();
+    drawMachine();
+    drawBelt();
+    for (const p of packages) drawPackage(p);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // Boot
+  resize();
+  // Initialise the guide to a neutral state (will be rebuilt on game start)
+  guideBitCount = 4;
+  rebuildGuideTable();
+  updateGuide();
+
+  // Activity host URL parameters (only honoured when the page is loaded
+  // inside a lesson iframe — `?difficulty=easy` auto-starts the game so
+  // students don't have to pick from the start page). When the page is
+  // opened directly, we always show the start page regardless of the
+  // query string, so casual visitors still get the picker.
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialDifficulty = urlParams.get('difficulty');
+  if (window.parent !== window && initialDifficulty && DIFFICULTIES[initialDifficulty]) {
+    startGame(initialDifficulty);
+  } else {
+    // Show the start page; the game begins when the player picks a difficulty.
+    startModal.classList.remove('hidden');
+    gameOverModal.classList.add('hidden');
+  }
+})();
+</script>
+</body>
+</html>
