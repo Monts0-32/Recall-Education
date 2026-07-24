@@ -608,6 +608,341 @@
       opacity: 0.7;
     }
     #continueBtn.continue-locked:hover { background: var(--bg-3); }
+
+    /* ---------- New interactive kinds (2026-07-24) ---------- */
+    /* Slider ---------------------------------------------------------- */
+    .practice .slider-wrap {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .practice .slider-track {
+      position: relative; height: 8px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: 999px; cursor: pointer;
+    }
+    .practice .slider-fill {
+      position: absolute; top: 0; left: 0; height: 100%;
+      background: var(--blue); border-radius: 999px;
+      transition: width 0.1s linear, background 0.2s ease;
+    }
+    .practice .slider-tick {
+      position: absolute; top: -4px; height: 16px;
+      background: var(--green); border-radius: 3px;
+    }
+    .practice .slider-handle {
+      position: absolute; top: 50%;
+      width: 22px; height: 22px;
+      background: var(--text); border: 3px solid var(--blue);
+      border-radius: 50%; transform: translate(-50%, -50%);
+      cursor: grab; transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .practice .slider-handle:active { cursor: grabbing; }
+    .practice .slider-handle.slider-in-band { border-color: var(--green); }
+    .practice .slider-handle.slider-out-band { border-color: var(--blue); }
+    .practice .slider-handle.correct { border-color: var(--green); background: var(--green-dim); }
+    .practice .slider-handle.wrong { border-color: var(--red); background: var(--red-dim); }
+    .practice .slider-fill.correct { background: var(--green); }
+    .practice .slider-fill.wrong { background: var(--red); }
+    .practice .slider-readout {
+      display: flex; align-items: baseline; gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .practice .slider-value {
+      font-size: 22px; font-weight: 700; color: var(--text);
+      min-width: 50px; transition: color 0.2s ease;
+    }
+    .practice .slider-unit { color: var(--text-2); font-size: 14px; }
+    .practice .slider-range {
+      margin-left: auto; color: var(--text-4);
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+
+    /* Dial ------------------------------------------------------------ */
+    .practice .dial-wrap {
+      display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    }
+    .practice .dial-svg-wrap {
+      width: 180px; height: 180px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: 50%; padding: 6px;
+    }
+    .practice .dial-svg { width: 100%; height: 100%; display: block; cursor: grab; }
+    .practice .dial-svg:active { cursor: grabbing; }
+    .practice .dial-face { fill: var(--bg-2); stroke: var(--line-2); stroke-width: 1.5; }
+    .practice .dial-needle {
+      stroke: var(--blue); stroke-width: 3; stroke-linecap: round;
+      transform-origin: 100px 100px;
+      transition: transform 0.05s linear, stroke 0.2s ease;
+    }
+    .practice .dial-needle.correct { stroke: var(--green); }
+    .practice .dial-needle.wrong { stroke: var(--red); }
+    .practice .dial-pivot { fill: var(--text); }
+    .practice .dial-readout {
+      display: flex; flex-direction: column; gap: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .practice .dial-value { font-size: 32px; font-weight: 700; color: var(--text); }
+    .practice .dial-unit { font-size: 14px; color: var(--text-2); }
+    .practice .dial-hint { color: var(--text-4); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+
+    /* Sequence -------------------------------------------------------- */
+    .practice .seq-dots {
+      display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .practice .seq-dot {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      color: var(--text-3); font-size: 11.5px; font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.2s ease;
+    }
+    .practice .seq-dot.active {
+      background: var(--blue); border-color: var(--blue); color: #fff;
+    }
+    .practice .seq-dot.done {
+      background: var(--green-dim); border-color: var(--green); color: var(--green);
+    }
+    .practice .seq-dot-line {
+      display: inline-block; width: 14px; height: 2px;
+      background: var(--line-2); border-radius: 1px;
+    }
+    .practice .seq-steps { position: relative; min-height: 80px; }
+    .practice .seq-step {
+      display: none; flex-direction: column; gap: 6px;
+      padding: 12px 14px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      animation: fx-fade-up 0.3s ease-out both;
+    }
+    .practice .seq-step.active { display: flex; }
+    .practice .seq-step-title { font-weight: 600; color: var(--text); font-size: 13.5px; }
+    .practice .seq-step-body { color: var(--text-2); font-size: 13px; }
+    .practice .seq-input-wrap { margin-top: 6px; }
+    .practice .seq-mcq {
+      display: flex; flex-direction: column; gap: 6px; margin-top: 8px;
+    }
+    .practice .seq-btn {
+      background: var(--bg-3); color: var(--text-2); border: 1px solid var(--line-2);
+      padding: 6px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    }
+    .practice .seq-btn:hover { background: var(--bg-4); color: var(--text); }
+    .practice .seq-btn.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .practice .seq-btn.primary:hover { background: var(--blue-2); }
+
+    /* Connect --------------------------------------------------------- */
+    .practice .connect-wrap { position: relative; width: 100%; }
+    .practice .connect-svg {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 1;
+    }
+    .practice .connect-canvas {
+      position: relative; width: 100%;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); min-height: 200px;
+    }
+    .practice .connect-pt {
+      position: absolute; transform: translate(-50%, -50%);
+      background: transparent; border: 0; padding: 0; cursor: pointer;
+      z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .practice .connect-pt-dot {
+      display: block; width: 18px; height: 18px;
+      background: var(--blue-pale); border: 2px solid var(--blue);
+      border-radius: 50%; transition: all 0.15s ease;
+    }
+    .practice .connect-pt:hover .connect-pt-dot { transform: scale(1.15); }
+    .practice .connect-pt.selected .connect-pt-dot { background: var(--blue); }
+    .practice .connect-pt.correct .connect-pt-dot { background: var(--green); border-color: var(--green); }
+    .practice .connect-pt.wrong .connect-pt-dot { background: var(--red); border-color: var(--red); }
+    .practice .connect-pt-label {
+      font-size: 11px; color: var(--text-2); font-weight: 600;
+      background: var(--bg-2); padding: 1px 6px; border-radius: 3px;
+    }
+    .practice .connect-line {
+      stroke: var(--blue); stroke-width: 2.5; stroke-linecap: round;
+      animation: fx-fade-up 0.3s ease-out both;
+    }
+    .practice .connect-line.correct { stroke: var(--green); }
+    .practice .connect-line.wrong { stroke: var(--red); }
+    .practice .connect-line.ghost {
+      stroke: var(--green); stroke-dasharray: 4 4; opacity: 0.4;
+    }
+    .practice .connect-hint {
+      color: var(--text-3); font-size: 11.5px; margin-top: 6px;
+    }
+
+    /* Pile ------------------------------------------------------------ */
+    .practice .pile-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+    }
+    .practice .pile-bucket {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      display: flex; flex-direction: column; min-height: 100px;
+      transition: all 0.15s ease;
+    }
+    .practice .pile-bucket.dragover {
+      background: var(--blue-pale); border-color: var(--blue);
+    }
+    .practice .pile-bucket.correct { border-color: var(--green); }
+    .practice .pile-bucket.wrong { border-color: var(--red); }
+    .practice .pile-bucket-head {
+      padding: 6px 10px; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--text-2); border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .practice .pile-count {
+      background: var(--bg-2); color: var(--text-3);
+      padding: 1px 7px; border-radius: 999px; font-size: 10.5px;
+    }
+    .practice .pile-bucket-body {
+      padding: 6px; display: flex; flex-direction: column; gap: 4px;
+      flex: 1; min-height: 50px;
+    }
+    .practice .pile-pool {
+      margin-top: 8px; padding: 8px;
+      background: var(--bg-2); border: 1px dashed var(--line-2);
+      border-radius: var(--r-sm);
+      display: flex; flex-wrap: wrap; gap: 6px; min-height: 50px;
+      transition: all 0.15s ease;
+    }
+    .practice .pile-pool.dragover { background: var(--blue-pale); border-color: var(--blue); border-style: solid; }
+    .practice .pile-item {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      padding: 5px 10px; font-size: 12.5px; color: var(--text-2);
+      cursor: grab; font-family: inherit; user-select: none;
+    }
+    .practice .pile-item:active { cursor: grabbing; }
+    .practice .pile-item.dragging { opacity: 0.4; }
+    .practice .pile-item.correct { background: var(--green-dim); border-color: var(--green); color: var(--text); }
+    .practice .pile-item.wrong { background: var(--red-dim); border-color: var(--red); color: var(--text); }
+    .practice .pile-item-grip { color: var(--text-4); font-size: 12px; }
+
+    /* Flashcard study mode ------------------------------------------- */
+    .flashcard-wrap { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+    .flashcard-study {
+      display: flex; gap: 6px; margin-top: 4px;
+    }
+    .fcstudy-btn {
+      padding: 6px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 600;
+      cursor: pointer; border: 1px solid;
+    }
+    .fcstudy-btn.got { background: var(--green-dim); color: var(--green); border-color: var(--green); }
+    .fcstudy-btn.miss { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+    .fcstudy-btn:hover { filter: brightness(1.15); }
+    .flashcard-study-result {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--text-2); padding: 4px 10px;
+      background: var(--bg-3); border-radius: var(--r-sm);
+    }
+
+    /* Mind map -------------------------------------------------------- */
+    .mindmap {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 16px;
+      display: grid; place-items: center;
+    }
+    .mindmap-svg { width: 100%; max-width: 600px; height: auto; }
+    .mindmap-edge { stroke: var(--line-2); stroke-width: 1.5; }
+    .mindmap-center { fill: var(--blue); stroke: var(--blue-2); stroke-width: 1.5; }
+    .mindmap-center-text {
+      fill: #fff; text-anchor: middle; dominant-baseline: central;
+      font-size: 3.2px; font-weight: 700; font-family: 'Inter', sans-serif;
+    }
+    .mindmap-node { fill: var(--blue-pale); stroke: var(--blue); stroke-width: 1; }
+    .mindmap-node-label {
+      fill: var(--text); text-anchor: middle; dominant-baseline: auto;
+      font-size: 3px; font-weight: 600; font-family: 'Inter', sans-serif;
+    }
+    .mindmap-items ul { margin: 0; padding-left: 4px; list-style: none; }
+    .mindmap-items li {
+      font-size: 2.4px; color: var(--text-2); line-height: 1.2;
+      padding: 0.5px 0;
+    }
+
+    /* Flashcard deck ------------------------------------------------- */
+    .fcdeck {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 18px;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .fcdeck-progress {
+      font-family: 'JetBrains Mono', monospace; font-size: 11.5px;
+      color: var(--text-3);
+    }
+    .fcdeck-stage {
+      width: 100%; max-width: 420px; height: 160px; position: relative;
+      perspective: 800px;
+    }
+    .fcdeck-card {
+      position: absolute; inset: 0;
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      display: grid; place-items: center; text-align: center; padding: 18px;
+      font-size: 15px; color: var(--text); font-weight: 500;
+    }
+    .fcdeck-card.back { background: var(--blue-pale); border-color: var(--blue); }
+    .fcdeck-card.hidden { display: none; }
+    .fcdeck-controls {
+      display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+    }
+    .fcdeck-btn {
+      background: var(--bg-2); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 6px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; cursor: pointer;
+    }
+    .fcdeck-btn:hover { background: var(--bg-4); color: var(--text); }
+    .fcdeck-btn.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .fcdeck-btn.primary:hover { background: var(--blue-2); }
+    .fcdeck-btn.ghost { background: transparent; }
+    .fcdeck-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Progress meter ------------------------------------------------- */
+    .prog-meter {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 14px 16px;
+    }
+    .prog-meter-head { margin-bottom: 12px; }
+    .prog-meter-title { font-weight: 600; color: var(--text); font-size: 14px; margin-bottom: 8px; }
+    .prog-meter-bar {
+      width: 100%; height: 8px; background: var(--bg-2);
+      border-radius: 999px; overflow: hidden; margin-bottom: 6px;
+    }
+    .prog-meter-fill {
+      height: 100%; background: var(--green);
+      border-radius: 999px; transition: width 0.3s ease;
+    }
+    .prog-meter-count {
+      font-family: 'JetBrains Mono', monospace; font-size: 11.5px;
+      color: var(--text-3);
+    }
+    .prog-meter-list { display: flex; flex-direction: column; gap: 6px; }
+    .prog-meter-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 10px;
+      background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+    }
+    .prog-meter-text { flex: 1; font-size: 13px; color: var(--text-2); }
+    .prog-meter-pills { display: flex; gap: 4px; }
+    .prog-meter-pill {
+      padding: 4px 10px; border-radius: 999px;
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      color: var(--text-3); font-size: 11.5px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: all 0.15s ease;
+    }
+    .prog-meter-pill:hover { color: var(--text-2); border-color: var(--line-3); }
+    .prog-meter-pill.active[data-state="got"] { background: var(--green-dim); color: var(--green); border-color: var(--green); }
+    .prog-meter-pill.active[data-state="unsure"] { background: var(--yellow-dim); color: var(--yellow); border-color: var(--yellow); }
+    .prog-meter-pill.active[data-state="notyet"] { background: var(--red-dim); color: var(--red); border-color: var(--red); }
   </style>
 </head>
 <body>

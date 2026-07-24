@@ -156,7 +156,11 @@ alter table public.lesson_blocks
     -- 1 new block kind (2026-07-15) — interactive HTML/JS (sandboxed iframe)
     'html',
     -- 1 new block kind (2026-07-16) — denary → binary conversion (toggleable bits)
-    'denary_binary'
+    'denary_binary',
+    -- 5 new interactive kinds (2026-07-24) — slider, dial, sequence, connect, pile
+    'slider','dial','sequence','connect','pile',
+    -- 3 new study aids (2026-07-24) — mindmap, flashcard_stack, progress_meter
+    'mindmap','flashcard_stack','progress_meter'
   ));
 
 -- ============================================================================

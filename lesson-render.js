@@ -521,26 +521,329 @@
     },
     flashcard: {
       label: 'Flashcard',
-      defaults: () => ({ front: 'Photosynthesis', back: 'The process by which green plants use sunlight to synthesise food from CO₂ and water.' }),
+      defaults: () => ({ front: 'Photosynthesis', back: 'The process by which green plants use sunlight to synthesise food from CO₂ and water.', study: false }),
       render: (b) => {
-        return `<div class="flashcard" onclick="this.classList.toggle('flipped')">
-          <div class="flashcard-inner">
-            <div class="flashcard-face flashcard-front">${escapeHtml(b.data.front || '')}</div>
-            <div class="flashcard-face flashcard-back">${escapeHtml(b.data.back || '')}</div>
+        const d = b.data || {};
+        const studyControls = d.study ? `
+          <div class="flashcard-study" hidden>
+            <button type="button" class="fcstudy-btn got" data-fcstudy="got">✓ Got it</button>
+            <button type="button" class="fcstudy-btn miss" data-fcstudy="miss">✗ Missed it</button>
           </div>
+          <div class="flashcard-study-result" hidden></div>
+        ` : '';
+        return `<div class="flashcard-wrap" data-fcstudy-mode="${d.study ? '1' : '0'}">
+          <div class="flashcard" onclick="this.classList.toggle('flipped')">
+            <div class="flashcard-inner">
+              <div class="flashcard-face flashcard-front">${escapeHtml(d.front || '')}</div>
+              <div class="flashcard-face flashcard-back">${escapeHtml(d.back || '')}</div>
+            </div>
+          </div>
+          ${studyControls}
         </div>`;
       }
     },
 
     // Interactive practice
     mcq: { label: 'Multiple choice', defaults: () => ({ prompt: 'Which organelle is the powerhouse of the cell?', multi: false, options: [{ text: 'Nucleus', correct: false, feedback: 'The nucleus stores DNA, but it is not the energy producer.' }, { text: 'Mitochondrion', correct: true, feedback: 'Correct — mitochondria carry out aerobic respiration, producing ATP.' }, { text: 'Ribosome', correct: false, feedback: 'Ribosomes synthesise proteins, not ATP.' }, { text: 'Golgi apparatus', correct: false, feedback: 'The Golgi packages and ships proteins.' }], explanation: 'Mitochondria are often called the powerhouse of the cell because they generate most of the cell\'s ATP through aerobic respiration.', required: false, allowRetry: true }), render: renderMCQ },
-    truefalse: { label: 'True / False', defaults: () => ({ prompt: 'The Earth orbits the Sun once every 365.25 days.', answer: true, explanation: 'A sidereal year is approximately 365.256 days; the .25 is why we add a leap day every four years.', required: false, allowRetry: true }), render: renderTrueFalse },
+    truefalse: { label: 'True / False', defaults: () => ({ prompt: 'The Earth orbits the Sun once every 365.25 days.', answer: true, instantMode: false, explanation: 'A sidereal year is approximately 365.256 days; the .25 is why we add a leap day every four years.', required: false, allowRetry: true }), render: renderTrueFalse },
     shortanswer: { label: 'Short answer', defaults: () => ({ prompt: 'What is the chemical symbol for gold?', answers: ['Au', 'au'], explanation: 'Gold\'s symbol comes from its Latin name, *aurum*.', required: false, allowRetry: true }), render: renderShortAnswer },
     fillblank: { label: 'Fill in the blank', defaults: () => ({ text: 'Photosynthesis converts carbon ___ and water into glucose and ___ using sunlight.', blanks: [{ answer: 'dioxide' }, { answer: 'oxygen' }], explanation: 'The general equation is 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂.', required: false, allowRetry: true }), render: renderFillBlank },
     match: { label: 'Match pairs', defaults: () => ({ prompt: 'Match each scientist to their discovery.', pairs: [{ left: 'Newton', right: 'Laws of motion' }, { left: 'Darwin', right: 'Natural selection' }, { left: 'Mendel', right: 'Inheritance' }, { left: 'Curie', right: 'Radioactivity' }], required: false, allowRetry: true }), render: renderMatch },
     ordering: { label: 'Order steps', defaults: () => ({ prompt: 'Put these steps of the scientific method in the correct order.', items: [{ id: 'a', text: 'Form a hypothesis' }, { id: 'b', text: 'Make an observation' }, { id: 'c', text: 'Analyse the data' }, { id: 'd', text: 'Draw a conclusion' }], explanation: 'A typical scientific method: observe → hypothesise → experiment → analyse → conclude.', required: false, allowRetry: true }), render: renderOrdering },
     hotspot: { label: 'Image hotspot', defaults: () => ({ imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/640px-Cat03.jpg', alt: 'A cat', hotspots: [{ x: 50, y: 40, label: 'Ear', correct: true }, { x: 30, y: 70, label: 'Whiskers', correct: false }], required: false, allowRetry: true }), render: renderHotspot },
     denary_binary: { label: 'Denary → binary', defaults: () => ({ prompt: 'Convert the following denary number to binary.', denary: 173, bitWidth: 8, explanation: '', required: false, allowRetry: true }), render: renderDenaryBinary },
+
+    // ===== New interactive kinds (2026-07-24) =====
+
+    // renderSlider(b) — drag a handle along a track to a numeric value.
+    // Real-time tolerance check: as the user drags, the value badge and
+    // the handle flash green when within tolerance of the correct value.
+    // On Check, score = 1.0 if within tolerance else 0.0.
+    slider: {
+      label: 'Slider',
+      defaults: () => ({ prompt: 'Estimate the answer.', min: 0, max: 100, step: 1, unit: '', correct: 50, tolerance: 5, explanation: '', required: false, allowRetry: true }),
+      render: (b) => {
+        const d = b.data || {};
+        const min = Number.isFinite(+d.min) ? +d.min : 0;
+        const max = Number.isFinite(+d.max) ? +d.max : 100;
+        const step = Number.isFinite(+d.step) && +d.step > 0 ? +d.step : 1;
+        const correct = Number.isFinite(+d.correct) ? +d.correct : (min + max) / 2;
+        const tolerance = Number.isFinite(+d.tolerance) ? Math.abs(+d.tolerance) : 0;
+        const unit = d.unit || '';
+        return practiceWrap(`
+          <div class="prompt">${escapeHtml(d.prompt || 'Drag the slider to your answer.')}</div>
+          <div class="slider-wrap" data-pbid="slider-wrap" data-correct="${correct}" data-tolerance="${tolerance}" data-min="${min}" data-max="${max}">
+            <div class="slider-track" data-pbid="slider-track">
+              <div class="slider-fill" data-pbid="slider-fill"></div>
+              <div class="slider-handle" data-pbid="slider-handle" tabindex="0" role="slider" aria-valuemin="${min}" aria-valuemax="${max}" aria-valuenow="${correct}">
+                <div class="slider-handle-dot"></div>
+              </div>
+              <div class="slider-tick" data-pbid="slider-tick" style="left:0%;opacity:0;"></div>
+            </div>
+            <div class="slider-readout">
+              <span class="slider-value" data-pbid="slider-value">${correct}</span>
+              <span class="slider-unit">${escapeHtml(unit)}</span>
+              <span class="slider-range">${min}–${max}${escapeHtml(unit)}</span>
+            </div>
+          </div>
+          <div class="check-row">
+            <button type="button" class="check-btn" data-pb="check">Check</button>
+            <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
+          </div>
+          <div data-pb="feedback"></div>
+        `);
+      }
+    },
+
+    // renderDial(b) — click-drag rotates an SVG needle. Snaps to `step`.
+    // On Check, score is binary: 1.0 if |got − correct| ≤ tolerance.
+    dial: {
+      label: 'Dial',
+      defaults: () => ({ prompt: 'Set the dial to the right position.', min: 0, max: 360, step: 10, correct: 90, tolerance: 15, unit: '°', explanation: '', required: false, allowRetry: true }),
+      render: (b) => {
+        const d = b.data || {};
+        const min = Number.isFinite(+d.min) ? +d.min : 0;
+        const max = Number.isFinite(+d.max) ? +d.max : 360;
+        const step = Number.isFinite(+d.step) && +d.step > 0 ? +d.step : 1;
+        const correct = Number.isFinite(+d.correct) ? +d.correct : (min + max) / 2;
+        const tolerance = Number.isFinite(+d.tolerance) ? Math.abs(+d.tolerance) : 0;
+        const unit = d.unit || '';
+        const range = max - min;
+        const startDeg = min + (range * 0.25); // start at 25% across the range
+        return practiceWrap(`
+          <div class="prompt">${escapeHtml(d.prompt || 'Drag the dial.')}</div>
+          <div class="dial-wrap" data-pbid="dial-wrap" data-correct="${correct}" data-tolerance="${tolerance}" data-min="${min}" data-max="${max}" data-step="${step}">
+            <div class="dial-svg-wrap">
+              <svg class="dial-svg" viewBox="0 0 200 200" data-pbid="dial-svg" aria-label="Dial">
+                <circle class="dial-face" cx="100" cy="100" r="88" />
+                <g class="dial-ticks"></g>
+                <line class="dial-needle" data-pbid="dial-needle" x1="100" y1="100" x2="100" y2="30" />
+                <circle class="dial-pivot" cx="100" cy="100" r="8" />
+              </svg>
+            </div>
+            <div class="dial-readout">
+              <span class="dial-value" data-pbid="dial-value">${startDeg}</span>
+              <span class="dial-unit">${escapeHtml(unit)}</span>
+              <span class="dial-hint">drag the dial</span>
+            </div>
+          </div>
+          <div class="check-row">
+            <button type="button" class="check-btn" data-pb="check">Check</button>
+            <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
+          </div>
+          <div data-pb="feedback"></div>
+        `);
+      }
+    },
+
+    // renderSequence(b) — guided step-through with progress dots. Each
+    // step may have an optional inline input (text or mcq). The student
+    // moves forward with a Next button; a final Check button at the
+    // last step fires onScore based on the inline input answers.
+    sequence: {
+      label: 'Step-through',
+      defaults: () => ({ prompt: 'Work through each step.', steps: [{ title: 'Step 1', body: 'Read this carefully and click Next.', input: null }, { title: 'Step 2', body: 'Type the answer in your own words.', input: { type: 'text', answers: ['42', 'forty-two'] } }], required: false, allowRetry: true }),
+      render: (b) => {
+        const d = b.data || {};
+        const steps = d.steps || [];
+        if (!steps.length) return practiceWrap(`<div class="prompt">[Sequence: add steps in the editor]</div>`);
+        return practiceWrap(`
+          <div class="prompt">${escapeHtml(d.prompt || '')}</div>
+          <div class="seq-dots" data-pbid="seq-dots">
+            ${steps.map((_, i) => `<span class="seq-dot${i === 0 ? ' active' : ''}${i < steps.length - 1 ? '' : ' last'}" data-step="${i}">${i + 1}</span>${i < steps.length - 1 ? '<span class="seq-dot-line"></span>' : ''}`).join('')}
+          </div>
+          <div class="seq-steps" data-pbid="seq-steps">
+            ${steps.map((s, i) => {
+              const input = s.input || null;
+              let inputHtml = '';
+              if (input && input.type === 'text') {
+                const w = Math.max(100, Math.min(280, ((input.answers && input.answers[0]) || '').length * 12 + 60));
+                inputHtml = `<div class="seq-input-wrap"><input type="text" class="sa-input" data-seq-input="i" data-idx="${i}" placeholder="Your answer…" style="width:${w}px;" /></div>`;
+              } else if (input && input.type === 'mcq') {
+                const opts = input.options || [];
+                inputHtml = `<div class="seq-mcq" data-seq-mcq="${i}">${opts.map((o, oi) => `<button type="button" class="opt" data-seq-opt="${i}-${oi}" data-correct="${!!o.correct}"><span>${escapeHtml(o.text || '')}</span></button>`).join('')}</div>`;
+              }
+              return `<div class="seq-step${i === 0 ? ' active' : ''}" data-step="${i}">
+                <div class="seq-step-title">${escapeHtml(s.title || `Step ${i + 1}`)}</div>
+                <div class="seq-step-body">${renderMarkdown(s.body || '')}</div>
+                ${inputHtml}
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="check-row">
+            <button type="button" class="seq-btn seq-prev" data-seq="prev" hidden>← Back</button>
+            <button type="button" class="seq-btn seq-next" data-seq="next">Next →</button>
+            <button type="button" class="check-btn seq-check" data-pb="check" hidden>Check</button>
+            <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
+          </div>
+          <div data-pb="feedback"></div>
+        `);
+      }
+    },
+
+    // renderConnect(b) — click two endpoints on an SVG to draw a line.
+    // Used for graph/circuit/anatomy pairings. Points are placed by
+    // (x%, y%) on the canvas; edges list which pairs are correct.
+    connect: {
+      label: 'Connect points',
+      defaults: () => ({ prompt: 'Connect each labelled point to the right partner. (Click two points in a row to draw a line between them.)', canvasWidth: 600, canvasHeight: 360, points: [{ id: 'A', x: 15, y: 50, label: 'A' }, { id: 'B', x: 50, y: 20, label: 'B' }, { id: 'C', x: 50, y: 80, label: 'C' }, { id: 'D', x: 85, y: 50, label: 'D' }], edges: [{ from: 'A', to: 'B' }, { from: 'C', to: 'D' }], required: false, allowRetry: true }),
+      render: (b) => {
+        const d = b.data || {};
+        const pts = d.points || [];
+        const w = Number.isFinite(+d.canvasWidth) ? +d.canvasWidth : 600;
+        const h = Number.isFinite(+d.canvasHeight) ? +d.canvasHeight : 360;
+        if (!pts.length) return practiceWrap(`<div class="prompt">[Connect: add points in the editor]</div>`);
+        return practiceWrap(`
+          <div class="prompt">${escapeHtml(d.prompt || 'Connect the points.')}</div>
+          <div class="connect-wrap" data-pbid="connect-wrap">
+            <svg class="connect-svg" viewBox="0 0 100 60" preserveAspectRatio="none" data-pbid="connect-svg">
+              <g class="connect-edges" data-pbid="connect-edges"></g>
+            </svg>
+            <div class="connect-canvas" data-pbid="connect-canvas" style="aspect-ratio:${w} / ${h};">
+              ${pts.map(p => `<button type="button" class="connect-pt" data-pt="${escapeHtml(p.id)}" style="left:${p.x}%;top:${p.y}%;">
+                <span class="connect-pt-dot"></span>
+                <span class="connect-pt-label">${escapeHtml(p.label || p.id)}</span>
+              </button>`).join('')}
+            </div>
+          </div>
+          <div class="connect-hint">Connections: <span data-pbid="connect-count">0</span></div>
+          <div class="check-row">
+            <button type="button" class="check-btn" data-pb="check">Check</button>
+            <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
+          </div>
+          <div data-pb="feedback"></div>
+        `);
+      }
+    },
+
+    // renderPile(b) — drag items into Yes / No / Maybe buckets.
+    pile: {
+      label: 'Sort into piles',
+      defaults: () => ({ prompt: 'Drag each item into a pile.', items: [{ text: 'It will definitely happen.', category: 'yes' }, { text: 'It will definitely not happen.', category: 'no' }, { text: 'It might happen, but we\'re not sure.', category: 'maybe' }, { text: 'It already happened.', category: 'yes' }], required: false, allowRetry: true }),
+      render: (b) => {
+        const d = b.data || {};
+        const items = d.items || [];
+        if (!items.length) return practiceWrap(`<div class="prompt">[Pile: add items in the editor]</div>`);
+        const labels = { yes: 'Yes', no: 'No', maybe: 'Maybe' };
+        const buckets = ['yes', 'no', 'maybe'];
+        return practiceWrap(`
+          <div class="prompt">${escapeHtml(d.prompt || 'Drag each item into a pile.')}</div>
+          <div class="pile-grid" data-pbid="pile-grid">
+            ${buckets.map(bk => `<div class="pile-bucket" data-bucket="${bk}">
+              <div class="pile-bucket-head">${labels[bk]}<span class="pile-count" data-count="${bk}">0</span></div>
+              <div class="pile-bucket-body" data-bucket-body="${bk}"></div>
+            </div>`).join('')}
+          </div>
+          <div class="pile-pool" data-pbid="pile-pool">
+            ${items.map((it, i) => `<button type="button" class="pile-item" draggable="true" data-idx="${i}" data-correct="${escapeHtml(it.category || 'yes')}">
+              <span class="pile-item-grip">⋮⋮</span><span>${escapeHtml(it.text || '')}</span>
+            </button>`).join('')}
+          </div>
+          <div class="check-row">
+            <button type="button" class="check-btn" data-pb="check">Check</button>
+            <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
+          </div>
+          <div data-pb="feedback"></div>
+        `);
+      }
+    },
+
+    // ===== New study aids (display-only — no onScore) =====
+
+    // mindmap — central concept with radiating branches (SVG).
+    mindmap: {
+      label: 'Mind map',
+      defaults: () => ({ center: 'Photosynthesis', branches: [{ label: 'Inputs', items: ['CO₂', 'Water', 'Sunlight'] }, { label: 'Outputs', items: ['Glucose', 'Oxygen'] }, { label: 'Where', items: ['Chloroplasts', 'Leaves'] }] }),
+      render: (b) => {
+        const d = b.data || {};
+        const branches = d.branches || [];
+        if (!branches.length) return '<p style="color:var(--text-4)">[Mind map: add branches in the editor]</p>';
+        // Distribute branches evenly around the centre. Use top half +
+        // bottom half so the layout is balanced.
+        const n = branches.length;
+        const positions = branches.map((_, i) => {
+          const angle = (-Math.PI / 2) + (i * (2 * Math.PI / n));
+          const x = 50 + Math.cos(angle) * 36;
+          const y = 50 + Math.sin(angle) * 36;
+          return { x, y };
+        });
+        return `<div class="mindmap" data-pbid="mindmap">
+          <svg class="mindmap-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+            ${branches.map((_, i) => {
+              const p = positions[i];
+              return `<line class="mindmap-edge" x1="50" y1="50" x2="${p.x}" y2="${p.y}" />`;
+            }).join('')}
+            <circle class="mindmap-center" cx="50" cy="50" r="11" />
+            <text class="mindmap-center-text" x="50" y="50">${escapeHtml(d.center || '')}</text>
+            ${branches.map((br, i) => {
+              const p = positions[i];
+              const items = (br.items || []).map(t => `<li>${escapeHtml(t)}</li>`).join('');
+              return `<g class="mindmap-branch" data-bi="${i}">
+                <circle class="mindmap-node" cx="${p.x}" cy="${p.y}" r="7" />
+                <text class="mindmap-node-label" x="${p.x}" y="${p.y - 10}">${escapeHtml(br.label || '')}</text>
+                <foreignObject class="mindmap-items-wrap" x="${Math.max(0, p.x - 18)}" y="${p.y + 10}" width="36" height="40">
+                  <div xmlns="http://www.w3.org/1999/xhtml" class="mindmap-items"><ul>${items}</ul></div>
+                </foreignObject>
+              </g>`;
+            }).join('')}
+          </svg>
+        </div>`;
+      }
+    },
+
+    // flashcard_stack — full deck with shuffle + progress counter.
+    flashcard_stack: {
+      label: 'Flashcard deck',
+      defaults: () => ({ cards: [{ front: 'Mitochondrion', back: 'The organelle responsible for aerobic respiration and ATP production.' }, { front: 'Ribosome', back: 'The site of protein synthesis in the cell.' }, { front: 'Nucleus', back: 'Stores the cell\'s DNA and controls gene expression.' }], shuffle: false }),
+      render: (b) => {
+        const d = b.data || {};
+        const cards = d.cards || [];
+        if (!cards.length) return '<p style="color:var(--text-4)">[Flashcard deck: add cards in the editor]</p>';
+        const cardsAttr = JSON.stringify(cards).replace(/"/g, '&quot;');
+        return `<div class="fcdeck" data-pbid="fcdeck" data-shuffle="${d.shuffle ? '1' : '0'}" data-cards="${cardsAttr}">
+          <div class="fcdeck-progress"><span data-pbid="fcdeck-pos">1</span> / <span data-pbid="fcdeck-total">${cards.length}</span></div>
+          <div class="fcdeck-stage" data-pbid="fcdeck-stage">
+            <div class="fcdeck-card" data-side="front">${escapeHtml(cards[0].front || '')}</div>
+            <div class="fcdeck-card back" data-side="back" hidden>${escapeHtml(cards[0].back || '')}</div>
+          </div>
+          <div class="fcdeck-controls">
+            <button type="button" class="fcdeck-btn" data-fcdeck="prev">← Previous</button>
+            <button type="button" class="fcdeck-btn primary" data-fcdeck="flip">Flip</button>
+            <button type="button" class="fcdeck-btn" data-fcdeck="next">Next →</button>
+            <button type="button" class="fcdeck-btn ghost" data-fcdeck="shuffle">Shuffle</button>
+          </div>
+        </div>`;
+      }
+    },
+
+    // progress_meter — confidence-rating checklist with a live progress
+    // bar. Pure display, no scoring.
+    progress_meter: {
+      label: 'Progress meter',
+      defaults: () => ({ title: 'How confident are you?', items: ['Define a covalent bond', 'Draw a dot-and-cross diagram', 'Explain the difference between polar and non-polar bonds'] }),
+      render: (b) => {
+        const d = b.data || {};
+        const items = d.items || [];
+        if (!items.length) return '<p style="color:var(--text-4)">[Progress meter: add items in the editor]</p>';
+        const states = ['got', 'unsure', 'notyet'];
+        const labels = { got: '✓ Got it', unsure: '? Unsure', notyet: '✗ Not yet' };
+        return `<div class="prog-meter" data-pbid="prog-meter">
+          <div class="prog-meter-head">
+            <div class="prog-meter-title">${escapeHtml(d.title || 'How confident are you?')}</div>
+            <div class="prog-meter-bar"><div class="prog-meter-fill" data-pbid="prog-meter-fill" style="width:0%;"></div></div>
+            <div class="prog-meter-count"><span data-pbid="prog-meter-count">0</span> / ${items.length} confident</div>
+          </div>
+          <div class="prog-meter-list">
+            ${items.map((it, i) => `<div class="prog-meter-row" data-row="${i}">
+              <div class="prog-meter-text">${escapeHtml(it)}</div>
+              <div class="prog-meter-pills" data-pills="${i}">
+                ${states.map(s => `<button type="button" class="prog-meter-pill" data-state="${s}">${labels[s]}</button>`).join('')}
+              </div>
+            </div>`).join('')}
+          </div>
+        </div>`;
+      }
+    },
 
     // Layout & structure
     accordion: { label: 'Accordion', defaults: () => ({ items: [{ title: 'What is mitosis?', markdown: 'Mitosis is the process of cell division that produces two genetically identical daughter cells.' }, { title: 'What is meiosis?', markdown: 'Meiosis produces four non-identical gametes, halving the chromosome number.' }] }), render: renderAccordion },
@@ -824,9 +1127,31 @@
     opts.forEach(btn => {
       btn.addEventListener('click', () => {
         if (btn.classList.contains('correct') || btn.classList.contains('wrong')) return;
-        if (d.multi) btn.classList.toggle('selected');
-        else opts.forEach(o => o.classList.remove('selected'));
-        btn.classList.add('selected');
+        if (d.multi) {
+          btn.classList.toggle('selected');
+        } else {
+          opts.forEach(o => o.classList.remove('selected'));
+          btn.classList.add('selected');
+        }
+        // Live feedback: if the student just picked a wrong option in
+        // single-answer mode, shake it and show its per-option feedback
+        // so they get a hint before pressing Check. The right answer
+        // is still hidden (we only reveal it on Check).
+        if (!d.multi) {
+          const idx = parseInt(btn.dataset.idx, 10);
+          const opt = (d.options || [])[idx] || {};
+          if (!opt.correct) {
+            // fx-shake — restart the animation by removing + reflowing.
+            btn.classList.remove('fx-shake');
+            void btn.offsetWidth;
+            btn.classList.add('fx-shake');
+            if (opt.feedback) {
+              showFeedback(rootEl, `<b>Hint:</b> ${escapeHtml(opt.feedback)}`, 'info');
+            }
+          } else {
+            clearFeedback(rootEl);
+          }
+        }
       });
     });
     const check = rootEl.querySelector('[data-pb="check"]');
@@ -864,31 +1189,73 @@
 
   function bindTrueFalse(rootEl, d, blockId, onScore) {
     const opts = rootEl.querySelectorAll('[data-pbid="tf-opts"] .opt');
+    const check = rootEl.querySelector('[data-pb="check"]');
+    const reset = rootEl.querySelector('[data-pb="reset"]');
+    // If instantMode is on, the pick itself scores the answer — no
+    // Check button needed. The button is hidden; reset still appears
+    // after a pick so the student can change their mind.
+    const instant = !!d.instantMode;
+    if (instant && check) check.hidden = true;
     opts.forEach(btn => btn.addEventListener('click', () => {
       if (btn.classList.contains('correct') || btn.classList.contains('wrong')) return;
       opts.forEach(o => o.classList.remove('selected'));
       btn.classList.add('selected');
+      if (instant) {
+        // Score immediately, no Check button.
+        const expected = d.answer === true ? 't' : 'f';
+        const right = btn.dataset.idx === expected;
+        opts.forEach(o => {
+          o.classList.remove('selected');
+          if (o.dataset.idx === expected) o.classList.add('correct');
+          else o.classList.add('wrong');
+        });
+        if (!right) {
+          btn.classList.remove('fx-shake');
+          void btn.offsetWidth;
+          btn.classList.add('fx-shake');
+        }
+        showFeedback(rootEl,
+          `${right ? '✓ Correct!' : '✗ Not quite.'}${d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''}`,
+          right ? 'ok' : 'bad'
+        );
+        if (reset) reset.hidden = (d.allowRetry === false);
+        if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
+      }
     }));
-    const check = rootEl.querySelector('[data-pb="check"]');
-    const reset = rootEl.querySelector('[data-pb="reset"]');
-    check.addEventListener('click', () => {
-      const sel = [...opts].find(o => o.classList.contains('selected'));
-      if (!sel) { showFeedback(rootEl, 'Pick true or false first.', 'info'); return; }
-      const expected = d.answer === true ? 't' : 'f';
-      const right = sel.dataset.idx === expected;
-      opts.forEach(o => {
-        o.classList.remove('selected');
-        if (o.dataset.idx === expected) o.classList.add('correct');
-        else o.classList.add('wrong');
+    // In instant mode the Check button is hidden; skip wiring it.
+    if (!instant) {
+      check.addEventListener('click', () => {
+        const sel = [...opts].find(o => o.classList.contains('selected'));
+        if (!sel) { showFeedback(rootEl, 'Pick true or false first.', 'info'); return; }
+        const expected = d.answer === true ? 't' : 'f';
+        const right = sel.dataset.idx === expected;
+        opts.forEach(o => {
+          o.classList.remove('selected');
+          if (o.dataset.idx === expected) o.classList.add('correct');
+          else o.classList.add('wrong');
+        });
+        if (!right) {
+          sel.classList.remove('fx-shake');
+          void sel.offsetWidth;
+          sel.classList.add('fx-shake');
+        }
+        showFeedback(rootEl, `${right ? '✓ Correct!' : '✗ Not quite.'}${d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''}`, right ? 'ok' : 'bad');
+        check.disabled = true; reset.hidden = (d.allowRetry === false);
+        if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
       });
-      showFeedback(rootEl, `${right ? '✓ Correct!' : '✗ Not quite.'}${d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''}`, right ? 'ok' : 'bad');
-      check.disabled = true; reset.hidden = (d.allowRetry === false);
-      if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
-    });
-    reset.addEventListener('click', () => {
-      opts.forEach(o => o.classList.remove('selected', 'correct', 'wrong'));
-      clearFeedback(rootEl); setCheckEnabled(rootEl, true);
-    });
+      reset.addEventListener('click', () => {
+        opts.forEach(o => o.classList.remove('selected', 'correct', 'wrong'));
+        clearFeedback(rootEl); setCheckEnabled(rootEl, true);
+      });
+    } else {
+      // Reset still works in instant mode.
+      if (reset) {
+        reset.addEventListener('click', () => {
+          opts.forEach(o => o.classList.remove('selected', 'correct', 'wrong'));
+          clearFeedback(rootEl);
+        });
+      }
+    }
   }
 
   function bindShortAnswer(rootEl, d, blockId, onScore) {
@@ -1293,6 +1660,670 @@
     });
   }
 
+  // bindSlider — drag the handle to set a value. Live tolerance check
+  // flashes the handle green when within tolerance. On Check, score is
+  // binary (1.0 within tolerance, 0.0 otherwise).
+  function bindSlider(rootEl, d, blockId, onScore) {
+    const wrap = rootEl.querySelector('[data-pbid="slider-wrap"]');
+    const handle = rootEl.querySelector('[data-pbid="slider-handle"]');
+    const fill = rootEl.querySelector('[data-pbid="slider-fill"]');
+    const tick = rootEl.querySelector('[data-pbid="slider-tick"]');
+    const valueEl = rootEl.querySelector('[data-pbid="slider-value"]');
+    const check = rootEl.querySelector('[data-pb="check"]');
+    const reset = rootEl.querySelector('[data-pb="reset"]');
+    if (!wrap || !handle) return;
+    const min = parseFloat(wrap.dataset.min);
+    const max = parseFloat(wrap.dataset.max);
+    const correct = parseFloat(wrap.dataset.correct);
+    const tolerance = parseFloat(wrap.dataset.tolerance);
+    const step = Number.isFinite(+d.step) && +d.step > 0 ? +d.step : 1;
+    const range = max - min;
+    let current = min + range / 2;
+    // Show the correct zone as a faint band on the track.
+    if (tick && tolerance > 0) {
+      const lo = Math.max(min, correct - tolerance);
+      const hi = Math.min(max, correct + tolerance);
+      const loPct = ((lo - min) / range) * 100;
+      const hiPct = ((hi - min) / range) * 100;
+      tick.style.left = loPct + '%';
+      tick.style.width = (hiPct - loPct) + '%';
+      tick.style.opacity = '0.18';
+    }
+    function setValue(v, animated) {
+      current = Math.max(min, Math.min(max, v));
+      const snapped = Math.round(current / step) * step;
+      current = Math.max(min, Math.min(max, snapped));
+      const pct = ((current - min) / range) * 100;
+      handle.style.left = pct + '%';
+      fill.style.width = pct + '%';
+      valueEl.textContent = current;
+      handle.setAttribute('aria-valuenow', String(current));
+      // Live tolerance feedback: green dot when in the band, neutral otherwise.
+      const inBand = Math.abs(current - correct) <= tolerance;
+      if (inBand) {
+        handle.classList.add('slider-in-band');
+        handle.classList.remove('slider-out-band');
+      } else {
+        handle.classList.remove('slider-in-band');
+        handle.classList.add('slider-out-band');
+      }
+    }
+    // Click on the track to jump the handle to that position.
+    const track = rootEl.querySelector('[data-pbid="slider-track"]');
+    track.addEventListener('click', (e) => {
+      if (e.target === handle || handle.contains(e.target)) return;
+      const rect = track.getBoundingClientRect();
+      const pct = (e.clientX - rect.left) / rect.width;
+      setValue(min + pct * range);
+    });
+    // Drag the handle.
+    let dragging = false;
+    function onMove(e) {
+      if (!dragging) return;
+      const rect = track.getBoundingClientRect();
+      const cx = e.touches ? e.touches[0].clientX : e.clientX;
+      const pct = Math.max(0, Math.min(1, (cx - rect.left) / rect.width));
+      setValue(min + pct * range);
+      e.preventDefault();
+    }
+    handle.addEventListener('mousedown', (e) => { dragging = true; e.preventDefault(); });
+    handle.addEventListener('touchstart', () => { dragging = true; }, { passive: true });
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('mouseup', () => { dragging = false; });
+    window.addEventListener('touchend', () => { dragging = false; });
+    // Keyboard accessibility.
+    handle.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { setValue(current - step); e.preventDefault(); }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp')   { setValue(current + step); e.preventDefault(); }
+    });
+    // Initial value at centre.
+    setValue(min + range / 2);
+    // Check handler.
+    check.addEventListener('click', () => {
+      const right = Math.abs(current - correct) <= tolerance;
+      handle.classList.remove('slider-in-band', 'slider-out-band');
+      handle.classList.add(right ? 'correct' : 'wrong');
+      fill.classList.add(right ? 'correct' : 'wrong');
+      // Reveal the correct zone tick more strongly.
+      if (tick) tick.style.opacity = '0.4';
+      showFeedback(rootEl,
+        `${right ? '✓ Correct!' : `✗ Not quite — the answer was ${correct}${d.unit || ''}.`}` +
+        (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
+        right ? 'ok' : 'bad'
+      );
+      check.disabled = true; reset.hidden = (d.allowRetry === false);
+      if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
+    });
+    reset.addEventListener('click', () => {
+      handle.classList.remove('correct', 'wrong');
+      fill.classList.remove('correct', 'wrong');
+      if (tick) tick.style.opacity = '0.18';
+      setValue(min + range / 2);
+      clearFeedback(rootEl); setCheckEnabled(rootEl, true);
+    });
+  }
+
+  // bindDial — click-drag rotates an SVG needle. Snaps to `step`. On
+  // Check, score is binary.
+  function bindDial(rootEl, d, blockId, onScore) {
+    const wrap = rootEl.querySelector('[data-pbid="dial-wrap"]');
+    const svg = rootEl.querySelector('[data-pbid="dial-svg"]');
+    const needle = rootEl.querySelector('[data-pbid="dial-needle"]');
+    const valueEl = rootEl.querySelector('[data-pbid="dial-value"]');
+    const check = rootEl.querySelector('[data-pb="check"]');
+    const reset = rootEl.querySelector('[data-pb="reset"]');
+    if (!wrap || !needle) return;
+    const min = parseFloat(wrap.dataset.min);
+    const max = parseFloat(wrap.dataset.max);
+    const correct = parseFloat(wrap.dataset.correct);
+    const tolerance = parseFloat(wrap.dataset.tolerance);
+    const step = parseFloat(wrap.dataset.step);
+    const range = max - min;
+    // Map a value to an angle: 0° (north) at min, going clockwise.
+    // We render in SVG coords (y down), so the visual angle from north
+    // is the value's fraction of the full sweep.
+    function valToAngle(v) {
+      const frac = (v - min) / range;
+      return frac * 360; // degrees from north, clockwise
+    }
+    function setValue(v) {
+      v = Math.max(min, Math.min(max, v));
+      const snapped = Math.round(v / step) * step;
+      v = Math.max(min, Math.min(max, snapped));
+      const angle = valToAngle(v);
+      // The needle starts pointing north (y2=30, x2=100). To rotate it
+      // by `angle` degrees clockwise, we transform around the pivot
+      // (100, 100). transform-origin in SVG is in user units when using
+      // the transform attribute, but for CSS transforms we set it via
+      // style.
+      needle.style.transformOrigin = '100px 100px';
+      needle.style.transform = `rotate(${angle}deg)`;
+      valueEl.textContent = v;
+    }
+    // Draw tick marks at each step.
+    const ticksG = svg.querySelector('.dial-ticks');
+    if (ticksG) {
+      const steps = Math.min(40, Math.ceil(range / step));
+      let ticksHtml = '';
+      for (let i = 0; i <= steps; i++) {
+        const ang = (i / steps) * 360;
+        const rad = (ang - 90) * Math.PI / 180;
+        const x1 = 100 + Math.cos(rad) * 78;
+        const y1 = 100 + Math.sin(rad) * 78;
+        const x2 = 100 + Math.cos(rad) * 84;
+        const y2 = 100 + Math.sin(rad) * 84;
+        const major = (i % 5 === 0);
+        ticksHtml += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="var(--text-4)" stroke-width="${major ? 1.5 : 0.8}" />`;
+      }
+      ticksG.innerHTML = ticksHtml;
+    }
+    // Drag-to-rotate.
+    let dragging = false;
+    function angleFromEvent(e) {
+      const rect = svg.getBoundingClientRect();
+      const cx = e.touches ? e.touches[0].clientX : e.clientX;
+      const cy = e.touches ? e.touches[0].clientY : e.clientY;
+      const px = cx - (rect.left + rect.width / 2);
+      const py = cy - (rect.top + rect.height / 2);
+      // atan2 with y-down gives angle from east; we want from north,
+      // clockwise. SVG points up at -y; our needle initially points to
+      // (100, 30) which is north. So angle = atan2(px, -py) in degrees.
+      let deg = Math.atan2(px, -py) * 180 / Math.PI;
+      if (deg < 0) deg += 360;
+      return deg;
+    }
+    function startDrag(e) { dragging = true; onMove(e); e.preventDefault(); }
+    function endDrag() { dragging = false; }
+    function onMove(e) {
+      if (!dragging) return;
+      const deg = angleFromEvent(e);
+      setValue(min + (deg / 360) * range);
+      e.preventDefault();
+    }
+    svg.addEventListener('mousedown', startDrag);
+    svg.addEventListener('touchstart', startDrag, { passive: false });
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('touchend', endDrag);
+    // Initial value: 25% across the range (matches the render default).
+    setValue(min + range * 0.25);
+    check.addEventListener('click', () => {
+      const current = parseFloat(valueEl.textContent);
+      const right = Math.abs(current - correct) <= tolerance;
+      needle.classList.remove('correct', 'wrong');
+      needle.classList.add(right ? 'correct' : 'wrong');
+      showFeedback(rootEl,
+        `${right ? '✓ Correct!' : `✗ Not quite — the answer was ${correct}${d.unit || ''}.`}` +
+        (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
+        right ? 'ok' : 'bad'
+      );
+      check.disabled = true; reset.hidden = (d.allowRetry === false);
+      if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
+    });
+    reset.addEventListener('click', () => {
+      needle.classList.remove('correct', 'wrong');
+      setValue(min + range * 0.25);
+      clearFeedback(rootEl); setCheckEnabled(rootEl, true);
+    });
+  }
+
+  // bindSequence — step-through with progress dots. Final score is the
+  // fraction of inline inputs answered correctly.
+  function bindSequence(rootEl, d, blockId, onScore) {
+    const steps = [...rootEl.querySelectorAll('[data-pbid="seq-steps"] .seq-step')];
+    const dots = [...rootEl.querySelectorAll('[data-pbid="seq-dots"] .seq-dot')];
+    const prevBtn = rootEl.querySelector('[data-seq="prev"]');
+    const nextBtn = rootEl.querySelector('[data-seq="next"]');
+    const checkBtn = rootEl.querySelector('[data-pb="check"]');
+    const reset = rootEl.querySelector('[data-pb="reset"]');
+    if (!steps.length || !prevBtn || !nextBtn || !checkBtn) return;
+    let cur = 0;
+    const stepDefs = d.steps || [];
+    function show(i) {
+      cur = Math.max(0, Math.min(steps.length - 1, i));
+      steps.forEach((s, idx) => s.classList.toggle('active', idx === cur));
+      dots.forEach((dot, idx) => {
+        dot.classList.toggle('active', idx === cur);
+        dot.classList.toggle('done', idx < cur);
+      });
+      prevBtn.hidden = (cur === 0);
+      const isLast = (cur === steps.length - 1);
+      nextBtn.hidden = isLast;
+      checkBtn.hidden = !isLast;
+    }
+    prevBtn.addEventListener('click', () => show(cur - 1));
+    nextBtn.addEventListener('click', () => {
+      // Light feedback on advance.
+      const dot = dots[cur];
+      if (dot) {
+        dot.classList.add('fx-pop');
+        setTimeout(() => dot.classList.remove('fx-pop'), 300);
+      }
+      show(cur + 1);
+    });
+    // MCQ inside a step: single-select option.
+    rootEl.querySelectorAll('.seq-mcq').forEach(mcq => {
+      const opts = [...mcq.querySelectorAll('.opt')];
+      opts.forEach(o => o.addEventListener('click', () => {
+        if (o.classList.contains('correct') || o.classList.contains('wrong')) return;
+        opts.forEach(x => x.classList.remove('selected'));
+        o.classList.add('selected');
+      }));
+    });
+    checkBtn.addEventListener('click', () => {
+      let correct = 0, total = 0;
+      stepDefs.forEach((s, i) => {
+        const input = s.input;
+        if (!input) return;
+        if (input.type === 'text') {
+          const el = rootEl.querySelector(`input[data-seq-input="i"][data-idx="${i}"]`);
+          if (!el) return;
+          total++;
+          const got = normText(el.value);
+          const answers = (input.answers || []).map(normText);
+          if (got && answers.includes(got)) {
+            el.classList.add('correct'); el.classList.remove('wrong'); correct++;
+          } else {
+            el.classList.add('wrong'); el.classList.remove('correct');
+          }
+          el.disabled = true;
+        } else if (input.type === 'mcq') {
+          const opts = [...rootEl.querySelectorAll(`[data-seq-mcq="${i}"] .opt`)];
+          const sel = opts.find(o => o.classList.contains('selected'));
+          if (!sel) return;
+          total++;
+          const expected = sel.dataset.correct === 'true';
+          opts.forEach(o => {
+            o.classList.remove('selected');
+            if (o.dataset.correct === 'true') o.classList.add('correct');
+            else if (o === sel) o.classList.add('wrong');
+          });
+          if (expected) correct++;
+        }
+      });
+      // If no inputs at all, this is a free read-through — count as 1/1.
+      if (total === 0) { correct = 1; total = 1; }
+      const allRight = correct === total;
+      showFeedback(rootEl,
+        allRight ? '✓ Nice work — you\'ve worked through the steps.' : `You got ${correct} of ${total} correct.`,
+        allRight ? 'ok' : 'bad'
+      );
+      checkBtn.disabled = true; reset.hidden = (d.allowRetry === false);
+      if (onScore) onScore(blockId, correct, total);
+    });
+    reset.addEventListener('click', () => {
+      steps.forEach(s => {
+        s.querySelectorAll('.sa-input').forEach(el => {
+          el.disabled = false; el.value = ''; el.classList.remove('correct', 'wrong');
+        });
+        s.querySelectorAll('.opt').forEach(o => o.classList.remove('selected', 'correct', 'wrong'));
+      });
+      show(0);
+      clearFeedback(rootEl); setCheckEnabled(rootEl, true);
+    });
+    show(0);
+  }
+
+  // bindConnect — click two endpoints to draw a line. Compare drawn
+  // edges to the correct set on Check.
+  function bindConnect(rootEl, d, blockId, onScore) {
+    const wrap = rootEl.querySelector('[data-pbid="connect-wrap"]');
+    const canvas = rootEl.querySelector('[data-pbid="connect-canvas"]');
+    const svg = rootEl.querySelector('[data-pbid="connect-svg"]');
+    const edgesG = rootEl.querySelector('[data-pbid="connect-edges"]');
+    const countEl = rootEl.querySelector('[data-pbid="connect-count"]');
+    const check = rootEl.querySelector('[data-pb="check"]');
+    const reset = rootEl.querySelector('[data-pb="reset"]');
+    if (!wrap || !canvas || !svg || !edgesG) return;
+    const points = d.points || [];
+    const correctEdges = (d.edges || []).map(e => [e.from, e.to].sort().join('|'));
+    let firstPick = null;
+    let drawn = []; // [{a, b, el}]
+    function getPos(id) {
+      const btn = canvas.querySelector(`[data-pt="${CSS.escape(id)}"]`);
+      if (!btn) return null;
+      return { x: parseFloat(btn.style.left), y: parseFloat(btn.style.top) };
+    }
+    function setViewBox() {
+      // Use the canvas's pixel size so the SVG matches the rendered layout.
+      const r = canvas.getBoundingClientRect();
+      svg.setAttribute('viewBox', `0 0 ${r.width} ${r.height}`);
+    }
+    setViewBox();
+    // Redraw on resize so the SVG matches.
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => { setViewBox(); redraw(); }, 100);
+    });
+    function redraw() {
+      edgesG.innerHTML = '';
+      drawn.forEach(e => {
+        const a = getPos(e.a), b = getPos(e.b);
+        if (!a || !b) return;
+        const w = canvas.getBoundingClientRect().width;
+        const h = canvas.getBoundingClientRect().height;
+        const ax = a.x / 100 * w, ay = a.y / 100 * h;
+        const bx = b.x / 100 * w, by = b.y / 100 * h;
+        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ln.setAttribute('x1', ax); ln.setAttribute('y1', ay);
+        ln.setAttribute('x2', bx); ln.setAttribute('y2', by);
+        ln.setAttribute('class', 'connect-line ' + (e.el.getAttribute('class').includes('correct') ? 'correct' : e.el.getAttribute('class').includes('wrong') ? 'wrong' : ''));
+        edgesG.appendChild(ln);
+      });
+    }
+    canvas.querySelectorAll('.connect-pt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.classList.contains('correct') || btn.classList.contains('wrong')) return;
+        const id = btn.dataset.pt;
+        if (!firstPick) {
+          firstPick = id;
+          btn.classList.add('selected');
+          return;
+        }
+        if (firstPick === id) {
+          // Toggle off.
+          btn.classList.remove('selected');
+          firstPick = null;
+          return;
+        }
+        // Connect firstPick ↔ id.
+        const a = firstPick, b = id;
+        canvas.querySelectorAll('.connect-pt').forEach(p => p.classList.remove('selected'));
+        firstPick = null;
+        // Replace any existing edge that shares either endpoint.
+        for (let i = drawn.length - 1; i >= 0; i--) {
+          if (drawn[i].a === a || drawn[i].a === b || drawn[i].b === a || drawn[i].b === b) {
+            drawn.splice(i, 1);
+          }
+        }
+        drawn.push({ a, b, el: btn });
+        if (countEl) countEl.textContent = String(drawn.length);
+        // fx-pop on the second pick for satisfying feedback.
+        btn.classList.add('fx-pop');
+        setTimeout(() => btn.classList.remove('fx-pop'), 300);
+        redraw();
+      });
+    });
+    check.addEventListener('click', () => {
+      if (!drawn.length) { showFeedback(rootEl, 'Draw at least one connection first.', 'info'); return; }
+      const drawnSet = drawn.map(e => [e.a, e.b].sort().join('|'));
+      let right = 0;
+      drawnSet.forEach((k, i) => {
+        const correct = correctEdges.includes(k);
+        drawn[i].el.classList.add(correct ? 'correct' : 'wrong');
+      });
+      // For each correct edge not drawn, mark a ghost line.
+      const drawnKeySet = new Set(drawnSet);
+      const correctLines = correctEdges.filter(k => !drawnKeySet.has(k));
+      const w = canvas.getBoundingClientRect().width;
+      const h = canvas.getBoundingClientRect().height;
+      correctLines.forEach(k => {
+        const [a, b] = k.split('|');
+        const pa = getPos(a), pb = getPos(b);
+        if (!pa || !pb) return;
+        const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ln.setAttribute('x1', pa.x / 100 * w); ln.setAttribute('y1', pa.y / 100 * h);
+        ln.setAttribute('x2', pb.x / 100 * w); ln.setAttribute('y2', pb.y / 100 * h);
+        ln.setAttribute('class', 'connect-line ghost');
+        edgesG.appendChild(ln);
+      });
+      // Score: correct drawn / max(drawn, correctEdges.length).
+      const total = Math.max(drawnSet.length, correctEdges.length, 1);
+      const matched = drawnSet.filter(k => correctEdges.includes(k)).length;
+      right = matched;
+      const allRight = matched === correctEdges.length && drawnSet.length === correctEdges.length;
+      showFeedback(rootEl,
+        allRight ? '✓ All connections correct!' : `You got ${right} connection${right === 1 ? '' : 's'} right.`,
+        allRight ? 'ok' : 'bad'
+      );
+      // Lock the points from further interaction.
+      canvas.querySelectorAll('.connect-pt').forEach(p => p.classList.add('correct', 'wrong'));
+      check.disabled = true; reset.hidden = (d.allowRetry === false);
+      if (onScore) onScore(blockId, right, total);
+    });
+    reset.addEventListener('click', () => {
+      drawn = [];
+      firstPick = null;
+      canvas.querySelectorAll('.connect-pt').forEach(p => p.classList.remove('selected', 'correct', 'wrong'));
+      edgesG.innerHTML = '';
+      if (countEl) countEl.textContent = '0';
+      clearFeedback(rootEl); setCheckEnabled(rootEl, true);
+    });
+  }
+
+  // bindPile — drag items into Yes / No / Maybe buckets. Uses
+  // HTML5 drag-and-drop for a familiar feel. On Check, score is the
+  // fraction of items in the right bucket.
+  function bindPile(rootEl, d, blockId, onScore) {
+    const pool = rootEl.querySelector('[data-pbid="pile-pool"]');
+    const buckets = rootEl.querySelectorAll('[data-bucket]');
+    const check = rootEl.querySelector('[data-pb="check"]');
+    const reset = rootEl.querySelector('[data-pb="reset"]');
+    if (!pool) return;
+    // Make the pool a drop target too (so items can be moved back).
+    function updateCounts() {
+      buckets.forEach(b => {
+        const cat = b.dataset.bucket;
+        const count = b.querySelectorAll('.pile-item').length;
+        const cEl = b.querySelector(`[data-count="${cat}"]`);
+        if (cEl) cEl.textContent = String(count);
+      });
+    }
+    function attachDragHandlers(item) {
+      item.addEventListener('dragstart', (e) => {
+        if (item.classList.contains('correct') || item.classList.contains('wrong')) { e.preventDefault(); return; }
+        item.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', item.dataset.idx);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      item.addEventListener('dragend', () => item.classList.remove('dragging'));
+    }
+    pool.querySelectorAll('.pile-item').forEach(attachDragHandlers);
+    function bindDropTarget(target) {
+      target.addEventListener('dragover', (e) => {
+        if (target.classList.contains('correct') || target.classList.contains('wrong')) return;
+        e.preventDefault();
+        target.classList.add('dragover');
+      });
+      target.addEventListener('dragleave', () => target.classList.remove('dragover'));
+      target.addEventListener('drop', (e) => {
+        target.classList.remove('dragover');
+        if (target.classList.contains('correct') || target.classList.contains('wrong')) return;
+        e.preventDefault();
+        const idx = e.dataTransfer.getData('text/plain');
+        const item = pool.querySelector(`.pile-item[data-idx="${idx}"]`) || rootEl.querySelector(`.pile-item[data-idx="${idx}"]`);
+        if (!item) return;
+        // The drop target is either a bucket or the pool. Find the body
+        // to insert into.
+        const body = target.classList.contains('pile-bucket') ? target.querySelector('.pile-bucket-body') : target;
+        body.appendChild(item);
+        // fx-pop on landing.
+        item.classList.remove('fx-pop');
+        void item.offsetWidth;
+        item.classList.add('fx-pop');
+        setTimeout(() => item.classList.remove('fx-pop'), 300);
+        updateCounts();
+      });
+    }
+    buckets.forEach(bindDropTarget);
+    bindDropTarget(pool);
+    check.addEventListener('click', () => {
+      const items = [...rootEl.querySelectorAll('.pile-item')];
+      if (!items.length) return;
+      let correct = 0;
+      items.forEach(item => {
+        const expected = item.dataset.correct;
+        const bucket = item.closest('.pile-bucket');
+        const got = bucket ? bucket.dataset.bucket : null;
+        item.classList.remove('selected');
+        if (got === expected) { item.classList.add('correct'); correct++; }
+        else { item.classList.add('wrong'); }
+      });
+      const total = items.length;
+      const allRight = correct === total;
+      buckets.forEach(b => {
+        if (b.querySelector('.pile-item.correct')) b.classList.add('correct');
+        else if (b.querySelector('.pile-item.wrong')) b.classList.add('wrong');
+      });
+      showFeedback(rootEl,
+        allRight ? '✓ All sorted correctly!' : `You got ${correct} of ${total} in the right pile.`,
+        allRight ? 'ok' : 'bad'
+      );
+      check.disabled = true; reset.hidden = (d.allowRetry === false);
+      if (onScore) onScore(blockId, correct, total);
+    });
+    reset.addEventListener('click', () => {
+      const items = [...rootEl.querySelectorAll('.pile-item')];
+      // Move all items back to the pool.
+      const poolBody = rootEl.querySelector('[data-pbid="pile-pool"]');
+      items.forEach(it => {
+        it.classList.remove('correct', 'wrong', 'fx-pop');
+        poolBody.appendChild(it);
+      });
+      buckets.forEach(b => b.classList.remove('correct', 'wrong', 'dragover'));
+      updateCounts();
+      clearFeedback(rootEl); setCheckEnabled(rootEl, true);
+    });
+  }
+
+  // wireFcDeck — handle the flashcard_stack study aid (no onScore).
+  // State lives on the wrapper dataset; we update DOM on each action.
+  function wireFcDeck(el) {
+    if (!el) return;
+    let cards;
+    try { cards = JSON.parse(el.dataset.cards || '[]'); } catch (_) { cards = []; }
+    if (!cards.length) return;
+    let order = cards.map((_, i) => i);
+    let pos = 0;
+    let flipped = false;
+    const stage = el.querySelector('[data-pbid="fcdeck-stage"]');
+    const posEl = el.querySelector('[data-pbid="fcdeck-pos"]');
+    const totalEl = el.querySelector('[data-pbid="fcdeck-total"]');
+    const prev = el.querySelector('[data-fcdeck="prev"]');
+    const next = el.querySelector('[data-fcdeck="next"]');
+    const flip = el.querySelector('[data-fcdeck="flip"]');
+    const shuffle = el.querySelector('[data-fcdeck="shuffle"]');
+    function render() {
+      const idx = order[pos];
+      const c = cards[idx];
+      stage.innerHTML = '';
+      const front = document.createElement('div');
+      front.className = 'fcdeck-card' + (flipped ? ' hidden' : '');
+      front.setAttribute('data-side', 'front');
+      front.textContent = (c && c.front) || '';
+      const back = document.createElement('div');
+      back.className = 'fcdeck-card back' + (flipped ? '' : ' hidden');
+      back.setAttribute('data-side', 'back');
+      back.textContent = (c && c.back) || '';
+      stage.appendChild(front);
+      stage.appendChild(back);
+      // Animate the change.
+      stage.classList.remove('fx-fade-up');
+      void stage.offsetWidth;
+      stage.classList.add('fx-fade-up');
+      if (posEl) posEl.textContent = String(pos + 1);
+      if (totalEl) totalEl.textContent = String(order.length);
+      prev.disabled = false; next.disabled = false;
+    }
+    prev.addEventListener('click', () => { if (pos > 0) { pos--; flipped = false; render(); } });
+    next.addEventListener('click', () => { if (pos < order.length - 1) { pos++; flipped = false; render(); } });
+    flip.addEventListener('click', () => { flipped = !flipped; render(); });
+    shuffle.addEventListener('click', () => {
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+      pos = 0; flipped = false; render();
+    });
+    render();
+  }
+
+  // wireProgMeter — confidence-rating checklist with a live progress
+  // bar. Pure display, no scoring.
+  function wireProgMeter(el) {
+    if (!el) return;
+    const fill = el.querySelector('[data-pbid="prog-meter-fill"]');
+    const countEl = el.querySelector('[data-pbid="prog-meter-count"]');
+    const rows = [...el.querySelectorAll('.prog-meter-row')];
+    function update() {
+      const total = rows.length;
+      const got = el.querySelectorAll('.prog-meter-pill[data-state="got"].active').length;
+      if (countEl) countEl.textContent = String(got);
+      if (fill) fill.style.width = total ? (got / total * 100) + '%' : '0%';
+    }
+    rows.forEach(row => {
+      const pills = [...row.querySelectorAll('.prog-meter-pill')];
+      pills.forEach(pill => {
+        pill.addEventListener('click', () => {
+          pills.forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          row.dataset.state = pill.dataset.state;
+          // Pulse the pill for satisfying feedback.
+          pill.classList.remove('fx-pop');
+          void pill.offsetWidth;
+          pill.classList.add('fx-pop');
+          setTimeout(() => pill.classList.remove('fx-pop'), 300);
+          update();
+        });
+      });
+    });
+    update();
+  }
+
+  // wireMindMap — draw connecting lines from centre to branches on a
+  // real DOM measurement. The renderer uses a viewBox of 0 0 100 100,
+  // so the lines are placed in those user units.
+  function wireMindMap(el) {
+    if (!el) return;
+    // No interactive behaviour needed for v1; the SVG is rendered
+    // fully by BLOCK_DEFS.mindmap.render. Kept as a hook for future
+    // interactive variants (e.g. click a branch to expand).
+  }
+
+  // wireFlashcardStudy — for flashcard blocks with `study: true`, show
+  // the "Got it / Missed it" controls after the card is flipped. Tally
+  // a running score in the corner. No onScore — this is a self-study
+  // tool, not a graded exercise.
+  function wireFlashcardStudy(rootEl) {
+    const wrap = rootEl.querySelector('.flashcard-wrap');
+    if (!wrap || wrap.dataset.fcstudyMode !== '1') return;
+    const card = wrap.querySelector('.flashcard');
+    const controls = wrap.querySelector('.flashcard-study');
+    const result = wrap.querySelector('.flashcard-study-result');
+    if (!card || !controls || !result) return;
+    let got = 0, miss = 0;
+    const updateResult = () => {
+      result.hidden = false;
+      const total = got + miss;
+      const pct = total ? Math.round((got / total) * 100) : 0;
+      result.textContent = `Score: ${got} / ${total} (${pct}%)`;
+    };
+    card.addEventListener('click', () => {
+      // Show the study controls the first time the card is flipped.
+      if (card.classList.contains('flipped')) {
+        controls.hidden = false;
+      } else {
+        controls.hidden = true;
+      }
+    });
+    controls.querySelectorAll('.fcstudy-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (btn.dataset.fcstudy === 'got') got++;
+        else miss++;
+        // Pop the button for satisfying feedback.
+        btn.classList.remove('fx-pop');
+        void btn.offsetWidth;
+        btn.classList.add('fx-pop');
+        setTimeout(() => btn.classList.remove('fx-pop'), 300);
+        updateResult();
+      });
+    });
+  }
+
   function bindTabs(rootEl, d) {
     const tabs = rootEl.querySelectorAll('[data-pbid="tabs-root"] .tab');
     const body = rootEl.querySelector('[data-pbid="tabs-root"] .tab-body');
@@ -1320,6 +2351,17 @@
       case 'tabs':      bindTabs(rootEl, b.data); break;
       case 'categorise':bindCategorise(rootEl, b.data, blockId, onScore); break;
       case 'denary_binary': bindDenaryBinary(rootEl, b.data, blockId, onScore); break;
+      // New interactive kinds (2026-07-24)
+      case 'slider':    bindSlider(rootEl, b.data, blockId, onScore); break;
+      case 'dial':      bindDial(rootEl, b.data, blockId, onScore); break;
+      case 'sequence':  bindSequence(rootEl, b.data, blockId, onScore); break;
+      case 'connect':   bindConnect(rootEl, b.data, blockId, onScore); break;
+      case 'pile':      bindPile(rootEl, b.data, blockId, onScore); break;
+      // Study aids (no onScore; just wire up any DOM-driven behaviour)
+      case 'flashcard_stack': wireFcDeck(rootEl.querySelector('[data-pbid="fcdeck"]')); break;
+      case 'progress_meter':  wireProgMeter(rootEl.querySelector('[data-pbid="prog-meter"]')); break;
+      case 'mindmap':         wireMindMap(rootEl.querySelector('[data-pbid="mindmap"]')); break;
+      case 'flashcard':       wireFlashcardStudy(rootEl); break;
       // 'html' is interactive but the interaction is a postMessage from
       // the sandboxed iframe to the parent (lesson.html), not a
       // bindInteractive call. See buildHtmlSrcdoc + lesson.html.

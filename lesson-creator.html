@@ -983,7 +983,254 @@
     .preview .summary-card .takeaways li { color: var(--text); margin-bottom: 4px; font-size: 13px; }
     .preview .summary-card .body { color: var(--text-2); font-size: 13px; }
 
-    /* ---------- EDITOR: PICKER GROUPS + TEMPLATES + UPLOAD ---------- */
+    /* ---------- New interactive kinds (2026-07-24) ---------- */
+    /* The preview pane uses .preview prefix; we mirror the live styles. */
+
+    /* Slider */
+    .preview .practice .slider-wrap { display: flex; flex-direction: column; gap: 10px; }
+    .preview .practice .slider-track {
+      position: relative; height: 8px; background: var(--bg-3);
+      border: 1px solid var(--line); border-radius: 999px; cursor: pointer;
+    }
+    .preview .practice .slider-fill {
+      position: absolute; top: 0; left: 0; height: 100%;
+      background: var(--blue); border-radius: 999px;
+      transition: width 0.1s linear, background 0.2s ease;
+    }
+    .preview .practice .slider-tick {
+      position: absolute; top: -4px; height: 16px;
+      background: var(--green); border-radius: 3px; opacity: 0.18;
+    }
+    .preview .practice .slider-handle {
+      position: absolute; top: 50%;
+      width: 22px; height: 22px;
+      background: var(--text); border: 3px solid var(--blue);
+      border-radius: 50%; transform: translate(-50%, -50%);
+      cursor: grab; transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .preview .practice .slider-handle.slider-in-band { border-color: var(--green); }
+    .preview .practice .slider-handle.slider-out-band { border-color: var(--blue); }
+    .preview .practice .slider-handle.correct { border-color: var(--green); background: var(--green-dim); }
+    .preview .practice .slider-handle.wrong { border-color: var(--red); background: var(--red-dim); }
+    .preview .practice .slider-fill.correct { background: var(--green); }
+    .preview .practice .slider-fill.wrong { background: var(--red); }
+    .preview .practice .slider-readout {
+      display: flex; align-items: baseline; gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .preview .practice .slider-value { font-size: 22px; font-weight: 700; color: var(--text); min-width: 50px; }
+    .preview .practice .slider-unit { color: var(--text-2); font-size: 14px; }
+    .preview .practice .slider-range {
+      margin-left: auto; color: var(--text-4);
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+
+    /* Dial */
+    .preview .practice .dial-wrap { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+    .preview .practice .dial-svg-wrap {
+      width: 180px; height: 180px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: 50%; padding: 6px;
+    }
+    .preview .practice .dial-svg { width: 100%; height: 100%; display: block; }
+    .preview .practice .dial-face { fill: var(--bg-2); stroke: var(--line-2); stroke-width: 1.5; }
+    .preview .practice .dial-needle {
+      stroke: var(--blue); stroke-width: 3; stroke-linecap: round;
+      transform-origin: 100px 100px;
+    }
+    .preview .practice .dial-pivot { fill: var(--text); }
+    .preview .practice .dial-readout { display: flex; flex-direction: column; gap: 2px; font-family: 'JetBrains Mono', monospace; }
+    .preview .practice .dial-value { font-size: 32px; font-weight: 700; color: var(--text); }
+    .preview .practice .dial-unit { font-size: 14px; color: var(--text-2); }
+    .preview .practice .dial-hint { color: var(--text-4); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+
+    /* Sequence */
+    .preview .practice .seq-dots { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+    .preview .practice .seq-dot {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      color: var(--text-3); font-size: 11.5px; font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .preview .practice .seq-dot.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .preview .practice .seq-dot.done { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+    .preview .practice .seq-dot-line { display: inline-block; width: 14px; height: 2px; background: var(--line-2); border-radius: 1px; }
+    .preview .practice .seq-steps { position: relative; min-height: 80px; }
+    .preview .practice .seq-step {
+      display: none; flex-direction: column; gap: 6px;
+      padding: 12px 14px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+    }
+    .preview .practice .seq-step.active { display: flex; }
+    .preview .practice .seq-step-title { font-weight: 600; color: var(--text); font-size: 13.5px; }
+    .preview .practice .seq-step-body { color: var(--text-2); font-size: 13px; }
+    .preview .practice .seq-input-wrap { margin-top: 6px; }
+    .preview .practice .seq-mcq { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+    .preview .practice .seq-btn {
+      background: var(--bg-3); color: var(--text-2); border: 1px solid var(--line-2);
+      padding: 6px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    }
+    .preview .practice .seq-btn.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+    /* Connect */
+    .preview .practice .connect-wrap { position: relative; width: 100%; }
+    .preview .practice .connect-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+    .preview .practice .connect-canvas {
+      position: relative; width: 100%;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); min-height: 200px;
+    }
+    .preview .practice .connect-pt {
+      position: absolute; transform: translate(-50%, -50%);
+      background: transparent; border: 0; padding: 0; cursor: pointer;
+      z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .preview .practice .connect-pt-dot {
+      display: block; width: 18px; height: 18px;
+      background: var(--blue-pale); border: 2px solid var(--blue); border-radius: 50%;
+    }
+    .preview .practice .connect-pt-label {
+      font-size: 11px; color: var(--text-2); font-weight: 600;
+      background: var(--bg-2); padding: 1px 6px; border-radius: 3px;
+    }
+    .preview .practice .connect-line { stroke: var(--blue); stroke-width: 2.5; stroke-linecap: round; }
+    .preview .practice .connect-line.correct { stroke: var(--green); }
+    .preview .practice .connect-line.wrong { stroke: var(--red); }
+    .preview .practice .connect-line.ghost { stroke: var(--green); stroke-dasharray: 4 4; opacity: 0.4; }
+    .preview .practice .connect-hint { color: var(--text-3); font-size: 11.5px; margin-top: 6px; }
+
+    /* Pile */
+    .preview .practice .pile-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .preview .practice .pile-bucket {
+      background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--r-sm);
+      display: flex; flex-direction: column; min-height: 100px;
+    }
+    .preview .practice .pile-bucket.dragover { background: var(--blue-pale); border-color: var(--blue); }
+    .preview .practice .pile-bucket.correct { border-color: var(--green); }
+    .preview .practice .pile-bucket.wrong { border-color: var(--red); }
+    .preview .practice .pile-bucket-head {
+      padding: 6px 10px; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--text-2); border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .preview .practice .pile-count { background: var(--bg-2); color: var(--text-3); padding: 1px 7px; border-radius: 999px; font-size: 10.5px; }
+    .preview .practice .pile-bucket-body { padding: 6px; display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 50px; }
+    .preview .practice .pile-pool {
+      margin-top: 8px; padding: 8px; background: var(--bg-2);
+      border: 1px dashed var(--line-2); border-radius: var(--r-sm);
+      display: flex; flex-wrap: wrap; gap: 6px; min-height: 50px;
+    }
+    .preview .practice .pile-item {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 5px 10px;
+      font-size: 12.5px; color: var(--text-2); cursor: grab;
+      font-family: inherit; user-select: none;
+    }
+    .preview .practice .pile-item.correct { background: var(--green-dim); border-color: var(--green); color: var(--text); }
+    .preview .practice .pile-item.wrong { background: var(--red-dim); border-color: var(--red); color: var(--text); }
+    .preview .practice .pile-item-grip { color: var(--text-4); font-size: 12px; }
+
+    /* Flashcard study */
+    .flashcard-wrap { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+    .flashcard-study { display: flex; gap: 6px; margin-top: 4px; }
+    .fcstudy-btn {
+      padding: 6px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 600;
+      cursor: pointer; border: 1px solid;
+    }
+    .fcstudy-btn.got { background: var(--green-dim); color: var(--green); border-color: var(--green); }
+    .fcstudy-btn.miss { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+    .flashcard-study-result {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--text-2); padding: 4px 10px;
+      background: var(--bg-3); border-radius: var(--r-sm);
+    }
+
+    /* Mind map */
+    .mindmap {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 16px;
+      display: grid; place-items: center;
+    }
+    .mindmap-svg { width: 100%; max-width: 600px; height: auto; }
+    .mindmap-edge { stroke: var(--line-2); stroke-width: 1.5; }
+    .mindmap-center { fill: var(--blue); stroke: var(--blue-2); stroke-width: 1.5; }
+    .mindmap-center-text {
+      fill: #fff; text-anchor: middle; dominant-baseline: central;
+      font-size: 3.2px; font-weight: 700; font-family: 'Inter', sans-serif;
+    }
+    .mindmap-node { fill: var(--blue-pale); stroke: var(--blue); stroke-width: 1; }
+    .mindmap-node-label {
+      fill: var(--text); text-anchor: middle; dominant-baseline: auto;
+      font-size: 3px; font-weight: 600; font-family: 'Inter', sans-serif;
+    }
+    .mindmap-items ul { margin: 0; padding-left: 4px; list-style: none; }
+    .mindmap-items li { font-size: 2.4px; color: var(--text-2); line-height: 1.2; padding: 0.5px 0; }
+
+    /* Flashcard deck */
+    .fcdeck {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 18px;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .fcdeck-progress { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-3); }
+    .fcdeck-stage {
+      width: 100%; max-width: 420px; height: 160px; position: relative; perspective: 800px;
+    }
+    .fcdeck-card {
+      position: absolute; inset: 0; background: var(--bg-2);
+      border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      display: grid; place-items: center; text-align: center; padding: 18px;
+      font-size: 15px; color: var(--text); font-weight: 500;
+    }
+    .fcdeck-card.back { background: var(--blue-pale); border-color: var(--blue); }
+    .fcdeck-card.hidden { display: none; }
+    .fcdeck-controls { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .fcdeck-btn {
+      background: var(--bg-2); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 6px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; cursor: pointer;
+    }
+    .fcdeck-btn.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .fcdeck-btn.ghost { background: transparent; }
+    .fcdeck-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Progress meter */
+    .prog-meter {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 14px 16px;
+    }
+    .prog-meter-head { margin-bottom: 12px; }
+    .prog-meter-title { font-weight: 600; color: var(--text); font-size: 14px; margin-bottom: 8px; }
+    .prog-meter-bar {
+      width: 100%; height: 8px; background: var(--bg-2);
+      border-radius: 999px; overflow: hidden; margin-bottom: 6px;
+    }
+    .prog-meter-fill { height: 100%; background: var(--green); border-radius: 999px; }
+    .prog-meter-count { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-3); }
+    .prog-meter-list { display: flex; flex-direction: column; gap: 6px; }
+    .prog-meter-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 10px; background: var(--bg-2);
+      border: 1px solid var(--line); border-radius: var(--r-sm);
+    }
+    .prog-meter-text { flex: 1; font-size: 13px; color: var(--text-2); }
+    .prog-meter-pills { display: flex; gap: 4px; }
+    .prog-meter-pill {
+      padding: 4px 10px; border-radius: 999px;
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      color: var(--text-3); font-size: 11.5px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+    }
+    .prog-meter-pill.active[data-state="got"] { background: var(--green-dim); color: var(--green); border-color: var(--green); }
+    .prog-meter-pill.active[data-state="unsure"] { background: var(--yellow-dim); color: var(--yellow); border-color: var(--yellow); }
+    .prog-meter-pill.active[data-state="notyet"] { background: var(--red-dim); color: var(--red); border-color: var(--red); }
     .block-add-group {
       display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
       margin-top: 8px;
@@ -3655,9 +3902,9 @@
   // ---------- block picker (grouped) ----------
   const BLOCK_GROUPS = {
     'Text & structure': ['heading', 'text', 'callout', 'image', 'video', 'math', 'audio', 'divider', 'quote', 'keypoints', 'worked_example', 'reveal', 'flashcard'],
-    'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot', 'categorise', 'html'],
+    'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot', 'categorise', 'slider', 'dial', 'sequence', 'connect', 'pile', 'html'],
     'Layout': ['accordion', 'tabs', 'compare', 'timeline', 'steps'],
-    'Study aids': ['objectives', 'prerequisites', 'glossary', 'summary', 'cardset'],
+    'Study aids': ['objectives', 'prerequisites', 'glossary', 'summary', 'cardset', 'flashcard_stack', 'progress_meter', 'mindmap'],
   };
 
   // Some block kinds can only be added by reviewers / admins. This is a
@@ -4017,6 +4264,12 @@
               <input value="${escapeHtml(b.data.back||'')}" oninput="updateBlock(${i}, {back: this.value})" />
             </div>
           </div>
+          <div class="form-row inline" style="margin: 8px 0 0;">
+            <label style="display:flex;align-items:center;gap:6px;">
+              <input type="checkbox" ${b.data.study ? 'checked' : ''} onchange="updateBlock(${i}, {study: this.checked})" />
+              Study mode — show "Got it / Missed it" buttons after flip
+            </label>
+          </div>
           <div class="form-row" style="margin: 12px 0 0;">
             <label>Preview (click to flip)</label>
             <div class="preview">${renderBlock(b)}</div>
@@ -4131,6 +4384,12 @@
           <option value="true"  ${b.data.answer === true  ? 'selected' : ''}>True</option>
           <option value="false" ${b.data.answer === false ? 'selected' : ''}>False</option>
         </select>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${b.data.instantMode ? 'checked' : ''} onchange="updateBlock(${i}, {instantMode: this.checked})" />
+          Instant mode — score on click (no Check button)
+        </label>
       </div>
       <div class="form-row">
         <label>Explanation (shown after checking)</label>
@@ -4378,6 +4637,530 @@
     preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
     if (window.bindInteractive) bindInteractive(preview, state.currentLesson.blocks[i]);
   }
+
+  // ----- Slider editor -----
+  function renderSliderEditor(b, i) {
+    const d = b.data || {};
+    return `
+      <div class="form-row">
+        <label>Prompt</label>
+        <input value="${escapeHtml(d.prompt || '')}" oninput="updateBlock(${i}, {prompt: this.value})" placeholder="e.g. Estimate the boiling point of water in °C." />
+      </div>
+      <div class="two-col">
+        <div class="form-row" style="margin: 0;">
+          <label>Min</label>
+          <input type="number" step="any" value="${Number.isFinite(+d.min) ? +d.min : 0}" oninput="updateBlock(${i}, {min: parseFloat(this.value)})" />
+        </div>
+        <div class="form-row" style="margin: 0;">
+          <label>Max</label>
+          <input type="number" step="any" value="${Number.isFinite(+d.max) ? +d.max : 100}" oninput="updateBlock(${i}, {max: parseFloat(this.value)})" />
+        </div>
+        <div class="form-row" style="margin: 0;">
+          <label>Step</label>
+          <input type="number" step="any" min="0.001" value="${Number.isFinite(+d.step) ? +d.step : 1}" oninput="updateBlock(${i}, {step: parseFloat(this.value)})" />
+        </div>
+        <div class="form-row" style="margin: 0;">
+          <label>Unit (optional)</label>
+          <input value="${escapeHtml(d.unit || '')}" oninput="updateBlock(${i}, {unit: this.value})" placeholder="°C, m, g, …" />
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="form-row" style="margin: 0;">
+          <label>Correct value</label>
+          <input type="number" step="any" value="${Number.isFinite(+d.correct) ? +d.correct : 0}" oninput="updateBlock(${i}, {correct: parseFloat(this.value)})" />
+        </div>
+        <div class="form-row" style="margin: 0;">
+          <label>Tolerance (±)</label>
+          <input type="number" step="any" min="0" value="${Number.isFinite(+d.tolerance) ? +d.tolerance : 0}" oninput="updateBlock(${i}, {tolerance: parseFloat(this.value)})" />
+          <span class="hint">Score 1.0 if the student's value is within ±tolerance of the correct value.</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Explanation (shown after checking)</label>
+        <textarea oninput="updateBlock(${i}, {explanation: this.value})">${escapeHtml(d.explanation || '')}</textarea>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${d.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${d.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+
+  // ----- Dial editor -----
+  function renderDialEditor(b, i) {
+    const d = b.data || {};
+    return `
+      <div class="form-row">
+        <label>Prompt</label>
+        <input value="${escapeHtml(d.prompt || '')}" oninput="updateBlock(${i}, {prompt: this.value})" placeholder="e.g. Set the angle to 90°." />
+      </div>
+      <div class="two-col">
+        <div class="form-row" style="margin: 0;">
+          <label>Min</label>
+          <input type="number" step="any" value="${Number.isFinite(+d.min) ? +d.min : 0}" oninput="updateBlock(${i}, {min: parseFloat(this.value)})" />
+        </div>
+        <div class="form-row" style="margin: 0;">
+          <label>Max</label>
+          <input type="number" step="any" value="${Number.isFinite(+d.max) ? +d.max : 360}" oninput="updateBlock(${i}, {max: parseFloat(this.value)})" />
+        </div>
+        <div class="form-row" style="margin: 0;">
+          <label>Step</label>
+          <input type="number" step="any" min="0.001" value="${Number.isFinite(+d.step) ? +d.step : 10}" oninput="updateBlock(${i}, {step: parseFloat(this.value)})" />
+        </div>
+        <div class="form-row" style="margin: 0;">
+          <label>Unit</label>
+          <input value="${escapeHtml(d.unit || '°')}" oninput="updateBlock(${i}, {unit: this.value})" />
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="form-row" style="margin: 0;">
+          <label>Correct value</label>
+          <input type="number" step="any" value="${Number.isFinite(+d.correct) ? +d.correct : 0}" oninput="updateBlock(${i}, {correct: parseFloat(this.value)})" />
+        </div>
+        <div class="form-row" style="margin: 0;">
+          <label>Tolerance (±)</label>
+          <input type="number" step="any" min="0" value="${Number.isFinite(+d.tolerance) ? +d.tolerance : 0}" oninput="updateBlock(${i}, {tolerance: parseFloat(this.value)})" />
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Explanation</label>
+        <textarea oninput="updateBlock(${i}, {explanation: this.value})">${escapeHtml(d.explanation || '')}</textarea>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${d.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${d.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview (drag the dial)</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+
+  // ----- Sequence editor -----
+  function renderSequenceEditor(b, i) {
+    const steps = (b.data && b.data.steps) || [];
+    return `
+      <div class="form-row">
+        <label>Prompt (overall)</label>
+        <input value="${escapeHtml((b.data && b.data.prompt) || '')}" oninput="updateBlock(${i}, {prompt: this.value})" />
+      </div>
+      <div class="form-row">
+        <label>Steps</label>
+        <div class="repeater">
+          ${steps.map((s, j) => `
+            <div class="seq-step-row" style="padding: 8px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-sm); margin-bottom: 6px;">
+              <div style="display:flex;gap:6px;margin-bottom:4px;">
+                <input value="${escapeHtml(s.title || '')}" oninput="updateSeqStep(${i}, ${j}, 'title', this.value)" placeholder="Step title" style="flex:1;" />
+                <button class="del" onclick="removeSeqStep(${i}, ${j})">✕</button>
+              </div>
+              <textarea oninput="updateSeqStep(${i}, ${j}, 'body', this.value)" placeholder="Step body (markdown)" style="min-height: 60px;">${escapeHtml(s.body || '')}</textarea>
+              <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
+                <label style="font-size: 11px; color: var(--text-3);">Input type:</label>
+                <select onchange="updateSeqStepInput(${i}, ${j}, this.value)" style="font-size: 11px;">
+                  <option value="" ${!s.input ? 'selected' : ''}>None</option>
+                  <option value="text" ${s.input && s.input.type === 'text' ? 'selected' : ''}>Text answer</option>
+                  <option value="mcq" ${s.input && s.input.type === 'mcq' ? 'selected' : ''}>Multiple choice</option>
+                </select>
+              </div>
+              ${s.input && s.input.type === 'text' ? renderSeqTextInputEditor(i, j, s.input) : ''}
+              ${s.input && s.input.type === 'mcq' ? renderSeqMcqInputEditor(i, j, s.input) : ''}
+            </div>
+          `).join('')}
+          <button class="add" onclick="addSeqStep(${i})">+ Add step</button>
+        </div>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${b.data.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${b.data.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview (click Next to advance)</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  function renderSeqTextInputEditor(i, j, input) {
+    const answers = input.answers || [];
+    return `
+      <div style="margin-top: 4px;">
+        <div style="font-size: 11px; color: var(--text-3); margin-bottom: 2px;">Accepted answers (one per line):</div>
+        <textarea oninput="updateSeqTextAnswers(${i}, ${j}, this.value)" style="min-height: 50px; font-size: 12px;">${escapeHtml(answers.join('\n'))}</textarea>
+      </div>
+    `;
+  }
+  function renderSeqMcqInputEditor(i, j, input) {
+    const opts = input.options || [];
+    return `
+      <div style="margin-top: 4px;">
+        <div class="repeater" style="font-size: 12px;">
+          ${opts.map((o, k) => `
+            <div class="opt-row" style="margin-bottom: 3px;">
+              <button type="button" class="correct-mark ${o.correct ? 'on' : ''}" onclick="updateSeqMcqOpt(${i}, ${j}, ${k}, {correct: !${!!o.correct}})" title="Mark correct">${o.correct ? '✓' : ''}</button>
+              <input type="text" value="${escapeHtml(o.text || '')}" oninput="updateSeqMcqOpt(${i}, ${j}, ${k}, {text: this.value})" placeholder="Option" style="font-size: 12px;" />
+              <button class="del" onclick="updateSeqMcqOpt(${i}, ${j}, ${k}, null)">✕</button>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addSeqMcqOpt(${i}, ${j})" style="font-size: 11px;">+ Add option</button>
+        </div>
+      </div>
+    `;
+  }
+  window.updateSeqStep = (i, j, field, val) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.steps) data.steps = [];
+    if (!data.steps[j]) data.steps[j] = { title: '', body: '' };
+    data.steps[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addSeqStep = (i) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.steps) data.steps = [];
+    data.steps.push({ title: 'New step', body: '' });
+    renderBlocksList();
+  };
+  window.removeSeqStep = (i, j) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.steps) return;
+    data.steps.splice(j, 1);
+    renderBlocksList();
+  };
+  window.updateSeqStepInput = (i, j, type) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.steps || !data.steps[j]) return;
+    if (!type) { data.steps[j].input = null; }
+    else if (type === 'text') { data.steps[j].input = { type: 'text', answers: [] }; }
+    else if (type === 'mcq') { data.steps[j].input = { type: 'mcq', options: [{ text: 'Yes', correct: true }, { text: 'No', correct: false }] }; }
+    state.dirty = true; renderBlocksList();
+  };
+  window.updateSeqTextAnswers = (i, j, val) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.steps || !data.steps[j]) return;
+    if (!data.steps[j].input) data.steps[j].input = { type: 'text', answers: [] };
+    data.steps[j].input.answers = val.split('\n').map(s => s.trim()).filter(Boolean);
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addSeqMcqOpt = (i, j) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.steps || !data.steps[j] || !data.steps[j].input) return;
+    if (!data.steps[j].input.options) data.steps[j].input.options = [];
+    data.steps[j].input.options.push({ text: '', correct: false });
+    renderBlocksList();
+  };
+  window.updateSeqMcqOpt = (i, j, k, patch) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.steps || !data.steps[j] || !data.steps[j].input) return;
+    const opts = data.steps[j].input.options || [];
+    if (patch === null) { opts.splice(k, 1); renderBlocksList(); return; }
+    if (!opts[k]) opts[k] = { text: '', correct: false };
+    if (patch.correct !== undefined) {
+      opts[k].correct = patch.correct;
+      if (patch.correct) opts.forEach((o, m) => { if (m !== k) o.correct = false; });
+    }
+    if (patch.text !== undefined) opts[k].text = patch.text;
+    state.dirty = true; renderEditorHeader();
+  };
+
+  // ----- Connect editor -----
+  function renderConnectEditor(b, i) {
+    const d = b.data || {};
+    const pts = d.points || [];
+    const edges = d.edges || [];
+    return `
+      <div class="form-row">
+        <label>Prompt</label>
+        <input value="${escapeHtml(d.prompt || '')}" oninput="updateBlock(${i}, {prompt: this.value})" />
+      </div>
+      <div class="two-col">
+        <div class="form-row" style="margin: 0;">
+          <label>Canvas width (px)</label>
+          <input type="number" min="200" max="1200" value="${Number.isFinite(+d.canvasWidth) ? +d.canvasWidth : 600}" oninput="updateBlock(${i}, {canvasWidth: parseInt(this.value, 10) || 600})" />
+        </div>
+        <div class="form-row" style="margin: 0;">
+          <label>Canvas height (px)</label>
+          <input type="number" min="150" max="900" value="${Number.isFinite(+d.canvasHeight) ? +d.canvasHeight : 360}" oninput="updateBlock(${i}, {canvasHeight: parseInt(this.value, 10) || 360})" />
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Points (place each on the canvas using x% and y%)</label>
+        <div class="repeater">
+          ${pts.map((p, j) => `
+            <div class="opt-row">
+              <input type="text" value="${escapeHtml(p.id || '')}" oninput="updateConnectPoint(${i}, ${j}, 'id', this.value)" placeholder="ID" style="width: 70px;" />
+              <input type="number" min="0" max="100" value="${Number.isFinite(+p.x) ? +p.x : 50}" oninput="updateConnectPoint(${i}, ${j}, 'x', parseFloat(this.value))" placeholder="x%" style="width: 80px;" title="x %" />
+              <input type="number" min="0" max="100" value="${Number.isFinite(+p.y) ? +p.y : 50}" oninput="updateConnectPoint(${i}, ${j}, 'y', parseFloat(this.value))" placeholder="y%" style="width: 80px;" title="y %" />
+              <input type="text" value="${escapeHtml(p.label || '')}" oninput="updateConnectPoint(${i}, ${j}, 'label', this.value)" placeholder="Label" style="flex:1;" />
+              <button class="del" onclick="removeConnectPoint(${i}, ${j})">✕</button>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addConnectPoint(${i})">+ Add point</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Correct connections (each row: from-id, to-id)</label>
+        <div class="repeater">
+          ${edges.map((e, j) => `
+            <div class="opt-row">
+              <input value="${escapeHtml(e.from || '')}" oninput="updateConnectEdge(${i}, ${j}, 'from', this.value)" placeholder="from" style="width: 100px;" />
+              <span style="color: var(--text-3);">→</span>
+              <input value="${escapeHtml(e.to || '')}" oninput="updateConnectEdge(${i}, ${j}, 'to', this.value)" placeholder="to" style="width: 100px;" />
+              <button class="del" onclick="removeConnectEdge(${i}, ${j})">✕</button>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addConnectEdge(${i})">+ Add edge</button>
+        </div>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${d.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${d.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview (click two points to connect)</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateConnectPoint = (i, j, field, val) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.points) data.points = [];
+    if (!data.points[j]) data.points[j] = { id: '', x: 50, y: 50, label: '' };
+    data.points[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addConnectPoint = (i) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.points) data.points = [];
+    const nextId = String.fromCharCode(65 + (data.points.length % 26));
+    data.points.push({ id: nextId + (data.points.length > 26 ? Math.floor(data.points.length / 26) : ''), x: 50, y: 50, label: nextId });
+    renderBlocksList();
+  };
+  window.removeConnectPoint = (i, j) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.points) return;
+    data.points.splice(j, 1);
+    renderBlocksList();
+  };
+  window.updateConnectEdge = (i, j, field, val) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.edges) data.edges = [];
+    if (!data.edges[j]) data.edges[j] = { from: '', to: '' };
+    data.edges[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addConnectEdge = (i) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.edges) data.edges = [];
+    data.edges.push({ from: '', to: '' });
+    renderBlocksList();
+  };
+  window.removeConnectEdge = (i, j) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.edges) return;
+    data.edges.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Pile editor -----
+  function renderPileEditor(b, i) {
+    const items = (b.data && b.data.items) || [];
+    return `
+      <div class="form-row">
+        <label>Prompt</label>
+        <input value="${escapeHtml((b.data && b.data.prompt) || '')}" oninput="updateBlock(${i}, {prompt: this.value})" placeholder="Drag each item into a pile." />
+      </div>
+      <div class="form-row">
+        <label>Items (each item needs a category: yes / no / maybe)</label>
+        <div class="repeater">
+          ${items.map((it, j) => `
+            <div class="opt-row">
+              <input value="${escapeHtml(it.text || '')}" oninput="updatePileItem(${i}, ${j}, 'text', this.value)" placeholder="Item text" style="flex:1;" />
+              <select onchange="updatePileItem(${i}, ${j}, 'category', this.value)" style="font-size: 11.5px;">
+                <option value="yes"   ${it.category === 'yes'   ? 'selected' : ''}>Yes</option>
+                <option value="no"    ${it.category === 'no'    ? 'selected' : ''}>No</option>
+                <option value="maybe" ${it.category === 'maybe' ? 'selected' : ''}>Maybe</option>
+              </select>
+              <button class="del" onclick="removePileItem(${i}, ${j})">✕</button>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addPileItem(${i})">+ Add item</button>
+        </div>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${b.data.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${b.data.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview (drag items into Yes / No / Maybe)</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updatePileItem = (i, j, field, val) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.items) data.items = [];
+    if (!data.items[j]) data.items[j] = { text: '', category: 'yes' };
+    data.items[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addPileItem = (i) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.items) data.items = [];
+    data.items.push({ text: '', category: 'yes' });
+    renderBlocksList();
+  };
+  window.removePileItem = (i, j) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.items) return;
+    data.items.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Mind map editor -----
+  function renderMindmapEditor(b, i) {
+    const d = b.data || {};
+    const branches = d.branches || [];
+    return `
+      <div class="form-row">
+        <label>Center concept</label>
+        <input value="${escapeHtml(d.center || '')}" oninput="updateBlock(${i}, {center: this.value})" placeholder="e.g. Photosynthesis" />
+      </div>
+      <div class="form-row">
+        <label>Branches (each branch has a label and a list of items)</label>
+        <div class="repeater">
+          ${branches.map((br, j) => `
+            <div style="padding: 8px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-sm); margin-bottom: 6px;">
+              <div style="display:flex;gap:6px;margin-bottom:4px;">
+                <input value="${escapeHtml(br.label || '')}" oninput="updateMindmapBranch(${i}, ${j}, 'label', this.value)" placeholder="Branch label" style="flex:1;" />
+                <button class="del" onclick="removeMindmapBranch(${i}, ${j})">✕</button>
+              </div>
+              <textarea oninput="updateMindmapBranch(${i}, ${j}, 'items', this.value)" placeholder="Items, one per line" style="min-height: 50px; font-size: 12px;">${escapeHtml((br.items || []).join('\n'))}</textarea>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addMindmapBranch(${i})">+ Add branch</button>
+        </div>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateMindmapBranch = (i, j, field, val) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.branches) data.branches = [];
+    if (!data.branches[j]) data.branches[j] = { label: '', items: [] };
+    if (field === 'items') {
+      data.branches[j].items = val.split('\n').map(s => s.trim()).filter(Boolean);
+    } else {
+      data.branches[j][field] = val;
+    }
+    state.dirty = true; renderEditorHeader();
+  };
+  window.addMindmapBranch = (i) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.branches) data.branches = [];
+    data.branches.push({ label: 'New branch', items: [] });
+    renderBlocksList();
+  };
+  window.removeMindmapBranch = (i, j) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.branches) return;
+    data.branches.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Flashcard deck editor -----
+  function renderFlashcardStackEditor(b, i) {
+    const d = b.data || {};
+    const cards = d.cards || [];
+    return `
+      <div class="form-row">
+        <label>Cards (one per line, format: front | back)</label>
+        <textarea oninput="updateFlashcardStack(${i}, this.value)" placeholder="e.g.&#10;Mitochondrion | The organelle responsible for aerobic respiration&#10;Ribosome | The site of protein synthesis" style="min-height: 140px; font-family: 'JetBrains Mono', monospace; font-size: 12px;">${escapeHtml(cards.map(c => (c.front || '') + ' | ' + (c.back || '')).join('\n'))}</textarea>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${d.shuffle ? 'checked' : ''} onchange="updateBlock(${i}, {shuffle: this.checked})" />
+          Show a Shuffle button on the deck
+        </label>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateFlashcardStack = (i, val) => {
+    const data = state.currentLesson.blocks[i].data;
+    data.cards = val.split('\n').map(line => {
+      const idx = line.indexOf('|');
+      if (idx < 0) return { front: line.trim(), back: '' };
+      return { front: line.slice(0, idx).trim(), back: line.slice(idx + 1).trim() };
+    }).filter(c => c.front || c.back);
+    state.dirty = true; renderEditorHeader();
+  };
+
+  // ----- Progress meter editor -----
+  function renderProgressMeterEditor(b, i) {
+    const d = b.data || {};
+    const items = d.items || [];
+    return `
+      <div class="form-row">
+        <label>Title</label>
+        <input value="${escapeHtml(d.title || '')}" oninput="updateBlock(${i}, {title: this.value})" placeholder="How confident are you?" />
+      </div>
+      <div class="form-row">
+        <label>Items (one per line)</label>
+        <textarea oninput="updateProgressMeter(${i}, this.value)" placeholder="e.g.&#10;Define a covalent bond&#10;Draw a dot-and-cross diagram" style="min-height: 100px;">${escapeHtml(items.join('\n'))}</textarea>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateProgressMeter = (i, val) => {
+    const data = state.currentLesson.blocks[i].data;
+    data.items = val.split('\n').map(s => s.trim()).filter(Boolean);
+    state.dirty = true; renderEditorHeader();
+  };
+
+  // ----- Flashcard (single) — add the new `study` toggle -----
+  // Find the existing renderFlashcardEditor or inline the new field.
 
   // ----- Match editor -----
   function renderMatchEditor(b, i) {
@@ -5856,6 +6639,11 @@
     ordering:      (b, i) => renderOrderingEditor(b, i),
     hotspot:       (b, i) => renderHotspotEditor(b, i),
     categorise:    (b, i) => renderCategoriseEditor(b, i),
+    slider:        (b, i) => renderSliderEditor(b, i),
+    dial:          (b, i) => renderDialEditor(b, i),
+    sequence:      (b, i) => renderSequenceEditor(b, i),
+    connect:       (b, i) => renderConnectEditor(b, i),
+    pile:          (b, i) => renderPileEditor(b, i),
     accordion:     (b, i) => renderAccordionEditor(b, i),
     tabs:          (b, i) => renderTabsEditor(b, i),
     compare:       (b, i) => renderCompareEditor(b, i),
@@ -5869,6 +6657,9 @@
     divider:       (b, i) => renderDividerEditor(b, i),
     quote:         (b, i) => renderQuoteEditor(b, i),
     cardset:       (b, i) => renderCardsetEditor(b, i),
+    flashcard_stack: (b, i) => renderFlashcardStackEditor(b, i),
+    progress_meter: (b, i) => renderProgressMeterEditor(b, i),
+    mindmap:         (b, i) => renderMindmapEditor(b, i),
     html:          (b, i) => renderHtmlEditor(b, i),
     denary_binary: (b, i) => renderDenaryBinaryEditor(b, i),
   };
