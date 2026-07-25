@@ -160,6 +160,132 @@
     return `<div class="practice">${content}</div>`;
   }
 
+  // ---------- effects helpers (shared by all practice binders) ----------
+  // The consumer (lesson.html, lesson-creator.html) is responsible for
+  // defining the matching .fx-* keyframe CSS — see the styles in
+  // lesson-render.js's shared header. These helpers only add/remove
+  // the classes (and provide small "celebrate" particle bursts).
+
+  // restart(el, cls) — add a class, force a reflow, re-add it so the
+  // animation re-fires on repeat calls. Used for every fx-* class that
+  // should re-trigger (shake, pop, ripple, etc.).
+  function restart(el, cls) {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+  }
+
+  // oneShot(el, cls) — fire an fx-* class once. Idempotent: a second
+  // call on the same element is a no-op (data-fx-once is set after the
+  // first call so glow/heartbeat-style animations don't keep firing).
+  function oneShot(el, cls) {
+    if (!el) return;
+    if (el.dataset.fxOnce === '1') return;
+    el.dataset.fxOnce = '1';
+    restart(el, cls);
+  }
+
+  // burst(el, opts) — emit a small constellation of particles from the
+  // centre of `el`. Each particle is a <span> that uses the
+  // fx-burst-particle keyframe with a per-element --dx/--dy so the
+  // spread is randomised. Removed on animationend. Used on correct
+  // answers for a satisfying "sparkle" without external assets.
+  function burst(el, opts) {
+    if (!el) return;
+    const cfg = Object.assign({ count: 8, distance: 60, color: 'var(--green)', size: 6 }, opts || {});
+    const rect = el.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    // The particle container is positioned absolutely over `el` so the
+    // --dx/--dy values are in element-local pixels. overflow:hidden on
+    // the wrapper would clip the burst; we use a non-clipped overlay.
+    const layer = document.createElement('div');
+    layer.className = 'fx-burst-layer';
+    layer.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:10;';
+    // Make sure the parent is positioned so the layer lines up.
+    const pos = getComputedStyle(el).position;
+    if (pos === 'static') el.style.position = 'relative';
+    el.appendChild(layer);
+    for (let i = 0; i < cfg.count; i++) {
+      const angle = (Math.PI * 2 * i) / cfg.count + (Math.random() - 0.5) * 0.4;
+      const dist = cfg.distance * (0.6 + Math.random() * 0.8);
+      const p = document.createElement('span');
+      p.className = 'fx-burst-particle';
+      p.style.cssText = `position:absolute;left:${cx - cfg.size/2}px;top:${cy - cfg.size/2}px;width:${cfg.size}px;height:${cfg.size}px;border-radius:50%;background:${cfg.color};--dx:${Math.cos(angle)*dist}px;--dy:${Math.sin(angle)*dist}px;animation-duration:${0.5 + Math.random()*0.4}s;`;
+      layer.appendChild(p);
+      p.addEventListener('animationend', () => p.remove());
+    }
+    // Clean up the layer once all particles finish.
+    setTimeout(() => { if (layer.parentNode) layer.remove(); }, 1200);
+  }
+
+  // confetti(el) — a denser, multi-colour burst for big wins. Used on
+  // the last correct answer in a multi-blank kind, or on a perfect
+  // 1.0 score in any kind.
+  function confetti(el) {
+    if (!el) return;
+    const colors = ['#3FB950', '#58A6FF', '#D29922', '#F85149', '#A371F7'];
+    const rect = el.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const layer = document.createElement('div');
+    layer.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:10;';
+    const pos = getComputedStyle(el).position;
+    if (pos === 'static') el.style.position = 'relative';
+    el.appendChild(layer);
+    for (let i = 0; i < 18; i++) {
+      const angle = (Math.PI * 2 * i) / 18;
+      const dist = 80 + Math.random() * 60;
+      const p = document.createElement('span');
+      p.style.cssText = `position:absolute;left:${cx-3}px;top:${cy-3}px;width:6px;height:6px;background:${colors[i % colors.length]};--cx:${Math.cos(angle)*dist}px;--cy:${Math.sin(angle)*dist}px;--cr:${(Math.random()*720+360)}deg;animation:fx-confetti ${0.8 + Math.random()*0.4}s ease-out forwards;`;
+      layer.appendChild(p);
+      p.addEventListener('animationend', () => p.remove());
+    }
+    setTimeout(() => { if (layer.parentNode) layer.remove(); }, 1500);
+  }
+
+  // slideIn(el, dir) — re-fire the slide-in keyframe. `dir` is 'left'
+  // or 'right'. Used when an item moves to a new position (e.g. a
+  // matched pair landing in the right column).
+  function slideIn(el, dir) {
+    if (!el) return;
+    restart(el, dir === 'right' ? 'fx-slide-in-right' : 'fx-slide-in-left');
+  }
+
+  // celebrate(el, big) — full celebration for a correct answer. Small
+  // for individual items, "big" (with confetti) for perfect scores.
+  function celebrate(el, big) {
+    if (!el) return;
+    restart(el, 'fx-tada');
+    burst(el);
+    if (big) confetti(el);
+  }
+
+  // shake(el, strong) — re-fire the shake keyframe. Strong variant is
+  // used for a more emphatic error (e.g. wrong final answer on the
+  // last attempt before lock).
+  function shake(el, strong) {
+    restart(el, strong ? 'fx-shake-strong' : 'fx-shake');
+  }
+
+  // ripple(el) — re-fire the ripple keyframe (concentric blue ring).
+  // Used on click for any button-y surface (Check, Reset, dot).
+  function ripple(el) { restart(el, 'fx-ripple'); }
+
+  // stagger(container, childSel, base) — assign fx-stagger-in to each
+  // child with an animation-delay that walks the list. Triggers the
+  // initial "list appears" animation for MCQ options, match tiles,
+  // sequence dots, pile items, etc.
+  function stagger(container, childSel, base) {
+    if (!container) return;
+    const children = base ? container.querySelectorAll(childSel) : [];
+    children.forEach((c, i) => {
+      restart(c, 'fx-stagger-in');
+      c.style.animationDelay = (i * 0.04) + 's';
+    });
+  }
+
   // ---------- practice renderers -------------------------------------------
   // Each function returns the static HTML for an interactive block. Event
   // listeners are attached by bindInteractive() once the HTML is in the
@@ -1124,14 +1250,23 @@
 
   function bindMCQ(rootEl, d, blockId, onScore) {
     const opts = rootEl.querySelectorAll('[data-pbid="mcq-opts"] .opt');
+    // Stagger the options in on first render so they don't all pop in
+    // at once. Each option gets an incrementally-larger animation-delay
+    // (set by the `stagger()` helper).
+    stagger(rootEl.querySelector('[data-pbid="mcq-opts"]'), '.opt');
     opts.forEach(btn => {
+      // Ripple on every click so the click feels "pressable" even
+      // before the option registers a selection.
       btn.addEventListener('click', () => {
         if (btn.classList.contains('correct') || btn.classList.contains('wrong')) return;
+        ripple(btn);
         if (d.multi) {
           btn.classList.toggle('selected');
+          restart(btn, 'fx-pop');
         } else {
           opts.forEach(o => o.classList.remove('selected'));
           btn.classList.add('selected');
+          restart(btn, 'fx-pop');
         }
         // Live feedback: if the student just picked a wrong option in
         // single-answer mode, shake it and show its per-option feedback
@@ -1141,10 +1276,7 @@
           const idx = parseInt(btn.dataset.idx, 10);
           const opt = (d.options || [])[idx] || {};
           if (!opt.correct) {
-            // fx-shake — restart the animation by removing + reflowing.
-            btn.classList.remove('fx-shake');
-            void btn.offsetWidth;
-            btn.classList.add('fx-shake');
+            shake(btn);
             if (opt.feedback) {
               showFeedback(rootEl, `<b>Hint:</b> ${escapeHtml(opt.feedback)}`, 'info');
             }
@@ -1156,9 +1288,10 @@
     });
     const check = rootEl.querySelector('[data-pb="check"]');
     const reset = rootEl.querySelector('[data-pb="reset"]');
+    ripple(check); // initial pressability hint
     check.addEventListener('click', () => {
       const sel = [...opts].map((o, i) => o.classList.contains('selected') ? i : -1).filter(i => i >= 0);
-      if (!sel.length) { showFeedback(rootEl, 'Pick an option first.', 'info'); return; }
+      if (!sel.length) { showFeedback(rootEl, 'Pick an option first.', 'info'); shake(check, true); return; }
       const isMulti = !!d.multi;
       const correctIdxs = (d.options || []).map((o, i) => o.correct ? i : -1).filter(i => i >= 0);
       const right = isMulti
@@ -1174,15 +1307,29 @@
       let extra = '';
       if (wrongSel) extra = `<div style="margin-top:6px;"><b>${escapeHtml((d.options || [])[wrongSel].text)}:</b> ${escapeHtml((d.options || [])[wrongSel].feedback || '')}</div>`;
       if (right) {
+        // Celebration on the correct option(s). Each correct option
+        // gets its own little burst; if exactly one is correct we also
+        // confetti the wrapper for a big "you got it" moment.
+        opts.forEach((o, i) => {
+          if (o.classList.contains('correct')) celebrate(o, false);
+        });
+        if (!isMulti) {
+          const correctBtn = [...opts].find(o => o.classList.contains('correct'));
+          if (correctBtn) burst(correctBtn, { count: 12, distance: 70 });
+        }
         showFeedback(rootEl, `✓ Correct!${d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''}${extra}`, 'ok');
       } else {
+        // Wrong — shake every wrongly-picked option for emphasis.
+        opts.forEach((o, i) => {
+          if (o.classList.contains('wrong')) shake(o, true);
+        });
         showFeedback(rootEl, `✗ Not quite.${d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''}${extra}`, 'bad');
       }
       check.disabled = true; reset.hidden = (d.allowRetry === false);
       if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
     });
     reset.addEventListener('click', () => {
-      opts.forEach(o => o.classList.remove('selected', 'correct', 'wrong'));
+      opts.forEach(o => o.classList.remove('selected', 'correct', 'wrong', 'fx-shake', 'fx-shake-strong', 'fx-pop', 'fx-ripple'));
       clearFeedback(rootEl); setCheckEnabled(rootEl, true);
     });
   }
@@ -1196,10 +1343,14 @@
     // after a pick so the student can change their mind.
     const instant = !!d.instantMode;
     if (instant && check) check.hidden = true;
+    // Stagger the two options in.
+    stagger(rootEl.querySelector('[data-pbid="tf-opts"]'), '.opt');
     opts.forEach(btn => btn.addEventListener('click', () => {
       if (btn.classList.contains('correct') || btn.classList.contains('wrong')) return;
+      ripple(btn);
       opts.forEach(o => o.classList.remove('selected'));
       btn.classList.add('selected');
+      restart(btn, 'fx-pop');
       if (instant) {
         // Score immediately, no Check button.
         const expected = d.answer === true ? 't' : 'f';
@@ -1209,24 +1360,29 @@
           if (o.dataset.idx === expected) o.classList.add('correct');
           else o.classList.add('wrong');
         });
-        if (!right) {
-          btn.classList.remove('fx-shake');
-          void btn.offsetWidth;
-          btn.classList.add('fx-shake');
+        if (right) {
+          celebrate(btn);
+          showFeedback(rootEl,
+            `✓ Correct!${d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''}`,
+            'ok'
+          );
+        } else {
+          shake(btn, true);
+          showFeedback(rootEl,
+            `✗ Not quite.${d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''}`,
+            'bad'
+          );
         }
-        showFeedback(rootEl,
-          `${right ? '✓ Correct!' : '✗ Not quite.'}${d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''}`,
-          right ? 'ok' : 'bad'
-        );
         if (reset) reset.hidden = (d.allowRetry === false);
         if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
       }
     }));
     // In instant mode the Check button is hidden; skip wiring it.
     if (!instant) {
+      if (check) ripple(check);
       check.addEventListener('click', () => {
         const sel = [...opts].find(o => o.classList.contains('selected'));
-        if (!sel) { showFeedback(rootEl, 'Pick true or false first.', 'info'); return; }
+        if (!sel) { showFeedback(rootEl, 'Pick true or false first.', 'info'); shake(check, true); return; }
         const expected = d.answer === true ? 't' : 'f';
         const right = sel.dataset.idx === expected;
         opts.forEach(o => {
@@ -1234,24 +1390,24 @@
           if (o.dataset.idx === expected) o.classList.add('correct');
           else o.classList.add('wrong');
         });
-        if (!right) {
-          sel.classList.remove('fx-shake');
-          void sel.offsetWidth;
-          sel.classList.add('fx-shake');
+        if (right) {
+          celebrate(sel);
+        } else {
+          shake(sel, true);
         }
         showFeedback(rootEl, `${right ? '✓ Correct!' : '✗ Not quite.'}${d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''}`, right ? 'ok' : 'bad');
         check.disabled = true; reset.hidden = (d.allowRetry === false);
         if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
       });
       reset.addEventListener('click', () => {
-        opts.forEach(o => o.classList.remove('selected', 'correct', 'wrong'));
+        opts.forEach(o => o.classList.remove('selected', 'correct', 'wrong', 'fx-shake', 'fx-shake-strong', 'fx-pop'));
         clearFeedback(rootEl); setCheckEnabled(rootEl, true);
       });
     } else {
       // Reset still works in instant mode.
       if (reset) {
         reset.addEventListener('click', () => {
-          opts.forEach(o => o.classList.remove('selected', 'correct', 'wrong'));
+          opts.forEach(o => o.classList.remove('selected', 'correct', 'wrong', 'fx-shake', 'fx-shake-strong', 'fx-pop'));
           clearFeedback(rootEl);
         });
       }
@@ -1263,10 +1419,21 @@
     const check = rootEl.querySelector('[data-pb="check"]');
     const reset = rootEl.querySelector('[data-pb="reset"]');
     const answers = (d.answers || []).map(normText);
+    // Heartbeat on the input while it's empty — gentle nudge to type
+    // something. The animation respects prefers-reduced-motion via the
+    // shared media query in the consumer's CSS.
+    if (input) input.classList.add('fx-heartbeat');
+    if (check) ripple(check);
     check.addEventListener('click', () => {
       const got = normText(input.value);
-      if (!got) { showFeedback(rootEl, 'Type an answer first.', 'info'); return; }
+      if (!got) { showFeedback(rootEl, 'Type an answer first.', 'info'); shake(check, true); return; }
       const right = answers.includes(got);
+      if (input) input.classList.remove('fx-heartbeat');
+      if (right) {
+        celebrate(input || rootEl, true);
+      } else {
+        if (input) shake(input, true);
+      }
       showFeedback(rootEl,
         `${right ? '✓ Correct!' : `✗ Not quite — the answer was <code>${escapeHtml((d.answers || [])[0] || '')}</code>.`}` +
         (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
@@ -1277,6 +1444,8 @@
     });
     reset.addEventListener('click', () => {
       input.disabled = false; input.value = '';
+      input.classList.remove('fx-shake', 'fx-shake-strong');
+      input.classList.add('fx-heartbeat');
       clearFeedback(rootEl); setCheckEnabled(rootEl, true);
     });
   }
@@ -1388,6 +1557,10 @@
     const rightBtns = rootEl.querySelectorAll('.match-tile[data-side="R"]');
     const check = rootEl.querySelector('[data-pb="check"]');
     const reset = rootEl.querySelector('[data-pb="reset"]');
+    // Stagger left and right tiles in separately so they slide in from
+    // their respective sides. Looks like a little "lineup" entrance.
+    stagger(rootEl.querySelector('.match-col:nth-child(1)'), '.match-tile');
+    stagger(rootEl.querySelector('.match-col:nth-child(2)'), '.match-tile');
     let pL = null, pR = null;
     function clearSel() {
       [...leftBtns, ...rightBtns].forEach(x => x.classList.remove('selected'));
@@ -1398,19 +1571,27 @@
       const r = parseInt(pR.dataset.idx, 10);
       pL.dataset.paired = String(r);
       pR.dataset.paired = String(l);
+      // Slide-in the pair as a confirmation that the link was made.
+      slideIn(pL, 'right');
+      slideIn(pR, 'left');
       clearSel();
       pL = null; pR = null;
     }
     leftBtns.forEach(b => b.addEventListener('click', () => {
       if (b.classList.contains('correct') || b.classList.contains('wrong')) return;
       leftBtns.forEach(x => x.classList.remove('selected'));
-      b.classList.add('selected'); pL = b; pairUp();
+      b.classList.add('selected');
+      restart(b, 'fx-pop');
+      pL = b; pairUp();
     }));
     rightBtns.forEach(b => b.addEventListener('click', () => {
       if (b.classList.contains('correct') || b.classList.contains('wrong')) return;
       rightBtns.forEach(x => x.classList.remove('selected'));
-      b.classList.add('selected'); pR = b; pairUp();
+      b.classList.add('selected');
+      restart(b, 'fx-pop');
+      pR = b; pairUp();
     }));
+    if (check) ripple(check);
     check.addEventListener('click', () => {
       let correct = 0;
       leftBtns.forEach(lb => {
@@ -1428,6 +1609,21 @@
         else rb.classList.add('muted');
       });
       const allRight = correct === pairs.length && pairs.length > 0;
+      if (allRight) {
+        // Big celebration on perfect match.
+        confetti(rootEl);
+        [...leftBtns, ...rightBtns].forEach(t => {
+          if (t.classList.contains('correct')) burst(t, { count: 6, distance: 40 });
+        });
+      } else {
+        // Shake each wrong pair.
+        leftBtns.forEach(lb => {
+          if (lb.classList.contains('wrong')) shake(lb, true);
+        });
+        rightBtns.forEach(rb => {
+          if (rb.classList.contains('wrong')) shake(rb, true);
+        });
+      }
       showFeedback(rootEl, `${allRight ? '✓ All paired correctly!' : `You got ${correct} of ${pairs.length} right.`}`,
         allRight ? 'ok' : 'bad');
       check.disabled = true; reset.hidden = (d.allowRetry === false);
@@ -1435,7 +1631,7 @@
     });
     reset.addEventListener('click', () => {
       [...leftBtns, ...rightBtns].forEach(b => {
-        b.classList.remove('selected', 'correct', 'wrong', 'muted');
+        b.classList.remove('selected', 'correct', 'wrong', 'muted', 'fx-shake', 'fx-shake-strong', 'fx-pop', 'fx-slide-in-left', 'fx-slide-in-right');
         delete b.dataset.paired;
       });
       pL = null; pR = null;
@@ -1447,6 +1643,8 @@
     const list = rootEl.querySelector('[data-pbid="order-list"]');
     const check = rootEl.querySelector('[data-pb="check"]');
     const reset = rootEl.querySelector('[data-pb="reset"]');
+    // Stagger the items in on first render.
+    stagger(list, '.order-item');
     let dragEl = null;
     list.querySelectorAll('.order-item').forEach(item => {
       item.addEventListener('dragstart', (e) => {
@@ -1462,8 +1660,11 @@
         const rect = item.getBoundingClientRect();
         const after = (e.clientY - rect.top) > rect.height / 2;
         item.parentNode.insertBefore(dragEl, after ? item.nextSibling : item);
+        // Quick pop on the just-moved item so the user sees the move.
+        restart(dragEl, 'fx-pop');
       });
     });
+    if (check) ripple(check);
     check.addEventListener('click', () => {
       const items = [...list.querySelectorAll('.order-item')];
       const correct = (d.items || []).map(i => i.id);
@@ -1474,6 +1675,15 @@
       items.forEach((it, i) => {
         it.classList.add(correct[i] === it.dataset.id ? 'correct-pos' : 'wrong-pos');
       });
+      if (allRight) {
+        // Big celebration: confetti from the list, burst from each item.
+        confetti(list);
+        items.forEach(it => burst(it, { count: 5, distance: 30 }));
+      } else {
+        items.forEach((it, i) => {
+          if (it.classList.contains('wrong-pos')) shake(it, true);
+        });
+      }
       showFeedback(rootEl,
         `${allRight ? '✓ Correct order!' : `You got ${correctCount} of ${total} in the right place.`}` +
         (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
@@ -1510,6 +1720,7 @@
         if (active === btn) { clearActive(); return; }
         clearActive();
         active = btn; btn.classList.add('selected');
+        ripple(btn);
       });
     });
     buckets.forEach(b => {
@@ -1520,14 +1731,17 @@
         active.classList.remove('selected');
         // Move the item into the bucket body.
         body.appendChild(active);
+        // Pop on landing.
+        restart(active, 'fx-pop');
         active = null;
       });
     });
+    if (check) ripple(check);
     check.addEventListener('click', () => {
       // Anything still in the item pool is unplaced — score as wrong.
       const placed = [...rootEl.querySelectorAll('.cat-item')];
       const inPool = [...itemPool.querySelectorAll('.cat-item')];
-      if (!placed.length) { showFeedback(rootEl, 'Place each item into a category first.', 'info'); return; }
+      if (!placed.length) { showFeedback(rootEl, 'Place each item into a category first.', 'info'); shake(check, true); return; }
       let correct = 0;
       placed.forEach(btn => {
         const expected = parseInt(btn.dataset.correct, 10);
@@ -1540,6 +1754,7 @@
       inPool.forEach(btn => {
         if (!btn.classList.contains('correct') && !btn.classList.contains('wrong')) {
           btn.classList.add('wrong');
+          shake(btn, true);
         }
       });
       buckets.forEach(b => {
@@ -1548,6 +1763,14 @@
       });
       const total = items.length;
       const allRight = correct === total;
+      if (allRight) {
+        confetti(rootEl);
+        placed.forEach(p => burst(p, { count: 5, distance: 30 }));
+      } else {
+        placed.forEach(p => {
+          if (p.classList.contains('wrong')) shake(p, true);
+        });
+      }
       showFeedback(rootEl,
         (allRight ? '✓ All sorted correctly!' : `You got ${correct} of ${total} in the right category.`),
         allRight ? 'ok' : 'bad'
@@ -1574,6 +1797,12 @@
     const img = wrap.querySelector('img');
     const dots = [...wrap.querySelectorAll('.dot')];
     const hs = d.hotspots || [];
+    // Float the dots gently so the image feels "alive" before the
+    // student clicks anywhere.
+    dots.forEach((d, i) => {
+      restart(d, 'fx-float');
+      d.style.animationDelay = (i * 0.2) + 's';
+    });
     wrap.addEventListener('click', (e) => {
       if (e.target.closest('.dot')) return;
       const rect = img.getBoundingClientRect();
@@ -1587,8 +1816,14 @@
       });
       dots.forEach((dot, i) => {
         dot.style.display = '';
-        if (i === best && hs[i].correct) dot.style.background = 'var(--green-dim)';
-        else if (i === best) dot.style.background = 'var(--red-dim)';
+        dot.classList.remove('fx-float');
+        if (i === best && hs[i].correct) {
+          dot.style.background = 'var(--green-dim)';
+          celebrate(dot);
+        } else if (i === best) {
+          dot.style.background = 'var(--red-dim)';
+          shake(dot, true);
+        }
       });
       const correct = best >= 0 && hs[best].correct;
       const labels = hs.map((h, i) => `<div><b>${i + 1}.</b> ${escapeHtml(h.label || '')} ${h.correct ? '<span style="color:var(--green);">(correct)</span>' : ''}</div>`).join('');
@@ -1615,6 +1850,8 @@
     const bitButtons = [...bitsWrap.querySelectorAll('.db-bit')];
     const check = rootEl.querySelector('[data-pb="check"]');
     const reset = rootEl.querySelector('[data-pb="reset"]');
+    // Stagger the bits in so they appear one after the other on mount.
+    stagger(bitsWrap, '.db-bit');
     bitButtons.forEach(btn => {
       btn.addEventListener('click', () => {
         // Locked once the student has Checked — Try-again resets.
@@ -1624,8 +1861,11 @@
         btn.setAttribute('aria-pressed', next ? 'true' : 'false');
         const valEl = btn.querySelector('.db-bit-val');
         if (valEl) valEl.textContent = next ? '1' : '0';
+        // Bounce on toggle so the bit feels physical.
+        restart(btn, 'fx-bounce');
       });
     });
+    if (check) ripple(check);
     check.addEventListener('click', () => {
       let total = 0;
       bitButtons.forEach(btn => {
@@ -1642,6 +1882,17 @@
         else if (gotOn) btn.classList.add('wrong');
         // unset bits that match (expected 0, got 0) just stay neutral
       });
+      if (right) {
+        // Celebration: confetti the wrapper, burst each correct bit.
+        confetti(rootEl);
+        bitButtons.forEach(btn => {
+          if (btn.classList.contains('correct')) burst(btn, { count: 4, distance: 24 });
+        });
+      } else {
+        bitButtons.forEach(btn => {
+          if (btn.classList.contains('wrong')) shake(btn, true);
+        });
+      }
       showFeedback(rootEl,
         (right ? '✓ Correct!' : `✗ Not quite — the answer was <code>${escapeHtml(expected)}</code> (denary ${denary}).`) +
         (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
@@ -1672,6 +1923,11 @@
     const check = rootEl.querySelector('[data-pb="check"]');
     const reset = rootEl.querySelector('[data-pb="reset"]');
     if (!wrap || !handle) return;
+    // Stagger reveal the slider sub-elements.
+    if (handle) oneShot(handle, 'fx-fade-up');
+    if (valueEl) oneShot(valueEl, 'fx-fade-up');
+    if (check) ripple(check);
+    if (reset) ripple(reset);
     const min = parseFloat(wrap.dataset.min);
     const max = parseFloat(wrap.dataset.max);
     const correct = parseFloat(wrap.dataset.correct);
@@ -1700,9 +1956,11 @@
       handle.setAttribute('aria-valuenow', String(current));
       // Live tolerance feedback: green dot when in the band, neutral otherwise.
       const inBand = Math.abs(current - correct) <= tolerance;
+      const wasInBand = handle.classList.contains('slider-in-band');
       if (inBand) {
         handle.classList.add('slider-in-band');
         handle.classList.remove('slider-out-band');
+        if (!wasInBand) oneShot(handle, 'fx-pulse');
       } else {
         handle.classList.remove('slider-in-band');
         handle.classList.add('slider-out-band');
@@ -1752,6 +2010,13 @@
         (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
         right ? 'ok' : 'bad'
       );
+      // Effects: celebrate correct, shake wrong.
+      if (right) {
+        celebrate(handle, false);
+        burst(handle, { count: 8, spread: 0.5, distance: 60 });
+      } else {
+        shake(handle, true);
+      }
       check.disabled = true; reset.hidden = (d.allowRetry === false);
       if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
     });
@@ -1760,6 +2025,7 @@
       fill.classList.remove('correct', 'wrong');
       if (tick) tick.style.opacity = '0.18';
       setValue(min + range / 2);
+      oneShot(handle, 'fx-pop');
       clearFeedback(rootEl); setCheckEnabled(rootEl, true);
     });
   }
@@ -1774,6 +2040,10 @@
     const check = rootEl.querySelector('[data-pb="check"]');
     const reset = rootEl.querySelector('[data-pb="reset"]');
     if (!wrap || !needle) return;
+    if (svg) oneShot(svg, 'fx-fade-up');
+    if (valueEl) oneShot(valueEl, 'fx-fade-up');
+    if (check) ripple(check);
+    if (reset) ripple(reset);
     const min = parseFloat(wrap.dataset.min);
     const max = parseFloat(wrap.dataset.max);
     const correct = parseFloat(wrap.dataset.correct);
@@ -1859,12 +2129,19 @@
         (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
         right ? 'ok' : 'bad'
       );
+      if (right) {
+        celebrate(svg, false);
+        burst(svg, { count: 10, spread: 1, distance: 70 });
+      } else {
+        shake(svg, true);
+      }
       check.disabled = true; reset.hidden = (d.allowRetry === false);
       if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
     });
     reset.addEventListener('click', () => {
       needle.classList.remove('correct', 'wrong');
       setValue(min + range * 0.25);
+      oneShot(needle, 'fx-pop');
       clearFeedback(rootEl); setCheckEnabled(rootEl, true);
     });
   }
@@ -1879,6 +2156,12 @@
     const checkBtn = rootEl.querySelector('[data-pb="check"]');
     const reset = rootEl.querySelector('[data-pb="reset"]');
     if (!steps.length || !prevBtn || !nextBtn || !checkBtn) return;
+    // Stagger reveal dots + first step.
+    if (dots.length) stagger(rootEl.querySelector('[data-pbid="seq-dots"]'), '.seq-dot', 60);
+    if (prevBtn) ripple(prevBtn);
+    if (nextBtn) ripple(nextBtn);
+    if (checkBtn) ripple(checkBtn);
+    if (reset) ripple(reset);
     let cur = 0;
     const stepDefs = d.steps || [];
     function show(i) {
@@ -1893,7 +2176,10 @@
       nextBtn.hidden = isLast;
       checkBtn.hidden = !isLast;
     }
-    prevBtn.addEventListener('click', () => show(cur - 1));
+    prevBtn.addEventListener('click', () => {
+      show(cur - 1);
+      slideIn(steps[cur], 'left');
+    });
     nextBtn.addEventListener('click', () => {
       // Light feedback on advance.
       const dot = dots[cur];
@@ -1902,6 +2188,7 @@
         setTimeout(() => dot.classList.remove('fx-pop'), 300);
       }
       show(cur + 1);
+      slideIn(steps[cur], 'right');
     });
     // MCQ inside a step: single-select option.
     rootEl.querySelectorAll('.seq-mcq').forEach(mcq => {
@@ -1910,6 +2197,7 @@
         if (o.classList.contains('correct') || o.classList.contains('wrong')) return;
         opts.forEach(x => x.classList.remove('selected'));
         o.classList.add('selected');
+        oneShot(o, 'fx-pop');
       }));
     });
     checkBtn.addEventListener('click', () => {
@@ -1925,8 +2213,10 @@
           const answers = (input.answers || []).map(normText);
           if (got && answers.includes(got)) {
             el.classList.add('correct'); el.classList.remove('wrong'); correct++;
+            oneShot(el, 'fx-tada');
           } else {
             el.classList.add('wrong'); el.classList.remove('correct');
+            shake(el, true);
           }
           el.disabled = true;
         } else if (input.type === 'mcq') {
@@ -1940,6 +2230,11 @@
             if (o.dataset.correct === 'true') o.classList.add('correct');
             else if (o === sel) o.classList.add('wrong');
           });
+          if (expected) {
+            oneShot(sel, 'fx-tada');
+          } else if (sel) {
+            shake(sel, true);
+          }
           if (expected) correct++;
         }
       });
@@ -1950,6 +2245,12 @@
         allRight ? '✓ Nice work — you\'ve worked through the steps.' : `You got ${correct} of ${total} correct.`,
         allRight ? 'ok' : 'bad'
       );
+      if (allRight) {
+        celebrate(rootEl, true);
+        confetti(rootEl);
+      } else {
+        shake(rootEl, false);
+      }
       checkBtn.disabled = true; reset.hidden = (d.allowRetry === false);
       if (onScore) onScore(blockId, correct, total);
     });
@@ -1977,6 +2278,10 @@
     const check = rootEl.querySelector('[data-pb="check"]');
     const reset = rootEl.querySelector('[data-pb="reset"]');
     if (!wrap || !canvas || !svg || !edgesG) return;
+    // Stagger reveal the points.
+    if (canvas) stagger(canvas, '.connect-pt', 50);
+    if (check) ripple(check);
+    if (reset) ripple(reset);
     const points = d.points || [];
     const correctEdges = (d.edges || []).map(e => [e.from, e.to].sort().join('|'));
     let firstPick = null;
@@ -2079,6 +2384,19 @@
         allRight ? '✓ All connections correct!' : `You got ${right} connection${right === 1 ? '' : 's'} right.`,
         allRight ? 'ok' : 'bad'
       );
+      // Effects: shake wrong points, celebrate correct.
+      drawn.forEach((e, i) => {
+        const isCorrect = correctEdges.includes([e.a, e.b].sort().join('|'));
+        if (isCorrect) {
+          oneShot(e.el, 'fx-tada');
+        } else {
+          shake(e.el, true);
+        }
+      });
+      if (allRight) {
+        celebrate(canvas, true);
+        confetti(canvas);
+      }
       // Lock the points from further interaction.
       canvas.querySelectorAll('.connect-pt').forEach(p => p.classList.add('correct', 'wrong'));
       check.disabled = true; reset.hidden = (d.allowRetry === false);
@@ -2090,6 +2408,7 @@
       canvas.querySelectorAll('.connect-pt').forEach(p => p.classList.remove('selected', 'correct', 'wrong'));
       edgesG.innerHTML = '';
       if (countEl) countEl.textContent = '0';
+      oneShot(canvas, 'fx-fade-up');
       clearFeedback(rootEl); setCheckEnabled(rootEl, true);
     });
   }
@@ -2103,6 +2422,11 @@
     const check = rootEl.querySelector('[data-pb="check"]');
     const reset = rootEl.querySelector('[data-pb="reset"]');
     if (!pool) return;
+    // Stagger reveal: items in pool, then buckets.
+    stagger(pool, '.pile-item', 50);
+    stagger(rootEl, '.pile-bucket', 80);
+    if (check) ripple(check);
+    if (reset) ripple(reset);
     // Make the pool a drop target too (so items can be moved back).
     function updateCounts() {
       buckets.forEach(b => {
@@ -2159,8 +2483,14 @@
         const bucket = item.closest('.pile-bucket');
         const got = bucket ? bucket.dataset.bucket : null;
         item.classList.remove('selected');
-        if (got === expected) { item.classList.add('correct'); correct++; }
-        else { item.classList.add('wrong'); }
+        if (got === expected) {
+          item.classList.add('correct');
+          oneShot(item, 'fx-tada');
+          correct++;
+        } else {
+          item.classList.add('wrong');
+          shake(item, true);
+        }
       });
       const total = items.length;
       const allRight = correct === total;
@@ -2172,6 +2502,12 @@
         allRight ? '✓ All sorted correctly!' : `You got ${correct} of ${total} in the right pile.`,
         allRight ? 'ok' : 'bad'
       );
+      if (allRight) {
+        celebrate(rootEl, true);
+        confetti(rootEl);
+      } else if (correct > 0) {
+        burst(rootEl, { count: 12, spread: 0.8, distance: 80 });
+      }
       check.disabled = true; reset.hidden = (d.allowRetry === false);
       if (onScore) onScore(blockId, correct, total);
     });
@@ -2182,6 +2518,7 @@
       items.forEach(it => {
         it.classList.remove('correct', 'wrong', 'fx-pop');
         poolBody.appendChild(it);
+        oneShot(it, 'fx-pop');
       });
       buckets.forEach(b => b.classList.remove('correct', 'wrong', 'dragover'));
       updateCounts();
@@ -2206,6 +2543,12 @@
     const next = el.querySelector('[data-fcdeck="next"]');
     const flip = el.querySelector('[data-fcdeck="flip"]');
     const shuffle = el.querySelector('[data-fcdeck="shuffle"]');
+    // Initial entrance effect on the whole deck.
+    oneShot(el, 'fx-fade-up');
+    if (prev) ripple(prev);
+    if (next) ripple(next);
+    if (flip) ripple(flip);
+    if (shuffle) ripple(shuffle);
     function render() {
       const idx = order[pos];
       const c = cards[idx];
@@ -2237,6 +2580,9 @@
         [order[i], order[j]] = [order[j], order[i]];
       }
       pos = 0; flipped = false; render();
+      // Burst + confetti for the "reshuffle" win.
+      burst(el, { count: 16, spread: 1, distance: 90 });
+      confetti(el);
     });
     render();
   }
@@ -2248,11 +2594,18 @@
     const fill = el.querySelector('[data-pbid="prog-meter-fill"]');
     const countEl = el.querySelector('[data-pbid="prog-meter-count"]');
     const rows = [...el.querySelectorAll('.prog-meter-row')];
+    // Stagger rows on mount + initial fade-up.
+    if (el) oneShot(el, 'fx-fade-up');
+    stagger(el, '.prog-meter-row', 60);
     function update() {
       const total = rows.length;
       const got = el.querySelectorAll('.prog-meter-pill[data-state="got"].active').length;
       if (countEl) countEl.textContent = String(got);
       if (fill) fill.style.width = total ? (got / total * 100) + '%' : '0%';
+      // Celebrate when the bar fills.
+      if (total > 0 && got === total && fill) {
+        oneShot(fill, 'fx-glow-pulse');
+      }
     }
     rows.forEach(row => {
       const pills = [...row.querySelectorAll('.prog-meter-pill')];
@@ -2266,6 +2619,10 @@
           void pill.offsetWidth;
           pill.classList.add('fx-pop');
           setTimeout(() => pill.classList.remove('fx-pop'), 300);
+          // Mini burst at the pill location on "Got it".
+          if (pill.dataset.state === 'got') {
+            burst(pill, { count: 6, spread: 0.6, distance: 40 });
+          }
           update();
         });
       });
@@ -2278,9 +2635,17 @@
   // so the lines are placed in those user units.
   function wireMindMap(el) {
     if (!el) return;
-    // No interactive behaviour needed for v1; the SVG is rendered
-    // fully by BLOCK_DEFS.mindmap.render. Kept as a hook for future
-    // interactive variants (e.g. click a branch to expand).
+    // Stagger reveal the branches on mount.
+    oneShot(el, 'fx-fade-up');
+    stagger(el, '.mindmap-branch', 80);
+    // Branches become clickable — pulse on hover, expand reveal on click.
+    const branches = [...el.querySelectorAll('.mindmap-branch')];
+    branches.forEach(branch => {
+      branch.addEventListener('click', () => {
+        branch.classList.toggle('mindmap-branch-expanded');
+        oneShot(branch, 'fx-pop');
+      });
+    });
   }
 
   // wireFlashcardStudy — for flashcard blocks with `study: true`, show
@@ -2294,17 +2659,26 @@
     const controls = wrap.querySelector('.flashcard-study');
     const result = wrap.querySelector('.flashcard-study-result');
     if (!card || !controls || !result) return;
+    // Ripple on the study buttons.
+    controls.querySelectorAll('.fcstudy-btn').forEach(btn => ripple(btn));
+    oneShot(card, 'fx-fade-up');
     let got = 0, miss = 0;
     const updateResult = () => {
       result.hidden = false;
       const total = got + miss;
       const pct = total ? Math.round((got / total) * 100) : 0;
       result.textContent = `Score: ${got} / ${total} (${pct}%)`;
+      // Glow the result when score is 100%.
+      if (total > 0 && got === total) {
+        oneShot(result, 'fx-tada');
+        confetti(card);
+      }
     };
     card.addEventListener('click', () => {
       // Show the study controls the first time the card is flipped.
       if (card.classList.contains('flipped')) {
         controls.hidden = false;
+        oneShot(controls, 'fx-slide-in-left');
       } else {
         controls.hidden = true;
       }
@@ -2312,8 +2686,13 @@
     controls.querySelectorAll('.fcstudy-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (btn.dataset.fcstudy === 'got') got++;
-        else miss++;
+        if (btn.dataset.fcstudy === 'got') {
+          got++;
+          // Mini burst on "Got it".
+          burst(btn, { count: 8, spread: 0.7, distance: 50 });
+        } else {
+          miss++;
+        }
         // Pop the button for satisfying feedback.
         btn.classList.remove('fx-pop');
         void btn.offsetWidth;

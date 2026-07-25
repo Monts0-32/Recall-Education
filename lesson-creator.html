@@ -1428,11 +1428,33 @@
     @keyframes fx-glow    { 0%{box-shadow:0 0 0 0 rgba(63,185,80,.55)} 100%{box-shadow:0 0 0 14px rgba(63,185,80,0)} }
     @keyframes fx-fade-up { 0%{opacity:0;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)} }
     @keyframes fx-pulse   { 0%{transform:scale(1)} 50%{transform:scale(1.05)} 100%{transform:scale(1)} }
+    @keyframes fx-slide-in-left  { 0%{opacity:0;transform:translateX(-16px)} 100%{opacity:1;transform:translateX(0)} }
+    @keyframes fx-slide-in-right { 0%{opacity:0;transform:translateX(16px)} 100%{opacity:1;transform:translateX(0)} }
+    @keyframes fx-bounce  { 0%{transform:translateY(0)} 30%{transform:translateY(-10px)} 60%{transform:translateY(3px)} 100%{transform:translateY(0)} }
+    @keyframes fx-ripple  { 0%{box-shadow:0 0 0 0 rgba(88,166,255,0.4)} 100%{box-shadow:0 0 0 18px rgba(88,166,255,0)} }
+    @keyframes fx-glow-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(63,185,80,0.5)} 50%{box-shadow:0 0 0 6px rgba(63,185,80,0.2)} }
+    @keyframes fx-shake-strong { 10%,90%{transform:translateX(-3px)} 20%,80%{transform:translateX(4px)} 30%,50%,70%{transform:translateX(-7px)} 40%,60%{transform:translateX(7px)} }
+    @keyframes fx-burst-particle { 0%{transform:translate(0,0) scale(0.6);opacity:1} 100%{transform:translate(var(--dx,40px),var(--dy,-30px)) scale(1.4);opacity:0} }
+    @keyframes fx-tada { 0%{transform:scale(1) rotate(0)} 10%,20%{transform:scale(0.95) rotate(-3deg)} 30%,50%,70%,90%{transform:scale(1.05) rotate(3deg)} 40%,60%,80%{transform:scale(1.05) rotate(-3deg)} 100%{transform:scale(1) rotate(0)} }
+    @keyframes fx-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+    @keyframes fx-heartbeat { 0%,100%{transform:scale(1)} 14%{transform:scale(1.15)} 28%{transform:scale(1)} 42%{transform:scale(1.15)} 70%{transform:scale(1)} }
+    @keyframes fx-confetti { 0%{transform:translate(0,0) rotate(0);opacity:1} 100%{transform:translate(var(--cx,80px),var(--cy,160px)) rotate(var(--cr,720deg));opacity:0} }
+    @keyframes fx-stagger-in { 0%{opacity:0;transform:translateY(6px) scale(0.96)} 100%{opacity:1;transform:translateY(0) scale(1)} }
     .fx-pop     { animation: fx-pop .3s cubic-bezier(.34,1.56,.64,1); }
     .fx-shake   { animation: fx-shake .4s; }
     .fx-glow    { animation: fx-glow .8s ease-out; }
     .fx-fade-up { animation: fx-fade-up .3s ease-out both; }
     .fx-pulse   { animation: fx-pulse .4s ease-out; }
+    .fx-slide-in-left  { animation: fx-slide-in-left .35s ease-out both; }
+    .fx-slide-in-right { animation: fx-slide-in-right .35s ease-out both; }
+    .fx-bounce  { animation: fx-bounce .55s cubic-bezier(.34,1.56,.64,1); }
+    .fx-ripple  { animation: fx-ripple .6s ease-out; }
+    .fx-glow-pulse { animation: fx-glow-pulse 1.6s ease-in-out infinite; }
+    .fx-shake-strong { animation: fx-shake-strong .5s; }
+    .fx-tada    { animation: fx-tada .8s ease-out; }
+    .fx-float   { animation: fx-float 2.4s ease-in-out infinite; }
+    .fx-heartbeat { animation: fx-heartbeat 1.4s ease-in-out infinite; }
+    .fx-stagger-in { animation: fx-stagger-in .35s ease-out both; }
 
     /* Lift on hover for sidebar rows. Pure CSS — no JS needed.
        The class is `topic-row` because that's what renderLessonRow +
