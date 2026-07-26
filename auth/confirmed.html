@@ -203,9 +203,43 @@
   // Read the user's profile to decide which "ready" state to show:
   //   - school_organiser:    "Go to your organiser console"
   //   - teacher:             "Go to your teacher dashboard"
+  //   - staff_author / staff_reviewer / admin: route to staff-dashboard
   //   - over-16 / consent granted student: "Go to your dashboard"
   //   - under-16 awaiting parent:           "We're waiting on your parent"
   async function renderReady(user) {
+    // If this account was created via /signup-staff.html with a pending
+    // staff-invite token, accept it now — accept_staff_invite requires
+    // auth.uid(), which we only have post-confirmation. The signup page
+    // stashed the token in sessionStorage right before redirecting to
+    // the email-confirmation flow. We do this BEFORE reading the role
+    // so the role lookup sees the freshly-stamped staff role.
+    try {
+      const pending = (sessionStorage.getItem('pending_staff_invite') || '').trim();
+      if (/^[0-9a-f-]{36}$/i.test(pending)) {
+        const { data: acceptData, error: acceptErr } =
+          await supabaseClient.rpc('accept_staff_invite', {
+            p_token: pending, p_decision: 'accepted',
+          });
+        if (acceptErr) {
+          console.warn('accept_staff_invite (deferred) failed:', acceptErr);
+        } else if (acceptData && acceptData.ok === false) {
+          // Most common: email_mismatch — the user signed up with a
+          // different email than the invite was sent to. Carry the
+          // invited-email through so the post-confirm UI can explain.
+          console.warn('accept_staff_invite (deferred) refused:',
+                       acceptData.reason, acceptData);
+          if (acceptData.reason === 'email_mismatch') {
+            sessionStorage.setItem('pending_staff_invite_mismatch',
+              acceptData.invited_email || '');
+          }
+        } else {
+          console.log('accept_staff_invite (deferred) ok:', acceptData);
+        }
+        // The token is single-use regardless of outcome.
+        sessionStorage.removeItem('pending_staff_invite');
+      }
+    } catch (e) { /* best effort — don't block the ready flow */ }
+
     // Force a token refresh FIRST so the custom_access_token_hook
     // re-runs against the current profiles row. Without this, the
     // freshly-minted JWT (created at sign-in time, before the
@@ -264,6 +298,38 @@
         $('ctaBtn').setAttribute('href', 'teacher-dashboard.html');
         showReady();
         setTimeout(function () { window.location.href = 'teacher-dashboard.html'; }, 2000);
+        return;
+      }
+      if (role === 'staff_author' || role === 'staff_reviewer') {
+        $('cardLede').textContent = 'Welcome, ' + first + '. Your staff account is ready. Taking you to your dashboard…';
+        $('ctaBtn').textContent = 'Go to your staff dashboard';
+        $('ctaBtn').setAttribute('href', 'staff-dashboard.html');
+        showReady();
+        setTimeout(function () { window.location.href = 'staff-dashboard.html'; }, 2000);
+        return;
+      }
+      if (role === 'admin') {
+        $('cardLede').textContent = 'Welcome, ' + first + '. Your admin account is ready. Taking you to the admin console…';
+        $('ctaBtn').textContent = 'Go to the admin console';
+        $('ctaBtn').setAttribute('href', 'admin.html');
+        showReady();
+        setTimeout(function () { window.location.href = 'admin.html'; }, 2000);
+        return;
+      }
+      // If we accepted a staff invite just now but the role hasn't
+      // propagated yet (token-refresh race), flag it once so the user
+      // doesn't see the student-dashboard CTA. Common cause: profile
+      // was updated but the JWT app_metadata.role wasn't restamped
+      // fast enough for this branch to see it.
+      const mismatchHint = sessionStorage.getItem('pending_staff_invite_mismatch');
+      sessionStorage.removeItem('pending_staff_invite_mismatch');
+      if (mismatchHint) {
+        $('cardLede').textContent =
+          'Account confirmed. The invitation was sent to ' + mismatchHint
+          + ' — sign in with that address to accept your staff role.';
+        $('ctaBtn').textContent = 'Back to sign in';
+        $('ctaBtn').setAttribute('href', '../login.html');
+        showReady();
         return;
       }
       $('cardLede').textContent = 'Welcome, ' + first + '. Your account is ready. Taking you to your dashboard…';

@@ -16,10 +16,18 @@
 //
 // Routing logic is trivial: the function takes an invite_id (returned
 // by create_staff_invite), looks up the email + role + token, builds a
-// link to /accept-invite.html?token=<uuid>, and emails the invitee via
+// link to /signup-staff.html?token=<uuid>, and emails the invitee via
 // Resend. Idempotent: re-running it for the same invite reuses the
 // same token (it does NOT call the RPC to refresh — that's what
 // resend_staff_invite is for).
+//
+// Why /signup-staff.html and not /accept-invite.html? The common path
+// is "I clicked the invite link, I don't have a Recall account yet" —
+// which is exactly the signup-staff flow. accept-invite is for the
+// "I already have an account, just apply the role" case. signup-staff
+// bounces signed-in users to accept-invite on its own (so the in-place
+// accept path still works), which keeps both flows reachable from one
+// email link.
 //
 // Auth model: invoked with the anon key from the admin's browser. We do
 // NOT trust the caller's claimed invite_id blindly — anyone with the
@@ -173,7 +181,7 @@ function roleBlurb(role: string): string {
   }
 }
 
-function staffInviteEmail(role: string, acceptUrl: string, expiresInDays: number, logoBase: string) {
+function staffInviteEmail(role: string, signupUrl: string, expiresInDays: number, logoBase: string) {
   const label = roleLabel(role);
   const heading = roleHeading(role);
   const blurb = roleBlurb(role);
@@ -185,8 +193,9 @@ function staffInviteEmail(role: string, acceptUrl: string, expiresInDays: number
        <p style="margin:0 0 14px;">You've been invited to join <b>Recall</b>, a UK study app for GCSE and A-level students, as <b>${escapeHtml(label)}</b>.</p>
        <p style="margin:0 0 14px;">${escapeHtml(blurb)}</p>
        <p style="margin:0 0 14px;">This invite is personal to you and will expire in ${expiresInDays} days. After that, ask whoever sent it to resend.</p>
-       ${ctaButton(acceptUrl, "Accept the invitation")}
+       ${ctaButton(signupUrl, "Create my staff account")}
        <p style="margin:18px 0 0;font-size:13px;color:#9098A4;">If you weren't expecting this, you can safely ignore the email &mdash; nothing happens unless you click through and create an account.</p>
+       <p style="margin:14px 0 0;font-size:13px;color:#9098A4;">Already have an account? Sign in first, then open this link again to accept the role.</p>
        <p style="margin:14px 0 0;font-size:13px;color:#9098A4;">Questions? Email <a href="mailto:support@recalleducation.co.uk" style="color:#7CE0E8;">support@recalleducation.co.uk</a>.</p>`,
       logoBase,
     ),
@@ -196,8 +205,14 @@ ${blurb}
 
 This invite is personal to you and expires in ${expiresInDays} days.
 
-Accept the invitation:
-${acceptUrl}
+Create your staff account:
+${signupUrl}
+
+Already have an account? Sign in first, then open this link again to accept the role.
+
+If you weren't expecting this, ignore the email — nothing happens unless you click through.
+
+Questions? Email support@recalleducation.co.uk.
 
 If you weren't expecting this, ignore the email — nothing happens unless you click through.
 
@@ -296,8 +311,15 @@ Deno.serve(async (req) => {
     return new Response("invite has expired", { status: 410, headers: corsHeaders });
   }
 
-  const acceptUrl = `${appOrigin}/accept-invite.html?token=${encodeURIComponent(invite.token)}`;
-  const tpl = staffInviteEmail(invite.role, acceptUrl, 14, appOrigin);
+  // The CTA points at /signup-staff.html?token=... rather than the
+  // /accept-invite.html page. Reason: the typical path is "I clicked
+  // the invite link, I don't have an account yet, I need to create
+  // one" — which is exactly what signup-staff.html is for. accept-invite
+  // is the right landing spot only when the invitee already has an
+  // account; signup-staff bounces signed-in users to accept-invite
+  // itself, so the in-place accept path still works there.
+  const signupUrl = `${appOrigin}/signup-staff.html?token=${encodeURIComponent(invite.token)}`;
+  const tpl = staffInviteEmail(invite.role, signupUrl, 14, appOrigin);
 
   const resend = new Resend(RESEND_API_KEY!);
   try {

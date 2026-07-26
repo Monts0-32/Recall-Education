@@ -309,6 +309,37 @@
     setTimeout(() => $('codeForm').requestSubmit(), 50);
   }
 
+  // If the user is ALREADY signed in and arrived here with a token,
+  // they don't need to create a new account — they already have one.
+  // /accept-invite.html has a dedicated in-place "Accept invitation"
+  // flow that handles this exactly: if your session email matches
+  // the invite email, it offers a one-click accept. We don't want to
+  // silently redirect (case where someone is signed in but is creating
+  // a *second* account for a colleague), so we ask first.
+  if (presetToken && /^[0-9a-f-]{36}$/i.test(presetToken)) {
+    supabaseClient.auth.getSession().then(({ data }) => {
+      const u = data?.session?.user;
+      if (!u) return; // not signed in — fall through to step 1
+      // Show a one-line prompt: are you here for yourself or creating
+      // an account for someone at this terminal? Default to "my
+      // account" — most-staff visits fit.
+      // For now we lean toward the user's intent: they came in from
+      // the invite email, so accept-invite handles the "I already have
+      // an account" path and signup-staff handles "make me a new one".
+      // Bounce them to accept-invite so the in-place accept wins by
+      // default; the user can always click "Create an account" from
+      // there (which loops back here if they still want a new one).
+      const here = window.location.pathname.split('/').pop();
+      // Avoid an infinite redirect: only redirect once per page load.
+      if (!sessionStorage.getItem('signup_staff_bounced_' + here)) {
+        sessionStorage.setItem('signup_staff_bounced_' + here, '1');
+        window.location.replace(
+          'accept-invite.html?token=' + encodeURIComponent(presetToken)
+        );
+      }
+    });
+  }
+
   // ---------- step 1: validate the invite code ----------
   $('codeForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -401,27 +432,18 @@
         submitBtn.textContent = orig;
         return showError('Account was created but we couldn\'t finalise the invitation. Please sign in and try again.');
       }
-      // Accept the invite. Same flow as accept-invite.html: server
-      // re-validates the token, the email, the status, and the
-      // expiry, then stamps the role onto the profile row.
+
+      // We can't accept the invite right here — accept_staff_invite is
+      // SECURITY DEFINER and re-validates auth.uid() against the
+      // invite's email, but Supabase hasn't issued a session yet
+      // (email confirmation creates the session, not signUp). Stash
+      // the token in sessionStorage so /auth/confirmed.html can call
+      // it after the user clicks the confirmation link and is fully
+      // signed in. That page already routes by role, including a new
+      // staff-author / staff-reviewer / admin branch.
       try {
-        const { data: acceptData, error: acceptErr } = await supabaseClient.rpc('accept_staff_invite', {
-          p_token: pendingInvite.token, p_decision: 'accepted',
-        });
-        if (acceptErr) {
-          showOk('Account created. We had a problem applying the invitation — sign in and try the invite link again.');
-        } else if (acceptData && acceptData.ok === false) {
-          if (acceptData.reason === 'email_mismatch') {
-            showOk('Account created. The invitation was sent to ' + (acceptData.invited_email || 'a different address') + ' — sign in with that email to accept.');
-          } else {
-            showOk('Account created, but the invitation could not be applied: ' + (acceptData.reason || 'unknown'));
-          }
-        } else {
-          showOk('Account created and invitation accepted. Check ' + pendingInvite.email + ' for a confirmation link, then sign in.');
-        }
-      } catch (err) {
-        showOk('Account created. There was a problem applying the invitation — sign in and try the invite link again.');
-      }
+        sessionStorage.setItem('pending_staff_invite', pendingInvite.token);
+      } catch (_) { /* sessionStorage blocked — won't grant role */ }
 
       // Send the branded Resend confirmation email so the staff
       // member gets a role-aware "welcome to the team" message
@@ -444,6 +466,11 @@
         console.error('send-signup-email threw:', err);
       }
 
+      showOk(
+        'Account created. Check ' + pendingInvite.email
+        + ' for a confirmation link — once you click it, your '
+        + (pendingInvite.role || 'staff') + ' role will be applied automatically.'
+      );
       Array.from($('signupForm').elements).forEach(el => { el.disabled = true; });
       submitBtn.textContent = 'Account created';
     } catch (err) {
