@@ -2402,9 +2402,10 @@
             <span>General</span>
             <span style="color: var(--text-4); font-weight: 400; text-transform: none;">${lessons.length}</span>
           </div>
-          <div style="display: flex; gap: 4px;">
+          <div style="display: flex; gap: 4px; flex-wrap: wrap;">
             <button class="add-btn" onclick="openGeneralLessonModal()" title="New block-based lesson">+ Lesson</button>
             <button class="add-btn" onclick="openGeneralActivityModal()" title="New activity (single HTML file)" style="color: #A371F7;">+ Activity</button>
+            <button class="add-btn" onclick="openActivityTemplatePicker()" title="Start an activity from a built-in template" style="color: var(--teal);">+ From template…</button>
           </div>
         </div>
         <div class="catalog-section-body">${rows}</div>
@@ -3218,14 +3219,60 @@
 
     const tagsValue = (existing?.tags || []).join(', ');
 
-    // The activity-file picker only shows up for new activity lessons.
+    // The activity file picker only shows up for new activity lessons.
     // For existing activity lessons the file lives in the editor page
     // (a "Replace HTML" button), not in this rename modal.
+    //
+    // The picker has two tabs: "Upload my own" and "From a template".
+    // Templates are pre-bundled games that ship in /activities/<id>/ and
+    // are served from the project's static host. Picking one stores its
+    // relative URL in lessons.activity_path, which the lesson player
+    // loads the same way as an uploaded file — no bucket upload needed
+    // (and the teacher can still replace it later via "Replace HTML").
+    // ACTIVITY_TEMPLATES is the registry of those built-ins; add an
+    // entry here whenever you drop a new file into /activities/.
+    const ACTIVITY_TEMPLATES = [
+      {
+        id: 'spot-the-scam',
+        title: 'Spot the Scam — Cyber (Y7)',
+        file:  'activities/spot-the-scam/index.html',
+        hint:  '8 rounds of email-spotting with 3 difficulty modes, hearts, hints and a reveal.'
+      }
+    ];
     const fileRow = (!id && mode === 'activity') ? `
+      <div class="form-row" id="activitySourceRow">
+        <label>Activity source</label>
+        <div style="display:flex; gap:6px; margin-top:4px;">
+          <label class="btn-ghost" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; padding:6px 12px; border-radius:var(--r-md); border:1px solid var(--line-2);">
+            <input type="radio" name="activitySource" value="upload" checked />
+            Upload my own HTML
+          </label>
+          <label class="btn-ghost" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; padding:6px 12px; border-radius:var(--r-md); border:1px solid var(--line-2);">
+            <input type="radio" name="activitySource" value="template" />
+            From a template
+          </label>
+        </div>
+      </div>
       <div class="form-row" id="activityFileRow">
         <label>HTML file <span style="color: var(--text-4); font-weight: 400; font-size: 12px;">.html, ≤ 8 MB. Uploaded to the <code>lesson-activities</code> bucket.</span></label>
         <input type="file" id="activityFile" accept="text/html,.html,.htm" required />
         <span class="hint">The file is rendered as a sandboxed iframe. Call <code>parent.postMessage({{type:&quot;recall-block-complete&quot;}}, &quot;*&quot;)</code> from the iframe to mark the activity complete.</span>
+      </div>
+      <div class="form-row" id="activityTemplateRow" hidden>
+        <label>Pick a template</label>
+        <div id="activityTemplateList" style="display:flex; flex-direction:column; gap:6px;">
+          ${ACTIVITY_TEMPLATES.map(t => `
+            <label class="btn-ghost" style="display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border-radius:var(--r-md); border:1px solid var(--line-2); cursor:pointer;">
+              <input type="radio" name="activityTemplate" value="${escapeHtml(t.id)}" ${ACTIVITY_TEMPLATES[0].id === t.id ? 'checked' : ''} style="margin-top:3px;" />
+              <span style="flex:1;">
+                <span style="display:block; font-weight:600; color:var(--text); font-size:13px;">${escapeHtml(t.title)}</span>
+                <span style="display:block; font-size:12px; color:var(--text-3); margin-top:2px;">${escapeHtml(t.hint)}</span>
+                <span style="display:block; font-size:11px; color:var(--text-4); margin-top:4px; font-family:var(--font-mono);">${escapeHtml(t.file)}</span>
+              </span>
+            </label>
+          `).join('')}
+        </div>
+        <span class="hint">Templates are pre-bundled games that ship with Recall. You can swap them out later via the lesson editor's "Replace HTML" button.</span>
       </div>
     ` : '';
 
@@ -3255,6 +3302,27 @@
     // (new lessons only — the toggle isn't rendered for existing lessons).
     const form = $('lessonForm');
     if (!id) {
+      const updateActivitySourceUi = () => {
+        if (mode !== 'activity') return;
+        const src = form.querySelector('input[name="activitySource"]:checked')?.value || 'upload';
+        const uploadRow = $('activityFileRow');
+        const tplRow = $('activityTemplateRow');
+        if (src === 'template') {
+          if (uploadRow) uploadRow.hidden = true;
+          if (tplRow) tplRow.hidden = false;
+          // Make the upload input not required when it's hidden.
+          const fi = $('activityFile');
+          if (fi) fi.required = false;
+        } else {
+          if (uploadRow) uploadRow.hidden = false;
+          if (tplRow) tplRow.hidden = true;
+          const fi = $('activityFile');
+          if (fi) fi.required = true;
+        }
+      };
+      form.querySelectorAll('input[name="activitySource"]').forEach(r => {
+        r.addEventListener('change', updateActivitySourceUi);
+      });
       const updateKindUi = () => {
         const v = form.querySelector('input[name="kind"]:checked')?.value || 'topic';
         $('tagsRow').style.display = v === 'general' ? '' : 'none';
@@ -3343,11 +3411,37 @@
           return;
         }
 
-        // For activity lessons: upload the chosen file to the
-        // lesson-activities bucket at activities/<id>/index.html, then
-        // persist the path on the lesson row. The activity editor will
-        // pick this up on first open.
+        // For activity lessons, the modal exposed two source modes —
+        // "Upload my own HTML" and "From a template". Templates skip the
+        // bucket upload entirely: their relative path (e.g.
+        // "activities/spot-the-scam/index.html") is stored straight on
+        // the lesson row. The activity player (lesson.html) already
+        // resolves public URLs from a relative path the same way it
+        // resolves bucket URLs — see getActivitySrc() — so the rest of
+        // the lesson flow (iframe, postMessage, completion gate) works
+        // unchanged.
         if (kind === 'activity') {
+          const srcMode = form.querySelector('input[name="activitySource"]:checked')?.value || 'upload';
+          if (srcMode === 'template') {
+            // Look up the chosen template by id and persist its path.
+            const tplId = form.querySelector('input[name="activityTemplate"]:checked')?.value;
+            const tpl = ACTIVITY_TEMPLATES.find(t => t.id === tplId);
+            if (!tpl) { toast('Pick a template.', 'error'); return; }
+            const { error: pathErr } = await supabaseClient
+              .from('lessons')
+              .update({ activity_path: tpl.file })
+              .eq('id', created.id);
+            if (pathErr) {
+              await supabaseClient.from('lessons').delete().eq('id', created.id);
+              toast('Save failed: ' + pathErr.message, 'error');
+              return;
+            }
+            toast(`Activity created from "${tpl.title}" template`, 'success');
+            // Close + reload like the upload branch does below.
+            closeModal();
+            await loadTree();
+            return;
+          }
           const fileInput = document.getElementById('activityFile');
           const file = fileInput?.files?.[0];
           if (!file) { toast('Choose an HTML file for the activity.', 'error'); return; }
@@ -3399,6 +3493,78 @@
   window.openGeneralLessonModal = () => openLessonModal(null, null, 'general');
   // Shorthand for the left-rail "+ New activity" button.
   window.openGeneralActivityModal = () => openLessonModal(null, null, 'activity');
+
+  // openActivityTemplatePicker() — modal that lists the built-in
+  // activity templates (files shipped in /activities/) and lets an
+  // author create a new activity lesson pre-filled with the template's
+  // path. Reuses the existing lesson-create machinery so the new lesson
+  // gets the same permissions, ordering, and audit-trail as one created
+  // through openGeneralActivityModal().
+  window.openActivityTemplatePicker = () => {
+    openModal('Start an activity from a template', `
+      <div class="editor" style="padding: 0;">
+        <p style="margin: 0 0 12px; color: var(--text-3); font-size: 12.5px;">
+          Pick a template — we'll create a new activity lesson with the game already wired up.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          ${ACTIVITY_TEMPLATES.map(t => `
+            <button type="button" class="btn-ghost tpl-card"
+                    onclick="createLessonFromActivityTemplate('${escapeHtml(t.id)}')"
+                    style="display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:var(--r-md); border:1px solid var(--line-2); text-align:left; cursor:pointer;">
+              <span style="font-size:24px; line-height:1; margin-top:2px;" aria-hidden="true">🎮</span>
+              <span style="flex:1;">
+                <span style="display:block; font-weight:700; color:var(--text); font-size:14px;">${escapeHtml(t.title)}</span>
+                <span style="display:block; font-size:12.5px; color:var(--text-3); margin-top:3px;">${escapeHtml(t.hint)}</span>
+                <span style="display:block; font-size:11px; color:var(--text-4); margin-top:4px; font-family:var(--font-mono);">${escapeHtml(t.file)}</span>
+              </span>
+              <span style="color:var(--text-4); align-self:center;">→</span>
+            </button>
+          `).join('')}
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 14px;">
+          <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
+        </div>
+      </div>
+    `);
+  };
+
+  // createLessonFromActivityTemplate(id) — create a new activity
+  // lesson (loose, in the General section) with the template's path
+  // pre-filled. Mirrors the storage-less branch of openLessonModal's
+  // submit handler but skips the upload step entirely.
+  window.createLessonFromActivityTemplate = async (tplId) => {
+    const tpl = ACTIVITY_TEMPLATES.find(t => t.id === tplId);
+    if (!tpl) { toast('Template not found.', 'error'); return; }
+    const title = window.prompt(`Title for the new activity lesson?`, tpl.title);
+    if (!title) return;
+    const duration = parseInt(window.prompt(`Duration in minutes?`, '15'), 10) || 15;
+    closeModal();
+    const insert = {
+      title: title.trim(),
+      duration_min: duration,
+      author_id: state.user.id,
+      is_general: true,
+      topic_id: null,
+      kind: 'activity',
+      order_index: (state.generalLessons || []).length,
+    };
+    const { data: created, error } = await supabaseClient
+      .from('lessons').insert(insert).select('id').single();
+    if (error) {
+      toast('Save failed: ' + error.message, 'error');
+      return;
+    }
+    const { error: pathErr } = await supabaseClient
+      .from('lessons').update({ activity_path: tpl.file }).eq('id', created.id);
+    if (pathErr) {
+      // Roll back so we don't leave a stranded lesson row.
+      await supabaseClient.from('lessons').delete().eq('id', created.id);
+      toast('Save failed: ' + pathErr.message, 'error');
+      return;
+    }
+    toast(`Activity created from "${tpl.title}" template`, 'success');
+    await loadTree();
+  };
 
   window.deleteLesson = async (id) => {
     if (!confirm('Delete this lesson and all its blocks?')) return;
@@ -3724,7 +3890,14 @@
       input?.addEventListener('change', () => window.handleActivityFileReplace(L, input));
       return;
     }
-    const pub = supabaseClient.storage.from('lesson-activities').getPublicUrl(L.activity_path).data?.publicUrl || '';
+    // Resolve template paths (relative URLs served by the project's
+    // static host) vs. bucket-uploaded activities. Mirrors the
+    // resolution in lesson.html's renderActivity() so the staff
+    // preview shows the same content the student will see.
+    const isTemplatePath = !/^activities\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\//.test(L.activity_path);
+    const pub = isTemplatePath
+      ? new URL(L.activity_path, location.origin).toString()
+      : (supabaseClient.storage.from('lesson-activities').getPublicUrl(L.activity_path).data?.publicUrl || '');
     // Cache-bust on every render so a fresh upload shows up immediately.
     const cacheBuster = `v=${Date.now()}`;
     const src = pub ? `${pub}${pub.includes('?') ? '&' : '?'}${cacheBuster}` : '';

@@ -1492,10 +1492,25 @@
       $('actionBar').hidden = true;
       return;
     }
-    const { data: pubData } = supabaseClient.storage
-      .from('lesson-activities')
-      .getPublicUrl(L0.activity_path);
-    const src = pubData?.publicUrl || '';
+    // Resolve the activity file URL. Two sources are supported:
+    //   1. A Supabase Storage bucket key (e.g. "activities/<uuid>/index.html")
+    //      produced by an upload. These are served via getPublicUrl from
+    //      the lesson-activities bucket.
+    //   2. A relative URL (e.g. "activities/spot-the-scam/index.html")
+    //      produced by an activity-template card. These live in the
+    //      project's static host (the same one serving lesson.html
+    //      itself), so we resolve them against location.origin — no
+    //      CORS gymnastics because the parent and the iframe file are
+    //      on the same origin.
+    // The discriminator is the shape: bucket keys always have a UUID
+    // in the second segment; template paths have a short kebab id
+    // instead. We use that to pick the resolver rather than parsing
+    // a config flag, so authors can flip between modes just by
+    // changing the activity_path value.
+    const isTemplatePath = !/^activities\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\//.test(L0.activity_path);
+    const src = isTemplatePath
+      ? new URL(L0.activity_path, location.origin).toString()
+      : (supabaseClient.storage.from('lesson-activities').getPublicUrl(L0.activity_path).data?.publicUrl || '');
     const required = L0.activity_required !== false; // default true
     const height = Math.max(200, Math.min(2000, parseInt(L0.activity_height, 10) || 720));
 

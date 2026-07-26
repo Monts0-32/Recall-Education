@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0D1117" />
+  <title>Spot the Scam — Cyber Security</title>
+  <style>
+    /* =========================================================================
+       Spot the Scam — single-file HTML activity
+       Responsive: phone (≤480px), tablet (481–820px), desktop (≥821px).
+       Self-contained: no fonts, no external assets, no Supabase, no network.
+       Communicates completion to the parent via the standard
+       recall-block-complete postMessage contract.
+       ========================================================================= */
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.15);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.15);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.15);
+      --purple:    #A371F7;
+      --teal:      #56D4DD;
+      --r-sm:  6px;
+      --r-md:  10px;
+      --r-lg:  16px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--text); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      font-size: 15px; line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+    button { font-family: inherit; cursor: pointer; }
+    button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+    /* ---------- Shell ---------- */
+    .shell { max-width: 980px; margin: 0 auto; padding: 16px; }
+    @media (min-width: 820px) { .shell { padding: 28px 24px; } }
+
+    /* ---------- Header ---------- */
+    .head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      margin-bottom: 14px;
+    }
+    .head h1 { margin: 0; font-size: 16px; font-weight: 700; }
+    .head h1 .accent { color: var(--blue); }
+    .head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .head .stats { margin-left: auto; display: flex; gap: 14px; align-items: center; }
+    .stat {
+      display: flex; align-items: center; gap: 6px;
+      font-family: ui-monospace, 'JetBrains Mono', Consolas, monospace;
+      font-size: 13px; font-weight: 700;
+      background: var(--bg-3); border: 1px solid var(--line);
+      padding: 5px 10px; border-radius: var(--r-sm);
+    }
+    .stat .label { color: var(--text-3); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat .value { color: var(--text); }
+    .stat.score .value { color: var(--blue); }
+    .stat.round .value { color: var(--text); }
+    .hearts { display: inline-flex; gap: 3px; font-size: 16px; line-height: 1; }
+    .heart { transition: transform 0.2s ease, opacity 0.3s ease; display: inline-block; }
+    .heart.lost { opacity: 0.25; transform: scale(0.85); }
+    .heart.pop { animation: heartPop 0.45s ease; }
+    @keyframes heartPop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.4); }
+      100% { transform: scale(0.85); opacity: 0.25; }
+    }
+
+    /* ---------- Screens (start, game, end) ---------- */
+    .screen { display: none; }
+    .screen.active { display: block; animation: fadeUp 0.35s ease both; }
+    @keyframes fadeUp {
+      0%   { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---------- Start screen ---------- */
+    .start-card {
+      background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: var(--r-lg); padding: 28px 22px;
+      text-align: center;
+    }
+    .start-card .icon {
+      font-size: 44px; margin-bottom: 8px;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-6px); }
+    }
+    .start-card h2 { margin: 6px 0 6px; font-size: 24px; }
+    .start-card p  { margin: 0 0 18px; color: var(--text-2); }
+    .start-card .tip {
+      display: inline-block; background: var(--blue-pale, rgba(88,166,255,0.08));
+      border: 1px solid var(--blue); color: var(--text-2);
+      font-size: 12.5px; padding: 8px 12px; border-radius: var(--r-sm);
+      max-width: 520px; margin: 0 auto 20px;
+    }
+    .start-card .tip strong { color: var(--blue); }
+
+    /* Difficulty selector — big chunky buttons */
+    .diff {
+      display: grid; grid-template-columns: 1fr; gap: 8px;
+      max-width: 520px; margin: 0 auto 14px;
+    }
+    @media (min-width: 600px) { .diff { grid-template-columns: repeat(3, 1fr); } }
+    .diff-btn {
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      color: var(--text); border-radius: var(--r-md);
+      padding: 14px 12px; text-align: left;
+      transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+    }
+    .diff-btn:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .diff-btn:active { transform: scale(0.98); }
+    .diff-btn .name { font-size: 15px; font-weight: 700; display: block; }
+    .diff-btn .meta { font-size: 11.5px; color: var(--text-3); margin-top: 3px; display: block; }
+    .diff-btn .multi {
+      display: inline-block; margin-top: 6px;
+      font-size: 11px; font-weight: 700;
+      background: var(--blue-dim, rgba(88,166,255,0.15));
+      color: var(--blue); padding: 2px 7px; border-radius: 999px;
+    }
+
+    /* ---------- Game screen ---------- */
+    .round-banner {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 9px 14px;
+      margin-bottom: 14px; font-size: 13px; color: var(--text-2);
+    }
+    .round-banner .pill {
+      font-size: 11px; font-weight: 700;
+      background: var(--blue-dim, rgba(88,166,255,0.15)); color: var(--blue);
+      padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .round-banner .progress {
+      margin-left: auto; display: flex; gap: 4px;
+    }
+    .round-banner .progress .dot {
+      width: 18px; height: 6px; border-radius: 3px;
+      background: var(--bg-4); border: 1px solid var(--line);
+    }
+    .round-banner .progress .dot.done { background: var(--green); border-color: var(--green); }
+    .round-banner .progress .dot.wrong { background: var(--red); border-color: var(--red); }
+    .round-banner .progress .dot.current { background: var(--blue); border-color: var(--blue); }
+
+    .prompt {
+      font-size: 16px; font-weight: 600; color: var(--text);
+      margin: 0 0 12px; padding: 0 4px;
+    }
+
+    /* Email card — looks like a real email client */
+    .emails {
+      display: grid; gap: 12px;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 700px) {
+      .emails.choices-2 { grid-template-columns: 1fr 1fr; }
+      .emails.choices-3 { grid-template-columns: 1fr 1fr; }
+      .emails.choices-4 { grid-template-columns: 1fr 1fr; }
+    }
+    @media (min-width: 1000px) {
+      .emails.choices-3 { grid-template-columns: repeat(3, 1fr); }
+      .emails.choices-4 { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .email {
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: var(--r-md); padding: 14px;
+      cursor: pointer; display: flex; flex-direction: column; gap: 8px;
+      transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+      text-align: left; color: var(--text);
+      position: relative;
+    }
+    .email:hover { border-color: var(--line-3); background: var(--bg-3); }
+    .email:active { transform: scale(0.99); }
+    .email.locked { cursor: default; }
+    .email.locked:hover { background: var(--bg-2); border-color: var(--line-2); }
+    .email.correct {
+      border-color: var(--green); background: var(--green-dim);
+      animation: correctPulse 0.6s ease;
+    }
+    .email.wrong {
+      border-color: var(--red); background: var(--red-dim);
+      animation: wrongShake 0.45s ease;
+    }
+    @keyframes correctPulse {
+      0%   { box-shadow: 0 0 0 0 rgba(63,185,80,0.6); }
+      100% { box-shadow: 0 0 0 16px rgba(63,185,80,0); }
+    }
+    @keyframes wrongShake {
+      10%, 90% { transform: translateX(-2px); }
+      30%, 50%, 70% { transform: translateX(-5px); }
+      40%, 60% { transform: translateX(5px); }
+    }
+    .email .email-head { display: flex; align-items: flex-start; gap: 10px; }
+    .email .avatar {
+      width: 36px; height: 36px; flex-shrink: 0;
+      border-radius: 50%; display: grid; place-items: center;
+      background: var(--bg-4); color: var(--blue);
+      font-weight: 700; font-size: 14px;
+    }
+    .email .from { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+    .email .from .name { font-size: 13.5px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .email .from .addr { font-size: 11.5px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .email .subject { font-size: 13.5px; font-weight: 600; color: var(--text); }
+    .email .body {
+      font-size: 13px; color: var(--text-2);
+      line-height: 1.55;
+      max-height: 7.5em; overflow: hidden;
+      mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
+      -webkit-mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
+    }
+    .email .badge {
+      position: absolute; top: 10px; right: 10px;
+      font-size: 10.5px; font-weight: 700;
+      padding: 3px 8px; border-radius: 999px;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .email.correct .badge { background: var(--green); color: #fff; }
+    .email.wrong   .badge { background: var(--red);   color: #fff; }
+    .email .badge-correct, .email .badge-wrong { display: none; }
+    .email.correct .badge-correct { display: inline-block; }
+    .email.wrong   .badge-wrong   { display: inline-block; }
+
+    /* Hint dock */
+    .hint-dock {
+      margin-top: 14px;
+      background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 12px 14px;
+    }
+    .hint-dock .hd-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .hint-dock .hd-label { font-size: 13px; font-weight: 600; color: var(--text); }
+    .hint-dock .hd-help  { font-size: 11.5px; color: var(--text-3); margin-left: auto; }
+    .hint-btn {
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      color: var(--text); border-radius: var(--r-sm);
+      padding: 7px 12px; font-size: 13px; font-weight: 600;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .hint-btn:hover  { background: var(--bg-4); border-color: var(--line-3); }
+    .hint-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .hint-btn .em { font-style: normal; font-size: 14px; }
+
+    .hints-list {
+      margin: 10px 0 0; padding: 0; list-style: none;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .hints-list li {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 8px 10px;
+      background: var(--yellow-dim); border: 1px solid var(--yellow);
+      border-radius: var(--r-sm);
+      font-size: 13px; color: var(--text);
+      animation: hintIn 0.3s ease both;
+    }
+    .hints-list li .icon { color: var(--yellow); font-weight: 700; }
+    @keyframes hintIn {
+      0%   { opacity: 0; transform: translateY(-4px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* After-answer feedback panel */
+    .feedback {
+      margin-top: 14px;
+      border-radius: var(--r-md); padding: 12px 14px;
+      font-size: 13.5px;
+      animation: fadeUp 0.3s ease both;
+    }
+    .feedback.ok  { background: var(--green-dim); border: 1px solid var(--green); color: var(--text); }
+    .feedback.bad { background: var(--red-dim);   border: 1px solid var(--red);   color: var(--text); }
+    .feedback .title { font-weight: 700; margin: 0 0 6px; }
+    .feedback .why {
+      font-size: 12.5px; color: var(--text-2);
+      margin: 4px 0 0; padding-left: 18px;
+    }
+    .feedback .why li { margin-bottom: 3px; }
+    .feedback .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .primary-btn {
+      background: var(--blue); color: #fff; border: 0;
+      padding: 9px 16px; border-radius: var(--r-sm);
+      font-size: 13px; font-weight: 700;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+    .primary-btn:hover  { background: var(--blue-2); }
+    .primary-btn:active { transform: scale(0.98); }
+    .primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .ghost-btn {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 9px 14px; border-radius: var(--r-sm);
+      font-size: 13px; font-weight: 600;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .ghost-btn:hover { background: var(--bg-3); border-color: var(--line-3); color: var(--text); }
+
+    /* Confetti via simple floating dots */
+    .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 100; }
+    .confetti span {
+      position: absolute; top: -10px; width: 8px; height: 12px;
+      border-radius: 2px;
+      animation: confettiFall linear forwards;
+    }
+    @keyframes confettiFall {
+      0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ---------- End screen ---------- */
+    .end-card {
+      background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: var(--r-lg); padding: 28px 22px;
+      text-align: center;
+    }
+    .end-card .big {
+      font-size: 56px; line-height: 1; margin-bottom: 8px;
+      animation: bigIn 0.5s ease both;
+    }
+    @keyframes bigIn {
+      0%   { transform: scale(0.4); opacity: 0; }
+      60%  { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .end-card h2 { margin: 0 0 6px; font-size: 24px; }
+    .end-card .sub { color: var(--text-2); margin: 0 0 18px; }
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+      max-width: 480px; margin: 0 auto 18px;
+    }
+    @media (min-width: 520px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+    .stat-tile {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 12px 8px;
+    }
+    .stat-tile .v { font-size: 22px; font-weight: 800; color: var(--text); }
+    .stat-tile .l { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+    .end-card .takeaway {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 12px 14px;
+      font-size: 13px; color: var(--text-2);
+      max-width: 560px; margin: 0 auto 16px;
+      text-align: left;
+    }
+    .end-card .takeaway b { color: var(--blue); }
+
+    /* ---------- Utility ---------- */
+    .hidden { display: none !important; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px;
+      padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <!-- Persistent header -->
+    <header class="head">
+      <div>
+        <h1>📧 <span class="accent">Spot the Scam</span></h1>
+        <div class="sub" id="subtitle">Cyber-security training · Y7</div>
+      </div>
+      <div class="stats" id="stats" aria-hidden="true">
+        <div class="stat round"><span class="label">Round</span><span class="value" id="statRound">0/0</span></div>
+        <div class="stat score"><span class="label">Score</span><span class="value" id="statScore">0</span></div>
+        <div class="stat" title="Hearts remaining">
+          <span class="label">Hearts</span>
+          <span class="hearts" id="statHearts" aria-label="Hearts remaining">❤️❤️❤️</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Start screen -->
+    <section class="screen active" id="screenStart">
+      <div class="start-card">
+        <div class="icon">🛡️</div>
+        <h2>Can you spot the scam?</h2>
+        <p>You'll see a handful of emails. One of them is a scam — the rest are real. Pick the one you think is fake. The faster you decide, the higher your score.</p>
+        <div class="tip">
+          <strong>Tip:</strong> Real emails usually address you by name. Scams use urgency, prizes, or threats to make you click before you think.
+        </div>
+        <div class="diff" id="diff">
+          <button class="diff-btn" data-diff="easy">
+            <span class="name">🌱 Easy</span>
+            <span class="meta">2 emails · 5 rounds · 3 hearts</span>
+            <span class="multi">×1 score</span>
+          </button>
+          <button class="diff-btn" data-diff="medium">
+            <span class="name">⚡ Medium</span>
+            <span class="meta">3 emails · 5 rounds · 3 hearts</span>
+            <span class="multi">×1.5 score</span>
+          </button>
+          <button class="diff-btn" data-diff="hard">
+            <span class="name">🔥 Hard</span>
+            <span class="meta">4 emails · 5 rounds · 3 hearts</span>
+            <span class="multi">×2 score</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Game screen -->
+    <section class="screen" id="screenGame">
+      <div class="round-banner">
+        <span class="pill" id="roundPill">Round 1 of 5</span>
+        <span id="roundText">Pick the scam — tap one email.</span>
+        <div class="progress" id="roundProgress" aria-label="Round progress"></div>
+      </div>
+      <p class="prompt" id="prompt">Which of these is the scam?</p>
+      <div class="emails" id="emails" aria-live="polite"></div>
+      <div class="hint-dock" id="hintDock">
+        <div class="hd-row">
+          <span class="em" aria-hidden="true">🔍</span>
+          <span class="hd-label">Need a clue?</span>
+          <span class="hd-help" id="hdHelp">Reveal one hint at a time.</span>
+          <button class="hint-btn" id="hintBtn" type="button">
+            <span class="em" aria-hidden="true">🔎</span>
+            <span id="hintBtnLabel">Reveal a hint</span>
+          </button>
+        </div>
+        <ul class="hints-list" id="hintsList" aria-label="Hints"></ul>
+      </div>
+      <div id="feedbackArea"></div>
+    </section>
+
+    <!-- End screen -->
+    <section class="screen" id="screenEnd">
+      <div class="end-card">
+        <div class="big" id="endBig">🎉</div>
+        <h2 id="endTitle">Round complete</h2>
+        <p class="sub" id="endSub">Here's how you did.</p>
+        <div class="stats-grid">
+          <div class="stat-tile"><div class="v" id="endScore">0</div><div class="l">Final score</div></div>
+          <div class="stat-tile"><div class="v" id="endCorrect">0/0</div><div class="l">Correct</div></div>
+          <div class="stat-tile"><div class="v" id="endHints">0</div><div class="l">Hints used</div></div>
+          <div class="stat-tile"><div class="v" id="endHearts">0</div><div class="l">Hearts left</div></div>
+        </div>
+        <div class="takeaway">
+          <b>Remember:</b> Real-world calls to action ("verify now", "you've won", "urgent") are the most common scam bait. Hover over links before clicking, check the sender's full address, and if a deal feels too good to be true — it is.
+        </div>
+        <button class="primary-btn" id="playAgainBtn">Play again</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="confetti" id="confetti" aria-hidden="true"></div>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // ---------- Email pool ----------
+    // 16 emails (8 scam + 8 legit). Each scam has 'tells' — short clue
+    // strings that the hint button reveals one at a time. The tells are
+    // written in student-friendly language for Year 7.
+    var EMAILS = [
+      // ---- Scam #1: fake delivery failure
+      {
+        kind: 'scam',
+        sender: { name: 'Royal Mail', addr: 'no-reply@royalmai1-delivery.co.uk' },
+        subject: 'Action required: your parcel could not be delivered',
+        body: 'Dear customer,\n\nOur driver attempted to deliver your parcel today but no one was home. A small redelivery fee of £1.99 is required to reschedule. Please confirm your address and pay within 24 hours or your parcel will be returned to sender.\n\nClick here to confirm: http://royalmai1-redelivery.top/pay\n\nRoyal Mail Customer Services',
+        tells: [
+          'Look at the sender address — "royalmai1" uses a number 1 instead of the letter L.',
+          'Real Royal Mail emails usually know your name and tracking number — this one just says "Dear customer".',
+          'They want you to pay a small fee AND click a link — that\'s two red flags in one go.',
+          'The link goes to "royalmai1-redelivery.top", not royalmail.com. Always check the domain.'
+        ]
+      },
+      // ---- Legit #1: real delivery update
+      {
+        kind: 'legit',
+        sender: { name: 'Amazon UK', addr: 'shipment-tracking@amazon.co.uk' },
+        subject: 'Your Amazon order #112-8837492 has been dispatched',
+        body: 'Hi Sam,\n\nGreat news — your order has left our fulfilment centre and is on its way. Estimated delivery: tomorrow by 9pm. You can track your package or change the delivery slot in the Amazon app.\n\nYour account is up to date and no payment is required.',
+        tells: [
+          'The sender address ends in @amazon.co.uk — the official Amazon UK domain.',
+          'It uses your actual name (Sam) and includes a real order number.',
+          'There\'s no link to click, no payment to make, and no sense of urgency.'
+        ]
+      },
+      // ---- Scam #2: pretend prize win
+      {
+        kind: 'scam',
+        sender: { name: 'Apple Store UK', addr: 'prize-claims@apple-store-uk-promo.com' },
+        subject: '🎉 Congratulations! You have been selected as our weekly winner',
+        body: 'Dear Lucky Winner,\n\nYour email was randomly selected as the winner of a brand new iPhone 15 Pro. To claim your prize, please reply with the following details within 48 hours:\n\n• Full name\n• Date of birth\n• Home address\n• Bank account number (for delivery insurance)\n\nThis offer expires in 48 hours. Do not delay — act now!\n\nApple Promotions Team',
+        tells: [
+          'You never entered a competition — if you didn\'t buy a ticket, you can\'t win.',
+          'No real company will ever ask for your bank details to "deliver" a free prize.',
+          'The sender domain is "apple-store-uk-promo.com", not apple.com.',
+          'The "48 hours" countdown is a classic pressure tactic to stop you thinking.'
+        ]
+      },
+      // ---- Legit #2: school report
+      {
+        kind: 'legit',
+        sender: { name: 'Mr Davies', addr: 'j.davies@whitchurch-high.co.uk' },
+        subject: 'Reminder: Year 7 parents\' evening — book your slots',
+        body: 'Hi all,\n\nA quick reminder that parents\' evening is next Thursday from 4pm to 7pm. Booking is now open on the school portal — you should be able to see your child\'s most recent report attached there too.\n\nIf you can\'t make any of the slots, email me and we\'ll arrange a phone call instead.\n\nMr Davies\nHead of Year 7',
+        tells: [
+          'The sender is a real teacher at your school, with a school email address.',
+          'It mentions a real event (parents\' evening) you can verify with other parents.',
+          'There\'s no link to click and no personal information requested.'
+        ]
+      },
+      // ---- Scam #3: fake streaming bill
+      {
+        kind: 'scam',
+        sender: { name: 'Netflix', addr: 'billing-support@netfllx-billing.com' },
+        subject: 'Payment failed — your account will be suspended',
+        body: 'Dear Subscriber,\n\nWe were unable to process your last payment of £14.99. Your account has been temporarily suspended. To restore access, please update your billing details by clicking the secure link below within 12 hours:\n\nhttp://netfllx-billing.com/verify\n\nIf we do not hear from you, your account will be permanently deleted.\n\nNetflix Billing Team',
+        tells: [
+          'The sender domain is "netfllx-billing.com" — note the double L in "netfllx".',
+          'A real payment failure email takes you to netflix.com when you log in normally, not a special link.',
+          '"Permanently deleted" is a threat designed to make you panic and click.',
+          'You can check your account status yourself by opening the app — don\'t trust emailed links.'
+        ]
+      },
+      // ---- Legit #3: school club
+      {
+        kind: 'legit',
+        sender: { name: 'Ms Patel', addr: 'r.patel@whitchurch-high.co.uk' },
+        subject: 'Chess club — Thursday lunchtimes, all years welcome',
+        body: 'Hi everyone,\n\nJust a quick note that chess club is running every Thursday in room 204 from 12:30 to 1:15. No experience needed — we have boards for everyone and Mr Hughes will be helping out.\n\nSee you Thursday!\n\nMs Patel',
+        tells: [
+          'It comes from a real teacher at the school, on a school email address.',
+          'It mentions a specific room and time you can verify.',
+          'No links, no personal info, no pressure — just a friendly invitation.'
+        ]
+      },
+      // ---- Scam #4: pretend friend on socials
+      {
+        kind: 'scam',
+        sender: { name: 'Jake Morrison', addr: 'jake.morrison.1992@protonmail.com' },
+        subject: 'hey is this sam??',
+        body: 'Hey! I think we met at the school sports day last year. You wouldn\'t remember me — I was the tall lad in the year above. I just found your profile and thought I\'d say hi.\n\nI\'m working in gaming now and I could really use a like on my new project to help it take off. Could you vote for my game here? It takes 30 seconds and it would mean a lot: http://votemygame.fun/sam\n\nHope we can catch up!\nJake',
+        tells: [
+          'You\'ve never met this person and the email is from a random address, not a school account.',
+          'Asking you to click a vote link is a common way to harvest profile data or install malware.',
+          'The friendly small talk ("we met at sports day") is a hook to lower your guard.',
+          'Always check with a friend in person before you click a link from someone you don\'t know.'
+        ]
+      },
+      // ---- Legit #4: school trip letter
+      {
+        kind: 'legit',
+        sender: { name: 'Whitchurch High School', addr: 'office@whitchurch-high.co.uk' },
+        subject: 'Year 7 trip to the Science Museum — consent forms due Friday',
+        body: 'Dear Parents and Carers,\n\nThank you to everyone who has already returned consent forms for the Year 7 Science Museum trip on 18th March. If you have not yet returned yours, please send it in to your form tutor by Friday.\n\nCoach transport, lunch, and entry are all covered by the school — no payment is required.\n\nMany thanks,\nSchool Office',
+        tells: [
+          'It comes from the school\'s official office address.',
+          'It mentions a known event with a clear deadline and a real-world action (return the form).',
+          'No links to click, no personal info requested.'
+        ]
+      },
+      // ---- Scam #5: fake "verify your account"
+      {
+        kind: 'scam',
+        sender: { name: 'Instagram Support', addr: 'security@instagram-help.team' },
+        subject: 'Verify your account or it will be deactivated in 24 hours',
+        body: 'Hi @sam,\n\nWe have detected unusual activity on your account. To prevent permanent deactivation, please verify your identity immediately by clicking the link below and entering your username and password:\n\nhttp://instagram-help.team/verify-now\n\nFailure to verify within 24 hours will result in your account being permanently deleted.\n\nInstagram Security Team',
+        tells: [
+          'The real Instagram address is @instagram.com — this one is @instagram-help.team.',
+          'Real platforms never email you a link to "verify" your password. You go to the app yourself.',
+          'The "24 hours or deleted" threat is a fake deadline to make you panic.',
+          'If you got this email, check your account in the app — it\'s almost certainly fine.'
+        ]
+      },
+      // ---- Legit #5: dentist reminder
+      {
+        kind: 'legit',
+        sender: { name: 'Cathedral Dental Practice', addr: 'reception@cathedraldental.co.uk' },
+        subject: 'Your appointment on Wednesday 12th June at 3:30pm',
+        body: 'Dear Sam Walker,\n\nThis is a reminder of your routine check-up appointment at Cathedral Dental Practice on Wednesday 12th June at 3:30pm with Dr Hughes.\n\nIf you need to reschedule, please call us on 0117 922 4488 at least 24 hours in advance. There is no need to reply to this email.\n\nCathedral Dental',
+        tells: [
+          'It uses your full name and includes a real appointment time you can verify.',
+          'It gives a phone number you can ring, not a link to click.',
+          'The sender domain matches the practice name (cathedraldental.co.uk).'
+        ]
+      },
+      // ---- Scam #6: fake summer job offer
+      {
+        kind: 'scam',
+        sender: { name: 'EasyMoney4U', addr: 'jobs@easymoney4u-recruits.biz' },
+        subject: 'Earn £500/week working from home — no experience needed',
+        body: 'Hi there,\n\nWe came across your profile and think you\'d be perfect for our work-from-home opportunity. Earn £500/week part-time doing simple tasks (liking videos, leaving reviews). No experience needed.\n\nTo get started, please reply with:\n• Your full name\n• Phone number\n• A copy of your ID (to verify your identity)\n\nApply fast — only 3 spots left!\nEasyMoney4U Recruitment',
+        tells: [
+          'No real job advertises "no experience, £500/week" — that\'s too good to be true.',
+          'Asking for a copy of your ID via email is a massive identity-theft red flag.',
+          'Legitimate employers contact you through verified channels, not a .biz address.',
+          '"Only 3 spots left" is designed to rush you into replying without thinking.'
+        ]
+      },
+      // ---- Legit #6: library return reminder
+      {
+        kind: 'legit',
+        sender: { name: 'Bristol Libraries', addr: 'noreply@bristol.gov.uk' },
+        subject: 'Items due back: Friday 21st June',
+        body: 'Hello Sam,\n\nJust a quick reminder that the following items are due back at Bristol Central Library on Friday 21st June:\n\n• "The Hobbit" by J.R.R. Tolkien\n• "Holes" by Louis Sachar\n\nYou can renew online up to 3 times at www.bristol.gov.uk/libraries, or pop in and we\'ll do it for you. No need to reply to this email.\n\nBristol Libraries',
+        tells: [
+          'It comes from bristol.gov.uk — a real council domain.',
+          'It names the actual books you borrowed, which only the library should know.',
+          'It tells you to go to the website yourself, not to click a special link.'
+        ]
+      },
+      // ---- Scam #7: fake charity plea
+      {
+        kind: 'scam',
+        sender: { name: 'Help The Children Now', addr: 'donate@help-the-children-fund.org' },
+        subject: 'URGENT: thousands of children need your help RIGHT NOW',
+        body: 'Dear Friend,\n\nI am writing to you with tears in my eyes. A terrible disaster has left thousands of children without food or shelter. We need your donation TODAY.\n\nPlease send any amount — even £5 — to our emergency account using the link below. Every minute counts. Share this email with everyone you know.\n\nhttp://help-the-children-fund.org/donate\n\nWith hope,\nSarah (Volunteer)',
+        tells: [
+          'Real charities don\'t use Gmail-style "tears in my eyes" emotional pressure.',
+          'A ".org" address from a fund you\'ve never heard of is easy to fake — check the charity number on the Charity Commission website.',
+          'Sharing a donation link by mass-email is a common scam pattern.',
+          'If you want to donate, go to the charity\'s official website directly — never via an emailed link.'
+        ]
+      },
+      // ---- Legit #7: school lunch menu
+      {
+        kind: 'legit',
+        sender: { name: 'Catering Team', addr: 'catering@whitchurch-high.co.uk' },
+        subject: 'New lunch menu from Monday — week commencing 17th June',
+        body: 'Hi all,\n\nJust a heads-up that we\'re rolling out a new lunch menu from Monday. You\'ll see a few new options (including a new veggie wrap) and a couple of changes to the hot meal rota.\n\nThe full menu will be posted on the canteen wall and on the school website from first thing Monday morning.\n\nEnjoy!\nWhitchurch Catering',
+        tells: [
+          'It comes from a school email address — catering@whitchurch-high.co.uk.',
+          'It mentions a real, low-stakes event (lunch menu change), with no action required.',
+          'No links, no urgency, no personal info requested.'
+        ]
+      },
+      // ---- Scam #8: hidden subscription trap
+      {
+        kind: 'scam',
+        sender: { name: 'Spotify Premium', addr: 'orders@spotify-premium-deal.club' },
+        subject: 'Your premium subscription has been activated — £4.99/month',
+        body: 'Hi Sam,\n\nThank you for subscribing to Spotify Premium for just £4.99/month. Your subscription will auto-renew every month at the same price. A receipt is attached.\n\nIf you did not authorise this charge, please cancel within 24 hours by clicking the link below:\n\nhttp://spotify-premium-deal.club/cancel\n\nSpotify Customer Care',
+        tells: [
+          'You didn\'t subscribe to anything — "you\'ve been charged" scams hope you panic and click.',
+          'The sender address is "spotify-premium-deal.club", not spotify.com.',
+          'A real subscription service would email you from their own domain with your account name.',
+          'Check your bank statement and the official app before clicking anything.'
+        ]
+      },
+      // ---- Legit #8: music lesson reminder
+      {
+        kind: 'legit',
+        sender: { name: 'Mr Khan', addr: 'a.khan@whitchurch-high.co.uk' },
+        subject: 'Guitar lesson Tuesday — bring your book',
+        body: 'Hi Sam,\n\nQuick reminder that your guitar lesson is on Tuesday at 11am in the music block. Please bring your lesson book and your guitar (or borrow one from the music store cupboard).\n\nSee you Tuesday!\nMr Khan',
+        tells: [
+          'It comes from a school music teacher on a school email.',
+          'It mentions a specific, verifiable time and place.',
+          'No links, no urgency, no personal info requested.'
+        ]
+      }
+    ];
+
+    // ---------- Game state ----------
+    var state = {
+      difficulty: null,    // 'easy' | 'medium' | 'hard'
+      roundsTotal: 5,
+      choicesPerRound: 0,  // 2 / 3 / 4
+      multiplier: 1,       // 1 / 1.5 / 2
+      round: 0,            // 1-indexed
+      score: 0,
+      hearts: 3,
+      maxHearts: 3,
+      hintsUsed: 0,
+      hintsShown: [],      // clues revealed for the current round
+      current: null,       // { scam, decoys: [], all: [] }
+      pool: [],            // shuffled deck of scam emails
+      answered: [],        // list of { roundIndex, correct, usedHints }
+      asked: [],           // indices used so far (avoid repeats)
+      finished: false,
+    };
+
+    var DIFFICULTY = {
+      easy:   { choices: 2, rounds: 5, multiplier: 1,   label: 'Easy' },
+      medium: { choices: 3, rounds: 5, multiplier: 1.5, label: 'Medium' },
+      hard:   { choices: 4, rounds: 5, multiplier: 2,   label: 'Hard' }
+    };
+
+    // ---------- DOM helpers ----------
+    function $(id) { return document.getElementById(id); }
+    function el(tag, attrs, children) {
+      var e = document.createElement(tag);
+      if (attrs) {
+        for (var k in attrs) {
+          if (k === 'class') e.className = attrs[k];
+          else if (k === 'html') e.innerHTML = attrs[k];
+          else if (k === 'text') e.textContent = attrs[k];
+          else if (k === 'on') {
+            for (var ev in attrs.on) e.addEventListener(ev, attrs.on[ev]);
+          } else e.setAttribute(k, attrs[k]);
+        }
+      }
+      if (children) {
+        (Array.isArray(children) ? children : [children]).forEach(function(c) {
+          if (c == null) return;
+          if (typeof c === 'string') e.appendChild(document.createTextNode(c));
+          else e.appendChild(c);
+        });
+      }
+      return e;
+    }
+    function shuffle(arr) {
+      // Fisher-Yates, in place.
+      for (var i = arr.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+      }
+      return arr;
+    }
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // ---------- Screen control ----------
+    function showScreen(id) {
+      var screens = document.querySelectorAll('.screen');
+      for (var i = 0; i < screens.length; i++) screens[i].classList.remove('active');
+      $(id).classList.add('active');
+    }
+
+    // ---------- Header updates ----------
+    function renderHeader() {
+      $('statRound').textContent = state.round + '/' + state.roundsTotal;
+      $('statScore').textContent = state.score;
+      var hearts = '';
+      for (var i = 0; i < state.maxHearts; i++) {
+        hearts += '<span class="heart' + (i >= state.hearts ? ' lost' : '') + '">❤️</span>';
+      }
+      $('statHearts').innerHTML = hearts;
+    }
+
+    // ---------- Round prep ----------
+    function freshRound() {
+      state.round++;
+      state.hintsShown = [];
+      // Pick a scam email from the pool that hasn't been used yet. If
+      // the pool is exhausted, refill it (rarely triggered, but means
+      // longer sessions can keep playing).
+      if (state.pool.length === 0) {
+        state.pool = shuffle(EMAILS.filter(function(e) { return e.kind === 'scam'; }).slice());
+      }
+      var scam = pickFromPool();
+      // Pick `choicesPerRound - 1` distinct legit emails, none of
+      // which the student has seen this round.
+      var decoys = pickDecoys(state.choicesPerRound - 1, scam);
+      var all = shuffle([scam].concat(decoys));
+      state.current = { scam: scam, decoys: decoys, all: all };
+      renderRound();
+    }
+    function pickFromPool() {
+      // Find the next pool email whose index hasn't been used.
+      while (state.pool.length) {
+        var e = state.pool.pop();
+        if (state.asked.indexOf(e) === -1) {
+          state.asked.push(e);
+          return e;
+        }
+      }
+      // Refill and try again.
+      state.pool = shuffle(EMAILS.filter(function(e) { return e.kind === 'scam'; }).slice());
+      return pickFromPool();
+    }
+    function pickDecoys(n, scam) {
+      var legits = EMAILS.filter(function(e) { return e.kind === 'legit' && e !== scam; });
+      shuffle(legits);
+      return legits.slice(0, n);
+    }
+
+    // ---------- Render round ----------
+    function renderRound() {
+      // Banner
+      $('roundPill').textContent = 'Round ' + state.round + ' of ' + state.roundsTotal;
+      // Round progress dots
+      var dots = '';
+      for (var i = 0; i < state.roundsTotal; i++) {
+        var cls = 'dot';
+        if (i < state.answered.length) {
+          cls += state.answered[i].correct ? ' done' : ' wrong';
+        } else if (i === state.round - 1) {
+          cls += ' current';
+        }
+        dots += '<span class="' + cls + '"></span>';
+      }
+      $('roundProgress').innerHTML = dots;
+
+      // Hint dock reset
+      $('hintsList').innerHTML = '';
+      $('hintBtn').disabled = false;
+      $('hintBtnLabel').textContent = 'Reveal a hint';
+      $('hdHelp').textContent = 'Reveal one hint at a time.';
+
+      // Feedback area reset
+      $('feedbackArea').innerHTML = '';
+
+      // Render the email cards
+      var wrap = $('emails');
+      wrap.innerHTML = '';
+      wrap.className = 'emails choices-' + state.choicesPerRound;
+      state.current.all.forEach(function(email) {
+        wrap.appendChild(renderEmailCard(email));
+      });
+
+      renderHeader();
+    }
+
+    function renderEmailCard(email) {
+      var initial = (email.sender.name || '?').trim().charAt(0).toUpperCase();
+      var card = el('button', {
+        class: 'email',
+        type: 'button',
+        'data-scam': email.kind === 'scam' ? '1' : '0',
+        on: { click: function() { onPick(card, email); } }
+      });
+      card.innerHTML = [
+        '<span class="badge badge-correct">SCAM</span>',
+        '<span class="badge badge-wrong">SAFE</span>',
+        '<div class="email-head">',
+        '  <div class="avatar" aria-hidden="true">' + escapeHtml(initial) + '</div>',
+        '  <div class="from">',
+        '    <span class="name">' + escapeHtml(email.sender.name) + '</span>',
+        '    <span class="addr">' + escapeHtml(email.sender.addr) + '</span>',
+        '  </div>',
+        '</div>',
+        '<div class="subject">' + escapeHtml(email.subject) + '</div>',
+        '<div class="body">' + escapeHtml(email.body).replace(/\n/g, '<br>') + '</div>'
+      ].join('');
+      return card;
+    }
+
+    // ---------- Hints ----------
+    function onHint() {
+      var tells = state.current.scam.tells || [];
+      if (state.hintsShown.length >= tells.length) {
+        $('hintBtn').disabled = true;
+        $('hintBtnLabel').textContent = 'No more hints';
+        $('hdHelp').textContent = 'You\'ve used every hint for this round.';
+        return;
+      }
+      var next = tells[state.hintsShown.length];
+      state.hintsShown.push(next);
+      state.hintsUsed++;
+      var li = el('li', null, [
+        el('span', { class: 'icon', text: '⚠' }),
+        el('span', null, next)
+      ]);
+      $('hintsList').appendChild(li);
+      $('hintBtnLabel').textContent = state.hintsShown.length < tells.length
+        ? 'Reveal another hint (' + (tells.length - state.hintsShown.length) + ' left)'
+        : 'No more hints';
+      if (state.hintsShown.length >= tells.length) {
+        $('hintBtn').disabled = true;
+      }
+    }
+
+    // ---------- Pick an email ----------
+    function onPick(card, email) {
+      if (card.classList.contains('locked')) return;
+      // Lock all cards so the student can't double-pick.
+      var cards = document.querySelectorAll('#emails .email');
+      for (var i = 0; i < cards.length; i++) cards[i].classList.add('locked');
+
+      var correct = email.kind === 'scam';
+      // Show the scam highlight on the actually-scam email.
+      for (var j = 0; j < cards.length; j++) {
+        var c = cards[j];
+        if (c.getAttribute('data-scam') === '1') c.classList.add('correct');
+      }
+      // If they picked wrong, mark their pick red.
+      if (!correct) card.classList.add('wrong');
+
+      // Hearts
+      if (correct) {
+        state.score += Math.round(10 * state.multiplier);
+        confetti();
+      } else {
+        state.hearts = Math.max(0, state.hearts - 1);
+        popLostHeart();
+      }
+
+      // Track answered
+      state.answered.push({
+        roundIndex: state.round - 1,
+        correct: correct,
+        usedHints: state.hintsShown.length
+      });
+
+      // Bonus for using no hints
+      if (correct && state.hintsShown.length === 0) {
+        state.score += Math.round(5 * state.multiplier);
+      }
+
+      renderHeader();
+      renderFeedback(correct, email);
+    }
+
+    function popLostHeart() {
+      var hearts = document.querySelectorAll('#statHearts .heart');
+      // Find the last non-lost heart and animate it.
+      var target = null;
+      for (var i = hearts.length - 1; i >= 0; i--) {
+        if (!hearts[i].classList.contains('lost')) { target = hearts[i]; break; }
+      }
+      if (target) {
+        target.classList.add('pop');
+        // After the animation, mark it lost.
+        setTimeout(function() {
+          target.classList.add('lost');
+        }, 300);
+      }
+    }
+
+    // ---------- Feedback panel ----------
+    function renderFeedback(correct, pickedEmail) {
+      var area = $('feedbackArea');
+      area.innerHTML = '';
+
+      var scam = state.current.scam;
+      var all = state.current.all;
+      var title, html;
+
+      if (correct) {
+        var bonus = state.hintsShown.length === 0
+          ? ' <span style="color: var(--green); font-weight: 700;">+ no-hint bonus</span>' : '';
+        title = '✓ Spot on — that was the scam!';
+        html = '<div class="title">' + title + '</div>' +
+               '<div style="color: var(--text-2); font-size: 12.5px;">' +
+                 'You scored <b style="color: var(--blue);">+' + Math.round(10 * state.multiplier) + '</b>' + bonus + '. ' +
+                 'Scroll up to see the clues, or continue to the next round.' +
+               '</div>';
+      } else {
+        title = '✗ Not quite — that one was real.';
+        html = '<div class="title">' + title + '</div>' +
+               '<div style="color: var(--text-2); font-size: 12.5px;">' +
+                 'The <b>scam</b> was the one outlined in green. You lost a heart.' +
+               '</div>';
+      }
+
+      // Build the "why" list — show all scam tells so the student
+      // learns the signals regardless of how many hints they used.
+      var why = '<ul class="why">' +
+        scam.tells.map(function(t) { return '<li>' + escapeHtml(t) + '</li>'; }).join('') +
+        '</ul>';
+
+      var actions = el('div', { class: 'actions' });
+      var nextBtn = el('button', {
+        class: 'primary-btn',
+        type: 'button',
+        text: state.round >= state.roundsTotal ? 'See results' : 'Next round →',
+        on: { click: onNext }
+      });
+      actions.appendChild(nextBtn);
+
+      var fb = el('div', { class: 'feedback ' + (correct ? 'ok' : 'bad') });
+      fb.innerHTML = html + why;
+      fb.appendChild(actions);
+      area.appendChild(fb);
+    }
+
+    function onNext() {
+      if (state.round >= state.roundsTotal || state.hearts === 0) {
+        endGame();
+      } else {
+        freshRound();
+      }
+    }
+
+    // ---------- End game ----------
+    function endGame() {
+      state.finished = true;
+      var correctCount = state.answered.filter(function(a) { return a.correct; }).length;
+      var total = state.answered.length;
+      var win = state.hearts > 0 && correctCount === total;
+      var good = correctCount >= Math.ceil(total * 0.7);
+
+      $('endBig').textContent  = win ? '🏆' : (good ? '🎉' : '💪');
+      $('endTitle').textContent = win ? 'Perfect score!' : (good ? 'Well done!' : 'Good effort!');
+      $('endSub').textContent = win
+        ? 'You spotted every scam. Serious cyber-sleuth skills.'
+        : (good
+            ? 'You got most of them right. Review the clues and try again for a perfect run.'
+            : 'Don\'t worry — every round is a chance to learn. Play again and watch the tells.');
+
+      $('endScore').textContent    = state.score;
+      $('endCorrect').textContent  = correctCount + '/' + total;
+      $('endHints').textContent    = state.hintsUsed;
+      $('endHearts').textContent   = state.hearts;
+
+      showScreen('screenEnd');
+      if (win) confetti({ longer: true });
+
+      // Tell the parent we're done. The activity is scored as
+      // correctCount / total — passing the lesson is up to the
+      // teacher to decide (they can mark it "required" or not).
+      postComplete(correctCount, total);
+    }
+
+    // ---------- Confetti ----------
+    function confetti(opts) {
+      opts = opts || {};
+      var box = $('confetti');
+      box.innerHTML = '';
+      var colors = ['#58A6FF', '#3FB950', '#D29922', '#A371F7', '#56D4DD'];
+      var count = opts.longer ? 80 : 40;
+      for (var i = 0; i < count; i++) {
+        var dot = document.createElement('span');
+        dot.style.left = Math.random() * 100 + '%';
+        dot.style.background = colors[Math.floor(Math.random() * colors.length)];
+        dot.style.animationDuration = (1.5 + Math.random() * 1.5) + 's';
+        dot.style.animationDelay = (Math.random() * 0.4) + 's';
+        dot.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg)';
+        box.appendChild(dot);
+      }
+      // Clean up after the longest animation.
+      setTimeout(function() { box.innerHTML = ''; }, 4000);
+    }
+
+    // ---------- Parent communication ----------
+    // The activity iframe sits inside lesson.html. The parent listens
+    // for {type:'recall-block-complete', blockId, score, total} and
+    // unlocks the lesson's "Mark complete" button. window.__recallBlockId
+    // is injected by the parent before the activity file loads.
+    function postComplete(score, total) {
+      var blockId = (typeof window.__recallBlockId === 'string') ? window.__recallBlockId : '';
+      try {
+        parent.postMessage({
+          type: 'recall-block-complete',
+          blockId: blockId,
+          score: score,
+          total: total
+        }, '*');
+      } catch (e) { /* noop */ }
+    }
+
+    // ---------- Start ----------
+    function startGame(diff) {
+      var cfg = DIFFICULTY[diff];
+      state.difficulty = diff;
+      state.roundsTotal = cfg.rounds;
+      state.choicesPerRound = cfg.choices;
+      state.multiplier = cfg.multiplier;
+      state.round = 0;
+      state.score = 0;
+      state.hearts = state.maxHearts;
+      state.hintsUsed = 0;
+      state.answered = [];
+      state.asked = [];
+      state.finished = false;
+      // Build a fresh shuffled pool of scam emails for the session.
+      state.pool = shuffle(EMAILS.filter(function(e) { return e.kind === 'scam'; }).slice());
+      $('subtitle').textContent = 'Cyber-security training · Y7 · ' + cfg.label;
+      renderHeader();
+      showScreen('screenGame');
+      freshRound();
+    }
+
+    // ---------- Wire up ----------
+    document.addEventListener('DOMContentLoaded', function() {
+      // Difficulty buttons
+      var diffBtns = document.querySelectorAll('#diff .diff-btn');
+      for (var i = 0; i < diffBtns.length; i++) {
+        diffBtns[i].addEventListener('click', function() {
+          var d = this.getAttribute('data-diff');
+          startGame(d);
+        });
+      }
+      // Hint button
+      $('hintBtn').addEventListener('click', onHint);
+      // Play again
+      $('playAgainBtn').addEventListener('click', function() {
+        showScreen('screenStart');
+      });
+      renderHeader();
+    });
+  })();
+  </script>
+</body>
+</html>
