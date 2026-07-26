@@ -3,82 +3,104 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0D1117" />
+  <meta name="theme-color" content="#1A1D22" />
   <title>Spot the Scam — Cyber Security</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     /* =========================================================================
        Spot the Scam — single-file HTML activity
-       Responsive: phone (≤480px), tablet (481–820px), desktop (≥821px).
-       Self-contained: no fonts, no external assets, no Supabase, no network.
+       Palette + type borrowed from index.html ("bubbley grey" + teal).
+       Email cards mimic a Gmail-style client view inside the card.
        Communicates completion to the parent via the standard
        recall-block-complete postMessage contract.
        ========================================================================= */
     :root {
-      --bg:        #0D1117;
-      --bg-2:      #161B22;
-      --bg-3:      #1C2128;
-      --bg-4:      #21262D;
-      --line:      #21262D;
-      --line-2:    #30363D;
-      --line-3:    #484F58;
-      --text:      #F0F6FC;
+      --bg:        #1A1D22;
+      --bg-2:      #232629;
+      --bg-3:      #2B2F33;
+      --bg-4:      #353A3F;
+      --line:      #2A2E33;
+      --line-2:    #3A3F45;
+      --line-3:    #4D535A;
+      --text:      #F5F7FA;
       --text-2:    #C9D1D9;
-      --text-3:    #8B949E;
-      --text-4:    #6E7681;
-      --blue:      #58A6FF;
-      --blue-2:    #1F6FEB;
-      --green:     #3FB950;
-      --green-dim: rgba(63,185,80,0.15);
-      --yellow:    #D29922;
-      --yellow-dim:rgba(210,153,34,0.15);
-      --red:       #F85149;
-      --red-dim:   rgba(248,81,73,0.15);
-      --purple:    #A371F7;
+      --text-3:    #9098A4;
+      --text-4:    #6B7280;
       --teal:      #56D4DD;
-      --r-sm:  6px;
-      --r-md:  10px;
-      --r-lg:  16px;
+      --teal-2:    #3FB8C4;
+      --teal-soft: #7CE0E8;
+      --teal-dim:  rgba(86, 212, 221, 0.18);
+      --teal-pale: rgba(86, 212, 221, 0.10);
+      --teal-glow: rgba(86, 212, 221, 0.30);
+      --green:     #4FBE6A;
+      --green-dim: rgba(79,190,106,0.15);
+      --yellow:    #D8B14A;
+      --yellow-dim:rgba(216,177,74,0.15);
+      --red:       #F26B62;
+      --red-dim:   rgba(242,107,98,0.15);
+      --purple:    #B388F8;
+      --r-xs:  8px;
+      --r-sm:  12px;
+      --r-md:  18px;
+      --r-lg:  24px;
+      --r-pill: 999px;
+      --shadow-sm: 0 2px 6px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.10);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.12);
+      --shadow-glow: 0 0 0 1px var(--teal-dim), 0 8px 24px rgba(0,0,0,0.22);
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--text); }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
-      font-size: 15px; line-height: 1.5;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px; line-height: 1.5;
       -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
       -webkit-tap-highlight-color: transparent;
       overflow-x: hidden;
+      /* Same atmospheric teal as index.html — sits behind everything. */
+      background-image:
+        radial-gradient(ellipse 1400px 700px at 0% -10%,
+          rgba(86, 212, 221, 0.07), transparent 60%),
+        radial-gradient(ellipse 900px 500px at 100% 20%,
+          rgba(86, 212, 221, 0.04), transparent 70%);
+      background-attachment: fixed;
     }
+    ::selection { background: var(--teal); color: #0B0D0F; }
     button { font-family: inherit; cursor: pointer; }
-    button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+    a { color: var(--teal-soft); text-decoration: none; }
+    a:hover { text-decoration: underline; }
 
     /* ---------- Shell ---------- */
-    .shell { max-width: 980px; margin: 0 auto; padding: 16px; }
+    .shell { max-width: 1080px; margin: 0 auto; padding: 16px; }
     @media (min-width: 820px) { .shell { padding: 28px 24px; } }
 
-    /* ---------- Header ---------- */
+    /* ---------- Header (banner like .dash-bar) ---------- */
     .head {
       display: flex; align-items: center; gap: 12px;
-      padding: 12px 14px;
-      background: var(--bg-2); border: 1px solid var(--line);
+      padding: 12px 18px;
+      background: var(--bg-2); border: 1px solid var(--line-2);
       border-radius: var(--r-md);
-      margin-bottom: 14px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
     }
-    .head h1 { margin: 0; font-size: 16px; font-weight: 700; }
-    .head h1 .accent { color: var(--blue); }
+    .head h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+    .head h1 .accent { color: var(--teal); }
     .head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
-    .head .stats { margin-left: auto; display: flex; gap: 14px; align-items: center; }
+    .head .stats { margin-left: auto; display: flex; gap: 8px; align-items: center; }
     .stat {
       display: flex; align-items: center; gap: 6px;
-      font-family: ui-monospace, 'JetBrains Mono', Consolas, monospace;
-      font-size: 13px; font-weight: 700;
+      font-size: 12px; font-weight: 600;
       background: var(--bg-3); border: 1px solid var(--line);
-      padding: 5px 10px; border-radius: var(--r-sm);
+      padding: 5px 11px; border-radius: var(--r-pill);
     }
     .stat .label { color: var(--text-3); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; }
-    .stat .value { color: var(--text); }
-    .stat.score .value { color: var(--blue); }
+    .stat .value { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .stat.score .value { color: var(--teal-soft); }
     .stat.round .value { color: var(--text); }
-    .hearts { display: inline-flex; gap: 3px; font-size: 16px; line-height: 1; }
+    .hearts { display: inline-flex; gap: 4px; font-size: 15px; line-height: 1; }
     .heart { transition: transform 0.2s ease, opacity 0.3s ease; display: inline-block; }
     .heart.lost { opacity: 0.25; transform: scale(0.85); }
     .heart.pop { animation: heartPop 0.45s ease; }
@@ -98,82 +120,95 @@
 
     /* ---------- Start screen ---------- */
     .start-card {
-      background: var(--bg-2); border: 1px solid var(--line);
-      border-radius: var(--r-lg); padding: 28px 22px;
+      background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-lg); padding: 36px 24px;
       text-align: center;
+      box-shadow: var(--shadow-md);
     }
     .start-card .icon {
-      font-size: 44px; margin-bottom: 8px;
+      font-size: 48px; margin-bottom: 8px;
+      filter: drop-shadow(0 4px 18px rgba(86,212,221,0.30));
       animation: float 3s ease-in-out infinite;
     }
     @keyframes float {
       0%, 100% { transform: translateY(0); }
       50%      { transform: translateY(-6px); }
     }
-    .start-card h2 { margin: 6px 0 6px; font-size: 24px; }
-    .start-card p  { margin: 0 0 18px; color: var(--text-2); }
-    .start-card .tip {
-      display: inline-block; background: var(--blue-pale, rgba(88,166,255,0.08));
-      border: 1px solid var(--blue); color: var(--text-2);
-      font-size: 12.5px; padding: 8px 12px; border-radius: var(--r-sm);
-      max-width: 520px; margin: 0 auto 20px;
+    .start-card h2 {
+      margin: 6px 0 8px; font-size: 26px; font-weight: 700;
+      letter-spacing: -0.02em;
     }
-    .start-card .tip strong { color: var(--blue); }
+    .start-card p  { margin: 0 auto 20px; color: var(--text-2); max-width: 52ch; }
+    .start-card .tip {
+      display: inline-block; background: var(--teal-pale);
+      border: 1px solid var(--teal-dim); color: var(--text-2);
+      font-size: 13px; padding: 10px 14px; border-radius: var(--r-sm);
+      max-width: 540px; margin: 0 auto 22px;
+    }
+    .start-card .tip strong { color: var(--teal); }
 
-    /* Difficulty selector — big chunky buttons */
+    /* Difficulty selector — chunky teal-accented buttons */
     .diff {
-      display: grid; grid-template-columns: 1fr; gap: 8px;
-      max-width: 520px; margin: 0 auto 14px;
+      display: grid; grid-template-columns: 1fr; gap: 10px;
+      max-width: 560px; margin: 0 auto 6px;
     }
     @media (min-width: 600px) { .diff { grid-template-columns: repeat(3, 1fr); } }
     .diff-btn {
-      background: var(--bg-3); border: 1px solid var(--line-2);
+      background: var(--bg-2); border: 1px solid var(--line-2);
       color: var(--text); border-radius: var(--r-md);
-      padding: 14px 12px; text-align: left;
-      transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+      padding: 16px 14px; text-align: left;
+      transition: border-color 0.15s ease, background 0.15s ease,
+                  transform 0.1s ease, box-shadow 0.15s ease;
     }
-    .diff-btn:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .diff-btn:hover {
+      background: var(--bg-3); border-color: var(--teal-dim);
+      transform: translateY(-1px); box-shadow: var(--shadow-md);
+    }
     .diff-btn:active { transform: scale(0.98); }
     .diff-btn .name { font-size: 15px; font-weight: 700; display: block; }
-    .diff-btn .meta { font-size: 11.5px; color: var(--text-3); margin-top: 3px; display: block; }
+    .diff-btn .meta { font-size: 11.5px; color: var(--text-3); margin-top: 4px; display: block; }
     .diff-btn .multi {
-      display: inline-block; margin-top: 6px;
+      display: inline-block; margin-top: 8px;
       font-size: 11px; font-weight: 700;
-      background: var(--blue-dim, rgba(88,166,255,0.15));
-      color: var(--blue); padding: 2px 7px; border-radius: 999px;
+      background: var(--teal-pale); color: var(--teal);
+      padding: 3px 9px; border-radius: var(--r-pill);
+      letter-spacing: 0.02em;
     }
 
     /* ---------- Game screen ---------- */
     .round-banner {
       display: flex; align-items: center; gap: 10px;
       background: var(--bg-2); border: 1px solid var(--line);
-      border-radius: var(--r-md); padding: 9px 14px;
+      border-radius: var(--r-md); padding: 10px 16px;
       margin-bottom: 14px; font-size: 13px; color: var(--text-2);
     }
     .round-banner .pill {
       font-size: 11px; font-weight: 700;
-      background: var(--blue-dim, rgba(88,166,255,0.15)); color: var(--blue);
-      padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em;
+      background: var(--teal-pale); color: var(--teal);
+      padding: 4px 10px; border-radius: var(--r-pill);
+      text-transform: uppercase; letter-spacing: 0.04em;
     }
     .round-banner .progress {
-      margin-left: auto; display: flex; gap: 4px;
+      margin-left: auto; display: flex; gap: 5px;
     }
     .round-banner .progress .dot {
-      width: 18px; height: 6px; border-radius: 3px;
+      width: 22px; height: 6px; border-radius: var(--r-pill);
       background: var(--bg-4); border: 1px solid var(--line);
     }
     .round-banner .progress .dot.done { background: var(--green); border-color: var(--green); }
     .round-banner .progress .dot.wrong { background: var(--red); border-color: var(--red); }
-    .round-banner .progress .dot.current { background: var(--blue); border-color: var(--blue); }
+    .round-banner .progress .dot.current { background: var(--teal); border-color: var(--teal); }
 
     .prompt {
-      font-size: 16px; font-weight: 600; color: var(--text);
-      margin: 0 0 12px; padding: 0 4px;
+      font-size: 17px; font-weight: 600; color: var(--text);
+      margin: 4px 0 14px; padding: 0 4px;
+      letter-spacing: -0.01em;
     }
 
-    /* Email card — looks like a real email client */
+    /* ---------- Email card — Gmail-style client view inside the card ---------- */
     .emails {
-      display: grid; gap: 12px;
+      display: grid; gap: 14px;
       grid-template-columns: 1fr;
     }
     @media (min-width: 700px) {
@@ -188,16 +223,27 @@
 
     .email {
       background: var(--bg-2); border: 1px solid var(--line-2);
-      border-radius: var(--r-md); padding: 14px;
-      cursor: pointer; display: flex; flex-direction: column; gap: 8px;
-      transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+      border-radius: var(--r-md);
+      cursor: pointer; display: flex; flex-direction: column;
+      overflow: hidden;                       /* clip the chrome bar corners */
+      transition: border-color 0.15s ease, background 0.15s ease,
+                  transform 0.1s ease, box-shadow 0.15s ease;
       text-align: left; color: var(--text);
       position: relative;
+      padding: 0;
     }
-    .email:hover { border-color: var(--line-3); background: var(--bg-3); }
+    .email:hover {
+      border-color: var(--teal-dim);
+      background: var(--bg-3);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
     .email:active { transform: scale(0.99); }
     .email.locked { cursor: default; }
-    .email.locked:hover { background: var(--bg-2); border-color: var(--line-2); }
+    .email.locked:hover {
+      background: var(--bg-2); border-color: var(--line-2);
+      transform: none; box-shadow: none;
+    }
     .email.correct {
       border-color: var(--green); background: var(--green-dim);
       animation: correctPulse 0.6s ease;
@@ -207,39 +253,91 @@
       animation: wrongShake 0.45s ease;
     }
     @keyframes correctPulse {
-      0%   { box-shadow: 0 0 0 0 rgba(63,185,80,0.6); }
-      100% { box-shadow: 0 0 0 16px rgba(63,185,80,0); }
+      0%   { box-shadow: 0 0 0 0 rgba(79,190,106,0.6); }
+      100% { box-shadow: 0 0 0 16px rgba(79,190,106,0); }
     }
     @keyframes wrongShake {
       10%, 90% { transform: translateX(-2px); }
       30%, 50%, 70% { transform: translateX(-5px); }
       40%, 60% { transform: translateX(5px); }
     }
-    .email .email-head { display: flex; align-items: flex-start; gap: 10px; }
+
+    /* Browser/window chrome bar — three dots + sender label */
+    .email .chrome {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 12px;
+      background: var(--bg-3);
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .email .chrome .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      display: inline-block;
+    }
+    .email .chrome .dot.r { background: var(--red);   opacity: 0.85; }
+    .email .chrome .dot.y { background: var(--yellow); opacity: 0.85; }
+    .email .chrome .dot.g { background: var(--green);  opacity: 0.85; }
+    .email .chrome .label {
+      flex: 1; text-align: center;
+      font-size: 11.5px; font-weight: 600; color: var(--text-3);
+      letter-spacing: 0.02em;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      padding: 0 8px;
+    }
+
+    /* Email header block — avatar + from + address + "to me" */
+    .email .email-head {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 14px 6px;
+    }
     .email .avatar {
       width: 36px; height: 36px; flex-shrink: 0;
       border-radius: 50%; display: grid; place-items: center;
-      background: var(--bg-4); color: var(--blue);
+      background: var(--bg-4); color: var(--teal);
       font-weight: 700; font-size: 14px;
+      border: 1px solid var(--line);
     }
     .email .from { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-    .email .from .name { font-size: 13.5px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .email .from .addr { font-size: 11.5px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .email .subject { font-size: 13.5px; font-weight: 600; color: var(--text); }
+    .email .from .name {
+      font-size: 13.5px; font-weight: 700; color: var(--text);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .email .from .addr {
+      font-size: 11.5px; color: var(--text-3);
+      font-family: ui-monospace, 'JetBrains Mono', Consolas, monospace;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .email .from .tome {
+      font-size: 11px; color: var(--text-4);
+      margin-top: 1px;
+    }
+
+    .email .subject {
+      font-size: 14px; font-weight: 600; color: var(--text);
+      padding: 0 14px 6px;
+      letter-spacing: -0.005em;
+    }
+
+    .email .divider {
+      height: 1px; background: var(--line); margin: 0 14px;
+    }
+
     .email .body {
       font-size: 13px; color: var(--text-2);
       line-height: 1.55;
-      max-height: 7.5em; overflow: hidden;
-      mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
-      -webkit-mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
+      padding: 10px 14px 14px;
+      max-height: 8.5em; overflow: hidden;
+      mask-image: linear-gradient(180deg, #000 55%, transparent 100%);
+      -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 100%);
     }
+
     .email .badge {
       position: absolute; top: 10px; right: 10px;
       font-size: 10.5px; font-weight: 700;
-      padding: 3px 8px; border-radius: 999px;
+      padding: 4px 10px; border-radius: var(--r-pill);
       text-transform: uppercase; letter-spacing: 0.04em;
     }
-    .email.correct .badge { background: var(--green); color: #fff; }
+    .email.correct .badge { background: var(--green); color: #0B0D0F; }
     .email.wrong   .badge { background: var(--red);   color: #fff; }
     .email .badge-correct, .email .badge-wrong { display: none; }
     .email.correct .badge-correct { display: inline-block; }
@@ -258,8 +356,8 @@
     .hint-dock .hd-help  { font-size: 11.5px; color: var(--text-3); margin-left: auto; }
     .hint-btn {
       background: var(--bg-3); border: 1px solid var(--line-2);
-      color: var(--text); border-radius: var(--r-sm);
-      padding: 7px 12px; font-size: 13px; font-weight: 600;
+      color: var(--text); border-radius: var(--r-pill);
+      padding: 7px 14px; font-size: 13px; font-weight: 600;
       display: inline-flex; align-items: center; gap: 6px;
       transition: background 0.15s ease, border-color 0.15s ease;
     }
@@ -273,7 +371,7 @@
     }
     .hints-list li {
       display: flex; align-items: flex-start; gap: 8px;
-      padding: 8px 10px;
+      padding: 8px 12px;
       background: var(--yellow-dim); border: 1px solid var(--yellow);
       border-radius: var(--r-sm);
       font-size: 13px; color: var(--text);
@@ -288,7 +386,7 @@
     /* After-answer feedback panel */
     .feedback {
       margin-top: 14px;
-      border-radius: var(--r-md); padding: 12px 14px;
+      border-radius: var(--r-md); padding: 12px 16px;
       font-size: 13.5px;
       animation: fadeUp 0.3s ease both;
     }
@@ -300,24 +398,33 @@
       margin: 4px 0 0; padding-left: 18px;
     }
     .feedback .why li { margin-bottom: 3px; }
-    .feedback .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .feedback .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+    /* Buttons — Recall's white-with-teal-halo primary */
     .primary-btn {
-      background: var(--blue); color: #fff; border: 0;
-      padding: 9px 16px; border-radius: var(--r-sm);
-      font-size: 13px; font-weight: 700;
-      transition: background 0.15s ease, transform 0.1s ease;
+      background: #FFFFFF; color: #0B0D0F;
+      border: 1px solid #FFFFFF;
+      padding: 10px 20px; border-radius: var(--r-pill);
+      font-size: 13px; font-weight: 600;
+      box-shadow: 0 4px 18px rgba(255,255,255,0.10), 0 0 32px rgba(86,212,221,0.22);
+      transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
     }
-    .primary-btn:hover  { background: var(--blue-2); }
+    .primary-btn:hover  {
+      background: #F0F2F5;
+      box-shadow: 0 6px 24px rgba(255,255,255,0.16), 0 0 40px rgba(86,212,221,0.32);
+      transform: translateY(-1px);
+    }
     .primary-btn:active { transform: scale(0.98); }
     .primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
     .ghost-btn {
-      background: transparent; color: var(--text-2);
+      background: var(--bg-2); color: var(--text);
       border: 1px solid var(--line-2);
-      padding: 9px 14px; border-radius: var(--r-sm);
+      padding: 10px 18px; border-radius: var(--r-pill);
       font-size: 13px; font-weight: 600;
       transition: background 0.15s ease, border-color 0.15s ease;
     }
-    .ghost-btn:hover { background: var(--bg-3); border-color: var(--line-3); color: var(--text); }
+    .ghost-btn:hover { background: var(--bg-3); border-color: var(--line-3); }
 
     /* Confetti via simple floating dots */
     .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 100; }
@@ -333,12 +440,14 @@
 
     /* ---------- End screen ---------- */
     .end-card {
-      background: var(--bg-2); border: 1px solid var(--line);
-      border-radius: var(--r-lg); padding: 28px 22px;
+      background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-lg); padding: 36px 24px;
       text-align: center;
+      box-shadow: var(--shadow-md);
     }
     .end-card .big {
-      font-size: 56px; line-height: 1; margin-bottom: 8px;
+      font-size: 56px; line-height: 1; margin-bottom: 10px;
       animation: bigIn 0.5s ease both;
     }
     @keyframes bigIn {
@@ -346,27 +455,37 @@
       60%  { transform: scale(1.15); }
       100% { transform: scale(1); opacity: 1; }
     }
-    .end-card h2 { margin: 0 0 6px; font-size: 24px; }
-    .end-card .sub { color: var(--text-2); margin: 0 0 18px; }
+    .end-card h2 {
+      margin: 0 0 6px; font-size: 26px; font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .end-card .sub { color: var(--text-2); margin: 0 auto 20px; max-width: 48ch; }
     .stats-grid {
       display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
-      max-width: 480px; margin: 0 auto 18px;
+      max-width: 520px; margin: 0 auto 20px;
     }
     @media (min-width: 520px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
     .stat-tile {
-      background: var(--bg-3); border: 1px solid var(--line);
-      border-radius: var(--r-md); padding: 12px 8px;
+      background: var(--bg-2); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 14px 10px;
     }
-    .stat-tile .v { font-size: 22px; font-weight: 800; color: var(--text); }
-    .stat-tile .l { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+    .stat-tile .v {
+      font-size: 24px; font-weight: 800; color: var(--text);
+      letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+    }
+    .stat-tile .l {
+      font-size: 11px; color: var(--text-3); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px;
+    }
     .end-card .takeaway {
-      background: var(--bg-3); border: 1px solid var(--line);
-      border-radius: var(--r-md); padding: 12px 14px;
+      background: var(--teal-pale); border: 1px solid var(--teal-dim);
+      border-left: 3px solid var(--teal);
+      border-radius: var(--r-md); padding: 14px 18px;
       font-size: 13px; color: var(--text-2);
-      max-width: 560px; margin: 0 auto 16px;
+      max-width: 600px; margin: 0 auto 18px;
       text-align: left;
     }
-    .end-card .takeaway b { color: var(--blue); }
+    .end-card .takeaway b { color: var(--teal); }
 
     /* ---------- Utility ---------- */
     .hidden { display: none !important; }
@@ -374,6 +493,9 @@
       position: absolute; width: 1px; height: 1px;
       padding: 0; margin: -1px; overflow: hidden;
       clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; animation: none !important; }
     }
   </style>
 </head>
@@ -846,14 +968,22 @@
       card.innerHTML = [
         '<span class="badge badge-correct">SCAM</span>',
         '<span class="badge badge-wrong">SAFE</span>',
+        '<div class="chrome" aria-hidden="true">',
+        '  <span class="dot r"></span>',
+        '  <span class="dot y"></span>',
+        '  <span class="dot g"></span>',
+        '  <span class="label">Message</span>',
+        '</div>',
         '<div class="email-head">',
         '  <div class="avatar" aria-hidden="true">' + escapeHtml(initial) + '</div>',
         '  <div class="from">',
         '    <span class="name">' + escapeHtml(email.sender.name) + '</span>',
         '    <span class="addr">' + escapeHtml(email.sender.addr) + '</span>',
+        '    <span class="tome">to me</span>',
         '  </div>',
         '</div>',
         '<div class="subject">' + escapeHtml(email.subject) + '</div>',
+        '<div class="divider" aria-hidden="true"></div>',
         '<div class="body">' + escapeHtml(email.body).replace(/\n/g, '<br>') + '</div>'
       ].join('');
       return card;
@@ -956,7 +1086,7 @@
         title = '✓ Spot on — that was the scam!';
         html = '<div class="title">' + title + '</div>' +
                '<div style="color: var(--text-2); font-size: 12.5px;">' +
-                 'You scored <b style="color: var(--blue);">+' + Math.round(10 * state.multiplier) + '</b>' + bonus + '. ' +
+                 'You scored <b style="color: var(--teal);">+' + Math.round(10 * state.multiplier) + '</b>' + bonus + '. ' +
                  'Scroll up to see the clues, or continue to the next round.' +
                '</div>';
       } else {
@@ -1031,7 +1161,7 @@
       opts = opts || {};
       var box = $('confetti');
       box.innerHTML = '';
-      var colors = ['#58A6FF', '#3FB950', '#D29922', '#A371F7', '#56D4DD'];
+      var colors = ['#56D4DD', '#3FB8C4', '#4FBE6A', '#D8B14A', '#B388F8', '#F26B62'];
       var count = opts.longer ? 80 : 40;
       for (var i = 0; i < count; i++) {
         var dot = document.createElement('span');
