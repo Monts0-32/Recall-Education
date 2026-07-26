@@ -379,11 +379,21 @@
                 }
                 return;
               }
-              // Success — role updated. The JWT doesn't have the new
-              // claim yet, so we have to refresh before sending the
-              // user into a role-gated page.
+              // Success — role updated. Refresh the JWT so the new
+              // role is on the access token (the auth hook re-stamps
+              // app_metadata.role on every refresh), then route to the
+              // right surface for the role we just granted. We can't
+              // send the user to the student dashboard — they're a
+              // staff member now, and the student dashboard would
+              // either bounce them to the wrong-type page or render
+              // an empty student view.
               await supabase.auth.refreshSession();
-              window.location.href = "dashboard.html?welcome=staff";
+              const home =
+                  data.role === 'admin' ? 'admin.html'
+                : (data.role === 'staff_author' || data.role === 'staff_reviewer')
+                  ? 'staff-dashboard.html'
+                : 'dashboard.html';
+              window.location.href = home;
             });
           }
         }

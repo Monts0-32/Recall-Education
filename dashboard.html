@@ -1392,6 +1392,37 @@
   async function loadWithUser(user) {
     const meta = user.user_metadata || {};
 
+    // Belt-and-braces: if a signed-in user lands here with a stashed
+    // staff-invite token (signup-staff.html puts it in sessionStorage),
+    // accept it now. The /auth/confirmed.html path is the primary one,
+    // but if the user went straight to /login.html from a different
+    // tab, they'd otherwise miss the role grant. Idempotent — the
+    // server-side RPC ignores already-accepted invites.
+    try {
+      const pending = (sessionStorage.getItem('pending_staff_invite') || '').trim();
+      if (/^[0-9a-f-]{36}$/i.test(pending)) {
+        const { data: acceptData, error: acceptErr } =
+          await supabaseClient.rpc('accept_staff_invite',
+            { p_token: pending, p_decision: 'accepted' });
+        if (!acceptErr && acceptData && acceptData.ok) {
+          // Role just got stamped. Refresh the JWT so app_metadata.role
+          // reflects it, then bounce to the role-appropriate home
+          // instead of rendering the student dashboard.
+          try { await supabaseClient.auth.refreshSession({ forceRefresh: true }); } catch (_) {}
+          sessionStorage.removeItem('pending_staff_invite');
+          const role = acceptData.role || null;
+          if (role === 'admin') window.location.replace('admin.html');
+          else if (role === 'staff_author' || role === 'staff_reviewer')
+            window.location.replace('staff-dashboard.html');
+          // If role was something unexpected, fall through to the
+          // standard render so the wrong-type page can explain.
+        } else {
+          // Either error or refused — clean up either way.
+          sessionStorage.removeItem('pending_staff_invite');
+        }
+      }
+    } catch (_) { /* best effort */ }
+
     // Try to read year_group + consent from profiles; not fatal if it fails.
     let yearGroup = meta.year_group || null;
     let schoolId = null;

@@ -210,12 +210,23 @@
     // If this account was created via /signup-staff.html with a pending
     // staff-invite token, accept it now — accept_staff_invite requires
     // auth.uid(), which we only have post-confirmation. The signup page
-    // stashed the token in sessionStorage right before redirecting to
-    // the email-confirmation flow. We do this BEFORE reading the role
-    // so the role lookup sees the freshly-stamped staff role.
+    // bakes the token into the post-confirm URL as ?pending_staff_invite=
+    // (the email-confirm flow doesn't strip query params, only the
+    // access_token hash). sessionStorage is the secondary path for
+    // edge cases (a signed-in user opening this link from a different
+    // tab with no URL param); we accept either.
+    let pending = '';
     try {
-      const pending = (sessionStorage.getItem('pending_staff_invite') || '').trim();
-      if (/^[0-9a-f-]{36}$/i.test(pending)) {
+      const urlParam = (new URLSearchParams(window.location.search).get('pending_staff_invite') || '').trim();
+      if (/^[0-9a-f-]{36}$/i.test(urlParam)) pending = urlParam;
+      else {
+        const ss = (sessionStorage.getItem('pending_staff_invite') || '').trim();
+        if (/^[0-9a-f-]{36}$/i.test(ss)) pending = ss;
+      }
+    } catch (_) { /* fall through */ }
+
+    if (pending) {
+      try {
         const { data: acceptData, error: acceptErr } =
           await supabaseClient.rpc('accept_staff_invite', {
             p_token: pending, p_decision: 'accepted',
@@ -229,16 +240,23 @@
           console.warn('accept_staff_invite (deferred) refused:',
                        acceptData.reason, acceptData);
           if (acceptData.reason === 'email_mismatch') {
-            sessionStorage.setItem('pending_staff_invite_mismatch',
-              acceptData.invited_email || '');
+            try { sessionStorage.setItem('pending_staff_invite_mismatch',
+              acceptData.invited_email || ''); } catch (_) {}
           }
         } else {
           console.log('accept_staff_invite (deferred) ok:', acceptData);
         }
-        // The token is single-use regardless of outcome.
-        sessionStorage.removeItem('pending_staff_invite');
-      }
-    } catch (e) { /* best effort — don't block the ready flow */ }
+      } catch (e) { /* best effort — don't block the ready flow */ }
+      // The token is single-use regardless of outcome. Scrub it from
+      // both places so a refresh on /auth/confirmed.html doesn't try
+      // to accept the (now accepted/revoked/whatever) invite twice.
+      try { sessionStorage.removeItem('pending_staff_invite'); } catch (_) {}
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('pending_staff_invite');
+        window.history.replaceState({}, '', url.toString());
+      } catch (_) { /* replaceState unsupported — fine */ }
+    }
 
     // Force a token refresh FIRST so the custom_access_token_hook
     // re-runs against the current profiles row. Without this, the

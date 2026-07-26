@@ -410,7 +410,13 @@
     const orig = submitBtn.textContent;
     submitBtn.textContent = 'Creating account…';
 
-    const redirectTo = window.location.origin + '/auth/confirmed.html';
+    // Append ?pending_staff_invite=<token> to the post-confirm URL so
+    // the staff-role grant survives the email-confirmation round-trip
+    // even if sessionStorage doesn't (different tab, blocked storage,
+    // privacy-mode browser). /auth/confirmed.html reads this back and
+    // calls accept_staff_invite once the user is signed in.
+    const redirectTo = window.location.origin + '/auth/confirmed.html'
+      + '?pending_staff_invite=' + encodeURIComponent(pendingInvite.token);
 
     try {
       const { data, error } = await supabaseClient.auth.signUp({
@@ -436,11 +442,11 @@
       // We can't accept the invite right here — accept_staff_invite is
       // SECURITY DEFINER and re-validates auth.uid() against the
       // invite's email, but Supabase hasn't issued a session yet
-      // (email confirmation creates the session, not signUp). Stash
-      // the token in sessionStorage so /auth/confirmed.html can call
-      // it after the user clicks the confirmation link and is fully
-      // signed in. That page already routes by role, including a new
-      // staff-author / staff-reviewer / admin branch.
+      // (email confirmation creates the session, not signUp). The
+      // primary path is now to bake the token into the post-confirm
+      // URL (the signingUp redirectTo above), which survives email-
+      // client tab/cookie boundaries. sessionStorage is a defensive
+      // fallback for the rare case where the URL param is stripped.
       try {
         sessionStorage.setItem('pending_staff_invite', pendingInvite.token);
       } catch (_) { /* sessionStorage blocked — won't grant role */ }
