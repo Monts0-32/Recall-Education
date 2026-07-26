@@ -755,15 +755,23 @@
     // read it from here). For invite counts we use a tiny RPC — see
     // below. Counts on staff come from a select on profiles.
     try {
-      const [authors, reviewers, admins, drafts, recent] = await Promise.all([
+      // Run the staff_audit_log top-5 via the list_recent_audit RPC
+      // (same RPC used by the Audit panel) so the join to actor name +
+      // email happens server-side and we avoid the staff_audit_log
+      // RLS-planner "id ambiguous" error that surfaces when the
+      // .from('staff_audit_log').select('id, ...') form is used
+      // directly. The other four (count queries) are bare count
+      // queries with no bare-id ambiguity surface.
+      const [authors, reviewers, admins, drafts, recentResp] = await Promise.all([
         supabaseClient.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'staff_author'),
         supabaseClient.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'staff_reviewer'),
         supabaseClient.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'admin'),
         supabaseClient.from('lessons').select('id', { count: 'exact', head: true }).eq('status', 'draft'),
-        supabaseClient.from('staff_audit_log')
-          .select('id, action, resource_type, resource_id, metadata, created_at')
-          .order('created_at', { ascending: false })
-          .limit(5),
+        supabaseClient.rpc('list_recent_audit', {
+          p_limit: 5,
+          p_actor_filter: null,
+          p_action_filter: null,
+        }),
       ]);
       $('kpiAuthors').textContent   = authors.count   ?? 0;
       $('kpiReviewers').textContent = reviewers.count ?? 0;
@@ -778,7 +786,7 @@
       $('kpiInvites').textContent = (inviteCount.data ?? 0);
 
       const recentTbody = $('recentActions');
-      const rows = recent.data || [];
+      const rows = recentResp.data || [];
       if (!rows.length) {
         recentTbody.innerHTML = '<tr class="empty-row"><td colspan="3">No admin actions yet.</td></tr>';
       } else {
@@ -1135,12 +1143,18 @@
     const tbody = $('auditRows');
     tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Loading…</td></tr>';
     const filter = $('auditFilter').value;
-    let q = supabaseClient.from('staff_audit_log')
-      .select('id, action, resource_type, resource_id, metadata, created_at, actor_id')
-      .order('created_at', { ascending: false })
-      .limit(100);
-    if (filter) q = q.eq('action', filter);
-    const { data, error } = await q;
+    // Use the list_recent_audit RPC rather than reading staff_audit_log
+    // directly. The RPC returns actor name + email pre-joined (avoids a
+    // cross-table profiles lookup that's blocked by the profiles RLS
+    // policy id = auth.uid()), and it sidesteps the "column reference
+    // 'id' is ambiguous" planner error that some clients hit when the
+    // staff_audit_log read policy's EXISTS subquery gets inlined against
+    // a bare-id SELECT.
+    const { data, error } = await supabaseClient.rpc('list_recent_audit', {
+      p_limit: 100,
+      p_actor_filter: null,
+      p_action_filter: filter || null,
+    });
     if (error) {
       tbody.innerHTML = `<tr class="empty-row"><td colspan="4">Error: ${escapeHtml(error.message)}</td></tr>`;
       return;
@@ -1154,10 +1168,15 @@
       const metaJson = JSON.stringify(r.metadata || {}, null, 0);
       const meta = metaJson === '{}' ? '<span class="meta">—</span>'
         : `<span class="expandable" data-json='${escapeHtml(JSON.stringify(r.metadata || {}))}'>view</span>`;
+      // Prefer the resolved actor_name; fall back to email; finally the
+      // truncated UUID so we always have something to show.
+      const who = r.actor_name
+        || r.actor_email
+        || (r.actor_id ? r.actor_id.slice(0, 8) : '—');
       return `
         <tr>
           <td class="meta" title="${escapeHtml(fmtDateTime(r.created_at))}">${fmtDate(r.created_at)}</td>
-          <td class="meta">${escapeHtml(r.actor_id ? r.actor_id.slice(0, 8) : '—')}</td>
+          <td class="meta">${escapeHtml(who)}</td>
           <td><code>${escapeHtml(r.action)}</code></td>
           <td>${meta}</td>
         </tr>

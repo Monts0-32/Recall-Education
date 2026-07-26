@@ -591,19 +591,30 @@
   // Authors see their own recent activity; reviewers + admins see
   // everyone's. Keeps the card useful for every role without dumping
   // a wall of admin-only actions on a junior author.
+  //
+  // We use the list_recent_audit RPC rather than reading staff_audit_log
+  // directly + following up with a profiles lookup. Reasons:
+  //   1. The profiles RLS policy is `id = auth.uid()` — a staff user
+  //      can only see their own profile row, so a follow-up query to
+  //      resolve actor names returns an empty map for everyone else,
+  //      and the UI shows "Unknown user" for every other staff action.
+  //   2. The staff_audit_log RLS policy's EXISTS subquery previously
+  //      triggered Postgres' "column reference 'id' is ambiguous"
+  //      error in some clients (PostgREST's planner was inlining the
+  //      subquery in a way that confused bare-id resolution). Doing
+  //      the join server-side in SECURITY DEFINER land sidesteps both.
   async function loadActivity(role) {
     const body = $('activityBody');
     body.innerHTML = '<div class="card-empty">Loading…</div>';
     try {
-      let q = supabaseClient
-        .from('staff_audit_log')
-        .select('id, action, resource_type, metadata, created_at, actor_id')
-        .order('created_at', { ascending: false })
-        .limit(10);
-      if (role === 'staff_author') {
-        q = q.eq('actor_id', (await supabaseClient.auth.getUser()).data.user.id);
-      }
-      const { data, error } = await q;
+      const actorFilter = role === 'staff_author'
+        ? (await supabaseClient.auth.getUser()).data.user.id
+        : null;
+      const { data, error } = await supabaseClient.rpc('list_recent_audit', {
+        p_limit: 10,
+        p_actor_filter: actorFilter,
+        p_action_filter: null,
+      });
       if (error) throw error;
       if (!data || !data.length) {
         body.innerHTML = '<div class="card-empty">No activity yet.</div>';
@@ -612,24 +623,13 @@
       }
       $('activityMeta').textContent = role === 'staff_author' ? 'Your recent edits' : 'Last 10 actions';
 
-      // Resolve actor names in a single follow-up query (audit log
-      // doesn't FK to a public name column, so we look it up).
-      const actorIds = Array.from(new Set(data.map(d => d.actor_id).filter(Boolean)));
-      let actorMap = {};
-      if (actorIds.length) {
-        const { data: profiles } = await supabaseClient
-          .from('profiles')
-          .select('id, full_name, email')
-          .in('id', actorIds);
-        (profiles || []).forEach(p => { actorMap[p.id] = p.full_name || p.email; });
-      }
-
       body.innerHTML = data.map(row => {
         const when = new Date(row.created_at);
         const whenStr = when.toLocaleString('en-GB', {
           day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
         });
-        const who = actorMap[row.actor_id] || (row.actor_id ? 'Unknown user' : 'System');
+        const who = row.actor_name || row.actor_email
+          || (row.actor_id ? 'Unknown user' : 'System');
         const what = describeAction(row);
         const cls = (row.action || '').replace(/[^a-z_]/g, '_');
         return `

@@ -294,7 +294,7 @@
         $('cardLede').textContent =
           'Your account is ready, but we need a parent or guardian to confirm before you can sign in. We sent them a link by email — it expires in 3 days.';
         $('ctaBtn').textContent = 'Back to home';
-        $('ctaBtn').setAttribute('href', 'index.html');
+        $('ctaBtn').setAttribute('href', '../index.html');
         showState('Waiting for parental consent.', 'warn');
         showReady();
         return;
@@ -305,33 +305,33 @@
       if (role === 'school_organiser') {
         $('cardLede').textContent = 'Welcome, ' + first + '. Your school is ready. Taking you to your organiser console…';
         $('ctaBtn').textContent = 'Go to your organiser console';
-        $('ctaBtn').setAttribute('href', 'school-organiser-dashboard.html');
+        $('ctaBtn').setAttribute('href', '../school-organiser-dashboard.html');
         showReady();
-        setTimeout(function () { window.location.href = 'school-organiser-dashboard.html'; }, 2000);
+        setTimeout(function () { window.location.href = '../school-organiser-dashboard.html'; }, 2000);
         return;
       }
       if (role === 'teacher') {
         $('cardLede').textContent = 'Welcome, ' + first + '. Your teacher account is ready. Taking you to your dashboard…';
         $('ctaBtn').textContent = 'Go to your teacher dashboard';
-        $('ctaBtn').setAttribute('href', 'teacher-dashboard.html');
+        $('ctaBtn').setAttribute('href', '../teacher-dashboard.html');
         showReady();
-        setTimeout(function () { window.location.href = 'teacher-dashboard.html'; }, 2000);
+        setTimeout(function () { window.location.href = '../teacher-dashboard.html'; }, 2000);
         return;
       }
       if (role === 'staff_author' || role === 'staff_reviewer') {
         $('cardLede').textContent = 'Welcome, ' + first + '. Your staff account is ready. Taking you to your dashboard…';
         $('ctaBtn').textContent = 'Go to your staff dashboard';
-        $('ctaBtn').setAttribute('href', 'staff-dashboard.html');
+        $('ctaBtn').setAttribute('href', '../staff-dashboard.html');
         showReady();
-        setTimeout(function () { window.location.href = 'staff-dashboard.html'; }, 2000);
+        setTimeout(function () { window.location.href = '../staff-dashboard.html'; }, 2000);
         return;
       }
       if (role === 'admin') {
         $('cardLede').textContent = 'Welcome, ' + first + '. Your admin account is ready. Taking you to the admin console…';
         $('ctaBtn').textContent = 'Go to the admin console';
-        $('ctaBtn').setAttribute('href', 'admin.html');
+        $('ctaBtn').setAttribute('href', '../admin.html');
         showReady();
-        setTimeout(function () { window.location.href = 'admin.html'; }, 2000);
+        setTimeout(function () { window.location.href = '../admin.html'; }, 2000);
         return;
       }
       // If we accepted a staff invite just now but the role hasn't

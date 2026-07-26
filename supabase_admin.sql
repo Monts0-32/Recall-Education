@@ -897,6 +897,75 @@ $$;
 
 grant execute on function public.list_staff() to authenticated;
 
+-- list_recent_audit: returns recent staff_audit_log rows WITH the actor's
+-- display name and email pre-joined. Done server-side so the client
+-- doesn't have to do a follow-up .from('profiles').in('id', actorIds)
+-- query, which is broken by the profiles RLS policy
+-- (id = auth.uid()) — a regular staff user can only see their own
+-- profile row, so actor names for other staff come back as null and
+-- the UI shows "Unknown user". SECURITY DEFINER + auth.uid() gating
+-- keeps it from leaking audit data to non-staff.
+--
+-- The JOIN is on auth.users (not profiles) because email is on
+-- auth.users and the staff_audit_log FK is to auth.users(id). We then
+-- LEFT JOIN profiles to grab the user's chosen full_name when
+-- available — auth.users.email is the fallback.
+--
+-- All id references are table-qualified; the previous version of this
+-- code path triggered Postgres' "column reference 'id' is ambiguous"
+-- error on the staff-dashboard because the profiles RLS subquery in
+-- staff_audit_read shares the bare 'id' name with the outer SELECT.
+-- Doing the join here in SQL — and only selecting qualified columns —
+-- sidesteps that whole class of error and lets us return the actor
+-- name without the client doing any cross-table lookups.
+create or replace function public.list_recent_audit(
+  p_limit         int    default 10,
+  p_actor_filter  uuid   default null,
+  p_action_filter text   default null
+)
+returns table (
+  id             uuid,
+  action         text,
+  resource_type  text,
+  resource_id    uuid,
+  metadata       jsonb,
+  created_at     timestamptz,
+  actor_id       uuid,
+  actor_name     text,
+  actor_email    text
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+      l.id,
+      l.action,
+      l.resource_type,
+      l.resource_id,
+      l.metadata,
+      l.created_at,
+      l.actor_id,
+      coalesce(p.full_name, split_part(u.email::text, '@', 1)) as actor_name,
+      u.email::text as actor_email
+    from public.staff_audit_log l
+    left join auth.users     u on u.id = l.actor_id
+    left join public.profiles p on p.id = l.actor_id
+   where (
+         p_actor_filter is null
+      or l.actor_id = p_actor_filter
+     )
+     and (
+         p_action_filter is null
+      or l.action = p_action_filter
+     )
+   order by l.created_at desc
+   limit greatest(p_limit, 1);
+$$;
+
+grant execute on function public.list_recent_audit(int, uuid, text) to authenticated;
+
 -- ============================================================================
 -- DONE. After running this:
 --   1. Re-enable the Custom Access Token hook in the Supabase dashboard
