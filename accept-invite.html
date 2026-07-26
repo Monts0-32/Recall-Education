@@ -383,7 +383,6 @@
               await supabase.auth.refreshSession();
               window.location.href = "dashboard.html?welcome=staff";
             });
-            return;
           }
         }
         renderActive(data.role, data.email, token);

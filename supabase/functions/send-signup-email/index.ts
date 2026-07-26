@@ -67,11 +67,15 @@
 //
 // `intended_role` in the request body picks the template:
 //
-//   school_organiser → purple-accented "set up your school" email with
-//                      school name + plan in the body
+//   school_organiser → "set up your school" email with school name +
+//                      plan in the body
 //   teacher          → "Welcome, teacher" with class-management framing
 //   staff_author / staff_reviewer / admin → "Welcome to the team"
 //   (default)        → generic "Welcome to Recall" for students
+//
+// All four templates share the same brand shell — see `layout()` below.
+// The role is communicated in the subject and body, not by varying the
+// shell colours.
 //
 // ============================================================================
 //  AUTH MODEL
@@ -94,7 +98,7 @@
 //
 //   RESEND_API_KEY            — Resend dashboard (re_xxx)
 //   EMAIL_FROM                — optional; defaults to
-//                               "Recall Education <hello@recalleducation.co.uk>"
+//                               "Recall Education <support@recalleducation.co.uk>"
 //
 // SUPABASE_URL and the service role key are auto-injected by the
 // Supabase Edge Function runtime.
@@ -113,7 +117,7 @@ const SUPABASE_SERVICE_ROLE_KEY =
   Deno.env.get("REACT_SUPABASE_SERVICE_KEY") ??
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const EMAIL_FROM =
-  Deno.env.get("EMAIL_FROM") ?? "Recall Education <hello@recalleducation.co.uk>";
+  Deno.env.get("EMAIL_FROM") ?? "Recall Education <support@recalleducation.co.uk>";
 
 function missingEnv(): string[] {
   const out: string[] = [];
@@ -138,29 +142,46 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function layout(title: string, bodyHtml: string, accent: "blue" | "purple" = "blue"): string {
-  // Accent switches the header bar colour. Blue is the default (students,
-  // teachers, staff). Purple is the school-organiser brand colour so
-  // the email is visually distinct in the recipient's inbox.
-  const bar = accent === "purple" ? "#6B3FA0" : "#1F6FEB";
+// Brand shell. Mirrors /email-templates.html: dark #1A1D22 background,
+// #232629 card, #2A2E33 hairline, teal #56D4DD for bubbles + accent,
+// white pill CTA with a teal halo. Logo is fetched from
+// `${logoBase}/logo.png` so the `<img>` resolves for email clients.
+// The earlier "purple-accent for school organisers" branch is dropped
+// — the role is communicated in the subject and body, and the unified
+// dark shell is the brief.
+function layout(title: string, bodyHtml: string, logoBase: string): string {
+  const logoUrl = `${logoBase}/logo.png`;
   return `<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
-<body style="margin:0;padding:0;background:#F6F8FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0D1117;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F6F8FA;padding:32px 16px;">
-    <tr><td align="center">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#FFFFFF;border:1px solid #D0D7DE;border-radius:8px;overflow:hidden;">
-        <tr><td style="background:${bar};padding:18px 24px;font-size:14px;font-weight:700;color:#FFFFFF;letter-spacing:-0.01em;">
-          <span style="display:inline-block;background:#FFFFFF;color:${bar};width:22px;height:22px;line-height:22px;text-align:center;border-radius:4px;margin-right:10px;font-size:12px;font-weight:800;">R</span>
-          Recall
-        </td></tr>
-        <tr><td style="padding:28px 24px 8px;font-size:18px;font-weight:600;color:#0D1117;letter-spacing:-0.01em;">${escapeHtml(title)}</td></tr>
-        <tr><td style="padding:0 24px 24px;font-size:14px;line-height:1.55;color:#1F2328;">${bodyHtml}</td></tr>
-        <tr><td style="padding:14px 24px;border-top:1px solid #D0D7DE;background:#F6F8FA;font-size:12px;color:#57606A;">
-          Recall Education Ltd &middot; UK &middot; You can
-          <a href="mailto:hello@recalleducation.co.uk" style="color:${bar};">unsubscribe</a>
-          or update your preferences at any time.
-        </td></tr>
+<body style="margin:0;padding:0;background:#1A1D22;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#F5F7FA;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#1A1D22;">
+    <tr><td align="center" style="padding:32px 12px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center">
+        <tr>
+          <td valign="top" align="center" style="width:90px;padding:0 6px;">
+            <div style="width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 30% 28%, rgba(86,212,221,0.55), rgba(86,212,221,0.10));margin-bottom:30px;font-size:1px;line-height:1px;">&nbsp;</div>
+            <div style="width:50px;height:50px;border-radius:50%;background:radial-gradient(circle at 30% 28%, rgba(124,224,232,0.50), rgba(86,212,221,0.12));font-size:1px;line-height:1px;">&nbsp;</div>
+          </td>
+          <td valign="top" align="center">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#232629;border:1px solid #2A2E33;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.22);">
+              <tr><td style="padding:16px 20px;background:#FFFFFF;border-bottom:1px solid #2A2E33;">
+                <img src="${escapeHtml(logoUrl)}" alt="Recall" width="28" height="28" style="display:inline-block;width:28px;height:28px;border-radius:6px;margin-right:10px;vertical-align:middle;background:#56D4DD;">
+                <span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:#0B0D0F;letter-spacing:-0.01em;vertical-align:middle;">Recall</span>
+              </td></tr>
+              <tr><td style="padding:28px 24px 8px;font-family:'Inter',sans-serif;font-size:18px;font-weight:600;color:#F5F7FA;letter-spacing:-0.01em;">${escapeHtml(title)}</td></tr>
+              <tr><td style="padding:0 24px 24px;font-family:'Inter',sans-serif;font-size:14px;line-height:1.55;color:#C9D1D9;">${bodyHtml}</td></tr>
+              <tr><td style="padding:14px 24px;border-top:1px solid #2A2E33;background:#1A1D22;font-family:'Inter',sans-serif;font-size:12px;color:#6B7280;">
+                Recall Education Ltd &middot; UK &middot;
+                <a href="mailto:support@recalleducation.co.uk" style="color:#7CE0E8;">Contact us</a>
+              </td></tr>
+            </table>
+          </td>
+          <td valign="top" align="center" style="width:90px;padding:0 6px;">
+            <div style="width:60px;height:60px;border-radius:50%;background:radial-gradient(circle at 30% 28%, rgba(86,212,221,0.55), rgba(86,212,221,0.12));margin-bottom:24px;font-size:1px;line-height:1px;">&nbsp;</div>
+            <div style="width:80px;height:80px;border-radius:50%;background:radial-gradient(circle at 30% 28%, rgba(216,177,74,0.45), rgba(216,177,74,0.10));font-size:1px;line-height:1px;">&nbsp;</div>
+          </td>
+        </tr>
       </table>
     </td></tr>
   </table>
@@ -168,19 +189,20 @@ function layout(title: string, bodyHtml: string, accent: "blue" | "purple" = "bl
 </html>`;
 }
 
-function ctaButton(url: string, label: string, accent: "blue" | "purple" = "blue"): string {
-  const bar = accent === "purple" ? "#6B3FA0" : "#1F6FEB";
+// White pill CTA with a soft teal halo. Same look as the auth templates
+// — dark card + bright button so the link catches the eye first.
+function ctaButton(url: string, label: string): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;">
-    <tr><td bgcolor="${bar}" style="border-radius:6px;">
+    <tr><td style="border-radius:999px;background:#FFFFFF;box-shadow:0 4px 18px rgba(255,255,255,0.06),0 0 32px rgba(86,212,221,0.22);">
       <a href="${escapeHtml(url)}" target="_blank"
-         style="display:inline-block;padding:11px 20px;font-family:inherit;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:6px;">
+         style="display:inline-block;padding:11px 22px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:#0B0D0F;text-decoration:none;border-radius:999px;">
         ${escapeHtml(label)}
       </a>
     </td></tr>
   </table>
-  <p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#57606A;word-break:break-all;">
+  <p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#9098A4;word-break:break-all;">
     If the button doesn't work, paste this link into your browser:<br>
-    <a href="${escapeHtml(url)}" style="color:${bar};">${escapeHtml(url)}</a>
+    <a href="${escapeHtml(url)}" style="color:#7CE0E8;">${escapeHtml(url)}</a>
   </p>`;
 }
 
@@ -190,7 +212,7 @@ function ctaButton(url: string, label: string, accent: "blue" | "purple" = "blue
 // user to redirect_to with a fresh session.
 // ----------------------------------------------------------------------------
 
-function studentConfirmationEmail(name: string, link: string) {
+function studentConfirmationEmail(name: string, link: string, logoBase: string) {
   const first = (name || "there").trim().split(/\s+/)[0];
   return {
     subject: "Confirm your Recall email",
@@ -199,7 +221,8 @@ function studentConfirmationEmail(name: string, link: string) {
       `<p style="margin:0 0 14px;">Hi ${escapeHtml(first)},</p>
        <p style="margin:0 0 14px;">Welcome to Recall. Click the button below to confirm your email and finish setting up your account.</p>
        ${ctaButton(link, "Confirm email")}
-       <p style="margin:18px 0 0;font-size:13px;color:#57606A;">This link expires in 1 hour. If you didn't sign up, you can safely ignore this email.</p>`,
+       <p style="margin:18px 0 0;font-size:13px;color:#9098A4;">This link expires in 1 hour. If you didn't sign up, you can safely ignore this email.</p>`,
+      logoBase,
     ),
     text:
       `Hi ${first},\n\n` +
@@ -208,7 +231,7 @@ function studentConfirmationEmail(name: string, link: string) {
   };
 }
 
-function teacherConfirmationEmail(name: string, link: string) {
+function teacherConfirmationEmail(name: string, link: string, logoBase: string) {
   const first = (name || "there").trim().split(/\s+/)[0];
   return {
     subject: "Confirm your teacher account on Recall",
@@ -217,7 +240,8 @@ function teacherConfirmationEmail(name: string, link: string) {
       `<p style="margin:0 0 14px;">Hi ${escapeHtml(first)},</p>
        <p style="margin:0 0 14px;">Welcome to Recall. You're moments away from being able to set homework, track your classes, and see how your students are getting on.</p>
        ${ctaButton(link, "Confirm and open my teacher dashboard")}
-       <p style="margin:18px 0 0;font-size:13px;color:#57606A;">This link expires in 1 hour. If you didn't sign up as a teacher, you can safely ignore this email.</p>`,
+       <p style="margin:18px 0 0;font-size:13px;color:#9098A4;">This link expires in 1 hour. If you didn't sign up as a teacher, you can safely ignore this email.</p>`,
+      logoBase,
     ),
     text:
       `Hi ${first},\n\n` +
@@ -231,6 +255,7 @@ function organiserConfirmationEmail(
   schoolName: string,
   plan: string,
   link: string,
+  logoBase: string,
 ) {
   const first = (name || "there").trim().split(/\s+/)[0];
   const planLabel = plan === "pro" ? "Pro" : plan === "standard" ? "Standard" : "Free";
@@ -238,22 +263,20 @@ function organiserConfirmationEmail(
     subject: `Confirm your school organiser account — ${schoolName}`,
     html: layout(
       "Confirm your school organiser account",
-      // Purple accent so the email is visually distinct from a
-      // student confirmation in the recipient's inbox.
       `<p style="margin:0 0 14px;">Hi ${escapeHtml(first)},</p>
        <p style="margin:0 0 14px;">Welcome to Recall. You're moments away from being able to manage <b>${escapeHtml(schoolName)}</b> on Recall &mdash; invite teachers, set homework, and see how your students are getting on.</p>
        <p style="margin:0 0 14px;">Plan: <b>${escapeHtml(planLabel)}</b> (you can change this from your organiser console at any time).</p>
-       <div style="margin:18px 0;padding:14px 16px;background:#F5EEFF;border:1px solid #C9A8FF;border-radius:6px;">
-         <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#6B3FA0;">What happens when you click confirm</p>
-         <ol style="margin:6px 0 0;padding-left:20px;font-size:13.5px;line-height:1.6;color:#1F2328;">
+       <div style="margin:18px 0;padding:14px 16px;background:rgba(86,212,221,0.10);border:1px solid rgba(86,212,221,0.40);border-radius:8px;">
+         <p style="margin:0 0 6px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:#7CE0E8;">What happens when you click confirm</p>
+         <ol style="margin:6px 0 0;padding-left:20px;font-size:13.5px;line-height:1.6;color:#C9D1D9;">
            <li>We'll finish setting up your organiser account.</li>
            <li>We'll issue <b>${escapeHtml(schoolName)}</b> a permanent school code you can share with students and teachers.</li>
            <li>You'll be taken straight to your organiser console.</li>
          </ol>
        </div>
-       ${ctaButton(link, "Confirm and open my organiser console", "purple")}
-       <p style="margin:18px 0 0;font-size:13px;color:#57606A;">This link expires in 1 hour. If you didn't sign up to run a school on Recall, you can safely ignore this email.</p>`,
-      "purple",
+       ${ctaButton(link, "Confirm and open my organiser console")}
+       <p style="margin:18px 0 0;font-size:13px;color:#9098A4;">This link expires in 1 hour. If you didn't sign up to run a school on Recall, you can safely ignore this email.</p>`,
+      logoBase,
     ),
     text:
       `Hi ${first},\n\n` +
@@ -268,7 +291,7 @@ function organiserConfirmationEmail(
   };
 }
 
-function staffConfirmationEmail(name: string, role: string, link: string) {
+function staffConfirmationEmail(name: string, role: string, link: string, logoBase: string) {
   const first = (name || "there").trim().split(/\s+/)[0];
   const label =
     role === "staff_author" ? "lesson author" :
@@ -282,7 +305,8 @@ function staffConfirmationEmail(name: string, role: string, link: string) {
       `<p style="margin:0 0 14px;">Hi ${escapeHtml(first)},</p>
        <p style="margin:0 0 14px;">You've been invited to join Recall as <b>${escapeHtml(label)}</b>. Click the button below to confirm your email and finish setting up your staff account.</p>
        ${ctaButton(link, "Confirm email")}
-       <p style="margin:18px 0 0;font-size:13px;color:#57606A;">This link expires in 1 hour. If you weren't expecting this, you can safely ignore the email &mdash; nothing happens unless you click through.</p>`,
+       <p style="margin:18px 0 0;font-size:13px;color:#9098A4;">This link expires in 1 hour. If you weren't expecting this, you can safely ignore the email &mdash; nothing happens unless you click through.</p>`,
+      logoBase,
     ),
     text:
       `Hi ${first},\n\n` +
@@ -418,12 +442,13 @@ Deno.serve(async (req) => {
           intended_school || "your school",
           intended_plan || "free",
           actionLink,
+          appOrigin,
         )
       : role === "teacher"
-        ? teacherConfirmationEmail(name || "", actionLink)
+        ? teacherConfirmationEmail(name || "", actionLink, appOrigin)
         : role === "staff_author" || role === "staff_reviewer" || role === "admin"
-          ? staffConfirmationEmail(name || "", role, actionLink)
-          : studentConfirmationEmail(name || "", actionLink);
+          ? staffConfirmationEmail(name || "", role, actionLink, appOrigin)
+          : studentConfirmationEmail(name || "", actionLink, appOrigin);
 
   const resend = new Resend(RESEND_API_KEY!);
   try {

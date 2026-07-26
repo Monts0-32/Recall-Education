@@ -31,7 +31,7 @@
 // Env vars (set with `supabase secrets set`):
 //   RESEND_API_KEY            — Resend dashboard (re_xxx)
 //   EMAIL_FROM                — optional; defaults to
-//                               "Recall Education <hello@recalleducation.co.uk>"
+//                               "Recall Education <support@recalleducation.co.uk>"
 //
 // SUPABASE_URL and the service role key are auto-injected by the
 // Supabase Edge Function runtime.
@@ -50,7 +50,7 @@ const SUPABASE_SERVICE_ROLE_KEY =
   Deno.env.get("REACT_SUPABASE_SERVICE_KEY") ??
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const EMAIL_FROM =
-  Deno.env.get("EMAIL_FROM") ?? "Recall Education <hello@recalleducation.co.uk>";
+  Deno.env.get("EMAIL_FROM") ?? "Recall Education <support@recalleducation.co.uk>";
 
 function missingEnv(): string[] {
   const out: string[] = [];
@@ -74,25 +74,44 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function layout(title: string, bodyHtml: string): string {
+// Brand shell. Mirrors /email-templates.html — dark #1A1D22 background,
+// #232629 card, #2A2E33 hairline, teal #56D4DD for bubbles + accent,
+// white pill CTA with a teal halo. Logo is fetched from
+// `${logoBase}/logo.png` so the `<img>` resolves for email clients
+// (relative URLs don't work in mail).
+function layout(title: string, bodyHtml: string, logoBase: string): string {
+  const logoUrl = `${logoBase}/logo.png`;
   return `<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
-<body style="margin:0;padding:0;background:#F6F8FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0D1117;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F6F8FA;padding:32px 16px;">
-    <tr><td align="center">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#FFFFFF;border:1px solid #D0D7DE;border-radius:8px;overflow:hidden;">
-        <tr><td style="background:#1F6FEB;padding:18px 24px;font-size:14px;font-weight:700;color:#FFFFFF;letter-spacing:-0.01em;">
-          <span style="display:inline-block;background:#FFFFFF;color:#1F6FEB;width:22px;height:22px;line-height:22px;text-align:center;border-radius:4px;margin-right:10px;font-size:12px;font-weight:800;">R</span>
-          Recall
-        </td></tr>
-        <tr><td style="padding:28px 24px 8px;font-size:18px;font-weight:600;color:#0D1117;letter-spacing:-0.01em;">${escapeHtml(title)}</td></tr>
-        <tr><td style="padding:0 24px 24px;font-size:14px;line-height:1.55;color:#1F2328;">${bodyHtml}</td></tr>
-        <tr><td style="padding:14px 24px;border-top:1px solid #D0D7DE;background:#F6F8FA;font-size:12px;color:#57606A;">
-          Recall Education Ltd &middot; UK &middot; You can
-          <a href="mailto:hello@recalleducation.co.uk" style="color:#1F6FEB;">unsubscribe</a>
-          or update your preferences at any time.
-        </td></tr>
+<body style="margin:0;padding:0;background:#1A1D22;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#F5F7FA;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#1A1D22;">
+    <tr><td align="center" style="padding:32px 12px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center">
+        <tr>
+          <td valign="top" align="center" style="width:90px;padding:0 6px;">
+            <div style="width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 30% 28%, rgba(86,212,221,0.55), rgba(86,212,221,0.10));margin-bottom:30px;font-size:1px;line-height:1px;">&nbsp;</div>
+            <div style="width:50px;height:50px;border-radius:50%;background:radial-gradient(circle at 30% 28%, rgba(124,224,232,0.50), rgba(86,212,221,0.12));font-size:1px;line-height:1px;">&nbsp;</div>
+          </td>
+          <td valign="top" align="center">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#232629;border:1px solid #2A2E33;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.22);">
+              <tr><td style="padding:16px 20px;background:#FFFFFF;border-bottom:1px solid #2A2E33;">
+                <img src="${escapeHtml(logoUrl)}" alt="Recall" width="28" height="28" style="display:inline-block;width:28px;height:28px;border-radius:6px;margin-right:10px;vertical-align:middle;background:#56D4DD;">
+                <span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:#0B0D0F;letter-spacing:-0.01em;vertical-align:middle;">Recall</span>
+              </td></tr>
+              <tr><td style="padding:28px 24px 8px;font-family:'Inter',sans-serif;font-size:18px;font-weight:600;color:#F5F7FA;letter-spacing:-0.01em;">${escapeHtml(title)}</td></tr>
+              <tr><td style="padding:0 24px 24px;font-family:'Inter',sans-serif;font-size:14px;line-height:1.55;color:#C9D1D9;">${bodyHtml}</td></tr>
+              <tr><td style="padding:14px 24px;border-top:1px solid #2A2E33;background:#1A1D22;font-family:'Inter',sans-serif;font-size:12px;color:#6B7280;">
+                Recall Education Ltd &middot; UK &middot;
+                <a href="mailto:support@recalleducation.co.uk" style="color:#7CE0E8;">Contact us</a>
+              </td></tr>
+            </table>
+          </td>
+          <td valign="top" align="center" style="width:90px;padding:0 6px;">
+            <div style="width:60px;height:60px;border-radius:50%;background:radial-gradient(circle at 30% 28%, rgba(86,212,221,0.55), rgba(86,212,221,0.12));margin-bottom:24px;font-size:1px;line-height:1px;">&nbsp;</div>
+            <div style="width:80px;height:80px;border-radius:50%;background:radial-gradient(circle at 30% 28%, rgba(216,177,74,0.45), rgba(216,177,74,0.10));font-size:1px;line-height:1px;">&nbsp;</div>
+          </td>
+        </tr>
       </table>
     </td></tr>
   </table>
@@ -100,18 +119,20 @@ function layout(title: string, bodyHtml: string): string {
 </html>`;
 }
 
+// White pill CTA with a soft teal halo. Same look as the auth templates
+// — dark card + bright button so the link catches the eye first.
 function ctaButton(url: string, label: string): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;">
-    <tr><td bgcolor="#1F6FEB" style="border-radius:6px;">
+    <tr><td style="border-radius:999px;background:#FFFFFF;box-shadow:0 4px 18px rgba(255,255,255,0.06),0 0 32px rgba(86,212,221,0.22);">
       <a href="${escapeHtml(url)}" target="_blank"
-         style="display:inline-block;padding:11px 20px;font-family:inherit;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:6px;">
+         style="display:inline-block;padding:11px 22px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:#0B0D0F;text-decoration:none;border-radius:999px;">
         ${escapeHtml(label)}
       </a>
     </td></tr>
   </table>
-  <p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#57606A;word-break:break-all;">
+  <p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#9098A4;word-break:break-all;">
     If the button doesn't work, paste this link into your browser:<br>
-    <a href="${escapeHtml(url)}" style="color:#1F6FEB;">${escapeHtml(url)}</a>
+    <a href="${escapeHtml(url)}" style="color:#7CE0E8;">${escapeHtml(url)}</a>
   </p>`;
 }
 
@@ -152,7 +173,7 @@ function roleBlurb(role: string): string {
   }
 }
 
-function staffInviteEmail(role: string, acceptUrl: string, expiresInDays: number) {
+function staffInviteEmail(role: string, acceptUrl: string, expiresInDays: number, logoBase: string) {
   const label = roleLabel(role);
   const heading = roleHeading(role);
   const blurb = roleBlurb(role);
@@ -165,8 +186,9 @@ function staffInviteEmail(role: string, acceptUrl: string, expiresInDays: number
        <p style="margin:0 0 14px;">${escapeHtml(blurb)}</p>
        <p style="margin:0 0 14px;">This invite is personal to you and will expire in ${expiresInDays} days. After that, ask whoever sent it to resend.</p>
        ${ctaButton(acceptUrl, "Accept the invitation")}
-       <p style="margin:18px 0 0;font-size:13px;color:#57606A;">If you weren't expecting this, you can safely ignore the email &mdash; nothing happens unless you click through and create an account.</p>
-       <p style="margin:14px 0 0;font-size:13px;color:#57606A;">Questions? Email <a href="mailto:hello@recalleducation.co.uk" style="color:#1F6FEB;">hello@recalleducation.co.uk</a>.</p>`,
+       <p style="margin:18px 0 0;font-size:13px;color:#9098A4;">If you weren't expecting this, you can safely ignore the email &mdash; nothing happens unless you click through and create an account.</p>
+       <p style="margin:14px 0 0;font-size:13px;color:#9098A4;">Questions? Email <a href="mailto:support@recalleducation.co.uk" style="color:#7CE0E8;">support@recalleducation.co.uk</a>.</p>`,
+      logoBase,
     ),
     text: `You've been invited to join Recall (a UK study app for GCSE and A-level students) as ${label}.
 
@@ -179,7 +201,7 @@ ${acceptUrl}
 
 If you weren't expecting this, ignore the email — nothing happens unless you click through.
 
-Questions? Email hello@recalleducation.co.uk.`,
+Questions? Email support@recalleducation.co.uk.`,
   };
 }
 
@@ -275,7 +297,7 @@ Deno.serve(async (req) => {
   }
 
   const acceptUrl = `${appOrigin}/accept-invite.html?token=${encodeURIComponent(invite.token)}`;
-  const tpl = staffInviteEmail(invite.role, acceptUrl, 14);
+  const tpl = staffInviteEmail(invite.role, acceptUrl, 14, appOrigin);
 
   const resend = new Resend(RESEND_API_KEY!);
   try {
