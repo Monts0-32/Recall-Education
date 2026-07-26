@@ -833,6 +833,47 @@
       border-radius: var(--r-sm);
     }
 
+    /* ---------- Password checker preview styles ---------- */
+    /* Mirrors the live styles in lesson.html so the editor preview
+       looks identical to what the student will see. */
+    .preview .practice .pc-wrap { display: flex; flex-direction: column; gap: 10px; }
+    .preview .practice .pc-input-row { display: flex; align-items: stretch; gap: 6px; }
+    .preview .practice .pc-input {
+      flex: 1; min-width: 0; background: var(--bg-3); border: 1px solid var(--line);
+      color: var(--text); border-radius: var(--r-sm);
+      padding: 10px 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px;
+    }
+    .preview .practice .pc-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+    .preview .practice .pc-toggle {
+      background: var(--bg-3); border: 1px solid var(--line);
+      color: var(--text-2); border-radius: var(--r-sm);
+      padding: 0 12px; font-size: 14px; cursor: pointer;
+    }
+    .preview .practice .pc-toggle:hover { background: var(--bg-4); }
+    .preview .practice .pc-toggle[aria-pressed="true"] { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
+    .preview .practice .pc-bar { position: relative; height: 8px; background: var(--bg-3); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+    .preview .practice .pc-bar-fill { height: 100%; width: 0; background: var(--bg-3); border-radius: 999px; transition: width 0.35s cubic-bezier(.22,.61,.36,1), background 0.25s ease; }
+    .preview .practice .pc-meta { display: flex; align-items: baseline; justify-content: space-between; font-size: 12px; }
+    .preview .practice .pc-label { color: var(--text-3); font-weight: 600; }
+    .preview .practice .pc-score { color: var(--text-4); font-family: 'JetBrains Mono', monospace; }
+    .preview .practice .pc-criteria { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+    .preview .practice .pc-criteria li { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-3); padding: 5px 8px; border-radius: var(--r-sm); background: var(--bg-3); border: 1px solid var(--line); }
+    .preview .practice .pc-criteria li strong { color: var(--text-2); }
+    .preview .practice .pc-criteria li .pc-tick { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bg-4); color: var(--text-4); font-size: 11px; }
+    .preview .practice .pc-criteria li.met { color: var(--text); border-color: var(--green); background: var(--green-dim); }
+    .preview .practice .pc-criteria li.met strong { color: var(--green); }
+    .preview .practice .pc-criteria li.met .pc-tick { background: var(--green); color: #fff; }
+    .preview .practice .pc-binary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--blue-pale); border: 1px solid var(--blue); border-radius: var(--r-sm); padding: 8px 12px; font-size: 12px; color: var(--text-2); }
+    .preview .practice .pc-binary[hidden] { display: none; }
+    .preview .practice .pc-binary-label { text-transform: uppercase; letter-spacing: 0.04em; font-size: 10.5px; font-weight: 700; color: var(--blue); }
+    .preview .practice .pc-binary-code { font-family: 'JetBrains Mono', monospace; color: var(--text); font-size: 12.5px; }
+    .preview .practice .pc-example { background: var(--bg-3); border: 1px solid var(--line); border-left: 3px solid var(--blue); border-radius: var(--r-sm); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .preview .practice .pc-example-head { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--blue); }
+    .preview .practice .pc-example-body { font-size: 12.5px; color: var(--text-2); }
+    .preview .practice .pc-example-eq { font-size: 12.5px; color: var(--text-2); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .preview .practice .pc-example-eq code { font-family: 'JetBrains Mono', monospace; color: var(--green); background: var(--green-dim); padding: 1px 6px; border-radius: 4px; font-weight: 700; }
+    .preview .practice .pc-example-arrow { color: var(--text-4); }
+
     /* Match */
     .preview .practice .match-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
@@ -3924,7 +3965,7 @@
   // ---------- block picker (grouped) ----------
   const BLOCK_GROUPS = {
     'Text & structure': ['heading', 'text', 'callout', 'image', 'video', 'math', 'audio', 'divider', 'quote', 'keypoints', 'worked_example', 'reveal', 'flashcard'],
-    'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot', 'categorise', 'slider', 'dial', 'sequence', 'connect', 'pile', 'html'],
+    'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot', 'categorise', 'slider', 'dial', 'sequence', 'connect', 'pile', 'html', 'password_checker'],
     'Layout': ['accordion', 'tabs', 'compare', 'timeline', 'steps'],
     'Study aids': ['objectives', 'prerequisites', 'glossary', 'summary', 'cardset', 'flashcard_stack', 'progress_meter', 'mindmap'],
   };
@@ -4043,6 +4084,55 @@
           ]
         }
       }]
+    },
+    'password-checker-cyber-y7': {
+      label: 'Cyber (Y7) — Password strength & binary',
+      hint:  'A 4-block starter: intro, live password-strength checker, denary → binary link, quick MCQ.',
+      blocks: () => [
+        // 1. Heading + lesson hook explaining why passwords matter and
+        //    pointing at the live strength meter below.
+        {
+          kind: 'heading',
+          data: { level: 2, text: 'Why strong passwords matter' }
+        },
+        {
+          kind: 'text',
+          data: {
+            markdown: 'Hackers try billions of passwords a second. The only thing that protects you is **length** and **randomness** — not fancy symbols. In the next widget, type a password and watch the strength meter update as you go.\n\nAfter that, we\'ll see how a computer stores your password — every character is just a **denary number**, which is itself just a **binary number** in disguise.'
+          }
+        },
+        // 2. The interactive password checker — pre-filled with sensible
+        //    Y7 defaults (12-char minimum, a denary→binary tie-in at 173,
+        //    and an explanation that length beats complexity).
+        {
+          kind: 'password_checker',
+          data: BLOCK_DEFS.password_checker.defaults()
+        },
+        // 3. A denary → binary question, like the existing template, to
+        //    drill the connection between text-on-screen and bytes.
+        {
+          kind: 'denary_binary',
+          data: BLOCK_DEFS.denary_binary.defaults()
+        },
+        // 4. A 4-option MCQ to close the lesson: "Which password is
+        //    strongest?" with feedback explaining each option.
+        {
+          kind: 'mcq',
+          data: {
+            prompt: 'Which of these passwords would take the **longest** for a hacker to crack?',
+            multi: false,
+            options: [
+              { text: 'P@ssw0rd1', correct: false, feedback: 'Looks fancy but it\'s only 9 characters and follows a predictable pattern — it would be cracked in seconds.' },
+              { text: 'password123', correct: false, feedback: 'Common words + numbers are the **first** thing a hacker tries. Cracked almost instantly.' },
+              { text: 'Tr0ub4dor&3', correct: false, feedback: 'Better, but still short and uses substitutions a hacker will try first. Days to crack, not centuries.' },
+              { text: 'correct-horse-battery-staple', correct: true, feedback: '✓ Correct! 28 characters of unrelated words is far harder to brute-force than a short "complex" password.' }
+            ],
+            explanation: 'A long passphrase made of unrelated words is much stronger than a short password with clever substitutions. The maths of brute-force attacks punishes short passwords, not simple ones.',
+            required: true,
+            allowRetry: true
+          }
+        }
+      ]
     }
   };
 
@@ -4658,6 +4748,69 @@
     if (!preview) return;
     preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
     if (window.bindInteractive) bindInteractive(preview, state.currentLesson.blocks[i]);
+  }
+
+  // ----- Password checker editor -----
+  // Edits the prompt, placeholder, minimum length, the optional lesson
+  // example (with its denary number and bit width), the explanation,
+  // and the standard required/allow-retry checkboxes. The preview
+  // updates live on every change so the author sees the bar / criteria
+  // / "what a computer sees" badge in real time.
+  function renderPasswordCheckerEditor(b, i) {
+    const d = b.data || {};
+    const exampleDenary = Number.isFinite(+d.exampleDenary) ? +d.exampleDenary : 173;
+    const exampleBits = Math.max(1, Math.min(16, parseInt(d.exampleBits, 10) || 8));
+    return `
+      <div class="form-row">
+        <label>Prompt</label>
+        <textarea oninput="updateBlock(${i}, {prompt: this.value})" placeholder="What students see above the input.">${escapeHtml(d.prompt || '')}</textarea>
+      </div>
+      <div class="two-col">
+        <div class="form-row" style="margin: 0;">
+          <label>Input placeholder</label>
+          <input value="${escapeHtml(d.placeholder || '')}" oninput="updateBlock(${i}, {placeholder: this.value})" placeholder="e.g. Type a password to test…" />
+        </div>
+        <div class="form-row" style="margin: 0;">
+          <label>Minimum length</label>
+          <input type="number" min="4" max="64" step="1" value="${Math.max(4, parseInt(d.minLength, 10) || 12)}" oninput="updateBlock(${i}, {minLength: Math.max(4, parseInt(this.value, 10) || 12)})" />
+          <span class="hint">Strong passwords are at least 12 characters.</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Lesson example (markdown — links to the denary → binary question)</label>
+        <textarea oninput="updateBlock(${i}, {exampleBody: this.value})" placeholder="One short paragraph tying the password lesson to binary.">${escapeHtml(d.exampleBody || '')}</textarea>
+        <span class="hint">Shown under the strength meter as a callout. The denary → binary line below it links the two halves of the lesson.</span>
+      </div>
+      <div class="two-col">
+        <div class="form-row" style="margin: 0;">
+          <label>Example denary number</label>
+          <input type="number" min="0" step="1" value="${exampleDenary}" oninput="updateBlock(${i}, {exampleDenary: Math.max(0, parseInt(this.value, 10) || 0)})" />
+        </div>
+        <div class="form-row" style="margin: 0;">
+          <label>Example bit width (1–16)</label>
+          <input type="number" min="1" max="16" step="1" value="${exampleBits}" oninput="updateBlock(${i}, {exampleBits: Math.max(1, Math.min(16, parseInt(this.value, 10) || 8))})" />
+          <span class="hint">The lesson player shows the denary → binary answer so the student can see how computers store characters.</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Explanation (shown after a "Strong" check)</label>
+        <textarea oninput="updateBlock(${i}, {explanation: this.value})" placeholder="One line of take-away advice.">${escapeHtml(d.explanation || '')}</textarea>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${d.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required — student must click "I'm happy with this password" before marking lesson done
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${d.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview (start typing to test the strength meter)</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
   }
 
   // ----- Slider editor -----
@@ -6684,6 +6837,7 @@
     mindmap:         (b, i) => renderMindmapEditor(b, i),
     html:          (b, i) => renderHtmlEditor(b, i),
     denary_binary: (b, i) => renderDenaryBinaryEditor(b, i),
+    password_checker: (b, i) => renderPasswordCheckerEditor(b, i),
   };
 
   // ---------- go ----------

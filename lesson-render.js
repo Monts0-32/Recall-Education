@@ -490,6 +490,113 @@
     return bin.padStart(bitWidth, '0');
   }
 
+  // -----------------------------------------------------------------
+  // renderPasswordChecker(b) — password-strength meter for the Y7
+  // cyber-security lesson. Renders:
+  //   - the prompt
+  //   - a masked password input with a show/hide toggle
+  //   - a 4-segment strength bar (None / Weak / OK / Strong)
+  //   - a live checklist of 5 criteria
+  //   - a "what a computer sees" ASCII→binary badge
+  //   - the lesson's denary→binary example (optional, controlled by
+  //     the exampleBody / exampleDenary / exampleBits / exampleAnswer
+  //     fields)
+  //   - Check / Reset buttons
+  //
+  // The bar and checklist update in real time on every keystroke. The
+  // Check button is purely an "I've made a strong password" affirmation
+  // — the strength has already been computed live, so a Check on a
+  // weak password simply tells the student why it's not strong yet.
+  function renderPasswordChecker(b) {
+    const d = b.data || {};
+    const minLen = Math.max(4, parseInt(d.minLength, 10) || 12);
+    return practiceWrap(`
+      <div class="prompt">${renderMarkdown(d.prompt || 'Type a password to test its strength.')}</div>
+      <div class="pc-wrap" data-pbid="pc-wrap" data-min-length="${minLen}">
+        <div class="pc-input-row">
+          <input type="password" class="pc-input" data-pbid="pc-input"
+            placeholder="${escapeHtml(d.placeholder || 'Type a password to test…')}"
+            autocomplete="off" spellcheck="false" />
+          <button type="button" class="pc-toggle" data-pbid="pc-toggle" aria-pressed="false" title="Show / hide password">👁</button>
+        </div>
+        <div class="pc-bar" data-pbid="pc-bar">
+          <div class="pc-bar-fill" data-pbid="pc-bar-fill"></div>
+        </div>
+        <div class="pc-meta">
+          <span class="pc-label" data-pbid="pc-label">Start typing…</span>
+          <span class="pc-score" data-pbid="pc-score">0 / 5</span>
+        </div>
+        <ul class="pc-criteria" data-pbid="pc-criteria">
+          <li data-crit="length"><span class="pc-tick">○</span> At least <strong>${minLen}</strong> characters long</li>
+          <li data-crit="lower"><span class="pc-tick">○</span> Contains a <strong>lowercase</strong> letter</li>
+          <li data-crit="upper"><span class="pc-tick">○</span> Contains an <strong>UPPERCASE</strong> letter</li>
+          <li data-crit="digit"><span class="pc-tick">○</span> Contains a <strong>number</strong></li>
+          <li data-crit="symbol"><span class="pc-tick">○</span> Contains a <strong>symbol</strong> (!@#…)</li>
+        </ul>
+        <div class="pc-binary" data-pbid="pc-binary" hidden>
+          <span class="pc-binary-label">What a computer sees:</span>
+          <code class="pc-binary-code" data-pbid="pc-binary-code">—</code>
+        </div>
+        ${d.exampleBody ? `
+          <div class="pc-example">
+            <div class="pc-example-head">From the lesson</div>
+            <div class="pc-example-body">${renderMarkdown(d.exampleBody)}</div>
+            ${d.exampleDenary != null ? `
+              <div class="pc-example-eq">
+                Denary <strong>${escapeHtml(String(d.exampleDenary))}</strong>
+                <span class="pc-example-arrow">→</span>
+                8-bit binary <code data-pbid="pc-example-answer">${escapeHtml(expectedBits(d.exampleDenary, d.exampleBits || 8))}</code>
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+        <div class="check-row">
+          <button type="button" class="check-btn" data-pb="check">I'm happy with this password</button>
+          <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
+        </div>
+        <div data-pb="feedback"></div>
+      </div>
+    `);
+  }
+
+  // strengthScore(pw, minLen) — return the list of which of the 5
+  // criteria are met, plus an aggregate score [0..5]. Each criterion
+  // is independent so we can light them up one at a time.
+  function pcEvaluate(pw, minLen) {
+    return {
+      length:  pw.length >= minLen,
+      lower:   /[a-z]/.test(pw),
+      upper:   /[A-Z]/.test(pw),
+      digit:   /\d/.test(pw),
+      symbol:  /[^A-Za-z0-9]/.test(pw),
+    };
+  }
+  function pcCount(crit) {
+    return Object.values(crit).filter(Boolean).length;
+  }
+  // pcStrengthLabel(score, length, minLen) — buckets the live score
+  // into a coloured label. "Strong" requires length AND all 4 other
+  // criteria, which mirrors common password-policy guidance.
+  function pcStrengthLabel(score, length, minLen) {
+    if (length === 0)               return { label: 'Start typing…', tone: 'idle',  bar: 0 };
+    if (length < Math.min(4, minLen))return { label: 'Too short',    tone: 'bad',   bar: 1 };
+    if (score < 2)                   return { label: 'Weak',         tone: 'bad',   bar: 1 };
+    if (score < 4)                   return { label: 'OK',           tone: 'warn',  bar: 2 };
+    if (score < 5)                   return { label: 'Good',         tone: 'good',  bar: 3 };
+    if (length < minLen)             return { label: 'Good — but try for ' + minLen + '+ characters', tone: 'good', bar: 3 };
+    return                                  { label: 'Strong 💪',    tone: 'great', bar: 4 };
+  }
+  // pcToBinary(pw) — render the first 4 chars of the password as a
+  // space-separated string of 8-bit ASCII codes. The "what a computer
+  // sees" framing in the lesson; kept short so it fits one line.
+  function pcToBinary(pw) {
+    const head = Array.from(pw).slice(0, 4);
+    return head.map(ch => {
+      const code = ch.charCodeAt(0) & 0xFF;
+      return code.toString(2).padStart(8, '0');
+    }).join(' ');
+  }
+
   function renderAccordion(b) {
     const d = b.data;
     const items = d.items || [];
@@ -678,6 +785,31 @@
     ordering: { label: 'Order steps', defaults: () => ({ prompt: 'Put these steps of the scientific method in the correct order.', items: [{ id: 'a', text: 'Form a hypothesis' }, { id: 'b', text: 'Make an observation' }, { id: 'c', text: 'Analyse the data' }, { id: 'd', text: 'Draw a conclusion' }], explanation: 'A typical scientific method: observe → hypothesise → experiment → analyse → conclude.', required: false, allowRetry: true }), render: renderOrdering },
     hotspot: { label: 'Image hotspot', defaults: () => ({ imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/640px-Cat03.jpg', alt: 'A cat', hotspots: [{ x: 50, y: 40, label: 'Ear', correct: true }, { x: 30, y: 70, label: 'Whiskers', correct: false }], required: false, allowRetry: true }), render: renderHotspot },
     denary_binary: { label: 'Denary → binary', defaults: () => ({ prompt: 'Convert the following denary number to binary.', denary: 173, bitWidth: 8, explanation: '', required: false, allowRetry: true }), render: renderDenaryBinary },
+
+    // ===== Cyber-security template (2026-07-25) =====
+    // password_checker — live, animated password-strength meter for the
+    // Year 7 "staying safe online" lesson. As the student types, each
+    // criterion lights up (length, upper, lower, digit, symbol), the
+    // bar fills with a colour, and the strength label updates. A small
+    // "binary view" badge shows the password's first 4 chars as 8-bit
+    // ASCII so the lesson can pivot into the denary→binary example
+    // below the input (and the "what a hacker sees" framing).
+    password_checker: {
+      label: 'Password strength checker',
+      defaults: () => ({
+        prompt: 'Type a password below — watch the strength meter update as you go. **Strong** passwords are long, mix cases, and include numbers and symbols.',
+        placeholder: 'Type a password to test…',
+        minLength: 12,
+        exampleDenary: 173,
+        exampleBits: 8,
+        exampleBody: 'Strong passwords look random, but every character is just a number in disguise. For example, the denary number **173** is `10101101` in 8-bit binary. The letter "A" is denary 65 = `01000001`. To a computer, your password is just a string of those numbers — so a long, mixed password makes a brute-force attack take *much* longer.',
+        exampleAnswer: '10101101',
+        explanation: 'Length beats complexity. A 16-character passphrase like `correct-horse-battery` is far harder to crack than `P@ssw0rd1` even though the second one has every "trick" the first one lacks.',
+        required: false,
+        allowRetry: true
+      }),
+      render: renderPasswordChecker
+    },
 
     // ===== New interactive kinds (2026-07-24) =====
 
@@ -1911,6 +2043,160 @@
     });
   }
 
+  // bindPasswordChecker(rootEl, d, blockId, onScore) — wire the live
+  // strength meter. On every keystroke we re-evaluate the 5 criteria,
+  // update the score, repaint the bar, and update the label. The
+  // Check button is an affirmation: if the password is Strong it
+  // celebrates, otherwise it explains what's still missing. The
+  // onScore callback scores 1.0 only when the live state was "Strong"
+  // at the moment of the click.
+  function bindPasswordChecker(rootEl, d, blockId, onScore) {
+    const wrap     = rootEl.querySelector('[data-pbid="pc-wrap"]');
+    if (!wrap) return;
+    const input    = rootEl.querySelector('[data-pbid="pc-input"]');
+    const toggle   = rootEl.querySelector('[data-pbid="pc-toggle"]');
+    const barFill  = rootEl.querySelector('[data-pbid="pc-bar-fill"]');
+    const labelEl  = rootEl.querySelector('[data-pbid="pc-label"]');
+    const scoreEl  = rootEl.querySelector('[data-pbid="pc-score"]');
+    const critEls  = [...rootEl.querySelectorAll('[data-pbid="pc-criteria"] [data-crit]')];
+    const binWrap  = rootEl.querySelector('[data-pbid="pc-binary"]');
+    const binCode  = rootEl.querySelector('[data-pbid="pc-binary-code"]');
+    const check    = rootEl.querySelector('[data-pb="check"]');
+    const reset    = rootEl.querySelector('[data-pb="reset"]');
+    const minLen   = Math.max(4, parseInt(wrap.dataset.minLength, 10) || 12);
+    // The strength tone drives the bar's colour and the label's colour.
+    // Match the existing --red/--yellow/--green tokens used elsewhere so
+    // the meter feels native to the rest of the practice UI.
+    const TONE_FILL = {
+      idle:  'var(--bg-3)',
+      bad:   'var(--red)',
+      warn:  'var(--yellow)',
+      good:  'var(--green)',
+      great: 'linear-gradient(90deg, var(--green) 0%, #56d364 100%)',
+    };
+    const TONE_LABEL_COLOR = {
+      idle:  'var(--text-3)',
+      bad:   'var(--red)',
+      warn:  'var(--yellow)',
+      good:  'var(--green)',
+      great: 'var(--green)',
+    };
+    let lastStrength = null; // captured for the Check handler
+    // repaint() — recompute the criteria, set the bar / label / ticks.
+    // Called on every input event and once on mount (so the criteria
+    // start in the right "off" state).
+    function repaint() {
+      const pw = input.value;
+      const crit = pcEvaluate(pw, minLen);
+      const score = pcCount(crit);
+      const s = pcStrengthLabel(score, pw.length, minLen);
+      lastStrength = s;
+      // Criteria ticks — light each criterion up as it becomes true,
+      // and gently bump the row with fx-pop the first time it flips on
+      // (so the student sees a real reward, not just a static tick).
+      critEls.forEach(li => {
+        const key = li.dataset.crit;
+        const met = crit[key];
+        const tick = li.querySelector('.pc-tick');
+        if (met && !li.classList.contains('met')) {
+          li.classList.add('met');
+          if (tick) { tick.textContent = '✓'; }
+          restart(li, 'fx-pop');
+        } else if (!met && li.classList.contains('met')) {
+          li.classList.remove('met');
+          if (tick) { tick.textContent = '○'; }
+        }
+      });
+      // Bar — 4 segments, fill grows in steps (0/25/50/75/100 %).
+      const pct = s.bar === 0 ? 0 : (s.bar / 4) * 100;
+      barFill.style.width = pct + '%';
+      barFill.style.background = TONE_FILL[s.tone];
+      // Meta — label and "X / 5" score.
+      labelEl.textContent = s.label;
+      labelEl.style.color = TONE_LABEL_COLOR[s.tone];
+      scoreEl.textContent = score + ' / 5';
+      // "What a computer sees" badge — only show once they've typed a
+      // couple of characters, so the lesson doesn't flash a wall of
+      // binary on the first keystroke.
+      if (pw.length >= 1) {
+        binWrap.hidden = false;
+        binCode.textContent = pcToBinary(pw);
+      } else {
+        binWrap.hidden = true;
+      }
+      // Re-enable Check if the student has changed the password after a
+      // previous Check (so they can re-affirm a new one).
+      if (check.disabled && pw.length > 0) setCheckEnabled(rootEl, true);
+    }
+    if (input) {
+      input.addEventListener('input', repaint);
+      // Stagger the criteria in so they slide down on first paint —
+      // small thing but it gives the widget the same "interactive"
+      // feel as the rest of the practice kinds.
+      critEls.forEach((li, i) => {
+        li.style.animation = `fx-fade-up 0.35s ease ${i * 0.05}s both`;
+      });
+    }
+    if (toggle) {
+      toggle.addEventListener('click', () => {
+        const on = toggle.getAttribute('aria-pressed') === 'true';
+        const next = !on;
+        toggle.setAttribute('aria-pressed', next ? 'true' : 'false');
+        if (input) input.type = next ? 'text' : 'password';
+        restart(toggle, 'fx-pop');
+      });
+    }
+    if (check) ripple(check);
+    check.addEventListener('click', () => {
+      const pw = input.value;
+      const crit = pcEvaluate(pw, minLen);
+      const score = pcCount(crit);
+      const s = lastStrength || pcStrengthLabel(score, pw.length, minLen);
+      const right = s.tone === 'good' || s.tone === 'great';
+      if (right) {
+        confetti(rootEl);
+        // Glow the bar + the input so the "Strong!" hit has a payoff.
+        restart(barFill, 'fx-glow');
+        restart(input, 'fx-glow');
+        showFeedback(rootEl,
+          (s.tone === 'great'
+            ? '✓ <b>Strong password!</b> That meets every rule — length, mix of cases, a number and a symbol.'
+            : '✓ <b>Good password.</b> ' + s.label) +
+          (d.explanation ? `<div style="margin-top:6px;">${renderMarkdown(d.explanation)}</div>` : ''),
+          'ok');
+      } else {
+        // Don't shake the input — the student is still iterating. Just
+        // tell them which of the 5 lights are still off.
+        const missing = Object.keys(crit).filter(k => !crit[k]);
+        const missingLabel = {
+          length: `at least ${minLen} characters`,
+          lower:  'a lowercase letter',
+          upper:  'an uppercase letter',
+          digit:  'a number',
+          symbol: 'a symbol (e.g. ! @ #)',
+        };
+        const list = missing.map(k => missingLabel[k]).join(', ');
+        showFeedback(rootEl,
+          `Not strong yet — your password still needs: <b>${list}</b>.`,
+          'bad');
+      }
+      check.disabled = true; reset.hidden = (d.allowRetry === false);
+      if (onScore) onScore(blockId, right ? 1.0 : 0.0, 1);
+    });
+    reset.addEventListener('click', () => {
+      if (input) {
+        input.value = '';
+        input.type = 'password';
+        input.focus();
+      }
+      if (toggle) toggle.setAttribute('aria-pressed', 'false');
+      clearFeedback(rootEl);
+      setCheckEnabled(rootEl, true);
+      repaint();
+    });
+    repaint();
+  }
+
   // bindSlider — drag the handle to set a value. Live tolerance check
   // flashes the handle green when within tolerance. On Check, score is
   // binary (1.0 within tolerance, 0.0 otherwise).
@@ -2730,6 +3016,7 @@
       case 'tabs':      bindTabs(rootEl, b.data); break;
       case 'categorise':bindCategorise(rootEl, b.data, blockId, onScore); break;
       case 'denary_binary': bindDenaryBinary(rootEl, b.data, blockId, onScore); break;
+      case 'password_checker': bindPasswordChecker(rootEl, b.data, blockId, onScore); break;
       // New interactive kinds (2026-07-24)
       case 'slider':    bindSlider(rootEl, b.data, blockId, onScore); break;
       case 'dial':      bindDial(rootEl, b.data, blockId, onScore); break;
