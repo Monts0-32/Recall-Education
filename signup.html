@@ -735,19 +735,30 @@
       // Staff are adults. Hide / disable the student-only fields.
       const yearField = document.getElementById('year').closest('.field');
       const dobField  = document.getElementById('dob').closest('.field');
-      yearField.hidden = true;
-      dobField.hidden  = true;
+      const schoolCodeField = document.getElementById('schoolCode').closest('.field');
+      const schoolBanner    = document.getElementById('schoolBanner');
+      const bindingWarning  = document.getElementById('bindingWarning');
+      yearField.hidden       = true;
+      dobField.hidden        = true;
+      schoolCodeField.hidden = true;
+      schoolBanner.hidden    = true;
+      bindingWarning.classList.remove('show');
       // year/dob are still `required` in HTML; remove the attribute
       // so the browser's built-in validation doesn't trip on the
       // hidden inputs.
       document.getElementById('year').required = false;
       document.getElementById('dob').required  = false;
+      document.getElementById('schoolCode').required = false;
       // Parent consent is also irrelevant — staff are not students.
       parentField.hidden = true;
       parentEmail.required = false;
 
-      // The terms text talks about "I'm 16 or older" which fits staff
-      // (they're definitely adults), so the existing copy works fine.
+      // The default consent text mentions "I'm 16 or older, or my parent
+      // or guardian has agreed to these terms." Staff are adults joining
+      // a workforce, so rephrase it — keeps the same checkbox UX without
+      // the parental framing.
+      termsText.textContent =
+        'I agree to the Recall terms of service and privacy policy.';
 
       // Banner + form copy.
       const banner  = document.getElementById('inviteBanner');
@@ -945,7 +956,7 @@
           return showError('Recall is for students aged 11 and over.');
         }
         if (a > 19) {
-          return showError('This product is for secondary students. Contact hello@recalleducation.co.uk for the adult plan.');
+          return showError('This product is for secondary students. Contact support@recalleducation.co.uk for the adult plan.');
         }
         needsConsent = a <= 15;
         if (needsConsent) {
