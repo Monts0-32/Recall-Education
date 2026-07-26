@@ -211,14 +211,13 @@
       display: grid; gap: 14px;
       grid-template-columns: 1fr;
     }
-    @media (min-width: 700px) {
+    /* Cards are tall now that the body is fully visible, so keep them
+       to 1 column on most screens and only split to 2 columns on wide
+       desktops (where individual cards still have ~480px to read). */
+    @media (min-width: 1100px) {
       .emails.choices-2 { grid-template-columns: 1fr 1fr; }
       .emails.choices-3 { grid-template-columns: 1fr 1fr; }
       .emails.choices-4 { grid-template-columns: 1fr 1fr; }
-    }
-    @media (min-width: 1000px) {
-      .emails.choices-3 { grid-template-columns: repeat(3, 1fr); }
-      .emails.choices-4 { grid-template-columns: repeat(4, 1fr); }
     }
 
     .email {
@@ -326,9 +325,6 @@
       font-size: 13px; color: var(--text-2);
       line-height: 1.55;
       padding: 10px 14px 14px;
-      max-height: 8.5em; overflow: hidden;
-      mask-image: linear-gradient(180deg, #000 55%, transparent 100%);
-      -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 100%);
     }
 
     .email .badge {
@@ -400,6 +396,81 @@
     .feedback .why li { margin-bottom: 3px; }
     .feedback .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
+    /* "Why is it a scam?" — 4-option follow-up after a correct pick */
+    .whyq {
+      margin-top: 14px;
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-radius: var(--r-md); padding: 16px;
+      animation: fadeUp 0.3s ease both;
+    }
+    .whyq .whyq-head {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 10px;
+    }
+    .whyq .whyq-tag {
+      font-size: 11px; font-weight: 700;
+      background: var(--teal-pale); color: var(--teal);
+      padding: 3px 10px; border-radius: var(--r-pill);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .whyq .whyq-title {
+      font-size: 15px; font-weight: 600; color: var(--text);
+      letter-spacing: -0.005em;
+    }
+    .whyq-opts {
+      display: grid; gap: 8px;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 600px) { .whyq-opts { grid-template-columns: 1fr 1fr; } }
+    .whyq-opt {
+      display: flex; align-items: flex-start; gap: 10px;
+      text-align: left;
+      background: var(--bg-3); border: 1px solid var(--line-2);
+      color: var(--text);
+      border-radius: var(--r-sm); padding: 11px 14px;
+      font-size: 13.5px; line-height: 1.45;
+      transition: border-color 0.15s ease, background 0.15s ease,
+                  transform 0.1s ease;
+    }
+    .whyq-opt:hover:not(:disabled) {
+      background: var(--bg-4); border-color: var(--line-3);
+      transform: translateY(-1px);
+    }
+    .whyq-opt:active:not(:disabled) { transform: scale(0.99); }
+    .whyq-opt:disabled { cursor: default; }
+    .whyq-opt .opt-letter {
+      flex-shrink: 0;
+      width: 22px; height: 22px;
+      display: grid; place-items: center;
+      background: var(--bg-2); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-pill);
+      font-size: 11px; font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .whyq-opt.correct {
+      border-color: var(--green); background: var(--green-dim);
+      animation: correctPulse 0.6s ease;
+    }
+    .whyq-opt.correct .opt-letter {
+      background: var(--green); color: #0B0D0F; border-color: var(--green);
+    }
+    .whyq-opt.wrong {
+      border-color: var(--red); background: var(--red-dim);
+      animation: wrongShake 0.45s ease;
+    }
+    .whyq-opt.wrong .opt-letter {
+      background: var(--red); color: #fff; border-color: var(--red);
+    }
+    .whyq-foot {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 12px;
+      font-size: 12.5px; color: var(--text-3);
+    }
+    .whyq-foot .whyq-foot-text { flex: 1; }
+    .whyq-foot b { color: var(--text); font-weight: 600; }
+    .whyq-foot .whyq-foot-msg { color: var(--text-2); }
+
     /* Buttons — Recall's white-with-teal-halo primary */
     .primary-btn {
       background: #FFFFFF; color: #0B0D0F;
@@ -425,6 +496,14 @@
       transition: background 0.15s ease, border-color 0.15s ease;
     }
     .ghost-btn:hover { background: var(--bg-3); border-color: var(--line-3); }
+
+    .skip-btn {
+      background: transparent; color: var(--text-3);
+      border: 0; padding: 6px 8px;
+      font-size: 12px; font-weight: 500;
+      transition: color 0.15s ease;
+    }
+    .skip-btn:hover { color: var(--text); }
 
     /* Confetti via simple floating dots */
     .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 100; }
@@ -582,6 +661,9 @@
           <div class="stat-tile"><div class="v" id="endHints">0</div><div class="l">Hints used</div></div>
           <div class="stat-tile"><div class="v" id="endHearts">0</div><div class="l">Hearts left</div></div>
         </div>
+        <div class="stats-grid" style="margin-top: -10px; max-width: 520px;">
+          <div class="stat-tile"><div class="v" id="endWhy">0</div><div class="l">Why-answers right</div></div>
+        </div>
         <div class="takeaway">
           <b>Remember:</b> Real-world calls to action ("verify now", "you've won", "urgent") are the most common scam bait. Hover over links before clicking, check the sender's full address, and if a deal feels too good to be true — it is.
         </div>
@@ -596,12 +678,502 @@
   (function() {
     'use strict';
 
-    // ---------- Email pool ----------
-    // 16 emails (8 scam + 8 legit). Each scam has 'tells' — short clue
-    // strings that the hint button reveals one at a time. The tells are
-    // written in student-friendly language for Year 7.
+    // ---------- Email pool (curated fake-AI) ----------
+    // Instead of a fixed list, every game generates a fresh batch from
+    // slot-fill templates + word lists. The shape is identical to the
+    // old hand-written EMAILS array so the rest of the activity doesn't
+    // care about the source. `generateEmailBatch(rounds, choices)` returns
+    // an array of {kind, sender, subject, body, tells, primaryTellIndex}.
+    // Each template fills its slots with random values from the word
+    // lists, so no two games share the same emails.
+
+    // ---------- Word lists ----------
+
+    var FIRST_NAMES = ['Sam', 'Alex', 'Aisha', 'Marcus', 'Yusuf', 'Priya', 'Liam', 'Hannah', 'Tariq', 'Jade', 'Daniel', 'Layla', 'Omar', 'Beth', 'Reece', 'Maya'];
+
+    var SCHOOLS = [
+      { name: 'Whitchurch High School',    domain: 'whitchurch-high.co.uk' },
+      { name: 'Bramwell Academy',           domain: 'bramwell-academy.org.uk' },
+      { name: 'Eastlea Secondary',          domain: 'eastleasecondary.sch.uk' },
+      { name: 'Castle Park School',         domain: 'castlepark.school' },
+      { name: 'Riverbank High',             domain: 'riverbankhigh.co.uk' },
+      { name: 'Oakwood Comprehensive',      domain: 'oakwoodcomp.school' },
+      { name: 'St Bede\'s Academy',         domain: 'st-bedes.ac.uk' },
+      { name: 'Northgate Secondary',        domain: 'northgate-sec.co.uk' }
+    ];
+
+    var TEACHERS = [
+      { first: 'Mr Davies',   initial: 'j', last: 'davies',   role: 'Head of Year 7' },
+      { first: 'Ms Patel',    initial: 'r', last: 'patel',    role: 'Maths' },
+      { first: 'Mr Khan',     initial: 'a', last: 'khan',     role: 'Music' },
+      { first: 'Mrs Ahmed',   initial: 's', last: 'ahmed',    role: 'Science' },
+      { first: 'Mr O\'Brien', initial: 'c', last: 'obrien',   role: 'English' },
+      { first: 'Ms Thompson', initial: 'l', last: 'thompson', role: 'PE' },
+      { first: 'Mr Hassan',   initial: 'o', last: 'hassan',   role: 'Geography' },
+      { first: 'Ms Walker',   initial: 'e', last: 'walker',   role: 'Head of Year 8' },
+      { first: 'Mr Singh',    initial: 'h', last: 'singh',    role: 'Computing' },
+      { first: 'Ms Brown',    initial: 'k', last: 'brown',    role: 'Art' }
+    ];
+
+    // Delivery / courier brands — used by scamDelivery + legitDispatch
+    var COURIERS = [
+      { name: 'Royal Mail', real: 'royalmail.com',   typos: ['royalmai1-delivery', 'royalmai1-redelivery', 'rm-track-parcel', 'royal-mail-uk-track'] },
+      { name: 'DPD',        real: 'dpd.co.uk',       typos: ['dpd-tracked', 'dpd-co-uk', 'dpd-redelivery', 'dpd-uk-track'] },
+      { name: 'Amazon UK',  real: 'amazon.co.uk',    typos: ['amazn-order', 'amaz0n-uk', 'amzn-orders', 'amazon-uk-track'] },
+      { name: 'Evri',       real: 'evri.com',        typos: ['evri-parcel', 'evri-track', 'evrii-redelivery', 'evri-co-uk'] },
+      { name: 'Yodel',      real: 'yodel.co.uk',     typos: ['yodel-track', 'y0del-uk', 'yodel-parcel', 'yodel-redelivery'] },
+      { name: 'Hermes',     real: 'myhermes.co.uk',  typos: ['hermes-uk', 'myhermes-tracked', 'hermes-redelivery', 'h3rmes-uk'] }
+    ];
+
+    // Big-brand companies — used by scamPrize, scamVerify, scamBilling, scamFriend
+    var BIG_BRANDS = [
+      { name: 'Netflix',     real: 'netflix.com',     typos: ['netfllx-billing', 'netfl1x-billing', 'netflix-billing-uk', 'netfllx-verify'] },
+      { name: 'Spotify',     real: 'spotify.com',     typos: ['spotify-premium-deal', 'spotify-billing-uk', 'sp0tify-billing', 'spotify-renewal-club'] },
+      { name: 'Apple',       real: 'apple.com',       typos: ['apple-store-uk-promo', 'app1e-uk', 'apple-uk-promo', 'apple-prizee-uk'] },
+      { name: 'Instagram',   real: 'instagram.com',   typos: ['instagram-help', 'instagr4m-verify', 'insta-help-center', 'instagram-security-uk'] },
+      { name: 'WhatsApp',    real: 'whatsapp.com',    typos: ['whatsapp-verify', 'wh4tsapp-verify', 'whatsapp-verify-now', 'whatsapp-security-uk'] },
+      { name: 'TV Licensing',real: 'tvlicensing.co.uk',typos: ['tv-licensing-uk', 'tv1icensing', 'tvlicense-uk', 'tv-licensing-refund'] },
+      { name: 'PayPal',      real: 'paypal.com',      typos: ['paypa1-verify', 'paypal-secure-uk', 'paypall-billing', 'paypal-account-verify'] },
+      { name: 'eBay',        real: 'ebay.co.uk',      typos: ['ebay-uk-billing', '3bay-uk', 'ebay-secure-uk', 'ebay-prize-uk'] }
+    ];
+
+    var PRIZES = ['iPhone 15 Pro', 'iPad Air', '£500 Amazon voucher', 'PlayStation 5', '£1,000 cash', 'a brand new MacBook', 'a weekend spa break', 'a £250 shopping spree', 'two tickets to a Premier League match', 'a year of Spotify Premium'];
+    var FEES = ['£1.99', '£2.49', '£3.99', '£4.99', '£5.99', '£0.99'];
+    var DEADLINES = ['24 hours', '48 hours', '12 hours', 'this evening', 'by midnight tonight', 'within 7 days', 'the end of the day', '72 hours', 'today', 'before the offer expires tomorrow'];
+    var SCAM_FIRSTS = ['Hi', 'Hey', 'Hi there', 'Congratulations', 'Dear Lucky Winner', 'Dear Friend', 'Dear Subscriber', 'Hello @'];
+    var SCAM_SENDERS = ['Customer Services', 'Customer Care', 'Promotions Team', 'Billing Team', 'Account Services', 'Security Team', 'Verification Department', 'Support', 'The Team', 'Account Security'];
+
+    var FAKE_STRANGERS = ['Jake Morrison', 'Olivia Chen', 'Marcus Bell', 'Sophie Patel', 'Daniel Lewis', 'Aisha Mohammed', 'Liam Brookes', 'Hannah Wright'];
+
+    // Fake-but-convincing domain typos for scamJob + scamCharity
+    var SKETCHY_DOMAINS = [
+      'easymoney4u-recruits.biz', 'uk-jobhunters-uk.com', 'workfromhome-uk.net', 'getpaidtoday-uk.club', 'cash-fast-uk.top',
+      'help-the-children-fund.org', 'emergency-relief-now.org', 'global-food-fund.org', 'shelter-children-uk.org', 'save-the-families.org'
+    ];
+
+    // Library / dental / council / business names for legit non-school emails
+    var LOCAL_PRO = [
+      { name: 'Cathedral Dental Practice',  domain: 'cathedraldental.co.uk',  phone: '0117 922 4488' },
+      { name: 'Bristol Central Library',    domain: 'bristol.gov.uk',          phone: '0117 922 3040' },
+      { name: 'Meadowside Dental',          domain: 'meadowside.dental',       phone: '0117 555 1234' },
+      { name: 'Cherrytown Family Dental',   domain: 'cherrytowndental.co.uk',  phone: '0117 333 9911' },
+      { name: 'Sheffield Central Library',  domain: 'sheffield.gov.uk',        phone: '0114 273 4727' },
+      { name: 'Leeds City Library',         domain: 'leeds.gov.uk',            phone: '0113 378 5000' },
+      { name: 'Cornerstone Dental Care',    domain: 'cornerstone-dental.co.uk',phone: '0161 200 7788' },
+      { name: 'Riverside Health Practice',  domain: 'riverside-health.nhs.uk', phone: '0117 950 1234' }
+    ];
+
+    var UK_DATES = ['Tuesday 12th June', 'Wednesday 3rd July', 'Thursday 18th April', 'Monday 9th September', 'Friday 21st June', 'Tuesday 5th November', 'Wednesday 26th March', 'Monday 14th October', 'Thursday 30th May', 'Friday 11th January'];
+
+    var BOOK_TITLES = ['The Hobbit', 'Holes', 'Percy Jackson and the Lightning Thief', 'Skellig', 'The Boy at the Back of the Class', 'Wrinkle in Time', 'Alex Rider: Stormbreaker', 'A Monster Calls', 'The Last Wild', 'Coraline'];
+    var AUTHORS = ['J.R.R. Tolkien', 'Louis Sachar', 'Rick Riordan', 'David Almond', 'Onjali Q. Raúf', 'Madeleine L\'Engle', 'Anthony Horowitz', 'Patrick Ness', 'Piers Torday', 'Neil Gaiman'];
+
+    // ---------- RNG helpers ----------
+
+    function pickFrom(arr, rng) {
+      return arr[Math.floor(rng() * arr.length)];
+    }
+    function pickN(arr, n, rng) {
+      var copy = arr.slice();
+      for (var i = copy.length - 1; i > 0; i--) {
+        var j = Math.floor(rng() * (i + 1));
+        var t = copy[i]; copy[i] = copy[j]; copy[j] = t;
+      }
+      return copy.slice(0, n);
+    }
+    function rInt(min, max, rng) {
+      return Math.floor(rng() * (max - min + 1)) + min;
+    }
+
+    // ---------- Scam templates ----------
+
+    function scamDelivery(rng) {
+      var brand = pickFrom(COURIERS, rng);
+      var typo = pickFrom(brand.typos, rng);
+      var fee = pickFrom(FEES, rng);
+      var deadline = pickFrom(DEADLINES, rng);
+      var trackCode = 'GB' + rInt(100000, 999999, rng) + rInt(1000, 9999, rng);
+      var greet = pickFrom(SCAM_FIRSTS, rng);
+      var sender = pickFrom(SCAM_SENDERS, rng);
+      var tld = pickFrom(['.top', '.co', '.click', '.xyz', '.support'], rng);
+      return {
+        kind: 'scam',
+        sender: { name: brand.name, addr: 'no-reply@' + typo + tld },
+        subject: 'Action required: your parcel could not be delivered',
+        body: greet + ',\n\nOur driver attempted to deliver your parcel today but no one was home. A small redelivery fee of ' + fee + ' is required to reschedule. Please confirm your address and pay ' + deadline + ' or your parcel will be returned to sender.\n\nTracking reference: ' + trackCode + '\n\nClick here to confirm: http://' + typo + tld + '/pay\n\n' + brand.name + ' ' + sender,
+        tells: [
+          'Look at the sender address — it\'s "' + typo + tld + '", not the real ' + brand.real + '. The TLD is wrong too.',
+          'A small redelivery fee is a classic bait. Real couriers don\'t charge you to reschedule a missed delivery.',
+          '"' + deadline + '" is a fake deadline. Real delivery issues don\'t expire — they wait for you to log a claim.',
+          'You can check any missed-delivery notice by going to the courier\'s website directly and entering your tracking number.'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    function scamPrize(rng) {
+      var brand = pickFrom(BIG_BRANDS, rng);
+      var typo = pickFrom(brand.typos, rng);
+      var prize = pickFrom(PRIZES, rng);
+      var deadline = pickFrom(DEADLINES, rng);
+      var greet = pickFrom(SCAM_FIRSTS, rng);
+      var sender = pickFrom(['Promotions Team', 'Prize Claims', 'Customer Rewards', 'Lucky Draw Office'], rng);
+      var tld = pickFrom(['.com', '.club', '.top', '.vip', '.xyz'], rng);
+      return {
+        kind: 'scam',
+        sender: { name: brand.name, addr: 'prize-claims@' + typo + tld },
+        subject: '🎉 Congratulations! You have been selected as our weekly winner',
+        body: greet + ',\n\nYour email was randomly selected as the winner of ' + prize + '. To claim your prize, please reply with the following details ' + deadline + ':\n\n• Full name\n• Date of birth\n• Home address\n• Bank account number (for delivery insurance)\n\nThis offer expires ' + deadline + '. Do not delay — act now!\n\n' + brand.name + ' ' + sender,
+        tells: [
+          'You never entered a competition — if you didn\'t buy a ticket, you can\'t win.',
+          'No real company will ever ask for your bank details to "deliver" a free prize.',
+          'The sender domain is "' + typo + tld + '", not ' + brand.real + '.',
+          'The "' + deadline + '" countdown is a classic pressure tactic to stop you thinking.'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    function scamVerify(rng) {
+      var brand = pickFrom(BIG_BRANDS, rng);
+      var typo = pickFrom(brand.typos, rng);
+      var deadline = pickFrom(DEADLINES, rng);
+      var greet = pickFrom(['Hi @', 'Hi user', 'Dear customer', 'Hello account holder'], rng);
+      var sender = pickFrom(['Security Team', 'Account Security', 'Verification Department', 'Account Services'], rng);
+      var tld = pickFrom(['.team', '.support', '.click', '.top', '.xyz'], rng);
+      var handle = '@' + pickFrom(FIRST_NAMES, rng).toLowerCase();
+      return {
+        kind: 'scam',
+        sender: { name: brand.name + ' Support', addr: 'security@' + typo + tld },
+        subject: 'Verify your account or it will be deactivated in ' + deadline,
+        body: 'Hi ' + handle + ',\n\nWe have detected unusual activity on your account. To prevent permanent deactivation, please verify your identity immediately by clicking the link below and entering your username and password:\n\nhttp://' + typo + tld + '/verify-now\n\nFailure to verify ' + deadline + ' will result in your account being permanently deleted.\n\n' + brand.name + ' ' + sender,
+        tells: [
+          'The real ' + brand.name + ' address is @' + brand.real + ' — this one is @' + typo + tld + '.',
+          'Real platforms never email you a link to "verify" your password. You go to the app yourself.',
+          'The "' + deadline + ' or deleted" threat is a fake deadline to make you panic.',
+          'If you got this email, check your account in the app — it\'s almost certainly fine.'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    function scamBilling(rng) {
+      var brand = pickFrom(BIG_BRANDS, rng);
+      var typo = pickFrom(brand.typos, rng);
+      var fee = pickFrom(['£4.99', '£7.99', '£9.99', '£12.99', '£14.99'], rng);
+      var deadline = pickFrom(DEADLINES, rng);
+      var greet = pickFrom(SCAM_FIRSTS, rng);
+      var sender = pickFrom(SCAM_SENDERS, rng);
+      var tld = pickFrom(['.com', '.club', '.top', '.vip', '.xyz'], rng);
+      return {
+        kind: 'scam',
+        sender: { name: brand.name, addr: 'billing-support@' + typo + tld },
+        subject: 'Payment failed — your account will be suspended',
+        body: greet + ',\n\nWe were unable to process your last payment of ' + fee + '. Your account has been temporarily suspended. To restore access, please update your billing details by clicking the secure link below ' + deadline + ':\n\nhttp://' + typo + tld + '/verify\n\nIf we do not hear from you, your account will be permanently deleted.\n\n' + brand.name + ' ' + sender,
+        tells: [
+          'The sender domain is "' + typo + tld + '", not ' + brand.real + '.',
+          'A real payment failure email takes you to ' + brand.real + ' when you log in normally, not via a special link.',
+          '"Permanently deleted" is a threat designed to make you panic and click.',
+          'You can check your account status yourself by opening the app — don\'t trust emailed links.'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    function scamJob(rng) {
+      var sender = pickFrom(FAKE_STRANGERS, rng);
+      var sketchy = pickFrom(SKETCHY_DOMAINS.filter(function(d) { return /job|hunt|work|paid|cash/i.test(d); }), rng);
+      var fee = pickFrom(FEES, rng);
+      var deadline = pickFrom(['Apply fast', 'Only 3 spots left', 'Closing tomorrow', 'Positions filling quickly', 'Limited spaces this week'], rng);
+      return {
+        kind: 'scam',
+        sender: { name: sender.split(' ')[0] + 'Recruitment', addr: 'jobs@' + sketchy },
+        subject: 'Earn £500/week working from home — no experience needed',
+        body: 'Hi there,\n\nWe came across your profile and think you\'d be perfect for our work-from-home opportunity. Earn £500/week part-time doing simple tasks (liking videos, leaving reviews). No experience needed.\n\nTo get started, please reply with:\n• Your full name\n• Phone number\n• A copy of your ID (to verify your identity)\n\n' + deadline + ' — only 3 spots left!\n\n' + sender.split(' ')[0] + ' Recruitment',
+        tells: [
+          'No real job advertises "no experience, £500/week" — that\'s too good to be true.',
+          'Asking for a copy of your ID via email is a massive identity-theft red flag.',
+          'Legitimate employers contact you through verified channels, not a .biz / .club / .top address.',
+          '"' + deadline + '" is designed to rush you into replying without thinking.'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    function scamCharity(rng) {
+      var sketchy = pickFrom(SKETCHY_DOMAINS.filter(function(d) { return /help|child|relief|food|shelter|save/i.test(d); }), rng);
+      var name = pickFrom(FAKE_STRANGERS, rng);
+      var firstName = name.split(' ')[0];
+      var amount = pickFrom(['£5', '£10', '£20', 'even £2'], rng);
+      return {
+        kind: 'scam',
+        sender: { name: 'Help The Children Now', addr: 'donate@' + sketchy },
+        subject: 'URGENT: thousands of children need your help RIGHT NOW',
+        body: 'Dear Friend,\n\nI am writing to you with tears in my eyes. A terrible disaster has left thousands of children without food or shelter. We need your donation TODAY.\n\nPlease send any amount — even ' + amount + ' — to our emergency account using the link below. Every minute counts. Share this email with everyone you know.\n\nhttp://' + sketchy + '/donate\n\nWith hope,\n' + firstName + ' (Volunteer)',
+        tells: [
+          'Real charities don\'t use "tears in my eyes" emotional pressure in mass emails.',
+          'A domain from a fund you\'ve never heard of is easy to fake — check the charity number on the Charity Commission website.',
+          'Sharing a donation link by mass-email is a common scam pattern.',
+          'If you want to donate, go to the charity\'s official website directly — never via an emailed link.'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    function scamFriend(rng) {
+      var sender = pickFrom(FAKE_STRANGERS, rng);
+      var sketchy = pickFrom(['gmail.com', 'protonmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com'], rng);
+      var handle = pickFrom(FIRST_NAMES, rng).toLowerCase();
+      var proj = pickFrom(['gaming project', 'new band', 'short film', 'art exhibition', 'coding portfolio', 'local fundraiser'], rng);
+      var spark = pickFrom(['spark', 'lite', 'stories', 'story', 'profiles', 'pulse', 'flicks'], rng);
+      return {
+        kind: 'scam',
+        sender: { name: sender, addr: sender.toLowerCase().replace(' ', '.') + '.1992@' + sketchy },
+        subject: 'hey is this ' + handle + '??',
+        body: 'Hey! I think we met at the school sports day last year. You wouldn\'t remember me — I was the tall lad in the year above. I just found your profile and thought I\'d say hi.\n\nI\'m working in ' + proj + ' now and I could really use a like on my new project to help it take off. Could you vote for me here? It takes 30 seconds and it would mean a lot: http://' + proj.replace(/ /g, '') + '-' + spark + '.fun/' + handle + '\n\nHope we can catch up!\n' + sender.split(' ')[0],
+        tells: [
+          'You\'ve never met this person and the email is from a random address, not a school account.',
+          'Asking you to click a vote link is a common way to harvest profile data or install malware.',
+          'The friendly small talk ("we met at sports day") is a hook to lower your guard.',
+          'Always check with a friend in person before you click a link from someone you don\'t know.'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    // ---------- Legit templates ----------
+
+    function legitDispatch(rng) {
+      var brand = pickFrom(COURIERS, rng);
+      var name = pickFrom(FIRST_NAMES, rng);
+      var ordNum = '#' + rInt(100, 999, rng) + '-' + rInt(1000000, 9999999, rng);
+      var eta = pickFrom(['tomorrow by 9pm', 'Friday by 5pm', 'in 2 working days', 'this Saturday by 8pm', 'next Tuesday by 6pm'], rng);
+      return {
+        kind: 'legit',
+        sender: { name: brand.name, addr: 'shipment-tracking@' + brand.real },
+        subject: 'Your ' + brand.name + ' order ' + ordNum + ' has been dispatched',
+        body: 'Hi ' + name + ',\n\nGreat news — your order has left our fulfilment centre and is on its way. Estimated delivery: ' + eta + '. You can track your package or change the delivery slot in the ' + brand.name + ' app.\n\nYour account is up to date and no payment is required.',
+        tells: [
+          'The sender address ends in @' + brand.real + ' — the official ' + brand.name + ' domain.',
+          'It uses your actual name (' + name + ') and includes a real order number.',
+          'There\'s no link to click, no payment to make, and no sense of urgency.'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    function legitSchoolTrip(rng) {
+      var school = pickFrom(SCHOOLS, rng);
+      var teacher = pickFrom(TEACHERS, rng);
+      var teacherEmail = teacher.initial + '.' + teacher.last + '@' + school.domain;
+      var dest = pickFrom(['the Science Museum', 'the Natural History Museum', 'the Tate Modern', 'the Imperial War Museum', 'the British Museum', 'Legoland Windsor', 'the National Space Centre', 'the Thinktank science museum'], rng);
+      var date = pickFrom(UK_DATES, rng);
+      return {
+        kind: 'legit',
+        sender: { name: school.name, addr: 'office@' + school.domain },
+        subject: 'Year 7 trip to ' + dest + ' — consent forms due Friday',
+        body: 'Dear Parents and Carers,\n\nThank you to everyone who has already returned consent forms for the Year 7 trip to ' + dest + ' on ' + date + '. If you have not yet returned yours, please send it in to your form tutor by Friday.\n\nCoach transport, lunch, and entry are all covered by the school — no payment is required.\n\nIf you have any questions, please contact ' + teacher.first + ' on ' + teacherEmail + '.\n\nMany thanks,\nSchool Office',
+        tells: [
+          'It comes from the school\'s official office address (office@' + school.domain + ').',
+          'It mentions a known event with a real deadline and a real-world action (return the form).',
+          'No links to click, no personal info requested.'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    function legitTeacherReminder(rng) {
+      var school = pickFrom(SCHOOLS, rng);
+      var teacher = pickFrom(TEACHERS, rng);
+      var eventName = pickFrom(['parents\' evening', 'option choices evening', 'Year 7 information evening', 'options deadline', 'reports going home', 'work experience briefings'], rng);
+      var date = pickFrom(UK_DATES, rng);
+      var time = pickFrom(['4pm to 7pm', '5pm to 7:30pm', '4pm to 6pm', '6pm to 8pm', '3:30pm to 6pm'], rng);
+      return {
+        kind: 'legit',
+        sender: { name: teacher.first, addr: teacher.initial + '.' + teacher.last + '@' + school.domain },
+        subject: 'Reminder: Year 7 ' + eventName + ' — book your slots',
+        body: 'Hi all,\n\nA quick reminder that ' + eventName + ' is ' + date + ' from ' + time + '. Booking is now open on the school portal — you should be able to see your child\'s most recent report attached there too.\n\nIf you can\'t make any of the slots, email me and we\'ll arrange a phone call instead.\n\n' + teacher.first + '\n' + teacher.role,
+        tells: [
+          'The sender is a real teacher at the school, with a school email address.',
+          'It mentions a real event (' + eventName + ') you can verify with other parents.',
+          'There\'s no link to click and no personal information requested.'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    function legitClub(rng) {
+      var school = pickFrom(SCHOOLS, rng);
+      var teacher = pickFrom(TEACHERS, rng);
+      var club = pickFrom(['Chess', 'Coding', 'Art', 'Debate', 'Eco', 'Book', 'Film', 'Drama'], rng);
+      var room = pickFrom(['204', '112', 'the music block', 'the library', 'the design suite', 'B12', 'the canteen', 'the atrium'], rng);
+      var day = pickFrom(['Thursday', 'Wednesday', 'Tuesday', 'Friday', 'Monday'], rng);
+      var time = pickFrom(['12:30 to 1:15', '12:40 to 1:20', '3:30 to 4:30', 'after school until 4:30pm'], rng);
+      return {
+        kind: 'legit',
+        sender: { name: teacher.first, addr: teacher.initial + '.' + teacher.last + '@' + school.domain },
+        subject: club + ' club — ' + day + ' lunchtimes, all years welcome',
+        body: 'Hi everyone,\n\nJust a quick note that ' + club + ' club is running every ' + day + ' in ' + room + ' from ' + time + '. No experience needed — we have materials for everyone and ' + pickFrom(TEACHERS, rng).first + ' will be helping out.\n\nSee you ' + day + '!\n\n' + teacher.first,
+        tells: [
+          'It comes from a real teacher at the school, on a school email address.',
+          'It mentions a specific room and time you can verify.',
+          'No links, no personal info, no pressure — just a friendly invitation.'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    function legitDentist(rng) {
+      var pro = pickFrom(LOCAL_PRO.filter(function(p) { return /Dental|Practice|Health/i.test(p.name); }), rng);
+      var name = pickFrom(FIRST_NAMES, rng) + ' ' + pickFrom(['Walker', 'Smith', 'Khan', 'Patel', 'Jones', 'Brown'], rng);
+      var date = pickFrom(UK_DATES, rng);
+      var time = pickFrom(['3:30pm', '4:00pm', '4:15pm', '4:30pm', '10:00am', '11:30am'], rng);
+      var dentist = pickFrom(['Dr Hughes', 'Dr Ahmed', 'Dr Khan', 'Dr Singh', 'Dr O\'Brien'], rng);
+      return {
+        kind: 'legit',
+        sender: { name: pro.name, addr: 'reception@' + pro.domain },
+        subject: 'Your appointment on ' + date + ' at ' + time,
+        body: 'Dear ' + name + ',\n\nThis is a reminder of your routine check-up appointment at ' + pro.name + ' on ' + date + ' at ' + time + ' with ' + dentist + '.\n\nIf you need to reschedule, please call us on ' + pro.phone + ' at least 24 hours in advance. There is no need to reply to this email.\n\n' + pro.name,
+        tells: [
+          'It uses your full name and includes a real appointment time you can verify.',
+          'It gives a phone number you can ring, not a link to click.',
+          'The sender domain matches the practice name (' + pro.domain + ').'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    function legitLibrary(rng) {
+      var pro = pickFrom(LOCAL_PRO.filter(function(p) { return /Library|Libraries|Council|Gov/i.test(p.domain) || /Library/i.test(p.name); }), rng);
+      var name = pickFrom(FIRST_NAMES, rng);
+      var book1 = pickFrom(BOOK_TITLES, rng);
+      var auth1 = pickFrom(AUTHORS, rng);
+      var book2 = pickFrom(BOOK_TITLES, rng);
+      var auth2 = pickFrom(AUTHORS, rng);
+      var due = pickFrom(UK_DATES, rng);
+      return {
+        kind: 'legit',
+        sender: { name: pro.name, addr: 'noreply@' + pro.domain },
+        subject: 'Items due back: ' + due,
+        body: 'Hello ' + name + ',\n\nJust a quick reminder that the following items are due back at ' + pro.name + ' on ' + due + ':\n\n• "' + book1 + '" by ' + auth1 + '\n• "' + book2 + '" by ' + auth2 + '\n\nYou can renew online up to 3 times at www.' + pro.domain + '/libraries, or pop in and we\'ll do it for you. No need to reply to this email.\n\n' + pro.name,
+        tells: [
+          'It comes from ' + pro.domain + ' — a real council or library domain.',
+          'It names the actual books you borrowed, which only the library should know.',
+          'It tells you to go to the website yourself, not to click a special link.'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    function legitMusicLesson(rng) {
+      var school = pickFrom(SCHOOLS, rng);
+      var teacher = pickFrom(TEACHERS.filter(function(t) { return /Music|Art/i.test(t.role); }), rng);
+      var name = pickFrom(FIRST_NAMES, rng);
+      var instrument = pickFrom(['Guitar', 'Piano', 'Drums', 'Violin', 'Flute', 'Cello', 'Bass guitar'], rng);
+      var day = pickFrom(['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Monday'], rng);
+      var time = pickFrom(['11am', '2:30pm', '3:30pm', '9:30am', '1:30pm'], rng);
+      var place = pickFrom(['the music block', 'room 18', 'room 22', 'the music studio'], rng);
+      return {
+        kind: 'legit',
+        sender: { name: teacher.first, addr: teacher.initial + '.' + teacher.last + '@' + school.domain },
+        subject: instrument + ' lesson ' + day + ' — bring your book',
+        body: 'Hi ' + name + ',\n\nQuick reminder that your ' + instrument + ' lesson is on ' + day + ' at ' + time + ' in ' + place + '. Please bring your lesson book and your ' + instrument.toLowerCase() + ' (or borrow one from the music store cupboard).\n\nSee you ' + day + '!\n' + teacher.first,
+        tells: [
+          'It comes from a school music teacher on a school email.',
+          'It mentions a specific, verifiable time and place.',
+          'No links, no urgency, no personal info requested.'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    function legitLunchMenu(rng) {
+      var school = pickFrom(SCHOOLS, rng);
+      var newItem = pickFrom(['a new veggie wrap', 'a jacket potato bar', 'a peri-peri chicken option', 'a pasta pot range', 'a new sushi-style option', 'a falafel box'], rng);
+      var day = pickFrom(['Monday', 'Tuesday', 'Wednesday'], rng);
+      var date = pickFrom(UK_DATES, rng);
+      return {
+        kind: 'legit',
+        sender: { name: 'Catering Team', addr: 'catering@' + school.domain },
+        subject: 'New lunch menu from ' + day + ' — week commencing ' + date,
+        body: 'Hi all,\n\nJust a heads-up that we\'re rolling out a new lunch menu from ' + day + '. You\'ll see a few new options (including ' + newItem + ') and a couple of changes to the hot meal rota.\n\nThe full menu will be posted on the canteen wall and on the school website from first thing ' + day + ' morning.\n\nEnjoy!\n' + school.name + ' Catering',
+        tells: [
+          'It comes from a school email address — catering@' + school.domain + '.',
+          'It mentions a real, low-stakes event (lunch menu change), with no action required.',
+          'No links, no urgency, no personal info requested.'
+        ],
+        primaryTellIndex: 0
+      };
+    }
+
+    // ---------- Generator ----------
+
+    var SCAM_TEMPLATES = [scamDelivery, scamPrize, scamVerify, scamBilling, scamJob, scamCharity, scamFriend];
+    var LEGIT_TEMPLATES = [legitDispatch, legitSchoolTrip, legitTeacherReminder, legitClub, legitDentist, legitLibrary, legitMusicLesson, legitLunchMenu];
+
+    function generateEmailBatch(rounds, choicesPerRound, rng) {
+      rng = rng || Math.random;
+      // Materialise one email per template call, but re-roll if the
+      // produced email signature (sender + subject) collides with an
+      // email we already have in the batch. Two calls to the same
+      // template can coincidentally produce the same email when the
+      // RNG hits the same slots — the loop guarantees uniqueness.
+      var sigs = {};
+      var out = [];
+      var safety = 0;
+
+      // Scams: pickN samples without replacement, so the template
+      // always differs. The produced email could still collide with a
+      // legit slot, so dedupe against the running sigs set. If the
+      // scam template keeps producing the same email after several
+      // rolls, fall back to a different (already-used) scam template.
+      var scamShuffle = pickN(SCAM_TEMPLATES, rounds, rng);
+      for (var i = 0; i < scamShuffle.length; i++) {
+        var e = scamShuffle[i](rng);
+        var sig = e.sender.addr + '|' + e.subject;
+        var innerS = 0;
+        while (sigs[sig] && innerS < 8) { e = scamShuffle[i](rng); sig = e.sender.addr + '|' + e.subject; innerS++; safety++; }
+        var swS = 0;
+        while (sigs[sig] && swS < 10) {
+          e = scamShuffle[Math.floor(rng() * scamShuffle.length)](rng);
+          sig = e.sender.addr + '|' + e.subject;
+          swS++; safety++;
+        }
+        sigs[sig] = true;
+        out.push(e);
+      }
+
+      // Legits: more emails than templates. Sample with replacement by
+      // randomly picking a template from the array each time, then
+      // dedupe via the running sigs set. If a template keeps producing
+      // a colliding email (template-internal RNG state is constant for
+      // a given call site), switch to a different template instead.
+      var legCount = rounds * (choicesPerRound - 1);
+      for (var j = 0; j < legCount; j++) {
+        var t = LEGIT_TEMPLATES[Math.floor(rng() * LEGIT_TEMPLATES.length)];
+        var le = t(rng);
+        var lsig = le.sender.addr + '|' + le.subject;
+        var inner = 0;
+        while (sigs[lsig] && inner < 8) { le = t(rng); lsig = le.sender.addr + '|' + le.subject; inner++; safety++; }
+        // If still colliding, switch template up to 10 times.
+        var switched = 0;
+        while (sigs[lsig] && switched < 10) {
+          t = LEGIT_TEMPLATES[Math.floor(rng() * LEGIT_TEMPLATES.length)];
+          le = t(rng);
+          lsig = le.sender.addr + '|' + le.subject;
+          switched++; safety++;
+        }
+        sigs[lsig] = true;
+        out.push(le);
+      }
+
+      return out;
+    }
+
+    // Fallback: the hardcoded 16-email pool used by the very first
+    // version of the activity. Kept as a safety net; never generated to
+    // in normal play.
     var EMAILS = [
-      // ---- Scam #1: fake delivery failure
       {
         kind: 'scam',
         sender: { name: 'Royal Mail', addr: 'no-reply@royalmai1-delivery.co.uk' },
@@ -612,194 +1184,8 @@
           'Real Royal Mail emails usually know your name and tracking number — this one just says "Dear customer".',
           'They want you to pay a small fee AND click a link — that\'s two red flags in one go.',
           'The link goes to "royalmai1-redelivery.top", not royalmail.com. Always check the domain.'
-        ]
-      },
-      // ---- Legit #1: real delivery update
-      {
-        kind: 'legit',
-        sender: { name: 'Amazon UK', addr: 'shipment-tracking@amazon.co.uk' },
-        subject: 'Your Amazon order #112-8837492 has been dispatched',
-        body: 'Hi Sam,\n\nGreat news — your order has left our fulfilment centre and is on its way. Estimated delivery: tomorrow by 9pm. You can track your package or change the delivery slot in the Amazon app.\n\nYour account is up to date and no payment is required.',
-        tells: [
-          'The sender address ends in @amazon.co.uk — the official Amazon UK domain.',
-          'It uses your actual name (Sam) and includes a real order number.',
-          'There\'s no link to click, no payment to make, and no sense of urgency.'
-        ]
-      },
-      // ---- Scam #2: pretend prize win
-      {
-        kind: 'scam',
-        sender: { name: 'Apple Store UK', addr: 'prize-claims@apple-store-uk-promo.com' },
-        subject: '🎉 Congratulations! You have been selected as our weekly winner',
-        body: 'Dear Lucky Winner,\n\nYour email was randomly selected as the winner of a brand new iPhone 15 Pro. To claim your prize, please reply with the following details within 48 hours:\n\n• Full name\n• Date of birth\n• Home address\n• Bank account number (for delivery insurance)\n\nThis offer expires in 48 hours. Do not delay — act now!\n\nApple Promotions Team',
-        tells: [
-          'You never entered a competition — if you didn\'t buy a ticket, you can\'t win.',
-          'No real company will ever ask for your bank details to "deliver" a free prize.',
-          'The sender domain is "apple-store-uk-promo.com", not apple.com.',
-          'The "48 hours" countdown is a classic pressure tactic to stop you thinking.'
-        ]
-      },
-      // ---- Legit #2: school report
-      {
-        kind: 'legit',
-        sender: { name: 'Mr Davies', addr: 'j.davies@whitchurch-high.co.uk' },
-        subject: 'Reminder: Year 7 parents\' evening — book your slots',
-        body: 'Hi all,\n\nA quick reminder that parents\' evening is next Thursday from 4pm to 7pm. Booking is now open on the school portal — you should be able to see your child\'s most recent report attached there too.\n\nIf you can\'t make any of the slots, email me and we\'ll arrange a phone call instead.\n\nMr Davies\nHead of Year 7',
-        tells: [
-          'The sender is a real teacher at your school, with a school email address.',
-          'It mentions a real event (parents\' evening) you can verify with other parents.',
-          'There\'s no link to click and no personal information requested.'
-        ]
-      },
-      // ---- Scam #3: fake streaming bill
-      {
-        kind: 'scam',
-        sender: { name: 'Netflix', addr: 'billing-support@netfllx-billing.com' },
-        subject: 'Payment failed — your account will be suspended',
-        body: 'Dear Subscriber,\n\nWe were unable to process your last payment of £14.99. Your account has been temporarily suspended. To restore access, please update your billing details by clicking the secure link below within 12 hours:\n\nhttp://netfllx-billing.com/verify\n\nIf we do not hear from you, your account will be permanently deleted.\n\nNetflix Billing Team',
-        tells: [
-          'The sender domain is "netfllx-billing.com" — note the double L in "netfllx".',
-          'A real payment failure email takes you to netflix.com when you log in normally, not a special link.',
-          '"Permanently deleted" is a threat designed to make you panic and click.',
-          'You can check your account status yourself by opening the app — don\'t trust emailed links.'
-        ]
-      },
-      // ---- Legit #3: school club
-      {
-        kind: 'legit',
-        sender: { name: 'Ms Patel', addr: 'r.patel@whitchurch-high.co.uk' },
-        subject: 'Chess club — Thursday lunchtimes, all years welcome',
-        body: 'Hi everyone,\n\nJust a quick note that chess club is running every Thursday in room 204 from 12:30 to 1:15. No experience needed — we have boards for everyone and Mr Hughes will be helping out.\n\nSee you Thursday!\n\nMs Patel',
-        tells: [
-          'It comes from a real teacher at the school, on a school email address.',
-          'It mentions a specific room and time you can verify.',
-          'No links, no personal info, no pressure — just a friendly invitation.'
-        ]
-      },
-      // ---- Scam #4: pretend friend on socials
-      {
-        kind: 'scam',
-        sender: { name: 'Jake Morrison', addr: 'jake.morrison.1992@protonmail.com' },
-        subject: 'hey is this sam??',
-        body: 'Hey! I think we met at the school sports day last year. You wouldn\'t remember me — I was the tall lad in the year above. I just found your profile and thought I\'d say hi.\n\nI\'m working in gaming now and I could really use a like on my new project to help it take off. Could you vote for my game here? It takes 30 seconds and it would mean a lot: http://votemygame.fun/sam\n\nHope we can catch up!\nJake',
-        tells: [
-          'You\'ve never met this person and the email is from a random address, not a school account.',
-          'Asking you to click a vote link is a common way to harvest profile data or install malware.',
-          'The friendly small talk ("we met at sports day") is a hook to lower your guard.',
-          'Always check with a friend in person before you click a link from someone you don\'t know.'
-        ]
-      },
-      // ---- Legit #4: school trip letter
-      {
-        kind: 'legit',
-        sender: { name: 'Whitchurch High School', addr: 'office@whitchurch-high.co.uk' },
-        subject: 'Year 7 trip to the Science Museum — consent forms due Friday',
-        body: 'Dear Parents and Carers,\n\nThank you to everyone who has already returned consent forms for the Year 7 Science Museum trip on 18th March. If you have not yet returned yours, please send it in to your form tutor by Friday.\n\nCoach transport, lunch, and entry are all covered by the school — no payment is required.\n\nMany thanks,\nSchool Office',
-        tells: [
-          'It comes from the school\'s official office address.',
-          'It mentions a known event with a clear deadline and a real-world action (return the form).',
-          'No links to click, no personal info requested.'
-        ]
-      },
-      // ---- Scam #5: fake "verify your account"
-      {
-        kind: 'scam',
-        sender: { name: 'Instagram Support', addr: 'security@instagram-help.team' },
-        subject: 'Verify your account or it will be deactivated in 24 hours',
-        body: 'Hi @sam,\n\nWe have detected unusual activity on your account. To prevent permanent deactivation, please verify your identity immediately by clicking the link below and entering your username and password:\n\nhttp://instagram-help.team/verify-now\n\nFailure to verify within 24 hours will result in your account being permanently deleted.\n\nInstagram Security Team',
-        tells: [
-          'The real Instagram address is @instagram.com — this one is @instagram-help.team.',
-          'Real platforms never email you a link to "verify" your password. You go to the app yourself.',
-          'The "24 hours or deleted" threat is a fake deadline to make you panic.',
-          'If you got this email, check your account in the app — it\'s almost certainly fine.'
-        ]
-      },
-      // ---- Legit #5: dentist reminder
-      {
-        kind: 'legit',
-        sender: { name: 'Cathedral Dental Practice', addr: 'reception@cathedraldental.co.uk' },
-        subject: 'Your appointment on Wednesday 12th June at 3:30pm',
-        body: 'Dear Sam Walker,\n\nThis is a reminder of your routine check-up appointment at Cathedral Dental Practice on Wednesday 12th June at 3:30pm with Dr Hughes.\n\nIf you need to reschedule, please call us on 0117 922 4488 at least 24 hours in advance. There is no need to reply to this email.\n\nCathedral Dental',
-        tells: [
-          'It uses your full name and includes a real appointment time you can verify.',
-          'It gives a phone number you can ring, not a link to click.',
-          'The sender domain matches the practice name (cathedraldental.co.uk).'
-        ]
-      },
-      // ---- Scam #6: fake summer job offer
-      {
-        kind: 'scam',
-        sender: { name: 'EasyMoney4U', addr: 'jobs@easymoney4u-recruits.biz' },
-        subject: 'Earn £500/week working from home — no experience needed',
-        body: 'Hi there,\n\nWe came across your profile and think you\'d be perfect for our work-from-home opportunity. Earn £500/week part-time doing simple tasks (liking videos, leaving reviews). No experience needed.\n\nTo get started, please reply with:\n• Your full name\n• Phone number\n• A copy of your ID (to verify your identity)\n\nApply fast — only 3 spots left!\nEasyMoney4U Recruitment',
-        tells: [
-          'No real job advertises "no experience, £500/week" — that\'s too good to be true.',
-          'Asking for a copy of your ID via email is a massive identity-theft red flag.',
-          'Legitimate employers contact you through verified channels, not a .biz address.',
-          '"Only 3 spots left" is designed to rush you into replying without thinking.'
-        ]
-      },
-      // ---- Legit #6: library return reminder
-      {
-        kind: 'legit',
-        sender: { name: 'Bristol Libraries', addr: 'noreply@bristol.gov.uk' },
-        subject: 'Items due back: Friday 21st June',
-        body: 'Hello Sam,\n\nJust a quick reminder that the following items are due back at Bristol Central Library on Friday 21st June:\n\n• "The Hobbit" by J.R.R. Tolkien\n• "Holes" by Louis Sachar\n\nYou can renew online up to 3 times at www.bristol.gov.uk/libraries, or pop in and we\'ll do it for you. No need to reply to this email.\n\nBristol Libraries',
-        tells: [
-          'It comes from bristol.gov.uk — a real council domain.',
-          'It names the actual books you borrowed, which only the library should know.',
-          'It tells you to go to the website yourself, not to click a special link.'
-        ]
-      },
-      // ---- Scam #7: fake charity plea
-      {
-        kind: 'scam',
-        sender: { name: 'Help The Children Now', addr: 'donate@help-the-children-fund.org' },
-        subject: 'URGENT: thousands of children need your help RIGHT NOW',
-        body: 'Dear Friend,\n\nI am writing to you with tears in my eyes. A terrible disaster has left thousands of children without food or shelter. We need your donation TODAY.\n\nPlease send any amount — even £5 — to our emergency account using the link below. Every minute counts. Share this email with everyone you know.\n\nhttp://help-the-children-fund.org/donate\n\nWith hope,\nSarah (Volunteer)',
-        tells: [
-          'Real charities don\'t use Gmail-style "tears in my eyes" emotional pressure.',
-          'A ".org" address from a fund you\'ve never heard of is easy to fake — check the charity number on the Charity Commission website.',
-          'Sharing a donation link by mass-email is a common scam pattern.',
-          'If you want to donate, go to the charity\'s official website directly — never via an emailed link.'
-        ]
-      },
-      // ---- Legit #7: school lunch menu
-      {
-        kind: 'legit',
-        sender: { name: 'Catering Team', addr: 'catering@whitchurch-high.co.uk' },
-        subject: 'New lunch menu from Monday — week commencing 17th June',
-        body: 'Hi all,\n\nJust a heads-up that we\'re rolling out a new lunch menu from Monday. You\'ll see a few new options (including a new veggie wrap) and a couple of changes to the hot meal rota.\n\nThe full menu will be posted on the canteen wall and on the school website from first thing Monday morning.\n\nEnjoy!\nWhitchurch Catering',
-        tells: [
-          'It comes from a school email address — catering@whitchurch-high.co.uk.',
-          'It mentions a real, low-stakes event (lunch menu change), with no action required.',
-          'No links, no urgency, no personal info requested.'
-        ]
-      },
-      // ---- Scam #8: hidden subscription trap
-      {
-        kind: 'scam',
-        sender: { name: 'Spotify Premium', addr: 'orders@spotify-premium-deal.club' },
-        subject: 'Your premium subscription has been activated — £4.99/month',
-        body: 'Hi Sam,\n\nThank you for subscribing to Spotify Premium for just £4.99/month. Your subscription will auto-renew every month at the same price. A receipt is attached.\n\nIf you did not authorise this charge, please cancel within 24 hours by clicking the link below:\n\nhttp://spotify-premium-deal.club/cancel\n\nSpotify Customer Care',
-        tells: [
-          'You didn\'t subscribe to anything — "you\'ve been charged" scams hope you panic and click.',
-          'The sender address is "spotify-premium-deal.club", not spotify.com.',
-          'A real subscription service would email you from their own domain with your account name.',
-          'Check your bank statement and the official app before clicking anything.'
-        ]
-      },
-      // ---- Legit #8: music lesson reminder
-      {
-        kind: 'legit',
-        sender: { name: 'Mr Khan', addr: 'a.khan@whitchurch-high.co.uk' },
-        subject: 'Guitar lesson Tuesday — bring your book',
-        body: 'Hi Sam,\n\nQuick reminder that your guitar lesson is on Tuesday at 11am in the music block. Please bring your lesson book and your guitar (or borrow one from the music store cupboard).\n\nSee you Tuesday!\nMr Khan',
-        tells: [
-          'It comes from a school music teacher on a school email.',
-          'It mentions a specific, verifiable time and place.',
-          'No links, no urgency, no personal info requested.'
-        ]
+        ],
+        primaryTellIndex: 0
       }
     ];
 
@@ -816,10 +1202,16 @@
       hintsUsed: 0,
       hintsShown: [],      // clues revealed for the current round
       current: null,       // { scam, decoys: [], all: [] }
-      pool: [],            // shuffled deck of scam emails
-      answered: [],        // list of { roundIndex, correct, usedHints }
+      emails: [],          // generated batch for this game (rounds * choices emails)
+      pool: [],            // shuffled deck of scam emails from state.emails
+      answered: [],        // list of { roundIndex, correct, usedHints, whyCorrect }
       asked: [],           // indices used so far (avoid repeats)
       finished: false,
+      // Why-step state. After a correct pick, a 4-option question is
+      // shown. The student can skip it, or pick one. Wrong answer loses
+      // a heart. The "Next round" button only appears once why is resolved.
+      whyQuestion: null,   // { correct, options:[{text, isCorrect, source}] }
+      whyResolved: false,  // true once user has answered or skipped
     };
 
     var DIFFICULTY = {
@@ -891,7 +1283,7 @@
       // the pool is exhausted, refill it (rarely triggered, but means
       // longer sessions can keep playing).
       if (state.pool.length === 0) {
-        state.pool = shuffle(EMAILS.filter(function(e) { return e.kind === 'scam'; }).slice());
+        state.pool = shuffle(state.emails.filter(function(e) { return e.kind === 'scam'; }).slice());
       }
       var scam = pickFromPool();
       // Pick `choicesPerRound - 1` distinct legit emails, none of
@@ -911,13 +1303,30 @@
         }
       }
       // Refill and try again.
-      state.pool = shuffle(EMAILS.filter(function(e) { return e.kind === 'scam'; }).slice());
+      state.pool = shuffle(state.emails.filter(function(e) { return e.kind === 'scam'; }).slice());
       return pickFromPool();
     }
     function pickDecoys(n, scam) {
-      var legits = EMAILS.filter(function(e) { return e.kind === 'legit' && e !== scam; });
+      var legits = state.emails.filter(function(e) { return e.kind === 'legit' && e !== scam; });
       shuffle(legits);
       return legits.slice(0, n);
+    }
+
+    // ---------- Why-question ----------
+    // Build the 4-option "why is this a scam?" question from the
+    // current scam's tells. The correct answer is the strongest tell
+    // (scam.primaryTellIndex); the other three are weaker tells from
+    // the same email. Returns null if the email has fewer than 4 tells.
+    function buildWhyQuestion() {
+      var scam = state.current && state.current.scam;
+      if (!scam || !scam.tells || scam.tells.length < 4) return null;
+      var idx = scam.primaryTellIndex || 0;
+      var correctText = scam.tells[idx];
+      var decoys = scam.tells.filter(function(_, i) { return i !== idx; });
+      var options = [{text: correctText, isCorrect: true}]
+        .concat(decoys.map(function(t) { return {text: t, isCorrect: false}; }));
+      shuffle(options);
+      return { correct: correctText, options: options };
     }
 
     // ---------- Render round ----------
@@ -1077,7 +1486,6 @@
       area.innerHTML = '';
 
       var scam = state.current.scam;
-      var all = state.current.all;
       var title, html;
 
       if (correct) {
@@ -1087,7 +1495,7 @@
         html = '<div class="title">' + title + '</div>' +
                '<div style="color: var(--text-2); font-size: 12.5px;">' +
                  'You scored <b style="color: var(--teal);">+' + Math.round(10 * state.multiplier) + '</b>' + bonus + '. ' +
-                 'Scroll up to see the clues, or continue to the next round.' +
+                 'Now tell us why — pick the strongest clue.' +
                '</div>';
       } else {
         title = '✗ Not quite — that one was real.';
@@ -1103,19 +1511,150 @@
         scam.tells.map(function(t) { return '<li>' + escapeHtml(t) + '</li>'; }).join('') +
         '</ul>';
 
-      var actions = el('div', { class: 'actions' });
+      var fb = el('div', { class: 'feedback ' + (correct ? 'ok' : 'bad') });
+      fb.innerHTML = html + why;
+      area.appendChild(fb);
+
+      // Why-question (only after a correct pick). The "Next round"
+      // button is gated on this being resolved.
+      if (correct) {
+        var q = buildWhyQuestion();
+        if (q) {
+          state.whyQuestion = q;
+          state.whyResolved = false;
+          area.appendChild(renderWhyQuestion());
+        } else {
+          state.whyQuestion = null;
+          state.whyResolved = true;
+        }
+      } else {
+        state.whyQuestion = null;
+        state.whyResolved = true;
+      }
+
+      // Next-round button — only shown once the why-step is done.
       var nextBtn = el('button', {
         class: 'primary-btn',
         type: 'button',
         text: state.round >= state.roundsTotal ? 'See results' : 'Next round →',
         on: { click: onNext }
       });
+      if (!state.whyResolved) {
+        nextBtn.disabled = true;
+        nextBtn.style.opacity = '0.5';
+        nextBtn.style.cursor = 'not-allowed';
+      }
+      var actions = el('div', { class: 'actions' });
       actions.appendChild(nextBtn);
+      area.appendChild(actions);
+    }
 
-      var fb = el('div', { class: 'feedback ' + (correct ? 'ok' : 'bad') });
-      fb.innerHTML = html + why;
-      fb.appendChild(actions);
-      area.appendChild(fb);
+    // ---------- Why-question panel ----------
+    function renderWhyQuestion() {
+      var q = state.whyQuestion;
+      var wrap = el('div', { class: 'whyq' });
+
+      var head = el('div', { class: 'whyq-head' });
+      head.appendChild(el('span', { class: 'whyq-tag', text: 'Why?' }));
+      head.appendChild(el('span', {
+        class: 'whyq-title',
+        text: 'Which clue gives the scam away?'
+      }));
+      wrap.appendChild(head);
+
+      var opts = el('div', { class: 'whyq-opts' });
+      var letters = ['A','B','C','D'];
+      q.options.forEach(function(opt, idx) {
+        var btn = el('button', {
+          class: 'whyq-opt',
+          type: 'button',
+          on: { click: function() { onWhyPick(btn, opt); } }
+        });
+        btn.innerHTML =
+          '<span class="opt-letter">' + letters[idx] + '</span>' +
+          '<span class="opt-text">' + escapeHtml(opt.text) + '</span>';
+        opts.appendChild(btn);
+      });
+      wrap.appendChild(opts);
+
+      var foot = el('div', { class: 'whyq-foot' });
+      foot.appendChild(el('span', {
+        class: 'whyq-foot-text',
+        text: 'Wrong answer costs a heart. Skip if you\'re not sure.'
+      }));
+      var skipBtn = el('button', {
+        class: 'skip-btn',
+        type: 'button',
+        text: 'Skip',
+        on: { click: onWhySkip }
+      });
+      foot.appendChild(skipBtn);
+      wrap.appendChild(foot);
+
+      return wrap;
+    }
+
+    function onWhyPick(btn, opt) {
+      if (state.whyResolved) return;
+      var q = state.whyQuestion;
+      var correct = opt.isCorrect === true;
+      // Disable all options so the pick is locked in.
+      var all = document.querySelectorAll('.whyq-opt');
+      for (var i = 0; i < all.length; i++) all[i].disabled = true;
+
+      if (correct) {
+        btn.classList.add('correct');
+        // +5 bonus for the right reasoning
+        state.score += Math.round(5 * state.multiplier);
+        state.answered[state.answered.length - 1].whyCorrect = true;
+        renderHeader();
+        showWhyFoot('Nice — that was the giveaway. +5 bonus.');
+      } else {
+        btn.classList.add('wrong');
+        state.hearts = Math.max(0, state.hearts - 1);
+        popLostHeart();
+        // Reveal the correct one in green so the student learns it.
+        var correctBtn = null;
+        for (var j = 0; j < all.length; j++) {
+          if (q.options[j].isCorrect) { correctBtn = all[j]; break; }
+        }
+        if (correctBtn) correctBtn.classList.add('correct');
+        renderHeader();
+        showWhyFoot('Lost a heart. The stronger clue is highlighted in green.');
+      }
+      state.whyResolved = true;
+      enableNextRoundButton();
+    }
+
+    function onWhySkip() {
+      if (state.whyResolved) return;
+      state.whyResolved = true;
+      // Disable the options but don't reveal the right one — they
+      // chose to skip, so the feedback list above is the lesson.
+      var all = document.querySelectorAll('.whyq-opt');
+      for (var i = 0; i < all.length; i++) all[i].disabled = true;
+      showWhyFoot('Skipped. The clues above explain the red flags.');
+      enableNextRoundButton();
+    }
+
+    function showWhyFoot(msg) {
+      var foot = document.querySelector('.whyq-foot .whyq-foot-msg');
+      if (!foot) {
+        foot = el('span', { class: 'whyq-foot-msg', text: msg });
+        var wrap = document.querySelector('.whyq-foot .whyq-foot-text');
+        if (wrap) wrap.replaceWith(foot);
+      } else {
+        foot.textContent = msg;
+      }
+    }
+
+    function enableNextRoundButton() {
+      var btns = document.querySelectorAll('#feedbackArea .primary-btn');
+      for (var i = 0; i < btns.length; i++) {
+        btns[i].disabled = false;
+        btns[i].style.opacity = '';
+        btns[i].style.cursor = '';
+      }
     }
 
     function onNext() {
@@ -1146,6 +1685,9 @@
       $('endCorrect').textContent  = correctCount + '/' + total;
       $('endHints').textContent    = state.hintsUsed;
       $('endHearts').textContent   = state.hearts;
+      var whyRight = state.answered.filter(function(a) { return a.whyCorrect === true; }).length;
+      var whyEl = document.getElementById('endWhy');
+      if (whyEl) whyEl.textContent = whyRight;
 
       showScreen('screenEnd');
       if (win) confetti({ longer: true });
@@ -1207,8 +1749,14 @@
       state.answered = [];
       state.asked = [];
       state.finished = false;
-      // Build a fresh shuffled pool of scam emails for the session.
-      state.pool = shuffle(EMAILS.filter(function(e) { return e.kind === 'scam'; }).slice());
+      state.whyQuestion = null;
+      state.whyResolved = true;
+      // Generate a fresh batch of emails for this game. Each call
+      // produces a unique set: random slots per template, random
+      // template selection. Generation is instant (slot-fill, no I/O).
+      state.emails = generateEmailBatch(cfg.rounds, cfg.choices);
+      // Build a shuffled pool of scam emails from the generated batch.
+      state.pool = shuffle(state.emails.filter(function(e) { return e.kind === 'scam'; }).slice());
       $('subtitle').textContent = 'Cyber-security training · Y7 · ' + cfg.label;
       renderHeader();
       showScreen('screenGame');

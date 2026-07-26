@@ -9,22 +9,33 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    /* -------------------------------------------------------------------
+       Recall palette — synced with index.html
+       ------------------------------------------------------------------- */
     :root {
-      --bg:        #0D1117;
-      --bg-2:      #161B22;
-      --line:      #21262D;
-      --line-2:    #30363D;
-      --text:      #F0F6FC;
+      --bg:        #1A1D22;
+      --bg-2:      #232629;
+      --bg-3:      #2B2F33;
+      --bg-4:      #353A3F;
+      --line:      #2A2E33;
+      --line-2:    #3A3F45;
+      --line-3:    #4D535A;
+      --text:      #F5F7FA;
       --text-2:    #C9D1D9;
-      --text-3:    #8B949E;
-      --text-4:    #6E7681;
-      --blue:      #58A6FF;
-      --blue-2:    #1F6FEB;
+      --text-3:    #9098A4;
+      --text-4:    #6B7280;
+      --teal:      #56D4DD;
+      --teal-2:    #3FB8C4;
+      --teal-soft: #7CE0E8;
+      --teal-dim:  rgba(86, 212, 221, 0.18);
+      --teal-pale: rgba(86, 212, 221, 0.10);
       --green:     #3FB950;
       --yellow:    #D29922;
       --red:       #F85149;
-      --r-sm: 6px;
-      --r-md: 8px;
+      --on-teal:   #0B0D0F;
+      --r-sm: 8px;
+      --r-md: 18px;
+      --r-pill: 999px;
       --maxw: 980px;
     }
     * { box-sizing: border-box; }
@@ -37,7 +48,8 @@
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
     }
-    a { color: var(--blue); text-decoration: none; }
+    ::selection { background: var(--teal); color: var(--on-teal); }
+    a { color: var(--teal-soft); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
     nav.top {
@@ -54,6 +66,7 @@
     .brand {
       display: flex; align-items: center; gap: 10px;
       font-weight: 700; font-size: 16px;
+      color: var(--text);
     }
     .brand-mark {
       width: 28px; height: 28px;
@@ -80,11 +93,12 @@
     }
 
     .template {
-      background: var(--bg-2);
+      background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
       border: 1px solid var(--line-2);
       border-radius: var(--r-md);
       margin-bottom: 32px;
       overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.12);
     }
     .template-head {
       padding: 16px 20px;
@@ -100,9 +114,9 @@
       display: inline-block;
       padding: 2px 8px;
       font-size: 11px; font-weight: 600;
-      background: rgba(56,139,253,0.15);
-      color: var(--blue);
-      border-radius: var(--r-sm);
+      background: var(--teal-pale);
+      color: var(--teal);
+      border-radius: var(--r-pill);
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
@@ -111,7 +125,7 @@
 
     .meta {
       padding: 14px 20px;
-      background: rgba(56,139,253,0.05);
+      background: var(--teal-pale);
       border-bottom: 1px solid var(--line);
       font-size: 12.5px; color: var(--text-3);
     }
@@ -163,8 +177,8 @@
     }
     .field textarea { min-height: 280px; }
     .field textarea:focus, .field input[type="text"]:focus {
-      border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(56,139,253,0.15);
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px var(--teal-pale);
     }
     .field input[type="text"] { min-height: 38px; }
     .copy-btn {
@@ -194,9 +208,9 @@
     .preview {
       margin-top: 16px;
       border: 1px solid var(--line-2);
-      border-radius: var(--r-sm);
+      border-radius: var(--r-md);
       overflow: hidden;
-      background: #FFFFFF;
+      background: var(--bg);
     }
     .preview-label {
       padding: 6px 12px;
@@ -209,8 +223,8 @@
 
     .note {
       padding: 12px 16px;
-      background: rgba(56,139,253,0.08);
-      border-left: 3px solid var(--blue);
+      background: var(--teal-pale);
+      border-left: 3px solid var(--teal);
       border-radius: var(--r-sm);
       font-size: 12.5px;
       color: var(--text-2);
@@ -252,7 +266,7 @@
       *, *::before, *::after { transition: none !important; }
     }
     a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible {
-      outline: 2px solid var(--blue); outline-offset: 2px;
+      outline: 2px solid var(--teal); outline-offset: 2px;
     }
   </style>
 </head>
@@ -320,31 +334,31 @@
           <textarea readonly data-copy>&lt;!doctype html&gt;
 &lt;html lang="en"&gt;
 &lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Confirm your Recall email&lt;/title&gt;&lt;/head&gt;
-&lt;body style="margin:0;padding:0;background:#F6F8FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0D1117;"&gt;
-  &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F6F8FA;padding:32px 16px;"&gt;
+&lt;body style="margin:0;padding:0;background:#1A1D22;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#F5F7FA;"&gt;
+  &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#1A1D22;padding:32px 16px;"&gt;
     &lt;tr&gt;&lt;td align="center"&gt;
-      &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#FFFFFF;border:1px solid #D0D7DE;border-radius:8px;overflow:hidden;"&gt;
-        &lt;tr&gt;&lt;td style="background:#1F6FEB;padding:18px 24px;font-size:14px;font-weight:700;color:#FFFFFF;letter-spacing:-0.01em;"&gt;
-          &lt;span style="display:inline-block;background:#FFFFFF;color:#1F6FEB;width:22px;height:22px;line-height:22px;text-align:center;border-radius:4px;margin-right:10px;font-size:12px;font-weight:800;"&gt;R&lt;/span&gt;
-          Recall
+      &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#232629;border:1px solid #2A2E33;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.22);"&gt;
+        &lt;tr&gt;&lt;td style="padding:16px 20px;background:#FFFFFF;border-bottom:1px solid #2A2E33;"&gt;
+          &lt;span style="display:inline-block;background:#56D4DD;color:#0B0D0F;width:22px;height:22px;line-height:22px;text-align:center;border-radius:6px;margin-right:10px;font-size:12px;font-weight:800;font-family:'Inter',sans-serif;"&gt;R&lt;/span&gt;
+          &lt;span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:#0B0D0F;letter-spacing:-0.01em;"&gt;Recall&lt;/span&gt;
         &lt;/td&gt;&lt;/tr&gt;
-        &lt;tr&gt;&lt;td style="padding:28px 24px 8px;font-size:18px;font-weight:600;color:#0D1117;letter-spacing:-0.01em;"&gt;Confirm your email&lt;/td&gt;&lt;/tr&gt;
-        &lt;tr&gt;&lt;td style="padding:0 24px 24px;font-size:14px;line-height:1.55;color:#1F2328;"&gt;
+        &lt;tr&gt;&lt;td style="padding:28px 24px 8px;font-family:'Inter',sans-serif;font-size:18px;font-weight:600;color:#F5F7FA;letter-spacing:-0.01em;"&gt;Confirm your email&lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:0 24px 24px;font-family:'Inter',sans-serif;font-size:14px;line-height:1.55;color:#C9D1D9;"&gt;
           &lt;p style="margin:0 0 14px;"&gt;Welcome to Recall. Click the button below to confirm your email and finish setting up your account.&lt;/p&gt;
           &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;"&gt;
-            &lt;tr&gt;&lt;td bgcolor="#1F6FEB" style="border-radius:6px;"&gt;
-              &lt;a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:11px 20px;font-family:inherit;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:6px;"&gt;Confirm email&lt;/a&gt;
+            &lt;tr&gt;&lt;td style="border-radius:999px;background:#FFFFFF;box-shadow:0 4px 18px rgba(255,255,255,0.06),0 0 32px rgba(86,212,221,0.22);"&gt;
+              &lt;a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:11px 22px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:#0B0D0F;text-decoration:none;border-radius:999px;"&gt;Confirm email&lt;/a&gt;
             &lt;/td&gt;&lt;/tr&gt;
           &lt;/table&gt;
-          &lt;p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#57606A;word-break:break-all;"&gt;
+          &lt;p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#9098A4;word-break:break-all;"&gt;
             If the button doesn't work, paste this link into your browser:&lt;br&gt;
-            &lt;a href="{{ .ConfirmationURL }}" style="color:#1F6FEB;"&gt;{{ .ConfirmationURL }}&lt;/a&gt;
+            &lt;a href="{{ .ConfirmationURL }}" style="color:#7CE0E8;"&gt;{{ .ConfirmationURL }}&lt;/a&gt;
           &lt;/p&gt;
-          &lt;p style="margin:18px 0 0;font-size:13px;color:#57606A;"&gt;This link expires in 24 hours. If you didn't sign up, you can safely ignore this email.&lt;/p&gt;
+          &lt;p style="margin:18px 0 0;font-size:13px;color:#9098A4;"&gt;This link expires in 24 hours. If you didn't sign up, you can safely ignore this email.&lt;/p&gt;
         &lt;/td&gt;&lt;/tr&gt;
-        &lt;tr&gt;&lt;td style="padding:14px 24px;border-top:1px solid #D0D7DE;background:#F6F8FA;font-size:12px;color:#57606A;"&gt;
+        &lt;tr&gt;&lt;td style="padding:14px 24px;border-top:1px solid #2A2E33;background:#1A1D22;font-family:'Inter',sans-serif;font-size:12px;color:#6B7280;"&gt;
           Recall Education Ltd &middot; UK &middot;
-          &lt;a href="mailto:hello@recalleducation.co.uk" style="color:#1F6FEB;"&gt;Contact us&lt;/a&gt;
+          &lt;a href="mailto:hello@recalleducation.co.uk" style="color:#7CE0E8;"&gt;Contact us&lt;/a&gt;
         &lt;/td&gt;&lt;/tr&gt;
       &lt;/table&gt;
     &lt;/td&gt;&lt;/tr&gt;
@@ -407,31 +421,31 @@
           <textarea readonly data-copy>&lt;!doctype html&gt;
 &lt;html lang="en"&gt;
 &lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Reset your Recall password&lt;/title&gt;&lt;/head&gt;
-&lt;body style="margin:0;padding:0;background:#F6F8FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0D1117;"&gt;
-  &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F6F8FA;padding:32px 16px;"&gt;
+&lt;body style="margin:0;padding:0;background:#1A1D22;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#F5F7FA;"&gt;
+  &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#1A1D22;padding:32px 16px;"&gt;
     &lt;tr&gt;&lt;td align="center"&gt;
-      &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#FFFFFF;border:1px solid #D0D7DE;border-radius:8px;overflow:hidden;"&gt;
-        &lt;tr&gt;&lt;td style="background:#1F6FEB;padding:18px 24px;font-size:14px;font-weight:700;color:#FFFFFF;letter-spacing:-0.01em;"&gt;
-          &lt;span style="display:inline-block;background:#FFFFFF;color:#1F6FEB;width:22px;height:22px;line-height:22px;text-align:center;border-radius:4px;margin-right:10px;font-size:12px;font-weight:800;"&gt;R&lt;/span&gt;
-          Recall
+      &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#232629;border:1px solid #2A2E33;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.22);"&gt;
+        &lt;tr&gt;&lt;td style="padding:16px 20px;background:#FFFFFF;border-bottom:1px solid #2A2E33;"&gt;
+          &lt;span style="display:inline-block;background:#56D4DD;color:#0B0D0F;width:22px;height:22px;line-height:22px;text-align:center;border-radius:6px;margin-right:10px;font-size:12px;font-weight:800;font-family:'Inter',sans-serif;"&gt;R&lt;/span&gt;
+          &lt;span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:#0B0D0F;letter-spacing:-0.01em;"&gt;Recall&lt;/span&gt;
         &lt;/td&gt;&lt;/tr&gt;
-        &lt;tr&gt;&lt;td style="padding:28px 24px 8px;font-size:18px;font-weight:600;color:#0D1117;letter-spacing:-0.01em;"&gt;Reset your password&lt;/td&gt;&lt;/tr&gt;
-        &lt;tr&gt;&lt;td style="padding:0 24px 24px;font-size:14px;line-height:1.55;color:#1F2328;"&gt;
+        &lt;tr&gt;&lt;td style="padding:28px 24px 8px;font-family:'Inter',sans-serif;font-size:18px;font-weight:600;color:#F5F7FA;letter-spacing:-0.01em;"&gt;Reset your password&lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:0 24px 24px;font-family:'Inter',sans-serif;font-size:14px;line-height:1.55;color:#C9D1D9;"&gt;
           &lt;p style="margin:0 0 14px;"&gt;Someone (hopefully you) asked to reset the password on this Recall account.&lt;/p&gt;
           &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;"&gt;
-            &lt;tr&gt;&lt;td bgcolor="#1F6FEB" style="border-radius:6px;"&gt;
-              &lt;a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:11px 20px;font-family:inherit;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:6px;"&gt;Reset password&lt;/a&gt;
+            &lt;tr&gt;&lt;td style="border-radius:999px;background:#FFFFFF;box-shadow:0 4px 18px rgba(255,255,255,0.06),0 0 32px rgba(86,212,221,0.22);"&gt;
+              &lt;a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:11px 22px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:#0B0D0F;text-decoration:none;border-radius:999px;"&gt;Reset password&lt;/a&gt;
             &lt;/td&gt;&lt;/tr&gt;
           &lt;/table&gt;
-          &lt;p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#57606A;word-break:break-all;"&gt;
+          &lt;p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#9098A4;word-break:break-all;"&gt;
             If the button doesn't work, paste this link into your browser:&lt;br&gt;
-            &lt;a href="{{ .ConfirmationURL }}" style="color:#1F6FEB;"&gt;{{ .ConfirmationURL }}&lt;/a&gt;
+            &lt;a href="{{ .ConfirmationURL }}" style="color:#7CE0E8;"&gt;{{ .ConfirmationURL }}&lt;/a&gt;
           &lt;/p&gt;
-          &lt;p style="margin:18px 0 0;font-size:13px;color:#57606A;"&gt;This link expires in 1 hour. If you didn't request a reset, you can safely ignore this email &mdash; your password will not change.&lt;/p&gt;
+          &lt;p style="margin:18px 0 0;font-size:13px;color:#9098A4;"&gt;This link expires in 1 hour. If you didn't request a reset, you can safely ignore this email &mdash; your password will not change.&lt;/p&gt;
         &lt;/td&gt;&lt;/tr&gt;
-        &lt;tr&gt;&lt;td style="padding:14px 24px;border-top:1px solid #D0D7DE;background:#F6F8FA;font-size:12px;color:#57606A;"&gt;
+        &lt;tr&gt;&lt;td style="padding:14px 24px;border-top:1px solid #2A2E33;background:#1A1D22;font-family:'Inter',sans-serif;font-size:12px;color:#6B7280;"&gt;
           Recall Education Ltd &middot; UK &middot;
-          &lt;a href="mailto:hello@recalleducation.co.uk" style="color:#1F6FEB;"&gt;Contact us&lt;/a&gt;
+          &lt;a href="mailto:hello@recalleducation.co.uk" style="color:#7CE0E8;"&gt;Contact us&lt;/a&gt;
         &lt;/td&gt;&lt;/tr&gt;
       &lt;/table&gt;
     &lt;/td&gt;&lt;/tr&gt;
@@ -492,32 +506,32 @@
           <textarea readonly data-copy>&lt;!doctype html&gt;
 &lt;html lang="en"&gt;
 &lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Your Recall sign-in link&lt;/title&gt;&lt;/head&gt;
-&lt;body style="margin:0;padding:0;background:#F6F8FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0D1117;"&gt;
-  &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F6F8FA;padding:32px 16px;"&gt;
+&lt;body style="margin:0;padding:0;background:#1A1D22;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#F5F7FA;"&gt;
+  &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#1A1D22;padding:32px 16px;"&gt;
     &lt;tr&gt;&lt;td align="center"&gt;
-      &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#FFFFFF;border:1px solid #D0D7DE;border-radius:8px;overflow:hidden;"&gt;
-        &lt;tr&gt;&lt;td style="background:#1F6FEB;padding:18px 24px;font-size:14px;font-weight:700;color:#FFFFFF;letter-spacing:-0.01em;"&gt;
-          &lt;span style="display:inline-block;background:#FFFFFF;color:#1F6FEB;width:22px;height:22px;line-height:22px;text-align:center;border-radius:4px;margin-right:10px;font-size:12px;font-weight:800;"&gt;R&lt;/span&gt;
-          Recall
+      &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#232629;border:1px solid #2A2E33;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.22);"&gt;
+        &lt;tr&gt;&lt;td style="padding:16px 20px;background:#FFFFFF;border-bottom:1px solid #2A2E33;"&gt;
+          &lt;span style="display:inline-block;background:#56D4DD;color:#0B0D0F;width:22px;height:22px;line-height:22px;text-align:center;border-radius:6px;margin-right:10px;font-size:12px;font-weight:800;font-family:'Inter',sans-serif;"&gt;R&lt;/span&gt;
+          &lt;span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:#0B0D0F;letter-spacing:-0.01em;"&gt;Recall&lt;/span&gt;
         &lt;/td&gt;&lt;/tr&gt;
-        &lt;tr&gt;&lt;td style="padding:28px 24px 8px;font-size:18px;font-weight:600;color:#0D1117;letter-spacing:-0.01em;"&gt;Sign in to Recall&lt;/td&gt;&lt;/tr&gt;
-        &lt;tr&gt;&lt;td style="padding:0 24px 24px;font-size:14px;line-height:1.55;color:#1F2328;"&gt;
+        &lt;tr&gt;&lt;td style="padding:28px 24px 8px;font-family:'Inter',sans-serif;font-size:18px;font-weight:600;color:#F5F7FA;letter-spacing:-0.01em;"&gt;Sign in to Recall&lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:0 24px 24px;font-family:'Inter',sans-serif;font-size:14px;line-height:1.55;color:#C9D1D9;"&gt;
           &lt;p style="margin:0 0 14px;"&gt;Click the button below to sign in to your Recall account.&lt;/p&gt;
           &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;"&gt;
-            &lt;tr&gt;&lt;td bgcolor="#1F6FEB" style="border-radius:6px;"&gt;
-              &lt;a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:11px 20px;font-family:inherit;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:6px;"&gt;Sign in&lt;/a&gt;
+            &lt;tr&gt;&lt;td style="border-radius:999px;background:#FFFFFF;box-shadow:0 4px 18px rgba(255,255,255,0.06),0 0 32px rgba(86,212,221,0.22);"&gt;
+              &lt;a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:11px 22px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:#0B0D0F;text-decoration:none;border-radius:999px;"&gt;Sign in&lt;/a&gt;
             &lt;/td&gt;&lt;/tr&gt;
           &lt;/table&gt;
-          &lt;p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#57606A;word-break:break-all;"&gt;
+          &lt;p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#9098A4;word-break:break-all;"&gt;
             If the button doesn't work, paste this link into your browser:&lt;br&gt;
-            &lt;a href="{{ .ConfirmationURL }}" style="color:#1F6FEB;"&gt;{{ .ConfirmationURL }}&lt;/a&gt;
+            &lt;a href="{{ .ConfirmationURL }}" style="color:#7CE0E8;"&gt;{{ .ConfirmationURL }}&lt;/a&gt;
           &lt;/p&gt;
-          &lt;p style="margin:18px 0 0;font-size:13px;color:#57606A;"&gt;This link expires in 1 hour. If you didn't request it, you can safely ignore this email.&lt;/p&gt;
-          &lt;p style="margin:14px 0 0;font-size:13px;color:#57606A;"&gt;Or paste this code if you'd rather type it in: &lt;b style="color:#0D1117;"&gt;{{ .Token }}&lt;/b&gt;&lt;/p&gt;
+          &lt;p style="margin:18px 0 0;font-size:13px;color:#9098A4;"&gt;This link expires in 1 hour. If you didn't request it, you can safely ignore this email.&lt;/p&gt;
+          &lt;p style="margin:14px 0 0;font-size:13px;color:#9098A4;"&gt;Or paste this code if you'd rather type it in: &lt;b style="color:#F5F7FA;"&gt;{{ .Token }}&lt;/b&gt;&lt;/p&gt;
         &lt;/td&gt;&lt;/tr&gt;
-        &lt;tr&gt;&lt;td style="padding:14px 24px;border-top:1px solid #D0D7DE;background:#F6F8FA;font-size:12px;color:#57606A;"&gt;
+        &lt;tr&gt;&lt;td style="padding:14px 24px;border-top:1px solid #2A2E33;background:#1A1D22;font-family:'Inter',sans-serif;font-size:12px;color:#6B7280;"&gt;
           Recall Education Ltd &middot; UK &middot;
-          &lt;a href="mailto:hello@recalleducation.co.uk" style="color:#1F6FEB;"&gt;Contact us&lt;/a&gt;
+          &lt;a href="mailto:hello@recalleducation.co.uk" style="color:#7CE0E8;"&gt;Contact us&lt;/a&gt;
         &lt;/td&gt;&lt;/tr&gt;
       &lt;/table&gt;
     &lt;/td&gt;&lt;/tr&gt;
@@ -578,31 +592,31 @@
           <textarea readonly data-copy>&lt;!doctype html&gt;
 &lt;html lang="en"&gt;
 &lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Confirm your new Recall email&lt;/title&gt;&lt;/head&gt;
-&lt;body style="margin:0;padding:0;background:#F6F8FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0D1117;"&gt;
-  &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F6F8FA;padding:32px 16px;"&gt;
+&lt;body style="margin:0;padding:0;background:#1A1D22;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#F5F7FA;"&gt;
+  &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#1A1D22;padding:32px 16px;"&gt;
     &lt;tr&gt;&lt;td align="center"&gt;
-      &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#FFFFFF;border:1px solid #D0D7DE;border-radius:8px;overflow:hidden;"&gt;
-        &lt;tr&gt;&lt;td style="background:#1F6FEB;padding:18px 24px;font-size:14px;font-weight:700;color:#FFFFFF;letter-spacing:-0.01em;"&gt;
-          &lt;span style="display:inline-block;background:#FFFFFF;color:#1F6FEB;width:22px;height:22px;line-height:22px;text-align:center;border-radius:4px;margin-right:10px;font-size:12px;font-weight:800;"&gt;R&lt;/span&gt;
-          Recall
+      &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#232629;border:1px solid #2A2E33;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.22);"&gt;
+        &lt;tr&gt;&lt;td style="padding:16px 20px;background:#FFFFFF;border-bottom:1px solid #2A2E33;"&gt;
+          &lt;span style="display:inline-block;background:#56D4DD;color:#0B0D0F;width:22px;height:22px;line-height:22px;text-align:center;border-radius:6px;margin-right:10px;font-size:12px;font-weight:800;font-family:'Inter',sans-serif;"&gt;R&lt;/span&gt;
+          &lt;span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:700;color:#0B0D0F;letter-spacing:-0.01em;"&gt;Recall&lt;/span&gt;
         &lt;/td&gt;&lt;/tr&gt;
-        &lt;tr&gt;&lt;td style="padding:28px 24px 8px;font-size:18px;font-weight:600;color:#0D1117;letter-spacing:-0.01em;"&gt;Confirm your new email&lt;/td&gt;&lt;/tr&gt;
-        &lt;tr&gt;&lt;td style="padding:0 24px 24px;font-size:14px;line-height:1.55;color:#1F2328;"&gt;
+        &lt;tr&gt;&lt;td style="padding:28px 24px 8px;font-family:'Inter',sans-serif;font-size:18px;font-weight:600;color:#F5F7FA;letter-spacing:-0.01em;"&gt;Confirm your new email&lt;/td&gt;&lt;/tr&gt;
+        &lt;tr&gt;&lt;td style="padding:0 24px 24px;font-family:'Inter',sans-serif;font-size:14px;line-height:1.55;color:#C9D1D9;"&gt;
           &lt;p style="margin:0 0 14px;"&gt;You've asked to change the email on your Recall account. Click the button below to confirm the new address.&lt;/p&gt;
           &lt;table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;"&gt;
-            &lt;tr&gt;&lt;td bgcolor="#1F6FEB" style="border-radius:6px;"&gt;
-              &lt;a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:11px 20px;font-family:inherit;font-size:14px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:6px;"&gt;Confirm new email&lt;/a&gt;
+            &lt;tr&gt;&lt;td style="border-radius:999px;background:#FFFFFF;box-shadow:0 4px 18px rgba(255,255,255,0.06),0 0 32px rgba(86,212,221,0.22);"&gt;
+              &lt;a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:11px 22px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:#0B0D0F;text-decoration:none;border-radius:999px;"&gt;Confirm new email&lt;/a&gt;
             &lt;/td&gt;&lt;/tr&gt;
           &lt;/table&gt;
-          &lt;p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#57606A;word-break:break-all;"&gt;
+          &lt;p style="margin:8px 0 0;font-size:12px;line-height:1.5;color:#9098A4;word-break:break-all;"&gt;
             If the button doesn't work, paste this link into your browser:&lt;br&gt;
-            &lt;a href="{{ .ConfirmationURL }}" style="color:#1F6FEB;"&gt;{{ .ConfirmationURL }}&lt;/a&gt;
+            &lt;a href="{{ .ConfirmationURL }}" style="color:#7CE0E8;"&gt;{{ .ConfirmationURL }}&lt;/a&gt;
           &lt;/p&gt;
-          &lt;p style="margin:18px 0 0;font-size:13px;color:#57606A;"&gt;This link expires in 24 hours. If you didn't request this change, you can safely ignore this email &mdash; your address will not change.&lt;/p&gt;
+          &lt;p style="margin:18px 0 0;font-size:13px;color:#9098A4;"&gt;This link expires in 24 hours. If you didn't request this change, you can safely ignore this email &mdash; your address will not change.&lt;/p&gt;
         &lt;/td&gt;&lt;/tr&gt;
-        &lt;tr&gt;&lt;td style="padding:14px 24px;border-top:1px solid #D0D7DE;background:#F6F8FA;font-size:12px;color:#57606A;"&gt;
+        &lt;tr&gt;&lt;td style="padding:14px 24px;border-top:1px solid #2A2E33;background:#1A1D22;font-family:'Inter',sans-serif;font-size:12px;color:#6B7280;"&gt;
           Recall Education Ltd &middot; UK &middot;
-          &lt;a href="mailto:hello@recalleducation.co.uk" style="color:#1F6FEB;"&gt;Contact us&lt;/a&gt;
+          &lt;a href="mailto:hello@recalleducation.co.uk" style="color:#7CE0E8;"&gt;Contact us&lt;/a&gt;
         &lt;/td&gt;&lt;/tr&gt;
       &lt;/table&gt;
     &lt;/td&gt;&lt;/tr&gt;
