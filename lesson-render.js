@@ -497,10 +497,6 @@
   //   - a masked password input with a show/hide toggle
   //   - a 4-segment strength bar (None / Weak / OK / Strong)
   //   - a live checklist of 5 criteria
-  //   - a "what a computer sees" ASCII→binary badge
-  //   - the lesson's denary→binary example (optional, controlled by
-  //     the exampleBody / exampleDenary / exampleBits / exampleAnswer
-  //     fields)
   //   - Check / Reset buttons
   //
   // The bar and checklist update in real time on every keystroke. The
@@ -533,23 +529,6 @@
           <li data-crit="digit"><span class="pc-tick">○</span> Contains a <strong>number</strong></li>
           <li data-crit="symbol"><span class="pc-tick">○</span> Contains a <strong>symbol</strong> (!@#…)</li>
         </ul>
-        <div class="pc-binary" data-pbid="pc-binary" hidden>
-          <span class="pc-binary-label">What a computer sees:</span>
-          <code class="pc-binary-code" data-pbid="pc-binary-code">—</code>
-        </div>
-        ${d.exampleBody ? `
-          <div class="pc-example">
-            <div class="pc-example-head">From the lesson</div>
-            <div class="pc-example-body">${renderMarkdown(d.exampleBody)}</div>
-            ${d.exampleDenary != null ? `
-              <div class="pc-example-eq">
-                Denary <strong>${escapeHtml(String(d.exampleDenary))}</strong>
-                <span class="pc-example-arrow">→</span>
-                8-bit binary <code data-pbid="pc-example-answer">${escapeHtml(expectedBits(d.exampleDenary, d.exampleBits || 8))}</code>
-              </div>
-            ` : ''}
-          </div>
-        ` : ''}
         <div class="check-row">
           <button type="button" class="check-btn" data-pb="check">I'm happy with this password</button>
           <button type="button" class="reset-btn" data-pb="reset" hidden>Try again</button>
@@ -585,16 +564,6 @@
     if (score < 5)                   return { label: 'Good',         tone: 'good',  bar: 3 };
     if (length < minLen)             return { label: 'Good — but try for ' + minLen + '+ characters', tone: 'good', bar: 3 };
     return                                  { label: 'Strong 💪',    tone: 'great', bar: 4 };
-  }
-  // pcToBinary(pw) — render the first 4 chars of the password as a
-  // space-separated string of 8-bit ASCII codes. The "what a computer
-  // sees" framing in the lesson; kept short so it fits one line.
-  function pcToBinary(pw) {
-    const head = Array.from(pw).slice(0, 4);
-    return head.map(ch => {
-      const code = ch.charCodeAt(0) & 0xFF;
-      return code.toString(2).padStart(8, '0');
-    }).join(' ');
   }
 
   function renderAccordion(b) {
@@ -800,10 +769,6 @@
         prompt: 'Type a password below — watch the strength meter update as you go. **Strong** passwords are long, mix cases, and include numbers and symbols.',
         placeholder: 'Type a password to test…',
         minLength: 12,
-        exampleDenary: 173,
-        exampleBits: 8,
-        exampleBody: 'Strong passwords look random, but every character is just a number in disguise. For example, the denary number **173** is `10101101` in 8-bit binary. The letter "A" is denary 65 = `01000001`. To a computer, your password is just a string of those numbers — so a long, mixed password makes a brute-force attack take *much* longer.',
-        exampleAnswer: '10101101',
         explanation: 'Length beats complexity. A 16-character passphrase like `correct-horse-battery` is far harder to crack than `P@ssw0rd1` even though the second one has every "trick" the first one lacks.',
         required: false,
         allowRetry: true
@@ -2059,8 +2024,6 @@
     const labelEl  = rootEl.querySelector('[data-pbid="pc-label"]');
     const scoreEl  = rootEl.querySelector('[data-pbid="pc-score"]');
     const critEls  = [...rootEl.querySelectorAll('[data-pbid="pc-criteria"] [data-crit]')];
-    const binWrap  = rootEl.querySelector('[data-pbid="pc-binary"]');
-    const binCode  = rootEl.querySelector('[data-pbid="pc-binary-code"]');
     const check    = rootEl.querySelector('[data-pb="check"]');
     const reset    = rootEl.querySelector('[data-pb="reset"]');
     const minLen   = Math.max(4, parseInt(wrap.dataset.minLength, 10) || 12);
@@ -2115,15 +2078,6 @@
       labelEl.textContent = s.label;
       labelEl.style.color = TONE_LABEL_COLOR[s.tone];
       scoreEl.textContent = score + ' / 5';
-      // "What a computer sees" badge — only show once they've typed a
-      // couple of characters, so the lesson doesn't flash a wall of
-      // binary on the first keystroke.
-      if (pw.length >= 1) {
-        binWrap.hidden = false;
-        binCode.textContent = pcToBinary(pw);
-      } else {
-        binWrap.hidden = true;
-      }
       // Re-enable Check if the student has changed the password after a
       // previous Check (so they can re-affirm a new one).
       if (check.disabled && pw.length > 0) setCheckEnabled(rootEl, true);

@@ -355,21 +355,6 @@
     .practice .pc-criteria li.met { color: var(--text); border-color: var(--green); background: var(--green-dim); }
     .practice .pc-criteria li.met strong { color: var(--green); }
     .practice .pc-criteria li.met .pc-tick { background: var(--green); color: #fff; }
-    .practice .pc-binary {
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-      background: var(--blue-pale); border: 1px solid var(--blue);
-      border-radius: var(--r-sm); padding: 8px 12px;
-      font-size: 12px; color: var(--text-2);
-    }
-    .practice .pc-binary[hidden] { display: none; }
-    .practice .pc-binary-label {
-      text-transform: uppercase; letter-spacing: 0.04em;
-      font-size: 10.5px; font-weight: 700; color: var(--blue);
-    }
-    .practice .pc-binary-code {
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--text); font-size: 12.5px; word-break: break-all;
-    }
     .practice .pc-example {
       background: var(--bg-3); border: 1px solid var(--line);
       border-left: 3px solid var(--blue);
@@ -383,15 +368,6 @@
     }
     .practice .pc-example-body { font-size: 12.5px; color: var(--text-2); }
     .practice .pc-example-body code { color: var(--text); background: var(--bg-4); padding: 1px 5px; border-radius: 4px; }
-    .practice .pc-example-eq {
-      font-size: 12.5px; color: var(--text-2);
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    }
-    .practice .pc-example-eq code {
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--green); background: var(--green-dim);
-      padding: 1px 6px; border-radius: 4px; font-weight: 700;
-    }
     .practice .pc-example-arrow { color: var(--text-4); }
     @media (max-width: 520px) {
       .practice .pc-criteria { grid-template-columns: 1fr; }
