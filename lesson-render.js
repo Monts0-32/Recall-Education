@@ -494,15 +494,18 @@
   // renderPasswordChecker(b) — password-strength meter for the Y7
   // cyber-security lesson. Renders:
   //   - the prompt
-  //   - a masked password input with a show/hide toggle
+  //   - a plain-text password input (visible as the student types)
   //   - a 4-segment strength bar (None / Weak / OK / Strong)
   //   - a live checklist of 5 criteria
   //   - Check / Reset buttons
   //
-  // The bar and checklist update in real time on every keystroke. The
-  // Check button is purely an "I've made a strong password" affirmation
-  // — the strength has already been computed live, so a Check on a
-  // weak password simply tells the student why it's not strong yet.
+  // The input is intentionally NOT masked — the whole point of the
+  // lesson is that the student sees what they've typed so the strength
+  // meter can react to length, mixed case, etc. in real time. The bar
+  // and checklist update on every keystroke. The Check button is purely
+  // an "I've made a strong password" affirmation — the strength has
+  // already been computed live, so a Check on a weak password simply
+  // tells the student why it's not strong yet.
   function renderPasswordChecker(b) {
     const d = b.data || {};
     const minLen = Math.max(4, parseInt(d.minLength, 10) || 12);
@@ -510,10 +513,9 @@
       <div class="prompt">${renderMarkdown(d.prompt || 'Type a password to test its strength.')}</div>
       <div class="pc-wrap" data-pbid="pc-wrap" data-min-length="${minLen}">
         <div class="pc-input-row">
-          <input type="password" class="pc-input" data-pbid="pc-input"
+          <input type="text" class="pc-input" data-pbid="pc-input"
             placeholder="${escapeHtml(d.placeholder || 'Type a password to test…')}"
             autocomplete="off" spellcheck="false" />
-          <button type="button" class="pc-toggle" data-pbid="pc-toggle" aria-pressed="false" title="Show / hide password">👁</button>
         </div>
         <div class="pc-bar" data-pbid="pc-bar">
           <div class="pc-bar-fill" data-pbid="pc-bar-fill"></div>
@@ -2019,7 +2021,6 @@
     const wrap     = rootEl.querySelector('[data-pbid="pc-wrap"]');
     if (!wrap) return;
     const input    = rootEl.querySelector('[data-pbid="pc-input"]');
-    const toggle   = rootEl.querySelector('[data-pbid="pc-toggle"]');
     const barFill  = rootEl.querySelector('[data-pbid="pc-bar-fill"]');
     const labelEl  = rootEl.querySelector('[data-pbid="pc-label"]');
     const scoreEl  = rootEl.querySelector('[data-pbid="pc-score"]');
@@ -2091,15 +2092,6 @@
         li.style.animation = `fx-fade-up 0.35s ease ${i * 0.05}s both`;
       });
     }
-    if (toggle) {
-      toggle.addEventListener('click', () => {
-        const on = toggle.getAttribute('aria-pressed') === 'true';
-        const next = !on;
-        toggle.setAttribute('aria-pressed', next ? 'true' : 'false');
-        if (input) input.type = next ? 'text' : 'password';
-        restart(toggle, 'fx-pop');
-      });
-    }
     if (check) ripple(check);
     check.addEventListener('click', () => {
       const pw = input.value;
@@ -2140,10 +2132,8 @@
     reset.addEventListener('click', () => {
       if (input) {
         input.value = '';
-        input.type = 'password';
         input.focus();
       }
-      if (toggle) toggle.setAttribute('aria-pressed', 'false');
       clearFeedback(rootEl);
       setCheckEnabled(rootEl, true);
       repaint();
