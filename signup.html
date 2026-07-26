@@ -735,30 +735,24 @@
       // Staff are adults. Hide / disable the student-only fields.
       const yearField = document.getElementById('year').closest('.field');
       const dobField  = document.getElementById('dob').closest('.field');
-      const schoolCodeField = document.getElementById('schoolCode').closest('.field');
-      const schoolBanner    = document.getElementById('schoolBanner');
-      const bindingWarning  = document.getElementById('bindingWarning');
-      yearField.hidden       = true;
-      dobField.hidden        = true;
-      schoolCodeField.hidden = true;
-      schoolBanner.hidden    = true;
-      bindingWarning.classList.remove('show');
+      yearField.hidden = true;
+      dobField.hidden  = true;
       // year/dob are still `required` in HTML; remove the attribute
       // so the browser's built-in validation doesn't trip on the
       // hidden inputs.
       document.getElementById('year').required = false;
       document.getElementById('dob').required  = false;
-      document.getElementById('schoolCode').required = false;
       // Parent consent is also irrelevant — staff are not students.
       parentField.hidden = true;
       parentEmail.required = false;
 
-      // The default consent text mentions "I'm 16 or older, or my parent
-      // or guardian has agreed to these terms." Staff are adults joining
-      // a workforce, so rephrase it — keeps the same checkbox UX without
-      // the parental framing.
-      termsText.textContent =
-        'I agree to the Recall terms of service and privacy policy.';
+      // Note: the dedicated /signup-staff.html page is what staff
+      // invitees actually land on now — this branch is a defence-in-depth
+      // fallback in case someone deep-links to /signup.html?invite=...
+      // directly. Keep the form functional but minimal: we just hide
+      // the obviously student-only fields. School code / binding warning
+      // are left in place because they're harmless when not used (the
+      // school-code lookup only kicks in once the user types a code).
 
       // Banner + form copy.
       const banner  = document.getElementById('inviteBanner');

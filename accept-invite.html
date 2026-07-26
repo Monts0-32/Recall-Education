@@ -271,10 +271,12 @@
       //   - "I have an account" -> /login.html, which on success redirects back here
       //     (this page reads ?token= again and calls accept_staff_invite if the
       //     user is signed in).
-      //   - "Create an account" -> /signup.html with the invite + email + role
-      //     pre-filled. signup.html handles the rest.
+      //   - "Create an account" -> /signup-staff.html with the invite token
+      //     pre-filled. signup-staff.html is a dedicated staff-only form
+      //     that asks for email, name, and password only — no year, dob,
+      //     parent email, or school code (those are for students).
       const loginHref  = `login.html?next=${encodeURIComponent("accept-invite.html?token=" + token)}`;
-      const signupHref = `signup.html?invite=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}&role=${encodeURIComponent(role)}`;
+      const signupHref = `signup-staff.html?token=${encodeURIComponent(token)}`;
       card.innerHTML = `
         <span class="pill ${escapeHtml(info.pillClass)}">${escapeHtml(info.label)}</span>
         <h1>You've been invited to join Recall</h1>
