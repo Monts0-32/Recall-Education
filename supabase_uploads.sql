@@ -160,7 +160,9 @@ alter table public.lesson_blocks
     -- 5 new interactive kinds (2026-07-24) — slider, dial, sequence, connect, pile
     'slider','dial','sequence','connect','pile',
     -- 3 new study aids (2026-07-24) — mindmap, flashcard_stack, progress_meter
-    'mindmap','flashcard_stack','progress_meter'
+    'mindmap','flashcard_stack','progress_meter',
+    -- 1 new block kind (2026-07-25) — interactive password-strength meter (Y7 cyber)
+    'password_checker'
   ));
 
 -- ============================================================================
