@@ -31,7 +31,22 @@
 --      units row in one call (the previous iteration's "+ Add board"
 --      button created a board reference but no units row, so the
 --      new board didn't show up in the catalog).
+--
+-- Defensive drops: we drop every function in this file BEFORE its
+-- create-or-replace so a stale version installed by an earlier
+-- migration (with a different row type) doesn't trip 42P13
+-- "cannot change return type of existing function". DROP IF EXISTS
+-- is a no-op when the live DB matches the file's signature, so this
+-- is idempotent on a fresh install.
 -- ============================================================================
+
+drop function if exists public.lookup_school_by_code(text);
+drop function if exists public.claim_teacher_signup_code(text, text);
+drop function if exists public.attach_teacher_to_school(uuid, uuid);
+drop function if exists public.attach_student_to_school(uuid);
+drop function if exists public.create_board_for_subject_year(uuid, uuid, text);
+drop function if exists public.claim_school_invite_code(text);
+drop function if exists public.attach_student_to_school_via_invite(text, uuid, text);
 
 -- ---------- 1. WIDEN PROFILES.ROLE (school_id added in section 2) ---------
 -- Drop the 5-value CHECK (student/teacher/school_organiser/staff_author/
