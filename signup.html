@@ -596,7 +596,7 @@
     let emailTaken = false;
     let emailCheckTimer = null;
     function setEmailHint(msg, kind) {
-      const el = $('emailHint');
+      const el = document.getElementById('emailHint');
       if (!el) return;
       el.textContent = msg;
       el.className = 'hint' + (kind ? ' ' + kind : '');
