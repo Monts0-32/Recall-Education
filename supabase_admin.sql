@@ -512,12 +512,18 @@ grant execute on function public.revoke_staff_invite(uuid) to authenticated;
 --
 -- Returns the inviter's display name + email pre-joined so the admin
 -- UI can render "Invited by" without a follow-up profiles lookup
--- (which is blocked by profiles RLS id = auth.uid()). All id columns
--- in the joins are table-qualified; an earlier version of this RPC
--- tripped Postgres' "column reference 'id' is ambiguous" error in
--- some clients when a stale view or function from a previous schema
--- state was still installed — the explicit cast and the fully
--- qualified join columns keep it deterministic.
+-- (which is blocked by profiles RLS id = auth.uid()).
+--
+-- Implementation note: implemented as LANGUAGE sql (not plpgsql) so
+-- there are no implicit output variables in scope. A previous version
+-- used plpgsql with `returns table (...)`, which created implicit
+-- variables named id / email / role / token / status / etc. that
+-- collided with bare column references in the SELECT — Postgres
+-- returned "column reference 'id' is ambiguous" with code 42702 and
+-- details "It could refer to either a PL/pgSQL variable or a table
+-- column". Switching to language sql removes the variable scope
+-- entirely; the SELECT statement is a plain query with table-qualified
+-- columns.
 --
 -- We DROP first instead of relying on CREATE OR REPLACE because the
 -- return-table signature changed (added invited_by_name +
@@ -529,49 +535,43 @@ grant execute on function public.revoke_staff_invite(uuid) to authenticated;
 drop function if exists public.list_staff_invites(text);
 create or replace function public.list_staff_invites(p_status text)
 returns table (
-  id            uuid,
-  email         text,
-  role          text,
-  token         uuid,
-  status        text,
-  invited_by    uuid,
-  invited_by_name  text,
-  invited_by_email text,
-  accepted_by   uuid,
-  expires_at    timestamptz,
-  created_at    timestamptz,
-  decided_at    timestamptz
+  id                uuid,
+  email             text,
+  role              text,
+  token             uuid,
+  status            text,
+  invited_by        uuid,
+  invited_by_name   text,
+  invited_by_email  text,
+  accepted_by       uuid,
+  expires_at        timestamptz,
+  created_at        timestamptz,
+  decided_at        timestamptz
 )
-language plpgsql
+language sql
 security definer
 set search_path = public
+stable
 as $$
-begin
-  if not exists (
-    select 1 from public.profiles where id = auth.uid() and role = 'admin'
-  ) then
-    raise exception 'admin role required' using errcode = '42501';
-  end if;
-  return query
-    select i.id,
-           i.email,
-           i.role,
-           i.token,
-           i.status,
-           i.invited_by,
-           coalesce(p.full_name, split_part(u.email::text, '@', 1)) as invited_by_name,
-           u.email::text as invited_by_email,
-           i.accepted_by,
-           i.expires_at,
-           i.created_at,
-           i.decided_at
-      from public.staff_invites i
-      left join auth.users     u on u.id = i.invited_by
-      left join public.profiles p on p.id = i.invited_by
-     where i.status = p_status
-     order by i.created_at desc
-     limit 200;
-end;
+  select
+      i.id,
+      i.email,
+      i.role,
+      i.token,
+      i.status,
+      i.invited_by,
+      coalesce(p.full_name, split_part(u.email::text, '@', 1)) as invited_by_name,
+      u.email::text as invited_by_email,
+      i.accepted_by,
+      i.expires_at,
+      i.created_at,
+      i.decided_at
+    from public.staff_invites i
+    left join auth.users     u on u.id = i.invited_by
+    left join public.profiles p on p.id = i.invited_by
+   where i.status = p_status
+   order by i.created_at desc
+   limit 200;
 $$;
 
 grant execute on function public.list_staff_invites(text) to authenticated;
