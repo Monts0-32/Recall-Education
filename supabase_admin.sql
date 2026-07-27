@@ -41,6 +41,19 @@ update public.profiles
    set role = 'staff_author'
  where role = 'staff';
 
+-- Defensive sweep: any role value that isn't in the new 4-value set
+-- (NULL, empty string, 'pending', 'active', typos from earlier schema
+-- states, etc.) gets coerced to 'student'. Without this, the next
+-- statement's CHECK fails with "violated by some row" and the entire
+-- migration aborts — even though the data fix above only handles
+-- 'staff' specifically. Anything we don't recognise is safer as
+-- 'student' (the lowest-privilege role) than leaving the row broken.
+-- Idempotent: re-running is a no-op once every row is in the new set.
+update public.profiles
+   set role = 'student'
+ where role is null
+    or role not in ('student', 'staff_author', 'staff_reviewer', 'admin');
+
 -- Add the new 4-value CHECK now that no 'staff' rows remain.
 alter table public.profiles
   alter column role set default 'student';
@@ -465,18 +478,29 @@ grant execute on function public.revoke_staff_invite(uuid) to authenticated;
 -- list_staff_invites: admin-only. Returns the rows for one status
 -- (pending/accepted/revoked/expired). The staff_invites table is
 -- RLS-deny-all, so the client has no other way to read it.
+--
+-- Returns the inviter's display name + email pre-joined so the admin
+-- UI can render "Invited by" without a follow-up profiles lookup
+-- (which is blocked by profiles RLS id = auth.uid()). All id columns
+-- in the joins are table-qualified; an earlier version of this RPC
+-- tripped Postgres' "column reference 'id' is ambiguous" error in
+-- some clients when a stale view or function from a previous schema
+-- state was still installed — the explicit cast and the fully
+-- qualified join columns keep it deterministic.
 create or replace function public.list_staff_invites(p_status text)
 returns table (
-  id          uuid,
-  email       text,
-  role        text,
-  token       uuid,
-  status      text,
-  invited_by  uuid,
-  accepted_by uuid,
-  expires_at  timestamptz,
-  created_at  timestamptz,
-  decided_at  timestamptz
+  id            uuid,
+  email         text,
+  role          text,
+  token         uuid,
+  status        text,
+  invited_by    uuid,
+  invited_by_name  text,
+  invited_by_email text,
+  accepted_by   uuid,
+  expires_at    timestamptz,
+  created_at    timestamptz,
+  decided_at    timestamptz
 )
 language plpgsql
 security definer
@@ -489,9 +513,21 @@ begin
     raise exception 'admin role required' using errcode = '42501';
   end if;
   return query
-    select i.id, i.email, i.role, i.token, i.status, i.invited_by,
-           i.accepted_by, i.expires_at, i.created_at, i.decided_at
+    select i.id,
+           i.email,
+           i.role,
+           i.token,
+           i.status,
+           i.invited_by,
+           coalesce(p.full_name, split_part(u.email::text, '@', 1)) as invited_by_name,
+           u.email::text as invited_by_email,
+           i.accepted_by,
+           i.expires_at,
+           i.created_at,
+           i.decided_at
       from public.staff_invites i
+      left join auth.users     u on u.id = i.invited_by
+      left join public.profiles p on p.id = i.invited_by
      where i.status = p_status
      order by i.created_at desc
      limit 200;

@@ -941,11 +941,20 @@
       tbody.innerHTML = `<tr class="empty-row"><td colspan="5">No ${state.inviteTab} invites.</td></tr>`;
       return;
     }
-    tbody.innerHTML = rows.map((r) => `
+    tbody.innerHTML = rows.map((r) => {
+      // The "Invited by" cell. list_staff_invites pre-joins the inviter's
+      // display name + email from auth.users / profiles, so we don't
+      // have to do a follow-up profiles lookup (which is blocked by
+      // profiles RLS id = auth.uid() for non-admin users). For old
+      // invites that pre-date this join we just show "—".
+      const inviter = r.invited_by_name
+        || r.invited_by_email
+        || (r.invited_by ? r.invited_by.slice(0, 8) : '—');
+      return `
       <tr data-invite="${escapeHtml(r.id)}">
         <td>${escapeHtml(r.email)}</td>
         <td><span class="role-pill ${escapeHtml(r.role)}">${roleLabel(r.role)}</span></td>
-        <td class="meta">${fmtDate(r.created_at)}</td>
+        <td class="meta">${escapeHtml(inviter)}</td>
         <td class="meta">${fmtDate(r.expires_at)}</td>
         <td>
           <div class="row-actions">
@@ -957,7 +966,8 @@
           </div>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
 
     tbody.querySelectorAll('button[data-act]').forEach((b) => {
       b.addEventListener('click', async () => {
