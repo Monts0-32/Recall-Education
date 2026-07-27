@@ -933,12 +933,28 @@
     let rpcName = 'list_staff_invites';
     let res;
     try {
+      // Diagnostic: log who we are, what we're about to send, and the
+      // PostgREST URL. The 400 with empty body the user was seeing is
+      // almost always a missing or mis-named function in the DB (the
+      // gateway rejects the call before it ever reaches Postgres), so
+      // we want all of this in the console next time.
+      const { data: u } = await supabaseClient.auth.getUser();
+      const sess = (await supabaseClient.auth.getSession()).data.session;
+      const role = u?.user?.app_metadata?.role;
+      console.log('[loadInvites] diag', {
+        userId: u?.user?.id,
+        email: u?.user?.email,
+        jwtRole: role,
+        hasSession: !!sess,
+        rpc: rpcName,
+        params: { p_status: state.inviteTab },
+      });
       res = await supabaseClient.rpc(rpcName, { p_status: state.inviteTab });
     } catch (e) {
       // Surface the full error to the console so we can see the
       // PostgREST URL + the underlying SQL error code. The UI shows
       // a short version; the console keeps the diagnostic.
-      console.error('loadInvites rpc threw:', e, { rpcName, status: state.inviteTab });
+      console.error('loadInvites rpc threw:', JSON.stringify(e, Object.getOwnPropertyNames(e || {})), { rpcName, status: state.inviteTab });
       tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Error: ${escapeHtml(e?.message || String(e))}</td></tr>`;
       return;
     }
@@ -946,8 +962,10 @@
     if (error) {
       // Same diagnostic — log the full error object so we can see
       // hints, code, and details that the UI might not display.
-      console.error('loadInvites rpc error:', error, { rpcName, status: state.inviteTab });
-      tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Error: ${escapeHtml(error.message)}</td></tr>`;
+      // JSON.stringify with getOwnPropertyNames surfaces non-enumerable
+      // properties that a normal console.log would skip.
+      console.error('loadInvites rpc error:', JSON.stringify(error, Object.getOwnPropertyNames(error || {})), { rpcName, status: state.inviteTab });
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Error: ${escapeHtml(error.message || JSON.stringify(error))}</td></tr>`;
       return;
     }
     const rows = data || [];

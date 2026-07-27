@@ -1042,6 +1042,49 @@ $$;
 
 grant execute on function public.list_recent_audit(int, uuid, text) to authenticated;
 
+-- ---------- 13. DIAGNOSTIC: WHAT FUNCTIONS DOES THE LIVE DB ACTUALLY HAVE?
+-- Run this query in the Supabase SQL editor to verify every function
+-- in this file is installed with the right signature. The function
+-- names and parameter types listed below should match the result
+-- exactly. If a function is missing or has different parameters, the
+-- admin panel will get 400 Bad Request with an empty error body
+-- (PostgREST rejects the call before it ever reaches Postgres).
+--
+-- Copy-paste the result and check it against the function signatures
+-- in this file. Common drift causes:
+--   * A previous migration was edited but only partially re-run.
+--   * supabase_rls_staff_roles_fix.sql was run before supabase_admin.sql.
+--   * An old list_staff_invites or list_staff was left installed with
+--     a different parameter name (p_status vs _status) or a different
+--     number of return columns.
+--
+-- SELECT
+--     p.proname AS function_name,
+--     pg_get_function_identity_arguments(p.oid) AS parameters,
+--     pg_get_function_result(p.oid) AS returns
+-- FROM pg_proc p
+-- JOIN pg_namespace n ON n.oid = p.pronamespace
+-- WHERE n.nspname = 'public'
+--   AND p.proname IN (
+--     '_log_staff_action',
+--     'create_staff_invite',
+--     'peek_staff_invite',
+--     'accept_staff_invite',
+--     'resend_staff_invite',
+--     'revoke_staff_invite',
+--     'list_staff_invites',
+--     'count_staff_invites',
+--     'change_staff_role',
+--     'revoke_staff_access',
+--     'publish_lesson',
+--     'log_staff_action',
+--     'check_parental_consent',
+--     'current_role',
+--     'list_staff',
+--     'list_recent_audit'
+--   )
+-- ORDER BY p.proname;
+
 -- ============================================================================
 -- DONE. After running this:
 --   1. Re-enable the Custom Access Token hook in the Supabase dashboard
