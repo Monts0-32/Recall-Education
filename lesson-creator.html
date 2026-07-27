@@ -2200,8 +2200,21 @@
         if (!r.error && r.data) role = r.data;
       } catch (_) { /* RPC not installed — fall through */ }
     }
-    const allowedRoles = ['staff_author', 'staff_reviewer', 'admin'];
-    if (!role || !allowedRoles.includes(role)) {
+    // Editors: staff_author + admin. Reviewers deliberately don't land
+    // here — they review on lesson.html and use the comment RPCs, not
+    // the catalogue editor. Gate them with a friendly redirect rather
+    // than the generic "no access" wall so the message is clear.
+    const editorRoles = ['staff_author', 'admin'];
+    if (!role || !editorRoles.includes(role)) {
+      if (role === 'staff_reviewer') {
+        renderGate(
+          'Reviewers don’t edit here',
+          'Your role is Reviewer. To leave feedback on a lesson, open the lesson and use the Review tools drawer at the top of the page. Reviewers can view every lesson and add per-block comments, but cannot create or rename units, topics, or lessons.',
+          'reviewer',
+          meta.full_name || state.user.email
+        );
+        return;
+      }
       renderGate(
         'Staff access only',
         'Your account is signed in, but it does not have staff permissions. Ask an admin to invite you from the admin console.',
@@ -2234,11 +2247,9 @@
       $('rankPill').hidden = false;
     }
 
-    // Reviewers and admins get a Publish toggle on the editor toolbar.
-    // Authors see the lesson in draft state only.
-    if (role === 'staff_reviewer' || role === 'admin') {
-      state.canPublish = true;
-    }
+    // Authors cannot publish. Reviewers don't reach this branch at all
+    // (see gate above). Admins always can.
+    state.canPublish = (role === 'admin');
 
     await loadTree();
 
@@ -2256,11 +2267,23 @@
 
   function renderGate(title, msg, kind, name) {
     const main = $('main');
+    // Reviewer branch points them at the staff dashboard and a tip
+    // about the review-mode drawer. Other gates keep the simple
+    // one-link footer.
+    const cta = (kind === 'reviewer')
+      ? `
+        <p>
+          <a class="btn-link" href="staff-dashboard.html">← Go to your staff dashboard</a>
+        </p>
+        <p class="gate-tip">
+          Tip: when you open a lesson from the catalogue, the “Review tools” drawer at the top of the page lets you enter review mode and leave per-block comments.
+        </p>`
+      : `<p><a class="btn-link" href="index.html">← Back to home</a></p>`;
     main.innerHTML = `
       <div class="gate">
         <h1>${escapeHtml(title)}</h1>
         <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
-        <p><a class="btn-link" href="index.html">← Back to home</a></p>
+        ${cta}
       </div>
     `;
     // Hide the sidebar and the top-nav brand so the gate fills the page.

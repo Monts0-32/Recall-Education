@@ -251,8 +251,30 @@ begin
 end;
 $$;
 
-grant execute on function public._assert_staff_any() to authenticated;
-grant execute on function public._assert_admin()     to authenticated;
+-- Author-or-admin gate. Used by the unit/topic/lesson *creation* RPCs:
+-- reviewers can read the catalogue but cannot create or rename rows in
+-- it. Equivalent to _assert_staff_any() minus the staff_reviewer role.
+create or replace function public._assert_staff_author_or_admin()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not exists (
+    select 1 from public.profiles
+     where id = auth.uid()
+       and role in ('staff_author', 'admin')
+       and deleted_at is null
+  ) then
+    raise exception 'staff_author or admin role required' using errcode = '42501';
+  end if;
+end;
+$$;
+
+grant execute on function public._assert_staff_any()           to authenticated;
+grant execute on function public._assert_admin()               to authenticated;
+grant execute on function public._assert_staff_author_or_admin() to authenticated;
 
 -- ---------- 9b. Exam-board CRUD (admin only) -----------------------------
 
@@ -389,7 +411,11 @@ grant execute on function public.create_year(text, int)      to authenticated;
 grant execute on function public.rename_year(uuid, text)     to authenticated;
 grant execute on function public.delete_year(uuid)           to authenticated;
 
--- ---------- 9d. Unit CRUD (any staff role) -------------------------------
+-- ---------- 9d. Unit CRUD (author-or-admin) -------------------------------
+-- Reviewers can VIEW the catalogue but cannot create/rename/delete rows.
+-- Moving a topic between units is also a catalogue mutation, so it goes
+-- through the author-or-admin gate. Reads (list_subjects_with_boards,
+-- list_units, list_years_for_board) stay open to any staff role.
 
 create or replace function public.create_unit(
   p_subject_id    uuid,
@@ -406,7 +432,7 @@ declare
   v_id uuid;
   v_clean text := trim(coalesce(p_name, ''));
 begin
-  perform public._assert_staff_any();
+  perform public._assert_staff_author_or_admin();
   if v_clean = '' then raise exception 'name is required'; end if;
   insert into public.units (subject_id, exam_board_id, year_id, name)
   values (p_subject_id, p_exam_board_id, p_year_id, v_clean)
@@ -438,7 +464,7 @@ set search_path = public
 as $$
 declare v_clean text := trim(coalesce(p_name, ''));
 begin
-  perform public._assert_staff_any();
+  perform public._assert_staff_author_or_admin();
   if v_clean = '' then raise exception 'name is required'; end if;
   update public.units set name = v_clean where id = p_id;
   if not found then raise exception 'unit not found'; end if;
@@ -456,7 +482,7 @@ security definer
 set search_path = public
 as $$
 begin
-  perform public._assert_staff_any();
+  perform public._assert_staff_author_or_admin();
   -- Detach topics first so they don't cascade-delete. They become
   -- orphans (unit_id = null) and remain visible at the year level
   -- for the author to re-attach.
@@ -480,7 +506,7 @@ declare
   v_topic record;
   v_unit  record;
 begin
-  perform public._assert_staff_any();
+  perform public._assert_staff_author_or_admin();
   select id, subject_id into v_topic from public.topics where id = p_topic_id;
   if not found then raise exception 'topic not found'; end if;
   if p_unit_id is not null then

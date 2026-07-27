@@ -1043,6 +1043,198 @@
     .prog-meter-pill.active[data-state="got"] { background: var(--green-dim); color: var(--green); border-color: var(--green); }
     .prog-meter-pill.active[data-state="unsure"] { background: var(--yellow-dim); color: var(--yellow); border-color: var(--yellow); }
     .prog-meter-pill.active[data-state="notyet"] { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+
+    /* ---------- review tools drawer (staff only) ---------- */
+    /* Sits above the lesson header. Only rendered for staff; the .gate
+       runs first and the JS decides whether to show it. The toggle is a
+       <button> with `aria-expanded` for screen readers; the panel below
+       animates open with a small max-height transition. */
+
+    .review-tools {
+      max-width: 980px;
+      margin: 12px auto 0;
+      padding: 0 24px;
+    }
+    .review-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-2);
+      color: var(--text-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 10px 14px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .review-toggle:hover { background: var(--bg-3); color: var(--text); }
+    .review-toggle .caret { transition: transform 0.15s ease; }
+    .review-toggle[aria-expanded="true"] .caret { transform: rotate(180deg); }
+    .review-drawer {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.2s ease;
+    }
+    .review-drawer > .review-drawer-inner {
+      overflow: hidden;
+    }
+    .review-drawer.open {
+      grid-template-rows: 1fr;
+    }
+    .review-drawer-inner {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-top: 0;
+      border-radius: 0 0 var(--r-md) var(--r-md);
+      padding: 14px 16px;
+    }
+    .review-actions {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+    .review-actions .btn { padding: 7px 14px; font-size: 13px; }
+    .review-check {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--text-2); font-size: 13px;
+      user-select: none;
+      cursor: pointer;
+    }
+    .review-check input[type="checkbox"] {
+      width: 14px; height: 14px;
+      accent-color: var(--blue);
+      cursor: pointer;
+    }
+    .review-info {
+      color: var(--text-3);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .review-mode-pill {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      background: rgba(88,166,255,0.15);
+      color: var(--blue);
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    /* Per-block comment thread. Injected below each lesson block when
+       review mode is on. Hidden when "Show reviewer comments" is
+       unchecked (toggle lives in the drawer). */
+    .block-comments {
+      display: none;
+      margin: 12px 0 24px;
+      padding: 12px 14px;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      font-size: 13px;
+      color: var(--text-2);
+    }
+    body.review-mode .block-comments.show { display: block; }
+    body.review-mode.lbc-show .block-comments { display: block; }
+    .block-comments-empty {
+      color: var(--text-3);
+      font-style: italic;
+      margin: 0 0 10px;
+    }
+    .block-comment {
+      display: flex; flex-direction: column;
+      padding: 8px 0;
+      border-top: 1px solid var(--line);
+    }
+    .block-comment:first-of-type { border-top: 0; padding-top: 4px; }
+    .block-comment-head {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--text-3);
+      margin-bottom: 4px;
+    }
+    .block-comment-author { color: var(--text-2); font-weight: 600; }
+    .block-comment-time { color: var(--text-3); }
+    .block-comment-body {
+      white-space: pre-wrap;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .block-comment.resolved .block-comment-body {
+      opacity: 0.55;
+      text-decoration: line-through;
+    }
+    .block-comment.resolved { opacity: 0.7; }
+    .block-comment-actions {
+      display: flex; gap: 8px;
+      margin-top: 6px;
+    }
+    .block-comment-actions button {
+      background: transparent;
+      border: 1px solid var(--line-2);
+      color: var(--text-3);
+      font-family: inherit;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: var(--r-sm);
+      cursor: pointer;
+    }
+    .block-comment-actions button:hover {
+      color: var(--text); border-color: var(--line-3);
+    }
+    .block-comment-edit textarea {
+      width: 100%;
+      min-height: 60px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      resize: vertical;
+    }
+    .block-comment-edit .row {
+      display: flex; justify-content: flex-end; gap: 6px;
+      margin-top: 6px;
+    }
+    .block-comment-add {
+      margin-top: 10px;
+    }
+    .block-comment-add textarea {
+      width: 100%;
+      min-height: 50px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      resize: vertical;
+    }
+    .block-comment-add .row {
+      display: flex; justify-content: flex-end; gap: 6px;
+      margin-top: 6px;
+    }
+    .block-comment-add button {
+      background: var(--blue);
+      color: #fff;
+      border: 1px solid var(--blue);
+      border-radius: var(--r-sm);
+      padding: 6px 14px;
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .block-comment-add button:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .block-comment-add button:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -1059,12 +1251,44 @@
 
 <div class="lesson-head" id="head" hidden>
   <div class="crumb-row" id="crumbRow"></div>
-  <h1 class="lesson-title" id="lessonTitle">…</h1>
+  <h1 class="lesson-title" id="lessonTitle">…
+    <span class="review-mode-pill" id="reviewModePill" hidden>REVIEW MODE</span>
+  </h1>
   <p class="lesson-meta" id="lessonMeta"></p>
   <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
   <div class="progress-text">
     <span id="progressText">Loading…</span>
     <span id="timeText"></span>
+  </div>
+</div>
+
+<!-- Review tools drawer — only rendered for staff users. Hidden by
+     default until applyReviewToolsUI() enables it. The drawer toggles
+     open/closed with a max-height transition (see .review-drawer). -->
+<div class="review-tools" id="reviewTools" hidden>
+  <button class="review-toggle" id="reviewToggle"
+          type="button" aria-expanded="false"
+          aria-controls="reviewDrawer">
+    <span>Review tools</span>
+    <span class="caret" aria-hidden="true">▼</span>
+  </button>
+  <div class="review-drawer" id="reviewDrawer" role="region" aria-label="Review tools">
+    <div class="review-drawer-inner">
+      <div class="review-actions">
+        <button class="btn btn-primary" id="enterReviewBtn" type="button">Enter review mode</button>
+        <a class="btn btn-ghost" id="createLessonLink"
+           href="lesson-creator.html"
+           hidden>Create new lesson</a>
+        <label class="review-check">
+          <input type="checkbox" id="showCommentsToggle" />
+          Show reviewer comments
+        </label>
+      </div>
+      <p class="review-info" id="reviewInfo">
+        Review mode lets you leave per-block comments visible only to staff.
+        Uncheck “Show reviewer comments” to read the lesson without seeing feedback.
+      </p>
+    </div>
   </div>
 </div>
 
@@ -1164,6 +1388,12 @@
     blockScores: new Map(),   // blockId -> { score, total }
     completed: false,
     heartTimer: null,
+    role: null,               // 'staff_author' | 'staff_reviewer' | 'admin' | null
+    isStaff: false,           // true when role is one of the three staff roles
+    reviewMode: false,        // whether per-block comment threads are visible
+    showComments: false,      // user toggle (persisted in localStorage)
+    comments: [],             // list_lesson_block_comments result; keyed by block_id
+    blockPanels: new Map(),   // blockId -> { container, list, count }
   };
 
   // ---------- entry ----------
@@ -1228,6 +1458,25 @@
       return;
     }
 
+    // Detect staff role. Same pattern as lesson-creator.html: read
+    // app_metadata.role from the JWT first, then fall back to the
+    // current_role RPC for environments where the auth hook isn't
+    // stamping the claim. Students and parents never see the review
+    // drawer — for them, this page is read-only as it has always been.
+    {
+      let r = session.user.app_metadata?.role;
+      if (!r) {
+        try {
+          const res = await supabaseClient.rpc('current_role');
+          if (!res.error && res.data) r = res.data;
+        } catch (_) { /* not installed — fall through */ }
+      }
+      session.role = r || null;
+      session.isStaff = (session.role === 'staff_author'
+                      || session.role === 'staff_reviewer'
+                      || session.role === 'admin');
+    }
+
     // Load lesson
     const { data: lesson, error: lessonErr } = await supabaseClient
       .from('lessons')
@@ -1271,6 +1520,10 @@
 
     render();
     startHeartbeat();
+    // Wire the review-tools drawer + per-block comment panels for
+    // staff users. No-op for students. Best-effort — failure to load
+    // comments doesn't block the lesson itself.
+    applyReviewToolsUI();
   }
 
   // ---------- rendering ----------
@@ -1748,6 +2001,355 @@
     $('progressText').textContent = done === 0
       ? `${total} block${total === 1 ? '' : 's'}`
       : `${done} of ${total} checked · ${pct}%`;
+  }
+
+  // ---------- review tools (staff only) ----------
+  // Reviewers and authors/admins can leave per-block feedback on the
+  // lesson. The drawer is a vanilla <button> + <div> accordion; the
+  // toggle is persisted per-lesson in localStorage. The per-block
+  // panels are rendered into a sibling element of each block frame
+  // when review mode is active, hidden when "Show comments" is off.
+
+  // Persistence keys. split per lesson so a reviewer who prefers
+  // comments-on for one lesson doesn't affect their preference on
+  // another. `recall.lbc.show.<lessonId>` is the drawer open/closed
+  // preference; `recall.lbc.comments` (global) is the "Show reviewer
+  // comments" toggle — both bits of behaviour exist in the spec.
+  const LBC_KEY_OPEN    = (lid) => `recall.lbc.open.${lid}`;
+  const LBC_KEY_SHOW    = 'recall.lbc.comments';
+
+  function applyReviewToolsUI() {
+    if (!session.isStaff) return; // students never see any of this
+
+    // Reveal the drawer. It was created in the markup with `hidden`;
+    // for staff users we un-hide it and wire the toggle.
+    const drawer = $('reviewTools');
+    if (!drawer) return;
+    drawer.hidden = false;
+
+    // "Create new lesson" link is for staff_author + admin only.
+    // Reviewers don't author — they comment. The link points at the
+    // editor. Author is gated server-side too (the editor's role gate
+    // rejects reviewers), but the JS hides it preemptively for the
+    // reviewer so the button isn't a confusing CTA.
+    $('createLessonLink').hidden = !(session.role === 'staff_author' || session.role === 'admin');
+
+    // Show-comments checkbox — global, persisted across all lessons.
+    // Defaults to OFF so a fresh visit to a draft doesn't dump the
+    // reviewer's notes on top of the lesson unprompted.
+    let show = false;
+    try {
+      const stored = localStorage.getItem(LBC_KEY_SHOW);
+      if (stored === '1') show = true;
+    } catch (_) { /* private mode — fall through */ }
+    session.showComments = show;
+    const showToggle = $('showCommentsToggle');
+    showToggle.checked = show;
+    document.body.classList.toggle('lbc-show', show && session.reviewMode);
+    showToggle.addEventListener('change', () => {
+      session.showComments = !!showToggle.checked;
+      try { localStorage.setItem(LBC_KEY_SHOW, session.showComments ? '1' : '0'); } catch (_) {}
+      document.body.classList.toggle('lbc-show', session.showComments && session.reviewMode);
+    });
+
+    // Per-lesson drawer open/closed state — restore previous session's
+    // preference so the reviewer doesn't have to re-open the drawer on
+    // every navigation.
+    try {
+      const isOpen = localStorage.getItem(LBC_KEY_OPEN(session.lesson.id)) === '1';
+      if (isOpen) toggleReviewDrawer(true);
+    } catch (_) { /* fall through */ }
+
+    $('reviewToggle').addEventListener('click', () => {
+      const isOpen = $('reviewDrawer').classList.contains('open');
+      toggleReviewDrawer(!isOpen);
+      try { localStorage.setItem(LBC_KEY_OPEN(session.lesson.id), (!isOpen) ? '1' : '0'); } catch (_) {}
+    });
+
+    $('enterReviewBtn').addEventListener('click', async () => {
+      if (!session.reviewMode) {
+        await enterReviewMode();
+      } else {
+        exitReviewMode();
+      }
+    });
+
+    // If comments should already be visible (showComments=true) and
+    // the user lands here, we don't auto-enter review mode — they
+    // have to click the button. The drawer is just open by default
+    // when they reopen.
+  }
+
+  function toggleReviewDrawer(open) {
+    const drawer  = $('reviewDrawer');
+    const toggle  = $('reviewToggle');
+    drawer.classList.toggle('open', open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  async function enterReviewMode() {
+    if (session.reviewMode) return;
+    session.reviewMode = true;
+    document.body.classList.add('review-mode');
+    if (session.showComments) document.body.classList.add('lbc-show');
+    $('reviewModePill').hidden = false;
+    $('enterReviewBtn').textContent = 'Exit review mode';
+
+    // Load all comments for this lesson in one RPC, then build a
+    // per-block panel under each block frame. We build all panels
+    // up-front rather than lazy-loading on reveal, because the
+    // number of blocks per lesson is small (typically <20) and
+    // students frequently scroll back to re-read earlier blocks
+    // — having the comments there without a network round-trip is
+    // worth the upfront query.
+    try {
+      const { data, error } = await supabaseClient
+        .rpc('list_lesson_block_comments', { p_lesson_id: session.lesson.id });
+      if (error) {
+        console.warn('[review] list_lesson_block_comments failed:', error);
+        session.comments = [];
+      } else {
+        session.comments = data || [];
+      }
+    } catch (e) {
+      console.warn('[review] list_lesson_block_comments threw:', e);
+      session.comments = [];
+    }
+
+    injectBlockPanels();
+  }
+
+  function exitReviewMode() {
+    session.reviewMode = false;
+    document.body.classList.remove('review-mode');
+    document.body.classList.remove('lbc-show');
+    $('reviewModePill').hidden = true;
+    $('enterReviewBtn').textContent = 'Enter review mode';
+    // Panels stay in the DOM (cheaper) — the body.review-mode class
+    // hides them. They'll be re-used on next entry.
+  }
+
+  function injectBlockPanels() {
+    // Build a per-block index of comments for O(1) lookup.
+    const byBlock = new Map();
+    for (const c of session.comments) {
+      if (!byBlock.has(c.block_id)) byBlock.set(c.block_id, []);
+      byBlock.get(c.block_id).push(c);
+    }
+
+    for (const block of session.blocks) {
+      const frame = session.blockFrames.get(block.id);
+      if (!frame) continue;
+      // Already injected — skip. Defensive against double-render.
+      if (session.blockPanels.has(block.id)) continue;
+
+      const container = document.createElement('div');
+      container.className = 'block-comments show';
+      container.dataset.blockId = block.id;
+
+      const comments = byBlock.get(block.id) || [];
+      const list = document.createElement('div');
+      list.className = 'block-comments-list';
+
+      const empty = document.createElement('p');
+      empty.className = 'block-comments-empty';
+      empty.textContent = comments.length === 0
+        ? 'No comments yet for this block.'
+        : `${comments.length} comment${comments.length === 1 ? '' : 's'}.`;
+      container.appendChild(empty);
+      container.appendChild(list);
+
+      for (const c of comments) {
+        list.appendChild(renderComment(block.id, c));
+      }
+
+      // Add-comment form. The current user can always add.
+      const addBox = renderAddForm(block.id, list);
+      container.appendChild(addBox);
+
+      // Insert immediately AFTER the frame, not inside, so the
+      // existing block-level layout (CSS in lesson-render.js) is
+      // untouched.
+      frame.parentNode.insertBefore(container, frame.nextSibling);
+      session.blockPanels.set(block.id, { container, list });
+    }
+
+    // Block-frame stays visible regardless of "Show comments" — the
+    // CSS rule `body.review-mode.lbc-show .block-comments { display: block }`
+    // is what turns the panels on.
+    if (!session.showComments) document.body.classList.remove('lbc-show');
+    else document.body.classList.add('lbc-show');
+  }
+
+  function renderComment(blockId, c) {
+    const wrap = document.createElement('div');
+    wrap.className = 'block-comment' + (c.resolved ? ' resolved' : '');
+    wrap.dataset.commentId = c.id;
+
+    const head = document.createElement('div');
+    head.className = 'block-comment-head';
+    head.innerHTML =
+      `<span class="block-comment-author">${escapeHtml(c.author_name || c.author_email || 'Staff')}</span>` +
+      `<span class="block-comment-time">${escapeHtml(formatRelativeTime(c.created_at))}</span>`;
+    wrap.appendChild(head);
+
+    const body = document.createElement('div');
+    body.className = 'block-comment-body';
+    body.textContent = c.body;
+    wrap.appendChild(body);
+
+    // Show Edit/Delete/Resolved only on the user's own comments.
+    // Admins see them on everyone's comments by convention, but the
+    // JS doesn't surface that override — admins can edit in SQL for v1.
+    const isMine = c.author_id === session.user.id;
+    if (isMine) {
+      const actions = document.createElement('div');
+      actions.className = 'block-comment-actions';
+
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.textContent = 'Edit';
+      editBtn.addEventListener('click', () => startEditComment(wrap, blockId, c));
+      actions.appendChild(editBtn);
+
+      const resolveBtn = document.createElement('button');
+      resolveBtn.type = 'button';
+      resolveBtn.textContent = c.resolved ? 'Unresolve' : '✓ Resolved';
+      resolveBtn.addEventListener('click', async () => {
+        const { data, error } = await supabaseClient.rpc('update_lesson_block_comment', {
+          p_comment_id: c.id,
+          p_resolved: !c.resolved,
+        });
+        if (error || !data || data.ok !== true) {
+          toast('Could not update comment', 'error');
+          return;
+        }
+        c.resolved = !c.resolved;
+        resolveBtn.textContent = c.resolved ? 'Unresolve' : '✓ Resolved';
+        wrap.classList.toggle('resolved', c.resolved);
+      });
+      actions.appendChild(resolveBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', async () => {
+        if (!window.confirm('Delete this comment?')) return;
+        const { data, error } = await supabaseClient.rpc('delete_lesson_block_comment', {
+          p_comment_id: c.id,
+        });
+        if (error || !data || data.ok !== true) {
+          toast('Could not delete comment', 'error');
+          return;
+        }
+        wrap.remove();
+      });
+      actions.appendChild(delBtn);
+
+      wrap.appendChild(actions);
+    }
+    return wrap;
+  }
+
+  function startEditComment(wrap, blockId, c) {
+    // Replace the body with a textarea + Save/Cancel. Save calls
+    // update_lesson_block_comment and reverts to the static body.
+    const body = wrap.querySelector('.block-comment-body');
+    const old  = body.textContent;
+    const edit = document.createElement('div');
+    edit.className = 'block-comment-edit';
+    edit.innerHTML = `<textarea>${escapeHtml(old)}</textarea>
+      <div class="row">
+        <button type="button" data-cancel>Cancel</button>
+        <button type="button" data-save>Save</button>
+      </div>`;
+    body.replaceWith(edit);
+    const ta = edit.querySelector('textarea');
+    ta.focus(); ta.select();
+    edit.querySelector('[data-cancel]').addEventListener('click', () => {
+      edit.replaceWith(body);
+    });
+    edit.querySelector('[data-save]').addEventListener('click', async () => {
+      const next = ta.value.trim();
+      if (!next) { toast('Comment cannot be empty', 'error'); return; }
+      const { data, error } = await supabaseClient.rpc('update_lesson_block_comment', {
+        p_comment_id: c.id,
+        p_body: next,
+      });
+      if (error || !data || data.ok !== true) {
+        toast(data?.reason === 'not_owner' ? 'You can only edit your own comments' : 'Could not save comment', 'error');
+        return;
+      }
+      c.body = next;
+      body.textContent = next;
+      edit.replaceWith(body);
+    });
+  }
+
+  function renderAddForm(blockId, list) {
+    const box = document.createElement('div');
+    box.className = 'block-comment-add';
+    box.innerHTML = `<textarea placeholder="Add a comment…"></textarea>
+      <div class="row"><button type="button" data-submit>Add comment</button></div>`;
+    const ta  = box.querySelector('textarea');
+    const btn = box.querySelector('[data-submit]');
+    btn.addEventListener('click', async () => {
+      const text = ta.value.trim();
+      if (!text) { toast('Comment cannot be empty', 'error'); return; }
+      btn.disabled = true;
+      try {
+        const { data, error } = await supabaseClient.rpc('add_lesson_block_comment', {
+          p_block_id: blockId,
+          p_body: text,
+        });
+        if (error || !data || data.ok !== true) {
+          toast(data?.reason === 'staff_role_required' ? 'Reviewer access required'
+              : data?.reason === 'body_too_long'         ? 'Comment is too long (4000 char max)'
+              : 'Could not add comment', 'error');
+          return;
+        }
+        // Re-fetch the canonical row so the thread has the server-set
+        // created_at / id rather than a client guess. Lightweight: just
+        // insert a placeholder row that matches the new comment shape.
+        const created = {
+          id: data.id,
+          block_id: blockId,
+          author_id: session.user.id,
+          author_name: session.profile?.full_name || (session.user.email || '').split('@')[0],
+          author_email: session.user.email,
+          body: text,
+          resolved: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        list.appendChild(renderComment(blockId, created));
+        // Update the empty-state copy.
+        const empty = list.parentNode.querySelector('.block-comments-empty');
+        if (empty) {
+          const count = list.parentNode.querySelectorAll('.block-comment').length;
+          empty.textContent = count === 0
+            ? 'No comments yet for this block.'
+            : `${count} comment${count === 1 ? '' : 's'}.`;
+        }
+        ta.value = '';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+    return box;
+  }
+
+  function formatRelativeTime(iso) {
+    if (!iso) return '';
+    const then = new Date(iso).getTime();
+    if (!then) return '';
+    const diff = Math.max(0, Date.now() - then);
+    const sec  = Math.round(diff / 1000);
+    if (sec < 60)    return 'just now';
+    if (sec < 3600)  return `${Math.round(sec / 60)} min ago`;
+    if (sec < 86400) return `${Math.round(sec / 3600)} h ago`;
+    if (sec < 604800) return `${Math.round(sec / 86400)} d ago`;
+    return new Date(iso).toLocaleDateString();
   }
 
   function showGate(title, msg, kind) {

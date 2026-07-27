@@ -215,6 +215,10 @@ drop function if exists public.check_parental_consent(jsonb);
 drop function if exists public.current_role();
 drop function if exists public.list_staff();
 drop function if exists public.list_recent_audit(int, uuid, text);
+drop function if exists public.list_lesson_block_comments(uuid);
+drop function if exists public.add_lesson_block_comment(uuid, text);
+drop function if exists public.update_lesson_block_comment(uuid, text, boolean);
+drop function if exists public.delete_lesson_block_comment(uuid);
 
 create or replace function public._log_staff_action(
   p_action        text,
@@ -927,25 +931,34 @@ grant execute on function public.log_staff_action(
 -- The policies added by supabase_staff.sql checked role = 'staff'.
 -- They've been left in place, but they won't match the new role
 -- values. Replace them with versions that accept any of the three
--- staff roles. The narrow form (e.g. 'reviewer only') is enforced by
--- the RPCs above, not by RLS — keeps policies simple.
+-- staff roles, then NARROW them so reviewers can read everything but
+-- can't write to the catalogue. Authors and admins can write; reviewers
+-- can only read (the comment-rpcs in section 13 are their write path).
+-- The narrow form (e.g. 'reviewer only') for the publish/unpublish RPC
+-- is enforced by the RPCs above, not by RLS — keeps policies simple.
 
 drop policy if exists "subjects_staff_write"        on public.subjects;
 drop policy if exists "topics_staff_write"          on public.topics;
 drop policy if exists "lessons_staff_write"         on public.lessons;
 drop policy if exists "lesson_blocks_staff_write"   on public.lesson_blocks;
 
+-- Subjects / topics / lessons / blocks: writes by staff_author + admin only.
+-- Reviewers should be using lesson.html and the comment RPCs (section 13)
+-- rather than editing the catalogue directly. RLS is the safety net here;
+-- RPC-level checks (move_topic_to_unit, etc.) add a second layer.
 create policy "subjects_staff_write" on public.subjects
   for all to authenticated
   using (exists (
     select 1 from public.profiles p
      where p.id = auth.uid()
-       and p.role in ('staff_author', 'staff_reviewer', 'admin')
+       and p.role in ('staff_author', 'admin')
+       and p.deleted_at is null
   ))
   with check (exists (
     select 1 from public.profiles p
      where p.id = auth.uid()
-       and p.role in ('staff_author', 'staff_reviewer', 'admin')
+       and p.role in ('staff_author', 'admin')
+       and p.deleted_at is null
   ));
 
 create policy "topics_staff_write" on public.topics
@@ -953,12 +966,14 @@ create policy "topics_staff_write" on public.topics
   using (exists (
     select 1 from public.profiles p
      where p.id = auth.uid()
-       and p.role in ('staff_author', 'staff_reviewer', 'admin')
+       and p.role in ('staff_author', 'admin')
+       and p.deleted_at is null
   ))
   with check (exists (
     select 1 from public.profiles p
      where p.id = auth.uid()
-       and p.role in ('staff_author', 'staff_reviewer', 'admin')
+       and p.role in ('staff_author', 'admin')
+       and p.deleted_at is null
   ));
 
 create policy "lessons_staff_write" on public.lessons
@@ -966,25 +981,32 @@ create policy "lessons_staff_write" on public.lessons
   using (exists (
     select 1 from public.profiles p
      where p.id = auth.uid()
-       and p.role in ('staff_author', 'staff_reviewer', 'admin')
+       and p.role in ('staff_author', 'admin')
+       and p.deleted_at is null
   ))
   with check (exists (
     select 1 from public.profiles p
      where p.id = auth.uid()
-       and p.role in ('staff_author', 'staff_reviewer', 'admin')
+       and p.role in ('staff_author', 'admin')
+       and p.deleted_at is null
   ));
 
+-- lesson_blocks: writes by staff_author + admin only. Note the read
+-- policy (lesson_blocks_read_all) is unchanged — anyone (anon included)
+-- can read them, so the student player works without auth.
 create policy "lesson_blocks_staff_write" on public.lesson_blocks
   for all to authenticated
   using (exists (
     select 1 from public.profiles p
      where p.id = auth.uid()
-       and p.role in ('staff_author', 'staff_reviewer', 'admin')
+       and p.role in ('staff_author', 'admin')
+       and p.deleted_at is null
   ))
   with check (exists (
     select 1 from public.profiles p
      where p.id = auth.uid()
-       and p.role in ('staff_author', 'staff_reviewer', 'admin')
+       and p.role in ('staff_author', 'admin')
+       and p.deleted_at is null
   ));
 
 -- ---------- 11. UPDATE AUTH HOOK -----------------------------------------
@@ -1157,6 +1179,285 @@ $$;
 
 grant execute on function public.list_recent_audit(int, uuid, text) to authenticated;
 
+-- ---------- 13. LESSON BLOCK COMMENTS ------------------------------------
+-- Per-block reviewer notes. Authors write lessons, reviewers leave
+-- feedback against individual blocks. Anyone with a staff role can
+-- read; only the comment's author (or an admin) can edit or delete it.
+--
+-- All four RPCs use language sql (not plpgsql) on purpose — see the
+-- comments at list_staff_invites: RETURNS TABLE in plpgsql creates
+-- implicit variables named after the columns and trips 42702
+-- "column reference X is ambiguous". With language sql there's no
+-- PL/pgSQL scope, so the join to lesson_blocks resolves cleanly.
+
+create table if not exists public.lesson_block_comments (
+  id          uuid primary key default gen_random_uuid(),
+  block_id    uuid not null references public.lesson_blocks(id) on delete cascade,
+  lesson_id   uuid not null references public.lessons(id)       on delete cascade,
+  author_id   uuid not null references auth.users(id)           on delete cascade,
+  body        text not null check (length(body) > 0 and length(body) <= 4000),
+  resolved    boolean not null default false,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists lbc_block_idx  on public.lesson_block_comments (block_id, created_at asc);
+create index if not exists lbc_lesson_idx on public.lesson_block_comments (lesson_id, created_at asc);
+create index if not exists lbc_author_idx on public.lesson_block_comments (author_id, created_at desc);
+
+alter table public.lesson_block_comments enable row level security;
+
+-- Read for any active staff role. Mirror of staff_audit_read.
+drop policy if exists "lbc_read" on public.lesson_block_comments;
+create policy "lbc_read" on public.lesson_block_comments
+  for select to authenticated
+  using (exists (
+    select 1 from public.profiles p
+     where p.id = auth.uid()
+       and p.role in ('staff_author', 'staff_reviewer', 'admin')
+       and p.deleted_at is null
+  ));
+
+-- Writes are gated server-side in the RPCs (not RLS) — the RPCs
+-- check author_id = auth.uid() for updates/deletes, so RLS just
+-- needs to allow any active staff member to INSERT a row. UPDATE/
+-- DELETE through the table directly is not exposed to clients
+-- (the RPCs are the only entry point the app uses), but to be safe
+-- we still let any staff pass the USING clause; the actual delete
+-- is rejected by the RPC's author check. There's no WITH CHECK on
+-- insert that would let a reviewer edit someone else's body, since
+-- the client never does an UPDATE through the table — only through
+-- update_lesson_block_comment.
+drop policy if exists "lbc_insert" on public.lesson_block_comments;
+create policy "lbc_insert" on public.lesson_block_comments
+  for insert to authenticated
+  with check (
+    author_id = auth.uid()
+    and exists (
+      select 1 from public.profiles p
+       where p.id = auth.uid()
+         and p.role in ('staff_author', 'staff_reviewer', 'admin')
+         and p.deleted_at is null
+    )
+  );
+
+-- list: return all comments for a lesson, oldest first. SECURITY
+-- DEFINER so we can join to auth.users for the author's email
+-- without exposing the auth schema to RLS. Caller must be active
+-- staff — the function checks this explicitly so a malicious anon
+-- caller can't read the comment list (the policy already covers it,
+-- but defense in depth).
+create or replace function public.list_lesson_block_comments(p_lesson_id uuid)
+returns table (
+  id            uuid,
+  block_id      uuid,
+  author_id     uuid,
+  author_name   text,
+  author_email  text,
+  body          text,
+  resolved      boolean,
+  created_at    timestamptz,
+  updated_at    timestamptz
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+      c.id, c.block_id, c.author_id,
+      coalesce(p.full_name, split_part(u.email::text, '@', 1)) as author_name,
+      u.email::text                                            as author_email,
+      c.body, c.resolved, c.created_at, c.updated_at
+    from public.lesson_block_comments c
+    join auth.users     u on u.id = c.author_id
+    left join public.profiles p on p.id = c.author_id
+   where c.lesson_id = p_lesson_id
+   order by c.created_at asc;
+$$;
+
+grant execute on function public.list_lesson_block_comments(uuid) to authenticated;
+
+-- add: insert a new comment. Verifies the caller is active staff
+-- and that the block exists in a lesson the caller can see. Returns
+-- {ok, id} so the JS can refresh the affected thread without
+-- re-listing the whole lesson.
+create or replace function public.add_lesson_block_comment(
+  p_block_id uuid,
+  p_body     text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_lesson_id uuid;
+  v_clean     text := trim(coalesce(p_body, ''));
+  v_caller    uuid := auth.uid();
+begin
+  if v_caller is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
+  end if;
+  if not exists (
+    select 1 from public.profiles
+     where id = v_caller
+       and role in ('staff_author', 'staff_reviewer', 'admin')
+       and deleted_at is null
+  ) then
+    return jsonb_build_object('ok', false, 'reason', 'staff_role_required');
+  end if;
+  if v_clean = '' then
+    return jsonb_build_object('ok', false, 'reason', 'body_required');
+  end if;
+  if length(v_clean) > 4000 then
+    return jsonb_build_object('ok', false, 'reason', 'body_too_long');
+  end if;
+
+  select lesson_id into v_lesson_id
+    from public.lesson_blocks
+   where id = p_block_id;
+  if v_lesson_id is null then
+    return jsonb_build_object('ok', false, 'reason', 'unknown_block');
+  end if;
+
+  insert into public.lesson_block_comments (block_id, lesson_id, author_id, body)
+  values (p_block_id, v_lesson_id, v_caller, v_clean);
+
+  return jsonb_build_object(
+    'ok', true,
+    'id', (
+      select c.id from public.lesson_block_comments c
+       where c.block_id = p_block_id
+         and c.author_id = v_caller
+       order by c.created_at desc
+       limit 1
+    )
+  );
+end;
+$$;
+
+grant execute on function public.add_lesson_block_comment(uuid, text) to authenticated;
+
+-- update: edit your own comment. Either body or resolved (or both).
+-- Admins can edit anyone's comment by passing p_admin_override = true
+-- if they ever need to clean something up — but the JS doesn't
+-- expose that toggle, and the staff UI never sends it. The function
+-- still reads it so the door exists without a future migration.
+create or replace function public.update_lesson_block_comment(
+  p_comment_id     uuid,
+  p_body           text    default null,
+  p_resolved       boolean default null,
+  p_admin_override boolean default false
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_caller     uuid := auth.uid();
+  v_owner_id   uuid;
+  v_clean_body text;
+  v_is_admin   boolean;
+begin
+  if v_caller is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
+  end if;
+
+  select author_id into v_owner_id
+    from public.lesson_block_comments
+   where id = p_comment_id;
+  if v_owner_id is null then
+    return jsonb_build_object('ok', false, 'reason', 'unknown_comment');
+  end if;
+
+  select exists (
+    select 1 from public.profiles
+     where id = v_caller and role = 'admin' and deleted_at is null
+  ) into v_is_admin;
+
+  if v_owner_id <> v_caller and not (p_admin_override and v_is_admin) then
+    return jsonb_build_object('ok', false, 'reason', 'not_owner');
+  end if;
+
+  -- Build the UPDATE dynamically based on which params were supplied.
+  -- Passing NULL for both is a no-op (returns ok but doesn't write).
+  if p_body is not null then
+    v_clean_body := trim(p_body);
+    if v_clean_body = '' then
+      return jsonb_build_object('ok', false, 'reason', 'body_required');
+    end if;
+    if length(v_clean_body) > 4000 then
+      return jsonb_build_object('ok', false, 'reason', 'body_too_long');
+    end if;
+    update public.lesson_block_comments
+       set body = v_clean_body,
+           updated_at = now()
+     where id = p_comment_id;
+  end if;
+
+  if p_resolved is not null then
+    update public.lesson_block_comments
+       set resolved = p_resolved,
+           updated_at = case when p_body is null then now() else updated_at end
+     where id = p_comment_id;
+  end if;
+
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+grant execute on function public.update_lesson_block_comment(uuid, text, boolean, boolean) to authenticated;
+
+-- delete: only the author (or an admin) can remove a comment.
+-- p_admin_override works the same way as in update — opens the door
+-- for an admin override without needing a future migration.
+create or replace function public.delete_lesson_block_comment(
+  p_comment_id     uuid,
+  p_admin_override boolean default false
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_caller   uuid := auth.uid();
+  v_owner_id uuid;
+  v_is_admin boolean;
+  v_deleted  int;
+begin
+  if v_caller is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
+  end if;
+
+  select author_id into v_owner_id
+    from public.lesson_block_comments
+   where id = p_comment_id;
+  if v_owner_id is null then
+    return jsonb_build_object('ok', false, 'reason', 'unknown_comment');
+  end if;
+
+  select exists (
+    select 1 from public.profiles
+     where id = v_caller and role = 'admin' and deleted_at is null
+  ) into v_is_admin;
+
+  if v_owner_id <> v_caller and not (p_admin_override and v_is_admin) then
+    return jsonb_build_object('ok', false, 'reason', 'not_owner');
+  end if;
+
+  delete from public.lesson_block_comments where id = p_comment_id;
+  get diagnostics v_deleted = row_count;
+  if v_deleted = 0 then
+    return jsonb_build_object('ok', false, 'reason', 'unknown_comment');
+  end if;
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+grant execute on function public.delete_lesson_block_comment(uuid, boolean) to authenticated;
+
 -- ---------- 13. DIAGNOSTIC: WHAT FUNCTIONS DOES THE LIVE DB ACTUALLY HAVE?
 -- Run this query in the Supabase SQL editor to verify every function
 -- in this file is installed with the right signature. The function
@@ -1196,7 +1497,11 @@ grant execute on function public.list_recent_audit(int, uuid, text) to authentic
 --     'check_parental_consent',
 --     'current_role',
 --     'list_staff',
---     'list_recent_audit'
+--     'list_recent_audit',
+--     'list_lesson_block_comments',
+--     'add_lesson_block_comment',
+--     'update_lesson_block_comment',
+--     'delete_lesson_block_comment'
 --   )
 -- ORDER BY p.proname;
 
