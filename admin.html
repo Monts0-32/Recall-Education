@@ -379,6 +379,86 @@
       color: var(--text-2);
       word-break: break-all;
     }
+
+    /* ---------- Developer tools panel ---------- */
+    .dev-warn {
+      background: rgba(248, 81, 73, 0.10);
+      border: 1px solid rgba(248, 81, 73, 0.4);
+      color: #ff9a93;
+      border-radius: var(--r-md);
+      padding: 14px 18px;
+      margin: 8px 0 24px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .dev-warn strong { color: #ffb4ad; letter-spacing: 0.04em; }
+    .dev-warn code { background: rgba(0,0,0,0.3); color: #ffd7d2; }
+    .dev-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 18px 20px;
+      max-width: 760px;
+    }
+    .dev-card h2 {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin: 0 0 8px;
+    }
+    .dev-card .desc {
+      color: var(--text-3);
+      font-size: 13px;
+      margin: 0 0 14px;
+      line-height: 1.55;
+    }
+    .dev-card .dev-row {
+      display: flex; gap: 10px;
+      margin-bottom: 12px;
+    }
+    .dev-card .dev-row input { flex: 1; }
+    .dev-result {
+      margin-top: 8px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      font-size: 13px;
+      color: var(--text-2);
+    }
+    .dev-result .muted { color: var(--text-3); }
+    .dev-user-card {
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 12px 14px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+    .dev-user-card .meta-line { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .dev-user-card .meta-line span { margin-right: 12px; }
+    .dev-confirm {
+      background: rgba(248, 81, 73, 0.05);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+      border-radius: var(--r-sm);
+      padding: 12px 14px;
+      margin-top: 12px;
+    }
+    .dev-confirm .label {
+      font-size: 12px;
+      color: var(--text-3);
+      margin-bottom: 4px;
+    }
+    .dev-confirm input { margin-bottom: 10px; font-family: monospace; }
+    .dev-actions {
+      display: flex; gap: 10px; justify-content: flex-end;
+    }
+    .dev-error {
+      color: #ff9a93;
+      padding: 8px 0;
+    }
     pre.code-block {
       background: var(--bg-3);
       padding: 10px 12px;
@@ -449,6 +529,9 @@
     </button>
     <button data-section="audit">
       <span>Audit log</span>
+    </button>
+    <button data-section="dev">
+      <span>Developer tools</span>
     </button>
   </aside>
 
@@ -581,6 +664,8 @@
             <option value="lesson_unpublished">Lesson unpublished</option>
             <option value="lesson_archived">Lesson archived</option>
             <option value="admin_action">Admin action</option>
+            <option value="user_deleted">User deleted (dev tool)</option>
+            <option value="row_deleted">Row deleted (dev tool)</option>
           </select>
         </div>
       </div>
@@ -596,6 +681,63 @@
           </thead>
           <tbody id="auditRows"><tr class="empty-row"><td colspan="4">Loading…</td></tr></tbody>
         </table>
+      </div>
+    </section>
+
+    <!-- DEVELOPER TOOLS PANEL (admin only, destructive) -->
+    <section id="sec-dev" class="hidden">
+      <div class="page-head">
+        <div>
+          <h1>Developer tools</h1>
+          <div class="desc">Destructive ops for resetting test accounts. Each action is permanent.</div>
+        </div>
+      </div>
+
+      <!-- Big warning banner so nobody reaches this tab by accident -->
+      <div class="dev-warn">
+        <strong>DEV ONLY.</strong>
+        These actions wipe database rows. The auth.users row and every
+        cascading FK (enrollments, lesson_progress, study_sessions,
+        quiz_attempts, assignments, activity_log, parental_consents,
+        per-block comments) go with it. Catalogue content (lessons,
+        units, topics) stays in place but authored-by / published-by /
+        audit-log actor pointers are set to <code>null</code>.
+        There is no undo. The audit log records every action.
+      </div>
+
+      <div class="dev-card">
+        <h2>Look up + delete a user</h2>
+        <p class="desc">
+          Search by email. The user must exist in <code>auth.users</code>;
+          a half-signed-up account without a profile row will still
+          appear, but the deletion will skip the profile step.
+        </p>
+        <div class="dev-row">
+          <input type="email" id="devLookupEmail"
+                 placeholder="name@example.com"
+                 autocomplete="off" />
+          <button class="btn primary" id="devLookupBtn" type="button">Search</button>
+        </div>
+        <div id="devLookupResult" class="dev-result"></div>
+      </div>
+
+      <div class="dev-card">
+        <h2>Look up + delete anything by UUID</h2>
+        <p class="desc">
+          Paste any UUID and we'll tell you which table(s) it lives in
+          (lessons, blocks, comments, topics, units, subjects,
+          profiles, invites, assignments, classes, schools,
+          lesson_progress, quiz_attempts, study_sessions, auth.users).
+          For auth.users we'll point you at the "delete a user" tool
+          above — the rich cascade logic lives there.
+        </p>
+        <div class="dev-row">
+          <input type="text" id="devIdLookupUuid"
+                 placeholder="00000000-0000-0000-0000-000000000000"
+                 autocomplete="off" spellcheck="false" />
+          <button class="btn primary" id="devIdLookupBtn" type="button">Search</button>
+        </div>
+        <div id="devIdLookupResult" class="dev-result"></div>
       </div>
     </section>
 
@@ -671,7 +813,7 @@
     document.querySelectorAll('.side button').forEach((b) => {
       b.classList.toggle('active', b.dataset.section === name);
     });
-    ['dashboard', 'staff', 'invites', 'lessons', 'audit'].forEach((s) => {
+    ['dashboard', 'staff', 'invites', 'lessons', 'audit', 'dev'].forEach((s) => {
       $('sec-' + s).classList.toggle('hidden', s !== name);
     });
     // Refresh the section we just showed so the data is always live.
@@ -680,6 +822,7 @@
     if (name === 'invites')   loadInvites();
     if (name === 'lessons')   loadLessons();
     if (name === 'audit')     loadAudit();
+    if (name === 'dev')       loadDev();
   }
   document.querySelectorAll('.side button').forEach((b) => {
     b.addEventListener('click', () => showSection(b.dataset.section));
@@ -1284,6 +1427,419 @@
         `);
       });
     });
+  }
+
+  // =========================================================================
+  // DEVELOPER TOOLS PANEL
+  // =========================================================================
+  // Lookup + delete a user by email. Admin-only (the RPCs re-check
+  // the role server-side, so even a hand-crafted call from another
+  // browser is gated).
+  //
+  // Flow:
+  //   1. Type email, click Search. We call lookup_user_by_email(text).
+  //   2. If a match is found, render a card with id / role / sign-in
+  //      times and a "Delete this user" button.
+  //   3. Clicking that reveals an inline two-field confirmation
+  //      (the user's email retyped, plus the literal word DELETE).
+  //      Submitting both correctly calls delete_user_by_id(uuid,
+  //      'DELETE', email_retyped).
+  //   4. On success, render the result (deleted email, comment
+  //      count) and clear the result area.
+
+  let devLookedUpUser = null; // { id, email, profile } — set after lookup
+
+  function loadDev() {
+    // Reset state every time we land on the tab so the previous
+    // search doesn't linger.
+    devLookedUpUser = null;
+    $('devLookupResult').innerHTML = '';
+    $('devLookupEmail').value = '';
+    devIdMatches = [];
+    $('devIdLookupResult').innerHTML = '';
+    $('devIdLookupUuid').value = '';
+  }
+
+  $('devLookupBtn').addEventListener('click', lookupDevUser);
+  $('devLookupEmail').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') lookupDevUser();
+  });
+
+  async function lookupDevUser() {
+    const email = $('devLookupEmail').value.trim();
+    const out = $('devLookupResult');
+    if (!email) {
+      out.innerHTML = '<p class="muted">Type an email address first.</p>';
+      return;
+    }
+    out.innerHTML = '<p class="muted">Searching…</p>';
+    $('devLookupBtn').disabled = true;
+    try {
+      const { data, error } = await supabaseClient.rpc('lookup_user_by_email', {
+        p_email: email,
+      });
+      if (error) {
+        out.innerHTML = `<p class="dev-error">RPC error: ${escapeHtml(error.message)}</p>`;
+        return;
+      }
+      if (!data || data.ok !== true) {
+        const why = data?.reason || 'unknown';
+        out.innerHTML = `<p class="muted">No result. (reason: <code>${escapeHtml(why)}</code>)</p>`;
+        devLookedUpUser = null;
+        return;
+      }
+      devLookedUpUser = data.user;
+      renderDevUserCard(devLookedUpUser);
+    } finally {
+      $('devLookupBtn').disabled = false;
+    }
+  }
+
+  function renderDevUserCard(user) {
+    const out = $('devLookupResult');
+    const profile = user.profile || {};
+    const role = profile.role || '(no profile)';
+    const fullName = profile.full_name || '';
+    const signIn = user.last_sign_in_at
+      ? new Date(user.last_sign_in_at).toLocaleString()
+      : '—';
+    const created = new Date(user.created_at).toLocaleString();
+    const isSelf = user.id === state.user.id;
+    out.innerHTML = `
+      <div class="dev-user-card">
+        <div>
+          <div><strong>${escapeHtml(user.email)}</strong>
+            ${fullName ? ` <span class="muted">(${escapeHtml(fullName)})</span>` : ''}
+          </div>
+          <div class="meta-line">
+            <span>Role: <code>${escapeHtml(role)}</code></span>
+            <span>Created: ${escapeHtml(created)}</span>
+            <span>Last sign-in: ${escapeHtml(signIn)}</span>
+          </div>
+          <div class="meta-line">
+            <span>UUID: <code>${escapeHtml(user.id)}</code></span>
+          </div>
+        </div>
+        <div>
+          <button class="btn danger" id="devDeleteBtn"
+                  type="button" ${isSelf ? 'disabled' : ''}>
+            ${isSelf ? 'Cannot delete yourself' : 'Delete this user'}
+          </button>
+        </div>
+      </div>
+    `;
+    if (!isSelf) {
+      $('devDeleteBtn').addEventListener('click', showDevConfirm);
+    }
+  }
+
+  function showDevConfirm() {
+    if (!devLookedUpUser) return;
+    const out = $('devLookupResult');
+    // Append the confirm box below the existing card. We don't
+    // replace the card so the user can still see who they're
+    // confirming against.
+    const existing = out.querySelector('.dev-confirm');
+    if (existing) existing.remove();
+    const wrap = document.createElement('div');
+    wrap.className = 'dev-confirm';
+    wrap.innerHTML = `
+      <p class="label">To confirm deletion, retype the user's email and type <code>DELETE</code>:</p>
+      <input type="email" id="devConfirmEmail" placeholder="Retype the email" autocomplete="off" />
+      <input type="text"  id="devConfirmWord"  placeholder="Type DELETE"          autocomplete="off" />
+      <p class="desc" style="color: var(--text-3); font-size: 12px; margin: 0 0 10px;">
+        This will delete the auth.users row and every cascade-cleanable
+        record (profile, enrollments, lesson progress, study sessions,
+        quiz attempts, assignments, per-block comments, parental-consent
+        rows). Catalogue content stays; audit-log pointers become null.
+      </p>
+      <div class="dev-actions">
+        <button class="btn"        id="devConfirmCancel" type="button">Cancel</button>
+        <button class="btn danger" id="devConfirmDelete" type="button">Wipe user</button>
+      </div>
+    `;
+    out.appendChild(wrap);
+    wrap.querySelector('#devConfirmEmail').focus();
+    wrap.querySelector('#devConfirmCancel').addEventListener('click', () => wrap.remove());
+    wrap.querySelector('#devConfirmDelete').addEventListener('click', () => executeDevDelete(wrap));
+  }
+
+  async function executeDevDelete(wrap) {
+    if (!devLookedUpUser) return;
+    const emailIn = wrap.querySelector('#devConfirmEmail').value.trim();
+    const wordIn  = wrap.querySelector('#devConfirmWord').value;
+    const deleteBtn = wrap.querySelector('#devConfirmDelete');
+    const cancelBtn = wrap.querySelector('#devConfirmCancel');
+    const ERROR_FOR = {
+      confirm_required: 'Type DELETE (uppercase, exactly) to confirm.',
+      email_mismatch:   'The retyped email does not match the search result.',
+      cannot_delete_self: 'You cannot delete your own account.',
+      admin_only:        'Server says this RPC is admin-only.',
+      auth_delete_failed: 'auth.users row could not be deleted (cascade blocked?).',
+      not_found:         'User no longer exists.',
+      target_required:   'No target user id provided.',
+      not_authenticated: 'Not signed in.',
+    };
+    if (wordIn !== 'DELETE') {
+      toast(ERROR_FOR.confirm_required, 'error');
+      return;
+    }
+    if (emailIn.toLowerCase() !== (devLookedUpUser.email || '').toLowerCase()) {
+      toast(ERROR_FOR.email_mismatch, 'error');
+      return;
+    }
+    // Triple-fire guard: disable buttons immediately, swap text.
+    deleteBtn.disabled = true;
+    cancelBtn.disabled = true;
+    const original = deleteBtn.textContent;
+    deleteBtn.textContent = 'Wiping…';
+    try {
+      const { data, error } = await supabaseClient.rpc('delete_user_by_id', {
+        p_target_user_id: devLookedUpUser.id,
+        p_confirm:        'DELETE',
+        p_target_email:   emailIn,
+      });
+      if (error) {
+        toast('RPC error: ' + error.message, 'error');
+        deleteBtn.disabled = false;
+        cancelBtn.disabled = false;
+        deleteBtn.textContent = original;
+        return;
+      }
+      if (!data || data.ok !== true) {
+        const reason = data?.reason || 'unknown';
+        toast(ERROR_FOR[reason] || ('Wipe refused: ' + reason), 'error');
+        deleteBtn.disabled = false;
+        cancelBtn.disabled = false;
+        deleteBtn.textContent = original;
+        return;
+      }
+      // Success: swap the whole result area for a green summary.
+      $('devLookupResult').innerHTML = `
+        <div class="dev-confirm" style="background: rgba(63, 185, 80, 0.08); border-color: rgba(63, 185, 80, 0.4);">
+          <strong>User deleted.</strong>
+          <div class="meta-line" style="margin-top: 6px;">
+            <span>Email: <code>${escapeHtml(data.deleted_email)}</code></span>
+            <span>UUID: <code>${escapeHtml(data.deleted_user_id)}</code></span>
+            <span>Per-block comments cleaned: ${data.comments_cleaned ?? 0}</span>
+          </div>
+          <div class="meta-line">Audit-log row written before the wipe. Refresh Audit log to see it.</div>
+        </div>
+      `;
+      // Lookups cleared so a stale search doesn't lead into a stale confirm.
+      devLookedUpUser = null;
+      // Refresh the staff list + audit log so anyone viewing those tabs
+      // sees the change.
+      if (typeof loadStaff === 'function') loadStaff();
+      if (typeof loadDashboard === 'function') loadDashboard();
+      toast('User ' + data.deleted_email + ' wiped.', 'success');
+    } catch (e) {
+      toast('Unexpected error: ' + (e?.message || e), 'error');
+      deleteBtn.disabled = false;
+      cancelBtn.disabled = false;
+      deleteBtn.textContent = original;
+    }
+  }
+
+  // ---- UUID-anywhere lookup + delete (dev tool) ---------------------------
+  // The companion card to "Delete a user". Paste any UUID, find out
+  // which table(s) it's in, and delete one row + its cascades.
+
+  let devIdMatches = []; // last lookup_id_anywhere response: {table, kind, label}
+
+  function resetDevIdTool() {
+    devIdMatches = [];
+    $('devIdLookupResult').innerHTML = '';
+    $('devIdLookupUuid').value = '';
+  }
+
+  $('devIdLookupBtn').addEventListener('click', lookupDevId);
+  $('devIdLookupUuid').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') lookupDevId();
+  });
+
+  async function lookupDevId() {
+    const raw = $('devIdLookupUuid').value.trim();
+    const out = $('devIdLookupResult');
+    devIdMatches = [];
+    if (!raw) {
+      out.innerHTML = '<p class="muted">Type a UUID first.</p>';
+      return;
+    }
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) {
+      out.innerHTML = '<p class="dev-error">That doesn\'t look like a UUID (8-4-4-4-12 hex).</p>';
+      return;
+    }
+    out.innerHTML = '<p class="muted">Searching…</p>';
+    $('devIdLookupBtn').disabled = true;
+    try {
+      const { data, error } = await supabaseClient.rpc('lookup_id_anywhere', {
+        p_id: raw,
+      });
+      if (error) {
+        out.innerHTML = `<p class="dev-error">RPC error: ${escapeHtml(error.message)}</p>`;
+        return;
+      }
+      if (!data || data.ok !== true) {
+        const why = data?.reason || 'unknown';
+        out.innerHTML = `<p class="muted">No result. (reason: <code>${escapeHtml(why)}</code>)</p>`;
+        return;
+      }
+      devIdMatches = data.matches || [];
+      renderDevIdMatches(raw);
+    } finally {
+      $('devIdLookupBtn').disabled = false;
+    }
+  }
+
+  function renderDevIdMatches(uuid) {
+    const out = $('devIdLookupResult');
+    if (!devIdMatches.length) {
+      out.innerHTML = `<p class="muted">No rows in any searched table match <code>${escapeHtml(uuid)}</code>.</p>`;
+      return;
+    }
+    out.innerHTML = `
+      <p class="muted">${devIdMatches.length} match${devIdMatches.length === 1 ? '' : 'es'} for <code>${escapeHtml(uuid)}</code>:</p>
+      ${devIdMatches.map((m, i) => `
+        <div class="dev-user-card" data-table="${escapeHtml(m.table)}">
+          <div>
+            <div><strong>${escapeHtml(m.table)}</strong>
+              <span class="muted">(${escapeHtml(m.kind || 'row')})</span></div>
+            <div class="meta-line">${escapeHtml(m.label || '(no label)')}</div>
+          </div>
+          <div>
+            ${m.table === 'auth.users'
+              ? '<button class="btn" type="button" disabled title="Use the Delete-a-user tool above; auth.users deletion lives there.">Use user-deletion tool above</button>'
+              : `<button class="btn danger" data-act="delete-match" data-idx="${i}" type="button">Delete this row</button>`}
+          </div>
+        </div>
+      `).join('')}
+    `;
+    out.querySelectorAll('[data-act="delete-match"]').forEach((b) => {
+      b.addEventListener('click', () => showDevIdConfirm(parseInt(b.dataset.idx, 10)));
+    });
+  }
+
+  async function showDevIdConfirm(idx) {
+    const m = devIdMatches[idx];
+    if (!m) return;
+    const out = $('devIdLookupResult');
+    const existing = out.querySelector('.dev-confirm');
+    if (existing) existing.remove();
+    // Peek the row so we can show a "you are about to delete" preview.
+    let peek = null;
+    let peekErr = null;
+    try {
+      const { data, error } = await supabaseClient.rpc('peek_id', {
+        p_id: m.table === 'auth.users' ? null : $('devIdLookupUuid').value.trim(),
+        p_table: m.table,
+      });
+      if (error) peekErr = error.message;
+      else if (data && data.ok === true) peek = data.row;
+    } catch (e) {
+      peekErr = e?.message || String(e);
+    }
+    const wrap = document.createElement('div');
+    wrap.className = 'dev-confirm';
+    const preview = peek
+      ? `<pre class="code-block" style="max-height: 160px; overflow: auto;">${escapeHtml(JSON.stringify(peek, null, 2))}</pre>`
+      : (peekErr
+          ? `<p class="dev-error">Could not preview row (${escapeHtml(peekErr)}). The deletion can still proceed.</p>`
+          : '<p class="muted">Row preview unavailable — auth.users is excluded from peek_id.</p>');
+    wrap.innerHTML = `
+      <p class="label">Deleting from <code>${escapeHtml(m.table)}</code> · <strong>${escapeHtml(m.label || '(no label)')}</strong></p>
+      ${preview}
+      <p class="label" style="margin-top: 12px;">To confirm, type the literal word <code>DELETE</code>:</p>
+      <input type="text" id="devIdConfirmWord" placeholder="Type DELETE" autocomplete="off" />
+      <p class="desc" style="color: var(--text-3); font-size: 12px; margin: 6px 0 10px;">
+        This deletes the row above. Cascading FKs (lesson_blocks for a lesson,
+        lesson_block_comments for a block, etc.) will fire automatically.
+        Cascade behaviour depends on the table's foreign keys — check the
+        schema before you commit.
+      </p>
+      <div class="dev-actions">
+        <button class="btn"        id="devIdConfirmCancel" type="button">Cancel</button>
+        <button class="btn danger" id="devIdConfirmDelete" type="button">Wipe row</button>
+      </div>
+    `;
+    out.appendChild(wrap);
+    wrap.querySelector('#devIdConfirmWord').focus();
+    wrap.querySelector('#devIdConfirmCancel').addEventListener('click', () => wrap.remove());
+    wrap.querySelector('#devIdConfirmDelete').addEventListener('click', () => executeDevIdDelete(wrap, m));
+  }
+
+  async function executeDevIdDelete(wrap, match) {
+    const wordIn = wrap.querySelector('#devIdConfirmWord').value;
+    const deleteBtn = wrap.querySelector('#devIdConfirmDelete');
+    const cancelBtn = wrap.querySelector('#devIdConfirmCancel');
+    if (wordIn !== 'DELETE') {
+      toast('Type DELETE (uppercase, exactly) to confirm.', 'error');
+      return;
+    }
+    if (match.table === 'auth.users') {
+      toast('Use the user-deletion tool above for auth.users rows.', 'error');
+      return;
+    }
+    const uuid = $('devIdLookupUuid').value.trim();
+    deleteBtn.disabled = true;
+    cancelBtn.disabled = true;
+    const original = deleteBtn.textContent;
+    deleteBtn.textContent = 'Wiping…';
+    const ERROR_FOR = {
+      confirm_required: 'Type DELETE (uppercase, exactly) to confirm.',
+      unsupported_table: `Table "${match.table}" isn't exposed to delete_by_id yet.`,
+      not_found: 'Row no longer exists.',
+      admin_only: 'Server says this RPC is admin-only.',
+      not_authenticated: 'Not signed in.',
+      id_required: 'No id provided.',
+      table_required: 'No table provided.',
+    };
+    try {
+      const { data, error } = await supabaseClient.rpc('delete_by_id', {
+        p_id: uuid,
+        p_confirm: 'DELETE',
+        p_table: match.table,
+      });
+      if (error) {
+        toast('RPC error: ' + error.message, 'error');
+        deleteBtn.disabled = false;
+        cancelBtn.disabled = false;
+        deleteBtn.textContent = original;
+        return;
+      }
+      if (!data || data.ok !== true) {
+        const reason = data?.reason || 'unknown';
+        toast(ERROR_FOR[reason] || ('Delete refused: ' + reason), 'error');
+        deleteBtn.disabled = false;
+        cancelBtn.disabled = false;
+        deleteBtn.textContent = original;
+        return;
+      }
+      // Success: swap in a green summary.
+      const label = data.label || match.label;
+      $('devIdLookupResult').innerHTML = `
+        <div class="dev-confirm" style="background: rgba(63, 185, 80, 0.08); border-color: rgba(63, 185, 80, 0.4);">
+          <strong>Row deleted.</strong>
+          <div class="meta-line" style="margin-top: 6px;">
+            <span>Table: <code>${escapeHtml(data.table)}</code></span>
+            <span>UUID: <code>${escapeHtml(data.id)}</code></span>
+            <span>Rows affected: ${data.rows_deleted ?? 0}</span>
+          </div>
+          <div class="meta-line">Label: ${escapeHtml(label)}</div>
+          <div class="meta-line">Audit-log row recorded as <code>row_deleted</code>.</div>
+        </div>
+      `;
+      devIdMatches = [];
+      if (typeof loadDashboard === 'function') loadDashboard();
+      if (typeof loadAudit === 'function') loadAudit();
+      if (typeof loadLessons === 'function') loadLessons();
+      toast('Row from ' + data.table + ' wiped.', 'success');
+    } catch (e) {
+      toast('Unexpected error: ' + (e?.message || e), 'error');
+      deleteBtn.disabled = false;
+      cancelBtn.disabled = false;
+      deleteBtn.textContent = original;
+    }
   }
 
   // =========================================================================

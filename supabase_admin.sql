@@ -146,13 +146,7 @@ create table if not exists public.staff_audit_log (
   id            uuid primary key default gen_random_uuid(),
   actor_id      uuid references auth.users(id) on delete set null,
   target_id     uuid references auth.users(id) on delete set null,
-  action        text not null
-                check (action in (
-                  'invite_sent', 'invite_revoked', 'invite_resent',
-                  'role_changed', 'access_revoked',
-                  'lesson_published', 'lesson_unpublished', 'lesson_archived',
-                  'admin_login', 'admin_action'
-                )),
+  action        text not null,
   resource_type text,
   resource_id   uuid,
   metadata      jsonb not null default '{}'::jsonb,
@@ -160,6 +154,21 @@ create table if not exists public.staff_audit_log (
   user_agent    text,
   created_at    timestamptz not null default now()
 );
+-- The CHECK constraint is added separately so we can widen the action
+-- allowlist without dropping the table. ALTER ... DROP CONSTRAINT IF
+-- EXISTS keeps the migration idempotent.
+alter table public.staff_audit_log
+  drop constraint if exists staff_audit_log_action_check;
+alter table public.staff_audit_log
+  add constraint staff_audit_log_action_check
+  check (action in (
+    'invite_sent', 'invite_revoked', 'invite_resent',
+    'role_changed', 'access_revoked',
+    'lesson_published', 'lesson_unpublished', 'lesson_archived',
+    'admin_login', 'admin_action',
+    'user_deleted',
+    'row_deleted'
+  ));
 create index if not exists staff_audit_actor_idx  on public.staff_audit_log (actor_id, created_at desc);
 create index if not exists staff_audit_target_idx on public.staff_audit_log (target_id, created_at desc);
 create index if not exists staff_audit_action_idx on public.staff_audit_log (action, created_at desc);
@@ -219,6 +228,11 @@ drop function if exists public.list_lesson_block_comments(uuid);
 drop function if exists public.add_lesson_block_comment(uuid, text);
 drop function if exists public.update_lesson_block_comment(uuid, text, boolean);
 drop function if exists public.delete_lesson_block_comment(uuid);
+drop function if exists public.lookup_user_by_email(text);
+drop function if exists public.delete_user_by_id(uuid, text, text);
+drop function if exists public.lookup_id_anywhere(uuid);
+drop function if exists public.peek_id(uuid, text);
+drop function if exists public.delete_by_id(uuid, text, text);
 
 create or replace function public._log_staff_action(
   p_action        text,
@@ -1458,7 +1472,658 @@ $$;
 
 grant execute on function public.delete_lesson_block_comment(uuid, boolean) to authenticated;
 
--- ---------- 13. DIAGNOSTIC: WHAT FUNCTIONS DOES THE LIVE DB ACTUALLY HAVE?
+-- ---------- 13. DEV TOOL: USER LOOKUP + WIPE --------------------------------
+-- Admin-only helpers used by the "Developer tools" panel in
+-- admin.html. The intent is to scrub a user (their email, profile,
+-- all FK-referencing rows that don't auto-cascade, and the auth.users
+-- row itself) so a developer can reset a test account between
+-- experiments without poking around in the Supabase dashboard.
+--
+-- Both functions gate on the caller's role = 'admin'. The delete
+-- function additionally requires a typed confirmation string so a
+-- stray click can't take out a real user.
+--
+-- IMPORTANT: this is intentional destructive functionality. The
+-- admin UI surfaces the confirmation gate (typed email + literal
+-- DELETE word) so the cost of an accident is high enough to make
+-- the admin slow down. There is no undo.
+
+-- 13a. lookup_user_by_email: find an auth.users row + its profile
+-- by exact email match. Returns a jsonb so we can carry nullable
+-- fields cleanly (e.g. a profile row may not exist for a sign-up
+-- that errored halfway through).
+create or replace function public.lookup_user_by_email(p_email text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_caller  uuid := auth.uid();
+  v_email   text := lower(trim(coalesce(p_email, '')));
+  v_auth    auth.users%rowtype;
+  v_profile public.profiles%rowtype;
+begin
+  if v_caller is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
+  end if;
+  if not exists (
+    select 1 from public.profiles
+     where id = v_caller and role = 'admin' and deleted_at is null
+  ) then
+    return jsonb_build_object('ok', false, 'reason', 'admin_only');
+  end if;
+  if v_email = '' then
+    return jsonb_build_object('ok', false, 'reason', 'email_required');
+  end if;
+
+  select * into v_auth from auth.users where lower(email::text) = v_email limit 1;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'not_found');
+  end if;
+  select * into v_profile from public.profiles where id = v_auth.id;
+
+  return jsonb_build_object(
+    'ok', true,
+    'user', jsonb_build_object(
+      'id',              v_auth.id,
+      'email',           v_auth.email::text,
+      'created_at',      v_auth.created_at,
+      'last_sign_in_at', v_auth.last_sign_in_at,
+      'confirmed_at',    v_auth.confirmed_at,
+      'profile',         case when v_profile.id is not null then to_jsonb(v_profile) else null end
+    )
+  );
+end;
+$$;
+
+grant execute on function public.lookup_user_by_email(text) to authenticated;
+
+-- 13b. delete_user_by_id: wipe a user. Security model:
+--   * Caller must be admin (re-checked inside, not trusted from the UI).
+--   * Caller cannot delete themselves (the WHERE-check in the UI is
+--     paired with a server-side guard here, defense-in-depth).
+--   * Requires three things in the call: the target uuid, the
+--     confirmation token "DELETE", and the target's email (re-typed
+--     so the admin proves they really picked this row).
+--   * Audit-log row inserted BEFORE the deletion so even if the
+--     delete partially fails, there is a record of who tried what.
+--
+-- What gets deleted, in order:
+--   1. lesson_block_comments  (no FK to auth.users; safe to wipe first)
+--   2. enrollments, lesson_progress, study_sessions, quiz_attempts,
+--      assignments, activity_log, subjects_progress... — all CASCADE
+--      to auth.users, so deleting auth.users covers them. Anything
+--      without a CASCADE (e.g. lesson_blocks.author_id is just a
+--      nullable uuid with no FK) is left as an orphaned reference.
+--      For dev purposes that's fine; the catalogue row stays.
+--   3. public.profiles (its PK IS the auth.users id, with ON DELETE
+--      CASCADE from auth.users).
+--   4. auth.users (the row that takes everything else with it).
+create or replace function public.delete_user_by_id(
+  p_target_user_id uuid,
+  p_confirm        text,
+  p_target_email   text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_caller  uuid := auth.uid();
+  v_target  auth.users%rowtype;
+  v_deleted_comments int := 0;
+  v_role    text;
+begin
+  if v_caller is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
+  end if;
+  if not exists (
+    select 1 from public.profiles
+     where id = v_caller and role = 'admin' and deleted_at is null
+  ) then
+    return jsonb_build_object('ok', false, 'reason', 'admin_only');
+  end if;
+  if p_target_user_id is null then
+    return jsonb_build_object('ok', false, 'reason', 'target_required');
+  end if;
+  if p_target_user_id = v_caller then
+    return jsonb_build_object('ok', false, 'reason', 'cannot_delete_self');
+  end if;
+  if coalesce(trim(p_confirm), '') <> 'DELETE' then
+    return jsonb_build_object('ok', false, 'reason', 'confirm_required');
+  end if;
+
+  -- Resolve the target row + its email so the admin's retyped email
+  -- can be cross-checked. Comparing against auth.users.email is the
+  -- trustworthy answer; trust nothing from the client.
+  select * into v_target from auth.users where id = p_target_user_id limit 1;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'not_found');
+  end if;
+  if lower(coalesce(p_target_email, '')) <> lower(v_target.email::text) then
+    return jsonb_build_object('ok', false, 'reason', 'email_mismatch');
+  end if;
+
+  -- Read role for the audit log before we delete profiles.
+  select role into v_role from public.profiles where id = v_target.id;
+
+  -- Audit FIRST. This row is what survives even if the cascade
+  -- below partially fails — we record actor, target (uuid will be
+  -- orphaned but still queryable in the log), the deleted email,
+  -- the prior role, and a count of cleaned comment rows.
+  perform public._log_staff_action(
+    'user_deleted', 'auth_user', v_target.id,
+    jsonb_build_object(
+      'deleted_email', v_target.email::text,
+      'prior_role',    v_role,
+      'note',          'admin-initiated wipe via delete_user_by_id RPC'
+    )
+  );
+
+  -- Wipe per-block comments authored by this user. The table's FK
+  -- to auth.users is ON DELETE CASCADE, so deleting the auth row
+  -- covers it, but we do it explicitly here so we can report a count
+  -- and so the cleanup happens even if some other migration later
+  -- drops the FK.
+  delete from public.lesson_block_comments where author_id = v_target.id;
+  get diagnostics v_deleted_comments = row_count;
+
+  -- Profile (PK = auth.users id) — FK is ON DELETE CASCADE so the
+  -- auth.users deletion below would cover this, but doing it
+  -- explicitly gives us a hard-failure surface if the cascade chain
+  -- breaks in a future migration.
+  delete from public.profiles where id = v_target.id;
+
+  -- The big one. auth.users deletion cascades most per-user tables
+  -- (enrollments, lesson_progress, study_sessions, quiz_attempts,
+  -- assignments, activity_log, parental_consents as parent_email
+  -- entries, lesson_block_comments, etc. per the ON DELETE CASCADE
+  -- FKs across the codebase). Tables with a plain uuid column
+  -- (lesson_blocks.author_id, lessons.author_id, lessons.published_by,
+  -- staff_audit_log.actor_id / target_id, staff_invites.invited_by /
+  -- accepted_by) are SET NULL — those references stay but the user
+  -- can't be reverse-traced, which is the right audit-log behaviour
+  -- (we don't want to lose the historical record of who did what).
+  delete from auth.users where id = v_target.id;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'auth_delete_failed');
+  end if;
+
+  return jsonb_build_object(
+    'ok', true,
+    'deleted_user_id', v_target.id,
+    'deleted_email',   v_target.email::text,
+    'comments_cleaned', v_deleted_comments
+  );
+end;
+$$;
+
+grant execute on function public.delete_user_by_id(uuid, text, text) to authenticated;
+
+-- ---------- 13c. DEV TOOL: LOOKUP / PEEK / DELETE BY UUID ----------------
+-- The "Lookup + delete a user" card handles auth.users; this is the
+-- "delete anything by its UUID" card. We don't try to enumerate every
+-- table in the schema (that's brittle); instead we query the most
+-- common UUID-PK tables and return every hit. For tables not in the
+-- search list, peek/delete return reason='unsupported_table'.
+--
+-- The delete RPC whitelists table names on the server so it cannot be
+-- used as a free-form DELETE engine on tables the admin shouldn't
+-- touch (e.g. internal-only RLS-protected tables). auth.users is
+-- handled by delete_user_by_id (with the rich cascade behaviour);
+-- this RPC refuses to touch auth.users directly.
+
+-- 13c-i. lookup_id_anywhere: scan every UUID-PK table we know about
+-- and return any rows that share the supplied id. The label is a
+-- short human-readable description ("Lesson: 'Plant Cells'") so the
+-- admin can tell at a glance which row is about to be deleted.
+--
+-- One round-trip: every check is a UNION ALL subquery that either
+-- hits an index (UUID PK) or returns no rows. The cost of a no-match
+-- scan is one indexed-lookup-or-empty per table.
+create or replace function public.lookup_id_anywhere(p_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+stable
+as $$
+declare
+  v_caller uuid := auth.uid();
+  v_out    jsonb := '[]'::jsonb;
+begin
+  if v_caller is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
+  end if;
+  if not exists (
+    select 1 from public.profiles
+     where id = v_caller and role = 'admin' and deleted_at is null
+  ) then
+    return jsonb_build_object('ok', false, 'reason', 'admin_only');
+  end if;
+  if p_id is null then
+    return jsonb_build_object('ok', false, 'reason', 'id_required');
+  end if;
+
+  -- Each branch pushes an entry onto the matches array only when the
+  -- row exists. The label is intentionally terse — the UI peeks the
+  -- row separately to get a fuller view before deletion.
+  -- 1. lessons
+  if exists (select 1 from public.lessons where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'lessons', 'kind', 'lesson',
+             'label', 'Lesson: ' || coalesce(title, '(untitled)') ||
+                      case when status = 'published' then ' (published)'
+                           when status = 'draft'     then ' (draft)'
+                           else '' end
+           )) into v_out
+      from public.lessons where id = p_id;
+  end if;
+  -- 2. lesson_blocks
+  if exists (select 1 from public.lesson_blocks where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'lesson_blocks', 'kind', 'lesson_block',
+             'label', 'Lesson block (' || coalesce(kind, '?') || ') in lesson ' ||
+                      coalesce((select title from public.lessons where id = lesson_blocks.lesson_id), '(unknown lesson)')
+           )) into v_out
+      from public.lesson_blocks where id = p_id;
+  end if;
+  -- 3. lesson_block_comments
+  if exists (select 1 from public.lesson_block_comments where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'lesson_block_comments', 'kind', 'comment',
+             'label', 'Per-block comment by ' || coalesce(
+                         (select full_name from public.profiles where id = lesson_block_comments.author_id),
+                         (select split_part(email::text, '@', 1) from auth.users where id = lesson_block_comments.author_id),
+                         'unknown') ||
+                      substring(body, 1, 60)
+           )) into v_out
+      from public.lesson_block_comments where id = p_id;
+  end if;
+  -- 4. topics
+  if exists (select 1 from public.topics where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'topics', 'kind', 'topic',
+             'label', 'Topic: ' || coalesce(name, '(untitled)')
+           )) into v_out
+      from public.topics where id = p_id;
+  end if;
+  -- 5. subjects
+  if exists (select 1 from public.subjects where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'subjects', 'kind', 'subject',
+             'label', 'Subject: ' || coalesce(name, '(untitled)')
+           )) into v_out
+      from public.subjects where id = p_id;
+  end if;
+  -- 6. units
+  if exists (select 1 from public.units where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'units', 'kind', 'unit',
+             'label', 'Unit: ' || coalesce(name, '(untitled)')
+           )) into v_out
+      from public.units where id = p_id;
+  end if;
+  -- 7. exam_boards
+  if exists (select 1 from public.exam_boards where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'exam_boards', 'kind', 'exam_board',
+             'label', 'Exam board: ' || coalesce(name, '(untitled)')
+           )) into v_out
+      from public.exam_boards where id = p_id;
+  end if;
+  -- 8. year_levels
+  if exists (select 1 from public.year_levels where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'year_levels', 'kind', 'year_level',
+             'label', 'Year level: ' || coalesce(label, '(untitled)')
+           )) into v_out
+      from public.year_levels where id = p_id;
+  end if;
+  -- 9. profiles
+  if exists (select 1 from public.profiles where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'profiles', 'kind', 'profile',
+             'label', 'Profile: ' || coalesce(full_name, '(no name)') || ' (' || role || ')'
+           )) into v_out
+      from public.profiles where id = p_id;
+  end if;
+  -- 10. staff_invites
+  if exists (select 1 from public.staff_invites where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'staff_invites', 'kind', 'invite',
+             'label', 'Invite: ' || coalesce(email, '(no email)') || ' (' || role || ', ' || status || ')'
+           )) into v_out
+      from public.staff_invites where id = p_id;
+  end if;
+  -- 11. assignments
+  if exists (select 1 from public.assignments where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'assignments', 'kind', 'assignment',
+             'label', 'Assignment: ' || coalesce(title, '(untitled)')
+           )) into v_out
+      from public.assignments where id = p_id;
+  end if;
+  -- 12. classes
+  if exists (select 1 from public.classes where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'classes', 'kind', 'class',
+             'label', 'Class: ' || coalesce(name, '(untitled)')
+           )) into v_out
+      from public.classes where id = p_id;
+  end if;
+  -- 13. schools
+  if exists (select 1 from public.schools where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'schools', 'kind', 'school',
+             'label', 'School: ' || coalesce(name, '(untitled)')
+           )) into v_out
+      from public.schools where id = p_id;
+  end if;
+  -- 14. lesson_progress
+  if exists (select 1 from public.lesson_progress where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'lesson_progress', 'kind', 'progress',
+             'label', 'Lesson progress (status=' || coalesce(status::text, '?') || ')'
+           )) into v_out
+      from public.lesson_progress where id = p_id;
+  end if;
+  -- 15. quiz_attempts
+  if exists (select 1 from public.quiz_attempts where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'quiz_attempts', 'kind', 'quiz_attempt',
+             'label', 'Quiz attempt (score=' || coalesce(score::text, '?') || ')'
+           )) into v_out
+      from public.quiz_attempts where id = p_id;
+  end if;
+  -- 16. study_sessions
+  if exists (select 1 from public.study_sessions where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'study_sessions', 'kind', 'study_session',
+             'label', 'Study session (' || coalesce(duration_seconds::text, '?') || 's)'
+           )) into v_out
+      from public.study_sessions where id = p_id;
+  end if;
+  -- 17. auth.users (read-only — admin tools shouldn't nuke users without
+  -- using delete_user_by_id which has the right cascade behaviour;
+  -- we surface the match here so the admin sees it but block deletion
+  -- via delete_by_id with reason='use_delete_user_by_id')
+  if exists (select 1 from auth.users where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'auth.users', 'kind', 'auth_user',
+             'label', 'Auth user: ' || coalesce(email::text, '(no email)')
+           )) into v_out
+      from auth.users where id = p_id;
+  end if;
+
+  return jsonb_build_object('ok', true, 'id', p_id, 'matches', v_out);
+end;
+$$;
+
+grant execute on function public.lookup_id_anywhere(uuid) to authenticated;
+
+-- 13c-ii. peek_id: get a row by id + table. Returns the row as to_jsonb
+-- so the admin UI can render a "you are about to delete" preview.
+-- Whitelist the table so a malicious caller can't use this to peek
+-- internal-only tables (e.g. auth.users — use lookup_user_by_email
+-- for that).
+create or replace function public.peek_id(p_id uuid, p_table text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+stable
+as $$
+declare
+  v_caller uuid := auth.uid();
+  v_table  text := lower(trim(coalesce(p_table, '')));
+  v_row    jsonb;
+begin
+  if v_caller is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
+  end if;
+  if not exists (
+    select 1 from public.profiles
+     where id = v_caller and role = 'admin' and deleted_at is null
+  ) then
+    return jsonb_build_object('ok', false, 'reason', 'admin_only');
+  end if;
+  if p_id is null then
+    return jsonb_build_object('ok', false, 'reason', 'id_required');
+  end if;
+  -- Whitelist. Lookups on tables not in this list return reason so the
+  -- caller can tell the difference between "row exists but unsupported"
+  -- and "row missing".
+  if v_table not in (
+    'lessons','lesson_blocks','lesson_block_comments',
+    'topics','subjects','units','exam_boards','year_levels',
+    'staff_invites','assignments','classes','schools',
+    'lesson_progress','quiz_attempts','study_sessions'
+  ) then
+    return jsonb_build_object('ok', false, 'reason', 'unsupported_table',
+                             'table', v_table);
+  end if;
+
+  -- Each branch selects the matching row and converts to jsonb. We
+  -- don't quote_ident() the table name into dynamic SQL — instead we
+  -- use a CASE ladder of static statements. Slightly verbose, but it
+  -- means there's no SQL injection surface and the planner can be
+  -- smarter (each branch references a specific table with explicit
+  -- schema).
+  if v_table = 'lessons' then
+    select to_jsonb(l.*) into v_row from public.lessons l where l.id = p_id;
+  elsif v_table = 'lesson_blocks' then
+    select to_jsonb(l.*) into v_row from public.lesson_blocks l where l.id = p_id;
+  elsif v_table = 'lesson_block_comments' then
+    select to_jsonb(l.*) into v_row from public.lesson_block_comments l where l.id = p_id;
+  elsif v_table = 'topics' then
+    select to_jsonb(l.*) into v_row from public.topics l where l.id = p_id;
+  elsif v_table = 'subjects' then
+    select to_jsonb(l.*) into v_row from public.subjects l where l.id = p_id;
+  elsif v_table = 'units' then
+    select to_jsonb(l.*) into v_row from public.units l where l.id = p_id;
+  elsif v_table = 'exam_boards' then
+    select to_jsonb(l.*) into v_row from public.exam_boards l where l.id = p_id;
+  elsif v_table = 'year_levels' then
+    select to_jsonb(l.*) into v_row from public.year_levels l where l.id = p_id;
+  elsif v_table = 'staff_invites' then
+    select to_jsonb(l.*) into v_row from public.staff_invites l where l.id = p_id;
+  elsif v_table = 'assignments' then
+    select to_jsonb(l.*) into v_row from public.assignments l where l.id = p_id;
+  elsif v_table = 'classes' then
+    select to_jsonb(l.*) into v_row from public.classes l where l.id = p_id;
+  elsif v_table = 'schools' then
+    select to_jsonb(l.*) into v_row from public.schools l where l.id = p_id;
+  elsif v_table = 'lesson_progress' then
+    select to_jsonb(l.*) into v_row from public.lesson_progress l where l.id = p_id;
+  elsif v_table = 'quiz_attempts' then
+    select to_jsonb(l.*) into v_row from public.quiz_attempts l where l.id = p_id;
+  elsif v_table = 'study_sessions' then
+    select to_jsonb(l.*) into v_row from public.study_sessions l where l.id = p_id;
+  end if;
+
+  if v_row is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_found',
+                             'table', v_table);
+  end if;
+  return jsonb_build_object('ok', true, 'table', v_table, 'row', v_row);
+end;
+$$;
+
+grant execute on function public.peek_id(uuid, text) to authenticated;
+
+-- 13c-iii. delete_by_id: delete a row by id from a whitelisted table.
+-- Same safety model as peek_id: caller must be admin, confirm='DELETE',
+-- table name must be in the supported list. Refuses auth.users so the
+-- admin must use delete_user_by_id (which has the right cascade).
+--
+-- Cascades: every supported table has FKs defined on it, so when the
+-- row is deleted the cascades fire (e.g. delete a lesson → lesson_blocks,
+-- lesson_progress, quiz_attempts all go). Where cascades fire depends on
+-- the table — the UI doesn't try to enumerate this; the admin trusts the
+-- foreign keys they're seeing in the schema.
+create or replace function public.delete_by_id(
+  p_id      uuid,
+  p_confirm text,
+  p_table   text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_caller    uuid := auth.uid();
+  v_table     text := lower(trim(coalesce(p_table, '')));
+  v_deleted   int  := 0;
+  v_label     text;
+  v_metadata  jsonb;
+begin
+  if v_caller is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
+  end if;
+  if not exists (
+    select 1 from public.profiles
+     where id = v_caller and role = 'admin' and deleted_at is null
+  ) then
+    return jsonb_build_object('ok', false, 'reason', 'admin_only');
+  end if;
+  if p_id is null then
+    return jsonb_build_object('ok', false, 'reason', 'id_required');
+  end if;
+  if v_table = '' then
+    return jsonb_build_object('ok', false, 'reason', 'table_required');
+  end if;
+  if coalesce(trim(p_confirm), '') <> 'DELETE' then
+    return jsonb_build_object('ok', false, 'reason', 'confirm_required');
+  end if;
+
+  -- Same whitelist as peek_id. Tables here MUST match peek_id so the
+  -- admin can preview the row they're about to delete.
+  if v_table not in (
+    'lessons','lesson_blocks','lesson_block_comments',
+    'topics','subjects','units','exam_boards','year_levels',
+    'staff_invites','assignments','classes','schools',
+    'lesson_progress','quiz_attempts','study_sessions'
+  ) then
+    return jsonb_build_object('ok', false, 'reason', 'unsupported_table',
+                             'table', v_table);
+  end if;
+
+  -- Read the row's display label BEFORE we delete it so the audit row
+  -- has a meaningful "what was this" string.
+  if v_table = 'lessons' then
+    select title into v_label from public.lessons where id = p_id;
+  elsif v_table = 'lesson_blocks' then
+    select 'kind=' || coalesce(kind::text, '?') || ' in lesson=' || coalesce(lesson_id::text, '?')
+      into v_label from public.lesson_blocks where id = p_id;
+  elsif v_table = 'lesson_block_comments' then
+    select 'body=' || substring(coalesce(body, ''), 1, 120)
+      into v_label from public.lesson_block_comments where id = p_id;
+  elsif v_table = 'topics' then
+    select name into v_label from public.topics where id = p_id;
+  elsif v_table = 'subjects' then
+    select name into v_label from public.subjects where id = p_id;
+  elsif v_table = 'units' then
+    select name into v_label from public.units where id = p_id;
+  elsif v_table = 'exam_boards' then
+    select name into v_label from public.exam_boards where id = p_id;
+  elsif v_table = 'year_levels' then
+    select label into v_label from public.year_levels where id = p_id;
+  elsif v_table = 'staff_invites' then
+    select email into v_label from public.staff_invites where id = p_id;
+  elsif v_table = 'assignments' then
+    select title into v_label from public.assignments where id = p_id;
+  elsif v_table = 'classes' then
+    select name into v_label from public.classes where id = p_id;
+  elsif v_table = 'schools' then
+    select name into v_label from public.schools where id = p_id;
+  elsif v_table = 'lesson_progress' then
+    select 'user=' || coalesce(user_id::text, '?') || ' lesson=' || coalesce(lesson_id::text, '?')
+      into v_label from public.lesson_progress where id = p_id;
+  elsif v_table = 'quiz_attempts' then
+    select 'user=' || coalesce(user_id::text, '?') || ' lesson=' || coalesce(lesson_id::text, '?')
+      into v_label from public.quiz_attempts where id = p_id;
+  elsif v_table = 'study_sessions' then
+    select 'user=' || coalesce(user_id::text, '?')
+      into v_label from public.study_sessions where id = p_id;
+  end if;
+
+  if v_label is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_found',
+                             'table', v_table, 'id', p_id);
+  end if;
+
+  v_metadata := jsonb_build_object(
+    'table', v_table,
+    'id', p_id,
+    'label', v_label,
+    'note',  'admin-initiated row delete via delete_by_id RPC'
+  );
+
+  -- Audit FIRST so we have a record even if the cascade below has a
+  -- problem on some downstream table.
+  perform public._log_staff_action(
+    'row_deleted', v_table, p_id, v_metadata
+  );
+
+  -- Now delete. Statically-named statements again — no dynamic SQL
+  -- because the table name is the only field the client could try to
+  -- inject, and we already validated it via the whitelist.
+  if v_table = 'lessons' then
+    delete from public.lessons where id = p_id;
+  elsif v_table = 'lesson_blocks' then
+    delete from public.lesson_blocks where id = p_id;
+  elsif v_table = 'lesson_block_comments' then
+    delete from public.lesson_block_comments where id = p_id;
+  elsif v_table = 'topics' then
+    delete from public.topics where id = p_id;
+  elsif v_table = 'subjects' then
+    delete from public.subjects where id = p_id;
+  elsif v_table = 'units' then
+    delete from public.units where id = p_id;
+  elsif v_table = 'exam_boards' then
+    delete from public.exam_boards where id = p_id;
+  elsif v_table = 'year_levels' then
+    delete from public.year_levels where id = p_id;
+  elsif v_table = 'staff_invites' then
+    delete from public.staff_invites where id = p_id;
+  elsif v_table = 'assignments' then
+    delete from public.assignments where id = p_id;
+  elsif v_table = 'classes' then
+    delete from public.classes where id = p_id;
+  elsif v_table = 'schools' then
+    delete from public.schools where id = p_id;
+  elsif v_table = 'lesson_progress' then
+    delete from public.lesson_progress where id = p_id;
+  elsif v_table = 'quiz_attempts' then
+    delete from public.quiz_attempts where id = p_id;
+  elsif v_table = 'study_sessions' then
+    delete from public.study_sessions where id = p_id;
+  end if;
+  get diagnostics v_deleted = row_count;
+
+  if v_deleted = 0 then
+    -- Row was deleted between our SELECT and our DELETE (a race).
+    -- The audit row is still recorded; surface the row_count so the
+    -- admin sees the SQL went through cleanly.
+    v_deleted := 0;
+  end if;
+  return jsonb_build_object(
+    'ok', true,
+    'table', v_table,
+    'id', p_id,
+    'label', v_label,
+    'rows_deleted', v_deleted
+  );
+end;
+$$;
+
+grant execute on function public.delete_by_id(uuid, text, text) to authenticated;
+
+-- ---------- 14. DIAGNOSTIC: WHAT FUNCTIONS DOES THE LIVE DB ACTUALLY HAVE?
 -- Run this query in the Supabase SQL editor to verify every function
 -- in this file is installed with the right signature. The function
 -- names and parameter types listed below should match the result
@@ -1501,7 +2166,12 @@ grant execute on function public.delete_lesson_block_comment(uuid, boolean) to a
 --     'list_lesson_block_comments',
 --     'add_lesson_block_comment',
 --     'update_lesson_block_comment',
---     'delete_lesson_block_comment'
+--     'delete_lesson_block_comment',
+--     'lookup_user_by_email',
+--     'delete_user_by_id',
+--     'lookup_id_anywhere',
+--     'peek_id',
+--     'delete_by_id'
 --   )
 -- ORDER BY p.proname;
 
