@@ -304,20 +304,25 @@
     try {
       const { data, error } = await supabaseClient.rpc('lookup_school_by_code', { p_code: code });
       if (error) { setSchoolHint('Couldn\'t check that code: ' + error.message, 'error'); return; }
-      if (!data || data.ok !== true) {
+      // The RPC returns SETOF — supabase-js hands us back an array of
+      // rows. Take the first one (there is only ever one row in this
+      // function's design) so the rest of this code can keep treating
+      // the result as a single object.
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row || row.ok !== true) {
         resolvedSchool = null;
         $('schoolBanner').hidden = true;
         $('submitBtn').disabled = true;
-        if (data && data.reason === 'empty') {
+        if (row && row.reason === 'empty') {
           setSchoolHint('Type a school code to continue.', null);
         } else {
           setSchoolHint('Invalid school code. Ask your school administrator to issue you one.', 'error');
         }
         return;
       }
-      resolvedSchool = { school_id: data.school_id, school_name: data.school_name, school_code: data.school_code };
-      $('schoolName').textContent = data.school_name;
-      $('schoolCodeEcho').textContent = data.school_code;
+      resolvedSchool = { school_id: row.school_id, school_name: row.school_name, school_code: row.school_code };
+      $('schoolName').textContent = row.school_name;
+      $('schoolCodeEcho').textContent = row.school_code;
       $('schoolBanner').classList.remove('error');
       $('schoolBanner').hidden = false;
       $('submitBtn').disabled = false;
