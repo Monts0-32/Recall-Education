@@ -487,6 +487,15 @@ grant execute on function public.revoke_staff_invite(uuid) to authenticated;
 -- some clients when a stale view or function from a previous schema
 -- state was still installed — the explicit cast and the fully
 -- qualified join columns keep it deterministic.
+--
+-- We DROP first instead of relying on CREATE OR REPLACE because the
+-- return-table signature changed (added invited_by_name +
+-- invited_by_email). Postgres refuses to silently change a function's
+-- OUT-parameter row type via CREATE OR REPLACE — it sees a different
+-- row type and errors with 42P13. Dropping then re-creating is the
+-- supported way to change the signature. DROP IF EXISTS keeps the
+-- migration idempotent on a fresh install.
+drop function if exists public.list_staff_invites(text);
 create or replace function public.list_staff_invites(p_status text)
 returns table (
   id            uuid,
