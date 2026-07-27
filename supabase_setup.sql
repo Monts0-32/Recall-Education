@@ -39,6 +39,27 @@ create index if not exists parental_consents_token_idx
 -- ---------- 2. AUTO-CREATE A PROFILE ROW ON SIGNUP --------------------------
 -- Fires after auth.users gets a new row. Reads metadata the client put in
 -- options.data at signUp() time and writes it into profiles.
+--
+-- Two things are now handled here, server-side, atomically:
+--
+--   1. The basic profile row (full_name, year_group, dob, etc.).
+--   2. For school_organiser sign-ups, the public.schools row AND the
+--      promotion of profile.role from the default ('student') to
+--      'school_organiser' — both happen INSIDE the trigger, before
+--      any client-side code runs.
+--
+-- Why this matters:
+--   The previous version of this trigger only created the profile row
+--   with role='student' (the column default) and relied on the client
+--   to call public.create_school_and_organiser() from the email-
+--   confirmation page. That client-side call could be skipped for
+--   many reasons — the user closed the tab before the redirect,
+--   user_metadata.intended_role didn't propagate, the RPC silently
+--   errored, etc. — leaving the account stuck in 'student' state with
+--   no school row. Re-routing them to school-organiser-dashboard.html
+--   then bounced them to dashboard.html because current_role() said
+--   'student'. Moving the work into the trigger makes it atomic with
+--   the auth.users insert.
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -47,10 +68,24 @@ security definer
 set search_path = public
 as $$
 declare
-  meta jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
-  dob_text text := meta->>'dob';
-  dob_date date := null;
-  age_years int := null;
+  meta          jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
+  intended_role text  := meta->>'intended_role';
+  intended_school text := trim(coalesce(meta->>'intended_school', ''));
+  intended_plan text  := coalesce(nullif(trim(meta->>'intended_plan'), ''), 'free');
+  dob_text      text  := meta->>'dob';
+  dob_date      date  := null;
+  age_years     int   := null;
+
+  -- School-creation locals. Mirrors create_school_and_organiser() in
+  -- supabase_school_organisers.sql — kept inline rather than calling
+  -- the RPC because (a) the RPC's auth.uid() check is meaningless
+  -- from inside a trigger fired by the auth server, and (b) we want
+  -- this to be a single transaction with the profile insert below.
+  v_school_id   uuid;
+  v_alnum       text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  v_codenum     bigint;
+  v_code        text;
+  v_attempts    int := 0;
 begin
   if dob_text is not null and dob_text <> '' then
     begin
@@ -64,8 +99,43 @@ begin
     age_years := date_part('year', age(current_date, dob_date))::int;
   end if;
 
+  -- Organiser: generate a unique school code, insert the schools row,
+  -- and remember the id. We swallow unique_violation (SCH- code
+  -- collision OR the partial unique index on schools.owner_user_id)
+  -- because throwing here would abort the auth.users insert and lock
+  -- the user out of the platform entirely — better to leave them as
+  -- a student in that rare edge case than to break signup.
+  if intended_role = 'school_organiser' and intended_school <> '' then
+    loop
+      v_codenum := (random() * power(36::numeric, 6))::bigint;
+      v_code := 'SCH-';
+      for i in 1..6 loop
+        v_code := v_code || substr(v_alnum, 1 + (v_codenum % 32)::int, 1);
+        v_codenum := v_codenum / 32;
+      end loop;
+      v_attempts := v_attempts + 1;
+      begin
+        insert into public.schools (name, code, plan, owner_user_id)
+        values (intended_school, v_code, intended_plan, new.id)
+        returning id into v_school_id;
+        exit;
+      exception when unique_violation then
+        if v_attempts > 20 then
+          v_school_id := null;
+          exit;
+        end if;
+      end;
+    end loop;
+  end if;
+
+  -- Profile row. role defaults to 'student' via the column default;
+  -- we explicitly set 'school_organiser' only when we created a school.
+  -- The ON CONFLICT clause preserves the existing role/school_id when
+  -- the profile row was already there (e.g. re-firing of the trigger
+  -- or a retry of the sign-up flow).
   insert into public.profiles (
-    id, full_name, year_group, dob, parent_email, requires_parental_consent
+    id, full_name, year_group, dob, parent_email,
+    requires_parental_consent, role, school_id
   )
   values (
     new.id,
@@ -73,9 +143,16 @@ begin
     meta->>'year_group',
     dob_date,
     meta->>'parent_email',
-    coalesce(age_years is not null and age_years < 16, false)
+    coalesce(age_years is not null and age_years < 16, false),
+    case when v_school_id is not null then 'school_organiser' end,
+    v_school_id
   )
-  on conflict (id) do nothing;
+  on conflict (id) do update set
+    role      = case
+                  when excluded.role is not null then excluded.role
+                  else public.profiles.role
+                end,
+    school_id = coalesce(excluded.school_id, public.profiles.school_id);
 
   return new;
 end;

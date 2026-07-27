@@ -408,6 +408,131 @@ $$;
 
 grant execute on function public.create_school_and_organiser(uuid, text, text) to authenticated;
 
+-- Backfill for accounts that signed up as school_organiser BEFORE the
+-- handle_new_user trigger was updated to do the school-creation
+-- server-side. Those accounts have profile.role='student' and no
+-- schools row, because the old trigger only created the profile and
+-- the client-side create_school_and_organiser RPC was skipped for
+-- one of several reasons (closed tab, lost magic-link, etc).
+--
+-- Run this from the SQL editor once, with the user's auth id:
+--   select * from public.backfill_organiser_account('<user-uuid>');
+-- Or call it from admin.html if we add a UI for it later.
+--
+-- Idempotent: returns ok=true and reason='already_complete' if the
+-- account is already an organiser with a school. Returns ok=true with
+-- reason='promoted' if it had to do the work. Returns ok=false with a
+-- reason on failure (not_authenticated, admin_only, no_intent,
+-- school_name_empty, already_owns_school, no_auth_user).
+create or replace function public.backfill_organiser_account(p_user_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_caller     uuid := auth.uid();
+  v_meta       jsonb;
+  v_intended   text;
+  v_school_nm  text;
+  v_plan       text;
+  v_existing   uuid;
+  v_school_id  uuid;
+begin
+  -- Admin-only: this is a data-fix tool.
+  if v_caller is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
+  end if;
+  if not exists (
+    select 1 from public.profiles
+     where id = v_caller and role = 'admin' and deleted_at is null
+  ) then
+    return jsonb_build_object('ok', false, 'reason', 'admin_only');
+  end if;
+  if p_user_id is null then
+    return jsonb_build_object('ok', false, 'reason', 'id_required');
+  end if;
+
+  -- Already fixed?
+  select school_id into v_existing
+    from public.profiles where id = p_user_id;
+  if v_existing is not null
+     and exists (select 1 from public.profiles where id = p_user_id and role = 'school_organiser')
+     and exists (select 1 from public.schools where owner_user_id = p_user_id)
+  then
+    return jsonb_build_object('ok', true, 'reason', 'already_complete',
+                              'school_id', v_existing);
+  end if;
+
+  -- Pull intended_* from auth.users.raw_user_meta_data. We trust the
+  -- admin to verify the user actually intended to be an organiser
+  -- before invoking this; the metadata is the source of truth.
+  select raw_user_meta_data into v_meta from auth.users where id = p_user_id;
+  if v_meta is null then
+    return jsonb_build_object('ok', false, 'reason', 'no_auth_user');
+  end if;
+  v_intended  := v_meta->>'intended_role';
+  v_school_nm := trim(coalesce(v_meta->>'intended_school', ''));
+  v_plan      := coalesce(nullif(trim(v_meta->>'intended_plan'), ''), 'free');
+  if v_intended is distinct from 'school_organiser' then
+    return jsonb_build_object('ok', false, 'reason', 'no_intent',
+                              'intended_role', v_intended);
+  end if;
+  if v_school_nm = '' then
+    return jsonb_build_object('ok', false, 'reason', 'school_name_empty');
+  end if;
+
+  -- Re-use create_school_and_organiser's logic. We can't call it
+  -- directly because its auth.uid() check requires v_caller=p_user_id
+  -- (the user themselves), which an admin invocation can't satisfy.
+  -- Inline the same logic here, behind admin auth.
+  if exists (select 1 from public.schools where owner_user_id = p_user_id) then
+    return jsonb_build_object('ok', false, 'reason', 'already_owns_school');
+  end if;
+
+  declare
+    v_alnum     text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    v_codenum   bigint;
+    v_code      text;
+    v_attempts  int := 0;
+  begin
+    loop
+      v_codenum := (random() * power(36::numeric, 6))::bigint;
+      v_code := 'SCH-';
+      for i in 1..6 loop
+        v_code := v_code || substr(v_alnum, 1 + (v_codenum % 32)::int, 1);
+        v_codenum := v_codenum / 32;
+      end loop;
+      v_attempts := v_attempts + 1;
+      begin
+        insert into public.schools (name, code, plan, owner_user_id)
+        values (v_school_nm, v_code, v_plan, p_user_id)
+        returning id into v_school_id;
+        exit;
+      exception when unique_violation then
+        if v_attempts > 20 then
+          return jsonb_build_object('ok', false, 'reason', 'code_collision');
+        end if;
+      end;
+    end loop;
+  end;
+
+  insert into public.profiles (id, role, school_id)
+  values (p_user_id, 'school_organiser', v_school_id)
+  on conflict (id) do update
+    set role      = 'school_organiser',
+        school_id = v_school_id;
+
+  return jsonb_build_object(
+    'ok', true, 'reason', 'promoted',
+    'school_id',   v_school_id,
+    'school_name', v_school_nm
+  );
+end;
+$$;
+
+grant execute on function public.backfill_organiser_account(uuid) to authenticated;
+
 -- ============================================================================
 -- 12. ATTACH_STUDENT_TO_SCHOOL
 -- ============================================================================

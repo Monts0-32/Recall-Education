@@ -285,16 +285,29 @@
       const schoolName = meta.intended_school;
       const plan       = meta.intended_plan || 'free';
       if (schoolName) {
+        // Best-effort recovery: the server-side handle_new_user trigger
+        // should have already created the school + promoted the role
+        // at auth.users insert time. We only get here for sign-ups
+        // that pre-date that trigger (backfill) or where the trigger
+        // couldn't run (extremely rare — see the trigger comment).
+        // Surface errors to the console so they're debuggable instead
+        // of silently failing in production.
         try {
           const { data: cs, error: csErr } = await supabaseClient.rpc('create_school_and_organiser', {
             p_user_id: newUserIdSafe(user, meta),
             p_school_name: schoolName,
             p_plan: plan,
           });
-          if (!csErr && cs && cs.ok === true) {
+          if (csErr) {
+            console.warn('create_school_and_organiser (recovery) returned error:', csErr);
+          } else if (!cs || cs.ok !== true) {
+            console.warn('create_school_and_organiser (recovery) refused:', cs && cs.reason);
+          } else {
             school = { id: cs.school_id, name: cs.school_name, code: cs.school_code, plan: cs.plan };
           }
-        } catch (_) { /* best effort */ }
+        } catch (err) {
+          console.warn('create_school_and_organiser (recovery) threw:', err);
+        }
       }
     }
 

@@ -1846,7 +1846,128 @@ begin
            )) into v_out
       from public.study_sessions where id = p_id;
   end if;
-  -- 17. auth.users (read-only — admin tools shouldn't nuke users without
+  -- 17. profiles (already covered by the user-deletion tool above, but
+  --     also exposed here for completeness — useful when the user wants
+  --     to wipe just a profile row without nuking auth.users).
+  if exists (select 1 from public.profiles where id = p_id)
+     and not exists (
+       select 1 from jsonb_array_elements(v_out) e
+        where e->>'table' = 'profiles'
+     ) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'profiles', 'kind', 'profile',
+             'label', 'Profile: ' || coalesce(full_name, '(no name)') || ' (' || role || ')'
+           )) into v_out
+      from public.profiles where id = p_id;
+  end if;
+  -- 18. activity_log
+  if exists (select 1 from public.activity_log where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'activity_log', 'kind', 'activity',
+             'label', 'Activity log: ' || coalesce(kind::text, '?') ||
+                      ' (user=' || coalesce(user_id::text, '?') || ')'
+           )) into v_out
+      from public.activity_log where id = p_id;
+  end if;
+  -- 19. enrollments
+  if exists (select 1 from public.enrollments where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'enrollments', 'kind', 'enrollment',
+             'label', 'Enrollment: user=' || coalesce(user_id::text, '?') ||
+                      ' subject=' || coalesce(subject_id::text, '?')
+           )) into v_out
+      from public.enrollments where id = p_id;
+  end if;
+  -- 20. parental_consents
+  if exists (select 1 from public.parental_consents where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'parental_consents', 'kind', 'consent',
+             'label', 'Parental consent: student=' ||
+                      coalesce(student_user_id::text, '?') ||
+                      ' status=' || coalesce(status::text, '?')
+           )) into v_out
+      from public.parental_consents where id = p_id;
+  end if;
+  -- 21. live_lessons
+  if exists (select 1 from public.live_lessons where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'live_lessons', 'kind', 'live_lesson',
+             'label', 'Live lesson: ' || coalesce(title, '(untitled)')
+           )) into v_out
+      from public.live_lessons where id = p_id;
+  end if;
+  -- 22. class_members
+  if exists (select 1 from public.class_members where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'class_members', 'kind', 'class_member',
+             'label', 'Class member: class=' || coalesce(class_id::text, '?') ||
+                      ' user=' || coalesce(user_id::text, '?')
+           )) into v_out
+      from public.class_members where id = p_id;
+  end if;
+  -- 23. assignment_targets
+  if exists (select 1 from public.assignment_targets where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'assignment_targets', 'kind', 'assignment_target',
+             'label', 'Assignment target: assignment=' ||
+                      coalesce(assignment_id::text, '?')
+           )) into v_out
+      from public.assignment_targets where id = p_id;
+  end if;
+  -- 24. assignment_submissions
+  if exists (select 1 from public.assignment_submissions where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'assignment_submissions', 'kind', 'submission',
+             'label', 'Submission: student=' ||
+                      coalesce(student_user_id::text, '?')
+           )) into v_out
+      from public.assignment_submissions where id = p_id;
+  end if;
+  -- 25. assignment_resources
+  if exists (select 1 from public.assignment_resources where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'assignment_resources', 'kind', 'assignment_resource',
+             'label', 'Assignment resource: assignment=' ||
+                      coalesce(assignment_id::text, '?')
+           )) into v_out
+      from public.assignment_resources where id = p_id;
+  end if;
+  -- 26. school_invite_codes
+  if exists (select 1 from public.school_invite_codes where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'school_invite_codes', 'kind', 'school_invite_code',
+             'label', 'School invite code: ' || coalesce(code, '?') ||
+                      ' (school=' || coalesce(school_id::text, '?') || ')'
+           )) into v_out
+      from public.school_invite_codes where id = p_id;
+  end if;
+  -- 27. teacher_signup_codes
+  if exists (select 1 from public.teacher_signup_codes where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'teacher_signup_codes', 'kind', 'teacher_signup_code',
+             'label', 'Teacher signup code: ' || coalesce(code, '?')
+           )) into v_out
+      from public.teacher_signup_codes where id = p_id;
+  end if;
+  -- 28. class_rollups
+  if exists (select 1 from public.class_rollups where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'class_rollups', 'kind', 'class_rollup',
+             'label', 'Class rollup: class=' ||
+                      coalesce(class_id::text, '?')
+           )) into v_out
+      from public.class_rollups where id = p_id;
+  end if;
+  -- 29. school_dashboard_layouts
+  if exists (select 1 from public.school_dashboard_layouts where id = p_id) then
+    select v_out || jsonb_build_array(jsonb_build_object(
+             'table', 'school_dashboard_layouts', 'kind', 'layout',
+             'label', 'Dashboard layout: school=' ||
+                      coalesce(school_id::text, '?')
+           )) into v_out
+      from public.school_dashboard_layouts where id = p_id;
+  end if;
+  -- 30. auth.users (read-only — admin tools shouldn't nuke users without
   -- using delete_user_by_id which has the right cascade behaviour;
   -- we surface the match here so the admin sees it but block deletion
   -- via delete_by_id with reason='use_delete_user_by_id')
@@ -1900,7 +2021,16 @@ begin
     'lessons','lesson_blocks','lesson_block_comments',
     'topics','subjects','units','exam_boards','year_levels',
     'staff_invites','assignments','classes','schools',
-    'lesson_progress','quiz_attempts','study_sessions'
+    'lesson_progress','quiz_attempts','study_sessions',
+    -- Broadened coverage so the admin can wipe a row from any of the
+    -- tables the app writes to. Same set across peek_id, delete_by_id,
+    -- and lookup_id_anywhere. If you add a new public table, add it to
+    -- all three places.
+    'profiles','activity_log','enrollments','parental_consents',
+    'live_lessons','class_members',
+    'assignment_targets','assignment_submissions','assignment_resources',
+    'school_invite_codes','teacher_signup_codes',
+    'class_rollups','school_dashboard_layouts'
   ) then
     return jsonb_build_object('ok', false, 'reason', 'unsupported_table',
                              'table', v_table);
@@ -1942,6 +2072,32 @@ begin
     select to_jsonb(l.*) into v_row from public.quiz_attempts l where l.id = p_id;
   elsif v_table = 'study_sessions' then
     select to_jsonb(l.*) into v_row from public.study_sessions l where l.id = p_id;
+  elsif v_table = 'profiles' then
+    select to_jsonb(l.*) into v_row from public.profiles l where l.id = p_id;
+  elsif v_table = 'activity_log' then
+    select to_jsonb(l.*) into v_row from public.activity_log l where l.id = p_id;
+  elsif v_table = 'enrollments' then
+    select to_jsonb(l.*) into v_row from public.enrollments l where l.id = p_id;
+  elsif v_table = 'parental_consents' then
+    select to_jsonb(l.*) into v_row from public.parental_consents l where l.id = p_id;
+  elsif v_table = 'live_lessons' then
+    select to_jsonb(l.*) into v_row from public.live_lessons l where l.id = p_id;
+  elsif v_table = 'class_members' then
+    select to_jsonb(l.*) into v_row from public.class_members l where l.id = p_id;
+  elsif v_table = 'assignment_targets' then
+    select to_jsonb(l.*) into v_row from public.assignment_targets l where l.id = p_id;
+  elsif v_table = 'assignment_submissions' then
+    select to_jsonb(l.*) into v_row from public.assignment_submissions l where l.id = p_id;
+  elsif v_table = 'assignment_resources' then
+    select to_jsonb(l.*) into v_row from public.assignment_resources l where l.id = p_id;
+  elsif v_table = 'school_invite_codes' then
+    select to_jsonb(l.*) into v_row from public.school_invite_codes l where l.id = p_id;
+  elsif v_table = 'teacher_signup_codes' then
+    select to_jsonb(l.*) into v_row from public.teacher_signup_codes l where l.id = p_id;
+  elsif v_table = 'class_rollups' then
+    select to_jsonb(l.*) into v_row from public.class_rollups l where l.id = p_id;
+  elsif v_table = 'school_dashboard_layouts' then
+    select to_jsonb(l.*) into v_row from public.school_dashboard_layouts l where l.id = p_id;
   end if;
 
   if v_row is null then
@@ -2006,7 +2162,16 @@ begin
     'lessons','lesson_blocks','lesson_block_comments',
     'topics','subjects','units','exam_boards','year_levels',
     'staff_invites','assignments','classes','schools',
-    'lesson_progress','quiz_attempts','study_sessions'
+    'lesson_progress','quiz_attempts','study_sessions',
+    -- Broadened coverage so the admin can wipe a row from any of the
+    -- tables the app writes to. Same set across peek_id, delete_by_id,
+    -- and lookup_id_anywhere. If you add a new public table, add it to
+    -- all three places.
+    'profiles','activity_log','enrollments','parental_consents',
+    'live_lessons','class_members',
+    'assignment_targets','assignment_submissions','assignment_resources',
+    'school_invite_codes','teacher_signup_codes',
+    'class_rollups','school_dashboard_layouts'
   ) then
     return jsonb_build_object('ok', false, 'reason', 'unsupported_table',
                              'table', v_table);
@@ -2049,6 +2214,50 @@ begin
   elsif v_table = 'study_sessions' then
     select 'user=' || coalesce(user_id::text, '?')
       into v_label from public.study_sessions where id = p_id;
+  elsif v_table = 'profiles' then
+    select 'profile ' || coalesce(full_name, '(no name)') || ' (' || role || ')'
+      into v_label from public.profiles where id = p_id;
+  elsif v_table = 'activity_log' then
+    select 'activity ' || coalesce(kind::text, '?') ||
+           ' user=' || coalesce(user_id::text, '?')
+      into v_label from public.activity_log where id = p_id;
+  elsif v_table = 'enrollments' then
+    select 'enrollment user=' || coalesce(user_id::text, '?') ||
+           ' subject=' || coalesce(subject_id::text, '?')
+      into v_label from public.enrollments where id = p_id;
+  elsif v_table = 'parental_consents' then
+    select 'consent student=' || coalesce(student_user_id::text, '?') ||
+           ' status=' || coalesce(status::text, '?')
+      into v_label from public.parental_consents where id = p_id;
+  elsif v_table = 'live_lessons' then
+    select coalesce(title, '(untitled live lesson)')
+      into v_label from public.live_lessons where id = p_id;
+  elsif v_table = 'class_members' then
+    select 'class_member class=' || coalesce(class_id::text, '?') ||
+           ' user=' || coalesce(user_id::text, '?')
+      into v_label from public.class_members where id = p_id;
+  elsif v_table = 'assignment_targets' then
+    select 'target assignment=' || coalesce(assignment_id::text, '?')
+      into v_label from public.assignment_targets where id = p_id;
+  elsif v_table = 'assignment_submissions' then
+    select 'submission student=' || coalesce(student_user_id::text, '?')
+      into v_label from public.assignment_submissions where id = p_id;
+  elsif v_table = 'assignment_resources' then
+    select 'resource assignment=' || coalesce(assignment_id::text, '?')
+      into v_label from public.assignment_resources where id = p_id;
+  elsif v_table = 'school_invite_codes' then
+    select 'invite code ' || coalesce(code, '?') ||
+           ' school=' || coalesce(school_id::text, '?')
+      into v_label from public.school_invite_codes where id = p_id;
+  elsif v_table = 'teacher_signup_codes' then
+    select 'teacher signup code ' || coalesce(code, '?')
+      into v_label from public.teacher_signup_codes where id = p_id;
+  elsif v_table = 'class_rollups' then
+    select 'class_rollup class=' || coalesce(class_id::text, '?')
+      into v_label from public.class_rollups where id = p_id;
+  elsif v_table = 'school_dashboard_layouts' then
+    select 'layout school=' || coalesce(school_id::text, '?')
+      into v_label from public.school_dashboard_layouts where id = p_id;
   end if;
 
   if v_label is null then
@@ -2102,6 +2311,32 @@ begin
     delete from public.quiz_attempts where id = p_id;
   elsif v_table = 'study_sessions' then
     delete from public.study_sessions where id = p_id;
+  elsif v_table = 'profiles' then
+    delete from public.profiles where id = p_id;
+  elsif v_table = 'activity_log' then
+    delete from public.activity_log where id = p_id;
+  elsif v_table = 'enrollments' then
+    delete from public.enrollments where id = p_id;
+  elsif v_table = 'parental_consents' then
+    delete from public.parental_consents where id = p_id;
+  elsif v_table = 'live_lessons' then
+    delete from public.live_lessons where id = p_id;
+  elsif v_table = 'class_members' then
+    delete from public.class_members where id = p_id;
+  elsif v_table = 'assignment_targets' then
+    delete from public.assignment_targets where id = p_id;
+  elsif v_table = 'assignment_submissions' then
+    delete from public.assignment_submissions where id = p_id;
+  elsif v_table = 'assignment_resources' then
+    delete from public.assignment_resources where id = p_id;
+  elsif v_table = 'school_invite_codes' then
+    delete from public.school_invite_codes where id = p_id;
+  elsif v_table = 'teacher_signup_codes' then
+    delete from public.teacher_signup_codes where id = p_id;
+  elsif v_table = 'class_rollups' then
+    delete from public.class_rollups where id = p_id;
+  elsif v_table = 'school_dashboard_layouts' then
+    delete from public.school_dashboard_layouts where id = p_id;
   end if;
   get diagnostics v_deleted = row_count;
 
