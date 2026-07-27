@@ -100,32 +100,40 @@ begin
   end if;
 
   -- Organiser: generate a unique school code, insert the schools row,
-  -- and remember the id. We swallow unique_violation (SCH- code
-  -- collision OR the partial unique index on schools.owner_user_id)
-  -- because throwing here would abort the auth.users insert and lock
-  -- the user out of the platform entirely — better to leave them as
-  -- a student in that rare edge case than to break signup.
+  -- and remember the id. We swallow any exception here (SCH- code
+  -- collision OR the partial unique index on schools.owner_user_id OR
+  -- a transient RLS/permission issue) because throwing would abort the
+  -- auth.users insert and lock the user out of the platform entirely —
+  -- better to leave them as a student (with no school row) than to
+  -- break signup. The warning is visible in Postgres logs for ops to
+  -- backfill out-of-band.
   if intended_role = 'school_organiser' and intended_school <> '' then
-    loop
-      v_codenum := (random() * power(36::numeric, 6))::bigint;
-      v_code := 'SCH-';
-      for i in 1..6 loop
-        v_code := v_code || substr(v_alnum, 1 + (v_codenum % 32)::int, 1);
-        v_codenum := v_codenum / 32;
-      end loop;
-      v_attempts := v_attempts + 1;
-      begin
-        insert into public.schools (name, code, plan, owner_user_id)
-        values (intended_school, v_code, intended_plan, new.id)
-        returning id into v_school_id;
-        exit;
-      exception when unique_violation then
-        if v_attempts > 20 then
-          v_school_id := null;
+    begin
+      loop
+        v_codenum := (random() * power(36::numeric, 6))::bigint;
+        v_code := 'SCH-';
+        for i in 1..6 loop
+          v_code := v_code || substr(v_alnum, 1 + (v_codenum % 32)::int, 1);
+          v_codenum := v_codenum / 32;
+        end loop;
+        v_attempts := v_attempts + 1;
+        begin
+          insert into public.schools (name, code, plan, owner_user_id)
+          values (intended_school, v_code, intended_plan, new.id)
+          returning id into v_school_id;
           exit;
-        end if;
-      end;
-    end loop;
+        exception when unique_violation then
+          if v_attempts > 20 then
+            v_school_id := null;
+            exit;
+          end if;
+        end;
+      end loop;
+    exception when others then
+      raise warning 'handle_new_user: school insert failed for user % (%): %',
+        new.id, new.email, sqlerrm;
+      v_school_id := null;
+    end;
   end if;
 
   -- Profile row. role defaults to 'student' via the column default;
@@ -133,26 +141,38 @@ begin
   -- The ON CONFLICT clause preserves the existing role/school_id when
   -- the profile row was already there (e.g. re-firing of the trigger
   -- or a retry of the sign-up flow).
-  insert into public.profiles (
-    id, full_name, year_group, dob, parent_email,
-    requires_parental_consent, role, school_id
-  )
-  values (
-    new.id,
-    meta->>'full_name',
-    meta->>'year_group',
-    dob_date,
-    meta->>'parent_email',
-    coalesce(age_years is not null and age_years < 16, false),
-    case when v_school_id is not null then 'school_organiser' end,
-    v_school_id
-  )
-  on conflict (id) do update set
-    role      = case
-                  when excluded.role is not null then excluded.role
-                  else public.profiles.role
-                end,
-    school_id = coalesce(excluded.school_id, public.profiles.school_id);
+  --
+  -- Wrapped in its own exception handler so that ANY schema/RLS issue
+  -- here (missing column, RLS denial, constraint violation) does NOT
+  -- abort the auth.users insert. Signup is the more important outcome —
+  -- if a profile write fails, we log it via raise warning (visible in
+  -- Postgres logs) and still return new so the user can be created.
+  -- Admin can backfill the profile row out-of-band.
+  begin
+    insert into public.profiles (
+      id, full_name, year_group, dob, parent_email,
+      requires_parental_consent, role, school_id
+    )
+    values (
+      new.id,
+      meta->>'full_name',
+      meta->>'year_group',
+      dob_date,
+      meta->>'parent_email',
+      coalesce(age_years is not null and age_years < 16, false),
+      case when v_school_id is not null then 'school_organiser' end,
+      v_school_id
+    )
+    on conflict (id) do update set
+      role      = case
+                    when excluded.role is not null then excluded.role
+                    else public.profiles.role
+                  end,
+      school_id = coalesce(excluded.school_id, public.profiles.school_id);
+  exception when others then
+    raise warning 'handle_new_user: profile insert failed for user % (%): %',
+      new.id, new.email, sqlerrm;
+  end;
 
   return new;
 end;
