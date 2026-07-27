@@ -340,6 +340,28 @@
     });
   }
 
+  // ---------- friendly error mapper ----------
+  function explainAuthError(message) {
+    if (!message) return 'Something went wrong. Please try again.';
+    const m = message.toLowerCase();
+    if (m.includes('already registered') || m.includes('already been registered')) {
+      return 'An account with that email already exists. Try signing in instead.';
+    }
+    if (m.includes('password') && (m.includes('short') || m.includes('characters') || m.includes('12'))) {
+      return 'Password must be at least 12 characters.';
+    }
+    if (m.includes('rate limit') || m.includes('too many')) {
+      return 'Too many attempts. Wait a moment and try again.';
+    }
+    if (m.includes('valid email') || m.includes('email is invalid')) {
+      return 'Enter a valid email address.';
+    }
+    if (m.includes('signups not allowed') || m.includes('signup_disabled')) {
+      return 'New signups are temporarily paused. Please try again later.';
+    }
+    return message;
+  }
+
   // ---------- step 1: validate the invite code ----------
   $('codeForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -430,13 +452,24 @@
       if (error) {
         submitBtn.disabled = false;
         submitBtn.textContent = orig;
-        return showError('Sign-up failed: ' + error.message);
+        return showError(explainAuthError(error.message));
       }
       const newUserId = data && data.user && data.user.id;
       if (!newUserId) {
         submitBtn.disabled = false;
         submitBtn.textContent = orig;
         return showError('Account was created but we couldn\'t finalise the invitation. Please sign in and try again.');
+      }
+      // Supabase's email-enumeration prevention: when the email is already
+      // registered, signUp returns success with identities=[]. The email
+      // field is readonly on this page (set from the invite token in step
+      // 1), so this is a defense-in-depth check — catches the edge case
+      // where someone is already a Recall user with this email but is
+      // being invited as staff.
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = orig;
+        return showError(explainAuthError('User already registered'));
       }
 
       // We can't accept the invite right here — accept_staff_invite is

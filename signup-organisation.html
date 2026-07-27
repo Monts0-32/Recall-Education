@@ -245,6 +245,7 @@
       <div class="field">
         <label for="email">Email</label>
         <input type="email" id="email" name="email" placeholder="you@school.ac.uk" autocomplete="email" required />
+        <span class="hint" id="emailHint"></span>
       </div>
       <div class="field">
         <label for="name">Full name</label>
@@ -313,6 +314,67 @@
     $('err').classList.remove('show');
   }
 
+  // ---------- email pre-flight (already-registered?) ----------
+  // Debounced on blur so we don't hammer the RPC on every keystroke.
+  // UX-only — the identities guard in the submit handler is the
+  // authoritative defense.
+  let emailTaken = false;
+  let emailCheckTimer = null;
+  $('email').addEventListener('blur', () => {
+    if (emailCheckTimer) clearTimeout(emailCheckTimer);
+    emailCheckTimer = setTimeout(() => checkEmailAvailability($('email').value), 400);
+  });
+  $('email').addEventListener('input', () => {
+    if (emailTaken) {
+      emailTaken = false;
+      setEmailHint('', null);
+    }
+  });
+  function setEmailHint(msg, kind) {
+    const el = $('emailHint');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'hint' + (kind ? ' ' + kind : '');
+  }
+  async function checkEmailAvailability(value) {
+    const v = (value || '').trim();
+    if (!v || !v.includes('@')) { setEmailHint('', null); emailTaken = false; return; }
+    try {
+      const { data, error } = await supabaseClient.rpc('email_available', { p_email: v });
+      if (error) { setEmailHint('', null); return; }
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row && row.ok === false && row.reason === 'taken') {
+        setEmailHint('An account with that email already exists. Try signing in instead.', 'error');
+        emailTaken = true;
+      } else {
+        setEmailHint('', null);
+        emailTaken = false;
+      }
+    } catch (_) { setEmailHint('', null); }
+  }
+
+  // Friendly error mapper for Supabase's auth errors.
+  function explainAuthError(message) {
+    if (!message) return 'Something went wrong. Please try again.';
+    const m = message.toLowerCase();
+    if (m.includes('already registered') || m.includes('already been registered')) {
+      return 'An account with that email already exists. Try signing in instead.';
+    }
+    if (m.includes('password') && (m.includes('short') || m.includes('characters') || m.includes('12'))) {
+      return 'Password must be at least 12 characters.';
+    }
+    if (m.includes('rate limit') || m.includes('too many')) {
+      return 'Too many attempts. Wait a moment and try again.';
+    }
+    if (m.includes('valid email') || m.includes('email is invalid')) {
+      return 'Enter a valid email address.';
+    }
+    if (m.includes('signups not allowed') || m.includes('signup_disabled')) {
+      return 'New signups are temporarily paused. Please try again later.';
+    }
+    return message;
+  }
+
   // ---------- plan selection ----------
   // The radio inputs are hidden inside the .plan-card labels; clicking
   // the card picks the plan. We just style the parent based on whether
@@ -362,6 +424,10 @@
 
     if (!schoolName) return showError('Enter your school name.');
     if (!email || !email.includes('@')) return showError('Enter a valid email address.');
+    // Pre-flight duplicate-email check. The flag is set by
+    // checkEmailAvailability() on blur; trust it here (the post-signUp
+    // identities guard catches any race).
+    if (emailTaken) return showError('An account with that email already exists. Try signing in instead.');
     if (!name) return showError('Enter your name.');
     if (pw.length < 12) return showError('Password must be at least 12 characters.');
     if (pw !== pw2)     return showError('Passwords do not match.');
@@ -396,11 +462,26 @@
           },
         },
       });
-      if (suErr) { submitBtn.disabled = false; submitBtn.textContent = orig; return showError('Sign-up failed: ' + suErr.message); }
+      if (suErr) {
+        submitBtn.disabled = false; submitBtn.textContent = orig;
+        return showError(explainAuthError(suErr.message));
+      }
       const newUserId = su && su.user && su.user.id;
       if (!newUserId) {
         submitBtn.disabled = false; submitBtn.textContent = orig;
         return showError('Account was created but we couldn\'t register your school. Please sign in and contact support.');
+      }
+      // Supabase's email-enumeration prevention: when the email is already
+      // registered, signUp returns success with identities=[]. CRITICAL:
+      // this check MUST run BEFORE the signInWithPassword call below,
+      // otherwise we'd silently sign the new user into the existing
+      // account and then run create_school_and_organiser on a phantom
+      // / wrong school.
+      if (su.user && Array.isArray(su.user.identities) && su.user.identities.length === 0) {
+        submitBtn.disabled = false; submitBtn.textContent = orig;
+        emailTaken = true;
+        setEmailHint('An account with that email already exists. Try signing in instead.', 'error');
+        return showError(explainAuthError('User already registered'));
       }
       // 1b) Establish a session. With email confirmation enabled,
       //     supabase.auth.signUp() does NOT return a logged-in session

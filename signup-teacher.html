@@ -207,6 +207,7 @@
       <div class="field">
         <label for="email">Email</label>
         <input type="email" id="email" name="email" placeholder="you@school.ac.uk" autocomplete="email" required />
+        <span class="hint" id="emailHint"></span>
       </div>
       <div class="field">
         <label for="name">Full name</label>
@@ -258,6 +259,10 @@
 
   // ---------- state ----------
   let resolvedSchool = null; // { school_id, school_name, school_code }
+  // Email-already-registered pre-flight state. UX-only — the post-signUp
+  // identities guard is the authoritative defense.
+  let emailTaken = false;
+  let emailCheckTimer = null;
 
   // ---------- helpers ----------
   const $ = (id) => document.getElementById(id);
@@ -304,10 +309,15 @@
     try {
       const { data, error } = await supabaseClient.rpc('lookup_school_by_code', { p_code: code });
       if (error) { setSchoolHint('Couldn\'t check that code: ' + error.message, 'error'); return; }
-      // The RPC returns SETOF — supabase-js hands us back an array of
-      // rows. Take the first one (there is only ever one row in this
-      // function's design) so the rest of this code can keep treating
-      // the result as a single object.
+      // Diagnostic — show exactly what shape supabase-js returned so we
+      // can see if it's an array or a single object. Safe to remove once
+      // the bug is confirmed fixed.
+      console.log('[lookup_school_by_code] code=', code, 'data=', data,
+                  'isArray=', Array.isArray(data),
+                  'typeof=', typeof data);
+      // The RPC uses RETURNS TABLE, which supabase-js deserialises as
+      // an array of row objects. Take the first (and only) row so the
+      // rest of this code can treat the result as a single object.
       const row = Array.isArray(data) ? data[0] : data;
       if (!row || row.ok !== true) {
         resolvedSchool = null;
@@ -330,6 +340,66 @@
     } catch (e) {
       setSchoolHint('Network error. Try again in a moment.', 'error');
     }
+  }
+
+  // ---------- email pre-flight (already-registered?) ----------
+  // Debounced on blur so we don't hammer the RPC on every keystroke.
+  // UX-only — the identities guard in the submit handler is the
+  // authoritative defense.
+  $('email').addEventListener('blur', () => {
+    if (emailCheckTimer) clearTimeout(emailCheckTimer);
+    emailCheckTimer = setTimeout(() => checkEmailAvailability($('email').value), 400);
+  });
+  $('email').addEventListener('input', () => {
+    if (emailTaken) {
+      emailTaken = false;
+      setEmailHint('', null);
+    }
+  });
+  function setEmailHint(msg, kind) {
+    const el = $('emailHint');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'hint' + (kind ? ' ' + kind : '');
+  }
+  async function checkEmailAvailability(value) {
+    const v = (value || '').trim();
+    if (!v || !v.includes('@')) { setEmailHint('', null); emailTaken = false; return; }
+    try {
+      const { data, error } = await supabaseClient.rpc('email_available', { p_email: v });
+      if (error) { setEmailHint('', null); return; }
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row && row.ok === false && row.reason === 'taken') {
+        setEmailHint('An account with that email already exists. Try signing in instead.', 'error');
+        emailTaken = true;
+      } else {
+        setEmailHint('', null);
+        emailTaken = false;
+      }
+    } catch (_) { setEmailHint('', null); }
+  }
+
+  // Friendly error mapper for Supabase's auth errors. Keeps the raw
+  // jargon out of the user-facing message.
+  function explainAuthError(message) {
+    if (!message) return 'Something went wrong. Please try again.';
+    const m = message.toLowerCase();
+    if (m.includes('already registered') || m.includes('already been registered')) {
+      return 'An account with that email already exists. Try signing in instead.';
+    }
+    if (m.includes('password') && (m.includes('short') || m.includes('characters') || m.includes('12'))) {
+      return 'Password must be at least 12 characters.';
+    }
+    if (m.includes('rate limit') || m.includes('too many')) {
+      return 'Too many attempts. Wait a moment and try again.';
+    }
+    if (m.includes('valid email') || m.includes('email is invalid')) {
+      return 'Enter a valid email address.';
+    }
+    if (m.includes('signups not allowed') || m.includes('signup_disabled')) {
+      return 'New signups are temporarily paused. Please try again later.';
+    }
+    return message;
   }
 
   // ---------- password hints ----------
@@ -363,6 +433,10 @@
     const pw   = $('password').value;
     const pw2  = $('password2').value;
     if (!email || !email.includes('@')) return showError('Enter a valid email address.');
+    // Pre-flight duplicate-email check. The flag is set by
+    // checkEmailAvailability() on blur; trust it here (the post-signUp
+    // identities guard catches any race).
+    if (emailTaken) return showError('An account with that email already exists. Try signing in instead.');
     if (!name) return showError('Enter your name.');
     if (pw.length < 12) return showError('Password must be at least 12 characters.');
     if (pw !== pw2)     return showError('Passwords do not match.');
@@ -385,11 +459,25 @@
           data: { full_name: name },
         },
       });
-      if (suErr) { submitBtn.disabled = false; submitBtn.textContent = orig; return showError('Sign-up failed: ' + suErr.message); }
+      if (suErr) {
+        submitBtn.disabled = false; submitBtn.textContent = orig;
+        return showError(explainAuthError(suErr.message));
+      }
       const newUserId = su && su.user && su.user.id;
       if (!newUserId) {
         submitBtn.disabled = false; submitBtn.textContent = orig;
         return showError('Account was created but we couldn\'t attach it to a school. Please sign in and contact support.');
+      }
+      // Supabase's email-enumeration prevention: when the email is already
+      // registered, signUp returns success with identities=[]. The returned
+      // user has a real id but no linked identity, so the downstream
+      // RPCs (claim_teacher_signup_code, attach_teacher_to_school, etc.)
+      // would touch the wrong account. Detect and reject.
+      if (su.user && Array.isArray(su.user.identities) && su.user.identities.length === 0) {
+        submitBtn.disabled = false; submitBtn.textContent = orig;
+        emailTaken = true;
+        setEmailHint('An account with that email already exists. Try signing in instead.', 'error');
+        return showError(explainAuthError('User already registered'));
       }
       // 2) Claim the one-time code (if any) and stamp school_id onto
       // the profile. claim_teacher_signup_code is idempotent for

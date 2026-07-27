@@ -638,6 +638,52 @@ $$;
 grant execute on function public.attach_student_to_school_via_invite(text, uuid, text) to authenticated;
 
 -- ============================================================================
+-- 4f. EMAIL_AVAILABLE — pre-flight check used by the signup pages so users
+-- see "this email is already registered" before they finish filling the
+-- form. Returns ok=true with reason='available' when no auth.users row
+-- matches; ok=false with reason='taken'|'invalid' otherwise.
+--
+-- Granted to anon so the signup pages can call it before sign-in.
+--
+-- Security note: this is the only anon-grantable function in the codebase
+-- that reads auth.users. The leak is a boolean — no email, user id, or
+-- other PII is returned. Same risk profile as Supabase's own signUp
+-- response shape (which also leaks existence via identities=[]).
+-- Idempotent: re-runs cleanly.
+-- ============================================================================
+
+drop function if exists public.email_available(text);
+
+create or replace function public.email_available(p_email text)
+returns table (ok boolean, reason text)
+language plpgsql
+security definer
+set search_path = public
+stable
+as $$
+declare
+  v_email text := lower(trim(coalesce(p_email, '')));
+begin
+  -- Empty / no @ → invalid input. Don't leak shape information by
+  -- distinguishing empty from "@-missing".
+  if v_email = '' or position('@' in v_email) < 2 then
+    ok := false; reason := 'invalid';
+    return next; return;
+  end if;
+
+  if exists (select 1 from auth.users where lower(email::text) = v_email) then
+    ok := false; reason := 'taken';
+    return next; return;
+  end if;
+
+  ok := true; reason := 'available';
+  return next;
+end;
+$$;
+
+grant execute on function public.email_available(text) to anon, authenticated;
+
+-- ============================================================================
 -- DONE. After running this:
 --   1. signup-teacher.html can call lookup_school_by_code() and
 --      claim_teacher_signup_code() to attach teachers to schools.
@@ -651,4 +697,10 @@ grant execute on function public.attach_student_to_school_via_invite(text, uuid,
 --      resolves school_invite_codes) and attach_student_to_school_via_invite
 --      to bind a new student to a school under a code with expiry,
 --      max-uses, and email-domain rules.
+--   5. The signup pages (signup.html, signup-teacher.html,
+--      signup-organisation.html, signup-staff.html) can call
+--      email_available() on the email field's blur to surface a
+--      duplicate-email warning before submission. This is paired with
+--      a client-side identities=[] guard after signUp() to catch the
+--      Supabase enumeration-prevention response.
 -- ============================================================================

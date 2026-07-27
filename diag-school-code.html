@@ -1,0 +1,27 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>diag</title></head>
+<body>
+<pre id="out" style="font-family:monospace;font-size:14px;white-space:pre-wrap"></pre>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const out = document.getElementById('out');
+const log = (...a) => { out.textContent += a.join(' ') + '\n'; console.log(...a); };
+
+const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+(async () => {
+  for (const code of ['BIRM-2024', 'SCH-Q3KY8N', 'NOPE-9999']) {
+    log('=== code=', code, '===');
+    const res = await sb.rpc('lookup_school_by_code', { p_code: code });
+    log('  error:', res.error);
+    log('  typeof data:', typeof res.data);
+    log('  Array.isArray(data):', Array.isArray(res.data));
+    log('  data (JSON):', JSON.stringify(res.data, null, 2));
+    log('  data[0]:', res.data && res.data[0]);
+    log('  data[0]?.ok:', res.data && res.data[0] && res.data[0].ok);
+  }
+})();
+</script>
+</body></html>

@@ -414,6 +414,7 @@
         <div class="field">
           <label for="email">Email</label>
           <input type="email" id="email" name="email" placeholder="you@school.ac.uk" autocomplete="email" required />
+          <span class="hint" id="emailHint"></span>
         </div>
 
         <div class="field">
@@ -590,6 +591,16 @@
     //   }
     let resolvedSchool = null;
     let schoolLookupTimer = null;
+    // Email-already-registered pre-flight state. UX-only — the post-signUp
+    // identities guard is the authoritative defense.
+    let emailTaken = false;
+    let emailCheckTimer = null;
+    function setEmailHint(msg, kind) {
+      const el = $('emailHint');
+      if (!el) return;
+      el.textContent = msg;
+      el.className = 'hint' + (kind ? ' ' + kind : '');
+    }
     function setSchoolHint(msg, kind) {
       schoolCodeHint.textContent = msg;
       schoolCodeHint.className = 'hint' + (kind ? ' ' + kind : '');
@@ -653,14 +664,50 @@
     });
     // Re-validate the email against the resolved code's domain.
     email.addEventListener('input', recheckDomainMatch);
+    // Pre-flight "is this email already registered?" check. Debounced on
+    // blur so we don't hammer the RPC on every keystroke; the input
+    // handler clears any stale "already registered" hint so the flag
+    // doesn't outlive the email that triggered it. UX-only — the
+    // identities guard in the submit handler is the authoritative defense.
+    email.addEventListener('blur', () => {
+      if (emailCheckTimer) clearTimeout(emailCheckTimer);
+      emailCheckTimer = setTimeout(() => checkEmailAvailability(email.value), 400);
+    });
+    email.addEventListener('input', () => {
+      if (emailTaken) {
+        emailTaken = false;
+        setEmailHint('', null);
+      }
+    });
+    async function checkEmailAvailability(value) {
+      const v = (value || '').trim();
+      if (!v || !v.includes('@')) { setEmailHint('', null); emailTaken = false; return; }
+      try {
+        const { data, error } = await supabaseClient.rpc('email_available', { p_email: v });
+        if (error) { setEmailHint('', null); return; } // transient — don't break the form
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row && row.ok === false && row.reason === 'taken') {
+          setEmailHint('An account with that email already exists. Try signing in instead.', 'error');
+          emailTaken = true;
+        } else {
+          setEmailHint('', null);
+          emailTaken = false;
+        }
+      } catch (_) { setEmailHint('', null); }
+    }
     async function lookupSchool(code) {
       try {
         const { data, error } = await supabaseClient.rpc('lookup_school_by_code', { p_code: code });
         if (error) { setSchoolHint('Couldn\'t check that code: ' + error.message, 'error'); return; }
-        // The RPC returns SETOF — supabase-js hands us back an array of
-        // rows. Take the first one (there is only ever one row in this
-        // function's design) so the rest of this code can keep treating
-        // the result as a single object.
+        // Diagnostic — show exactly what shape supabase-js returned so we
+        // can see if it's an array or a single object. Safe to remove once
+        // the bug is confirmed fixed.
+        console.log('[lookup_school_by_code] code=', code, 'data=', data,
+                    'isArray=', Array.isArray(data),
+                    'typeof=', typeof data);
+        // The RPC uses RETURNS TABLE, which supabase-js deserialises as
+        // an array of row objects. Take the first (and only) row so the
+        // rest of this code can treat the result as a single object.
         const row = Array.isArray(data) ? data[0] : data;
         if (!row || row.ok !== true) {
           resolvedSchool = null;
@@ -929,6 +976,14 @@
       if (!email.value || !email.value.includes('@')) {
         return showError('Enter a valid email address.');
       }
+      // Pre-flight duplicate-email check. The flag is set by
+      // checkEmailAvailability() on blur; trust it here (the post-signUp
+      // identities guard catches any race).
+      if (emailTaken) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        return showError('An account with that email already exists. Try signing in instead.');
+      }
       if (!name.value.trim()) {
         return showError('Enter your name.');
       }
@@ -1034,6 +1089,18 @@
           submitBtn.disabled = false;
           submitBtn.textContent = originalText;
           return showError('Account was created but something went wrong contacting the server. Please try signing in.');
+        }
+        // Supabase's email-enumeration prevention: when the email is already
+        // registered, signUp returns success with identities=[]. The
+        // returned user has a real id but no linked identity, so the
+        // downstream RPCs (attach_student_to_school, send-consent-email,
+        // etc.) would touch the wrong account. Detect and reject.
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+          emailTaken = true;
+          setEmailHint('An account with that email already exists. Try signing in instead.', 'error');
+          return showError(explainAuthError('User already registered'));
         }
 
         // Staff-invite path: accept the invite immediately. We do
