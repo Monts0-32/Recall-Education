@@ -201,6 +201,7 @@ drop function if exists public.peek_staff_invite(uuid);
 drop function if exists public.accept_staff_invite(uuid, text);
 drop function if exists public.resend_staff_invite(uuid);
 drop function if exists public.revoke_staff_invite(uuid);
+drop function if exists public.revoke_accepted_invite(uuid);
 -- list_staff_invites: also dropped separately just above its own
 -- create or replace; kept here too for the case where the migration
 -- is run from a clean state (the second drop is a no-op).
@@ -505,6 +506,119 @@ end;
 $$;
 
 grant execute on function public.revoke_staff_invite(uuid) to authenticated;
+
+-- revoke_accepted_invite: admin-only. Closes the staff account
+-- associated with an accepted invite. Use this from the Accepted tab
+-- in the Invites panel — the invite row is the natural anchor (it
+-- links the email + role to the user that accepted it via
+-- accepted_by), and the audit trail explicitly records which invite
+-- drove the revocation.
+--
+-- Effect: the invite's status flips to 'revoked' (for tracking), the
+-- linked profile is soft-deleted (role -> 'student', deleted_at -> now),
+-- and a 'access_revoked' audit-log entry is written with the invite id
+-- in the metadata. The auth hook (check_parental_consent) blocks
+-- future sign-ins for any user with deleted_at set, so the staff
+-- member is locked out the next time they try to authenticate.
+--
+-- Idempotent: re-running on an already-revoked accepted invite is a
+-- no-op (the function refuses with reason='not_accepted'). Re-running
+-- on an invite whose user is already soft-deleted is also a no-op
+-- (the role update is harmless, the audit-log entry is the same).
+-- Self-revoke is blocked: the admin cannot close their own account
+-- via this path (use change_staff_role + a manual sign-out if you
+-- really mean it).
+drop function if exists public.revoke_accepted_invite(uuid);
+create or replace function public.revoke_accepted_invite(p_invite_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_caller uuid := auth.uid();
+  v_invite public.staff_invites%rowtype;
+  v_target public.profiles%rowtype;
+begin
+  if v_caller is null then
+    raise exception 'not authenticated' using errcode = '28000';
+  end if;
+  if not exists (
+    select 1 from public.profiles where id = v_caller and role = 'admin'
+  ) then
+    raise exception 'admin role required' using errcode = '42501';
+  end if;
+
+  select * into v_invite from public.staff_invites where id = p_invite_id for update;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'unknown_invite');
+  end if;
+  if v_invite.status <> 'accepted' then
+    return jsonb_build_object(
+      'ok', false,
+      'reason', 'not_accepted',
+      'status', v_invite.status
+    );
+  end if;
+  if v_invite.accepted_by is null then
+    return jsonb_build_object(
+      'ok', false,
+      'reason', 'no_accepted_by',
+      'message', 'invite is marked accepted but has no accepted_by user'
+    );
+  end if;
+  if v_invite.accepted_by = v_caller then
+    return jsonb_build_object('ok', false, 'reason', 'cannot_revoke_self');
+  end if;
+
+  -- Look up the user the invite accepted for. If the profile row is
+  -- gone (shouldn't happen — profiles has a FK to auth.users with
+  -- on delete cascade — but defensively), bail.
+  select * into v_target from public.profiles where id = v_invite.accepted_by;
+  if not found then
+    return jsonb_build_object(
+      'ok', false,
+      'reason', 'unknown_user',
+      'user_id', v_invite.accepted_by
+    );
+  end if;
+
+  -- Flip the invite to revoked. We keep accepted_by populated so the
+  -- audit trail still links to the user that was closed.
+  update public.staff_invites
+     set status = 'revoked',
+         decided_at = now()
+   where id = v_invite.id;
+
+  -- Close the account. Same shape as revoke_staff_access: demote to
+  -- student + soft-delete. The auth hook blocks sign-ins for any
+  -- profile with deleted_at set.
+  update public.profiles
+     set role = 'student',
+         deleted_at = now(),
+         updated_at = now()
+   where id = v_target.id;
+
+  perform public._log_staff_action(
+    'access_revoked', 'staff_invite', v_invite.id,
+    jsonb_build_object(
+      'email', v_invite.email,
+      'previous_role', v_target.role,
+      'via_invite', v_invite.id
+    ),
+    null,
+    v_target.id
+  );
+
+  return jsonb_build_object(
+    'ok', true,
+    'user_id', v_target.id,
+    'email', v_invite.email
+  );
+end;
+$$;
+
+grant execute on function public.revoke_accepted_invite(uuid) to authenticated;
 
 -- list_staff_invites: admin-only. Returns the rows for one status
 -- (pending/accepted/revoked/expired). The staff_invites table is
@@ -968,6 +1082,7 @@ as $$
     from public.profiles p
     join auth.users u on u.id = p.id
    where p.role in ('staff_author', 'staff_reviewer', 'admin')
+     and p.deleted_at is null
    order by p.created_at asc;
 $$;
 

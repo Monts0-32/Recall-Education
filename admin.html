@@ -983,6 +983,22 @@
       const inviter = r.invited_by_name
         || r.invited_by_email
         || (r.invited_by ? r.invited_by.slice(0, 8) : '—');
+      // Action buttons vary by tab:
+      //   - pending:  Resend / Copy code / Revoke (revoke the invite
+      //               before the user has accepted — no account to close)
+      //   - accepted: Decided timestamp + "Revoke access" (closes the
+      //               staff account linked to this invite; the action
+      //               is destructive, so it requires a confirm prompt)
+      //   - revoked / expired: read-only — just show when it was decided
+      const actions =
+        state.inviteTab === 'pending' ? `
+              <button class="btn small" data-act="resend" data-id="${escapeHtml(r.id)}">Resend</button>
+              <button class="btn small" data-act="copy"  data-id="${escapeHtml(r.id)}" data-token="${escapeHtml(r.token)}">Copy code</button>
+              <button class="btn small danger" data-act="revoke" data-id="${escapeHtml(r.id)}">Revoke</button>` :
+        state.inviteTab === 'accepted' ? `
+              <span class="meta">${r.decided_at ? 'Accepted ' + fmtDate(r.decided_at) : ''}</span>
+              <button class="btn small danger" data-act="revoke-access" data-id="${escapeHtml(r.id)}" data-email="${escapeHtml(r.email)}">Revoke access</button>` :
+        `<span class="meta">${r.decided_at ? 'Decided ' + fmtDate(r.decided_at) : ''}</span>`;
       return `
       <tr data-invite="${escapeHtml(r.id)}">
         <td>${escapeHtml(r.email)}</td>
@@ -990,13 +1006,7 @@
         <td class="meta">${escapeHtml(inviter)}</td>
         <td class="meta">${fmtDate(r.expires_at)}</td>
         <td>
-          <div class="row-actions">
-            ${state.inviteTab === 'pending' ? `
-              <button class="btn small" data-act="resend" data-id="${escapeHtml(r.id)}">Resend</button>
-              <button class="btn small" data-act="copy"  data-id="${escapeHtml(r.id)}" data-token="${escapeHtml(r.token)}">Copy code</button>
-              <button class="btn small danger" data-act="revoke" data-id="${escapeHtml(r.id)}">Revoke</button>
-            ` : `<span class="meta">${r.decided_at ? 'Decided ' + fmtDate(r.decided_at) : ''}</span>`}
-          </div>
+          <div class="row-actions">${actions}</div>
         </td>
       </tr>
     `;
@@ -1005,9 +1015,10 @@
     tbody.querySelectorAll('button[data-act]').forEach((b) => {
       b.addEventListener('click', async () => {
         const id = b.dataset.id;
-        if (b.dataset.act === 'resend')  resendInvite(id, b);
-        if (b.dataset.act === 'revoke')  revokeInvite(id, b);
-        if (b.dataset.act === 'copy')    copyToken(b.dataset.token, b);
+        if (b.dataset.act === 'resend')        resendInvite(id, b);
+        if (b.dataset.act === 'revoke')        revokeInvite(id, b);
+        if (b.dataset.act === 'revoke-access') revokeAcceptedInvite(id, b);
+        if (b.dataset.act === 'copy')          copyToken(b.dataset.token, b);
       });
     });
   }
@@ -1082,6 +1093,44 @@
     if (data && data.ok === false) { toast('Revoke refused: ' + (data.reason || 'unknown'), 'error'); return; }
     toast('Invite revoked', 'success');
     loadInvites();
+    loadDashboard();
+  }
+
+  // revokeAcceptedInvite: closes the staff account linked to an
+  // accepted invite. Distinct from revokeInvite (which only flips the
+  // invite status for a pending invite that was never used). This one
+  // is destructive: it soft-deletes the linked profile (demotes to
+  // 'student' + sets deleted_at), which the auth hook uses to block
+  // future sign-ins. Double-confirm because the user can't get back
+  // in without being re-invited.
+  async function revokeAcceptedInvite(id, btn) {
+    const email = btn.dataset.email || 'this account';
+    const ok = window.prompt(
+      'This will close the staff account for ' + email + '. ' +
+      'They will be signed out and unable to sign back in. ' +
+      'To re-enable them, you will need to send a new staff invitation.\n\n' +
+      'Type REVOKE to confirm.'
+    );
+    if (ok !== 'REVOKE') return;
+    btn.disabled = true;
+    const { data, error } = await supabaseClient.rpc('revoke_accepted_invite', { p_invite_id: id });
+    btn.disabled = false;
+    if (error) { toast('Revoke failed: ' + error.message, 'error'); return; }
+    if (data && data.ok === false) {
+      const reason = data.reason || 'unknown';
+      // Map the most common refusal reasons to something a human can
+      // act on without reading the source.
+      const msg = reason === 'not_accepted'      ? 'This invite is no longer in accepted state — refresh and try again.'
+                : reason === 'cannot_revoke_self' ? 'You can\'t revoke your own account from here.'
+                : reason === 'unknown_user'       ? 'The linked user account no longer exists.'
+                : reason === 'no_accepted_by'     ? 'This invite has no linked user — manual cleanup required.'
+                : 'Revoke refused: ' + reason;
+      toast(msg, 'error');
+      return;
+    }
+    toast('Access revoked for ' + (data.email || email), 'success');
+    loadInvites();
+    loadStaff();
     loadDashboard();
   }
   function copyToken(token, btn) {
