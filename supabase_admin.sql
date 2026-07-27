@@ -184,6 +184,37 @@ create policy "staff_audit_read" on public.staff_audit_log
 -- user_agent explicitly (RPC parameter) since there's no standard way
 -- for an RPC to see the caller's UA.
 
+-- Defensive drop for every public function defined below. The
+-- migration's CREATE OR REPLACE works fine when only the function
+-- body changes, but Postgres refuses to silently change a function's
+-- return-table row type (42P13) or to add/remove OUT parameters. If
+-- the live database has a stale version of any of these functions
+-- from an earlier attempt (e.g. a half-applied migration, an
+-- experimental version, or a version that was edited but not fully
+-- re-deployed), this drop replaces it with the version in this
+-- file. DROP IF EXISTS keeps the migration idempotent on a fresh
+-- install. Run BEFORE each create or replace so the function gets a
+-- clean install.
+drop function if exists public._log_staff_action(text, text, uuid, jsonb, text, uuid);
+drop function if exists public.create_staff_invite(text, text);
+drop function if exists public.peek_staff_invite(uuid);
+drop function if exists public.accept_staff_invite(uuid, text);
+drop function if exists public.resend_staff_invite(uuid);
+drop function if exists public.revoke_staff_invite(uuid);
+-- list_staff_invites: also dropped separately just above its own
+-- create or replace; kept here too for the case where the migration
+-- is run from a clean state (the second drop is a no-op).
+drop function if exists public.list_staff_invites(text);
+drop function if exists public.count_staff_invites(text);
+drop function if exists public.change_staff_role(uuid, text);
+drop function if exists public.revoke_staff_access(uuid);
+drop function if exists public.publish_lesson(uuid, boolean);
+drop function if exists public.log_staff_action(text, text, uuid, jsonb, text, uuid);
+drop function if exists public.check_parental_consent(jsonb);
+drop function if exists public.current_role();
+drop function if exists public.list_staff();
+drop function if exists public.list_recent_audit(int, uuid, text);
+
 create or replace function public._log_staff_action(
   p_action        text,
   p_resource_type text default null,
