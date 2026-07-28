@@ -16,13 +16,21 @@
 -- requires_parental_consent from the DOB so a tampering client can't
 -- disable the consent gate by leaving requires_parental_consent = false.
 --
--- The RPC only writes public.profiles (which is already client-updatable
--- via the profiles_update_own policy). It is SECURITY DEFINER so the
--- derivation happens in one trusted call and so we can pin the update to
--- auth.uid() regardless of RLS. It does NOT touch parental_consents —
--- that row is created by create_parental_consent(), invoked by the
--- send-consent-email Edge Function exactly as it is for email signups,
--- so the two signup paths stay identical downstream.
+-- UPSERT, not update-only: handle_new_user normally creates the profile
+-- row at signup, but its profile insert is wrapped in `exception when
+-- others` that swallows errors — so a failed insert leaves an auth.users
+-- row with NO profile row. Re-signing in does not re-fire the trigger
+-- (no new auth.users insert), so that user is stuck. Upserting here fixes
+-- the stuck state AND handles the normal case in one statement. role is
+-- only set on the insert path (a missing row is a student); an existing
+-- row keeps its role.
+--
+-- The RPC only writes public.profiles. It is SECURITY DEFINER so the
+-- derivation happens in one trusted call and we can upsert regardless of
+-- RLS. It does NOT touch parental_consents — that row is created by
+-- create_parental_consent(), invoked by the send-consent-email Edge
+-- Function exactly as it is for email signups, so the two signup paths
+-- stay identical downstream.
 -- ============================================================================
 
 create or replace function public.complete_student_profile(
@@ -36,11 +44,11 @@ security definer
 set search_path = public
 as $$
 declare
-  uid          uuid  := auth.uid();
-  age_years    int;
+  uid           uuid  := auth.uid();
+  age_years     int;
   needs_consent boolean := false;
-  v_role       text;
-  own_email    text;
+  v_role        text;
+  own_email     text;
 begin
   if uid is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
@@ -69,26 +77,31 @@ begin
     end if;
   end if;
 
-  -- Update the caller's own row. SECURITY DEFINER + `where id = uid` means
-  -- only the signed-in user can touch their own profile, regardless of RLS.
-  update public.profiles
-     set full_name                 = coalesce(nullif(trim(p_full_name), ''), public.profiles.full_name),
-         year_group                = p_year_group,
-         dob                       = p_dob,
-         parent_email              = case when needs_consent then p_parent_email else null end,
-         requires_parental_consent = needs_consent,
-         updated_at                = now()
-   where id = uid
-   returning role into v_role;
-
-  if not found then
-    return jsonb_build_object('ok', false, 'reason', 'profile_not_found');
-  end if;
+  -- Upsert the caller's own profile row. SECURITY DEFINER + `id = uid`
+  -- means only the signed-in user can touch their own profile.
+  insert into public.profiles
+    (id, full_name, year_group, dob, parent_email, requires_parental_consent, role)
+  values
+    (uid,
+     nullif(trim(p_full_name), ''),
+     p_year_group,
+     p_dob,
+     case when needs_consent then p_parent_email else null end,
+     needs_consent,
+     'student')
+  on conflict (id) do update set
+    full_name                 = coalesce(nullif(trim(p_full_name), ''), public.profiles.full_name),
+    year_group                = p_year_group,
+    dob                       = p_dob,
+    parent_email              = case when needs_consent then p_parent_email else null end,
+    requires_parental_consent = needs_consent,
+    updated_at                = now()
+  returning role into v_role;
 
   return jsonb_build_object(
     'ok', true,
     'needs_consent', needs_consent,
-    'role', v_role
+    'role', coalesce(v_role, 'student')
   );
 end;
 $$;
