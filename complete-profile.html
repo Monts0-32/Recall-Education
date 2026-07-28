@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Finish your account — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Finish setting up your Recall account." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --yellow:    #D29922;
+      --red:       #F85149;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    ::selection { background: var(--blue); color: #fff; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    nav.top { border-bottom: 1px solid var(--line); background: var(--bg); }
+    nav.top .row {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; color: var(--text); }
+    .brand:hover { text-decoration: none; }
+    .brand-mark { width: 28px; height: 28px; display: block; object-fit: cover; border-radius: var(--r-sm); }
+
+    .wrap {
+      max-width: 460px; margin: 0 auto;
+      padding: 56px 24px 80px;
+    }
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 32px;
+    }
+    h2 { margin: 0 0 6px; font-size: 20px; font-weight: 600; letter-spacing: -0.015em; }
+    .sub { font-size: 13px; color: var(--text-3); margin: 0 0 24px; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field label { font-size: 13px; font-weight: 500; color: var(--text-2); }
+    .field input, .field select {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 9px 12px;
+      font-family: inherit; font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .field select {
+      appearance: none; -webkit-appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='%238B949E' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+    .field input:focus, .field select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .field input::placeholder { color: var(--text-4); }
+    .field .hint { font-size: 12px; color: var(--text-3); }
+    .field .hint.warn { color: var(--yellow); }
+    .field .hint.error { color: var(--red); }
+    .field .hint.ok { color: var(--green); }
+
+    .check {
+      display: flex; align-items: flex-start; gap: 8px;
+      color: var(--text-2); cursor: pointer;
+      font-size: 13px; line-height: 1.45;
+      margin: 4px 0 18px;
+    }
+    .check input { accent-color: var(--blue); width: 14px; height: 14px; margin: 2px 0 0; flex-shrink: 0; }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--blue); color: #fff;
+      padding: 10px 18px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      border: 1px solid var(--blue);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .banner {
+      display: none;
+      border-radius: var(--r-sm);
+      padding: 10px 12px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .banner.show { display: block; }
+    .banner.error { background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.4); color: #FFA198; }
+    .banner.ok    { background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.4); color: #7EE787; }
+    .banner.warn  { background: rgba(210,153,34,0.10); border: 1px solid rgba(210,153,34,0.4); color: #E3B341; }
+    .banner b { font-weight: 600; }
+
+    .loading { font-size: 13px; color: var(--text-3); }
+
+    .actions { display: flex; gap: 10px; margin-top: 16px; }
+    .btn-ghost {
+      flex: 1; padding: 10px 18px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      background: transparent; color: var(--text);
+      border: 1px solid var(--line-2); cursor: pointer;
+      text-align: center; text-decoration: none; display: inline-block;
+    }
+    .btn-ghost:hover { background: var(--bg-3); text-decoration: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="card">
+    <!-- LOADING: shown while we resolve the session + profile. -->
+    <div id="loading">
+      <h2>One moment…</h2>
+      <p class="sub">Finishing your sign-in.</p>
+      <p class="loading">Checking your account.</p>
+    </div>
+
+    <!-- FORM: shown when the user's profile is incomplete. -->
+    <div id="formWrap" hidden>
+      <h2>Finish your account</h2>
+      <p class="sub">A few details and you're in. We use these to show the right content for your year.</p>
+
+      <div class="banner error" id="err"><b>We couldn't finish setup.</b> <span id="errMsg">Check the fields and try again.</span></div>
+
+      <form id="completeForm" novalidate>
+        <div class="field">
+          <label for="name">Full name</label>
+          <input type="text" id="name" name="name" placeholder="Your name" autocomplete="name" required />
+        </div>
+
+        <div class="field">
+          <label for="year">Year group</label>
+          <select id="year" name="year" required>
+            <option value="">Select your year</option>
+            <option>Year 7</option>
+            <option>Year 8</option>
+            <option>Year 9</option>
+            <option>Year 10</option>
+            <option>Year 11</option>
+            <option>Year 12</option>
+            <option>Year 13</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="dob">Date of birth</label>
+          <input type="date" id="dob" name="dob" required />
+          <span class="hint" id="dobHint">Used to show content for your year group.</span>
+        </div>
+
+        <div class="field" id="parentField" hidden>
+          <label for="parentEmail">Parent or guardian email</label>
+          <input type="email" id="parentEmail" name="parentEmail" placeholder="parent@example.com" autocomplete="off" />
+          <span class="hint" id="parentHint">Required for under-16s. We'll send a one-time consent link.</span>
+        </div>
+
+        <label class="check" id="termsLabel">
+          <input type="checkbox" id="terms" name="terms" required />
+          <span id="termsText">I'm 16 or older, or my parent or guardian has agreed to these terms.</span>
+        </label>
+
+        <button type="submit" class="btn-primary" id="submitBtn">Continue</button>
+      </form>
+    </div>
+
+    <!-- WAITING: shown after an under-16 submits and the consent email is sent. -->
+    <div id="waiting" hidden>
+      <h2>Almost there</h2>
+      <p class="sub" id="waitMsg">Your account is ready, but we need a parent or guardian to confirm before you can sign in.</p>
+      <div class="banner warn show" id="waitBanner">Waiting for parental consent. The link we sent expires in 3 days.</div>
+      <div class="actions">
+        <a class="btn-ghost" href="index.html">Back to home</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Supabase client — same project / anon key as the rest of the site.
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  // ?apikey= URL fallback for ad-blockers / privacy browsers that strip
+  // the apikey header. Same wrapper as signup.html / login.html.
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) {
+          return fetch(url, options);
+        }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+
+  function explainAuthError(message) {
+    if (!message) return 'Something went wrong. Please try again.';
+    const m = message.toLowerCase();
+    if (m.includes('rate limit') || m.includes('too many')) return 'Too many attempts. Wait a moment and try again.';
+    if (m.includes('not_authenticated')) return 'Your session ended. Sign in again to continue.';
+    return message;
+  }
+
+  // ---- Role-based routing (mirrors auth/confirmed.html) ----
+  // school_organiser -> organiser console, teacher -> teacher dashboard,
+  // staff_author/staff_reviewer -> staff dashboard, admin -> admin console,
+  // everyone else (students) -> student dashboard.
+  function routeByRole(role) {
+    if (role === 'school_organiser') window.location.href = 'school-organiser-dashboard.html';
+    else if (role === 'teacher') window.location.href = 'teacher-dashboard.html';
+    else if (role === 'staff_author' || role === 'staff_reviewer') window.location.href = 'staff-dashboard.html';
+    else if (role === 'admin') window.location.href = 'admin.html';
+    else window.location.href = 'dashboard.html';
+  }
+
+  function showForm() {
+    $('loading').hidden = true;
+    $('formWrap').hidden = false;
+    $('waiting').hidden = true;
+  }
+  function showWaiting(msg) {
+    if (msg) $('waitMsg').textContent = msg;
+    $('loading').hidden = true;
+    $('formWrap').hidden = true;
+    $('waiting').hidden = false;
+  }
+
+  // ---- Age / consent helpers (mirror signup.html) ----
+  function ageOn(d, ref) {
+    let a = ref.getFullYear() - d.getFullYear();
+    const m = ref.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && ref.getDate() < d.getDate())) a--;
+    return a;
+  }
+
+  const name = $('name');
+  const year = $('year');
+  const dob = $('dob');
+  const dobHint = $('dobHint');
+  const parentField = $('parentField');
+  const parentEmail = $('parentEmail');
+  const parentHint = $('parentHint');
+  const terms = $('terms');
+  const termsText = $('termsText');
+  const err = $('err');
+  const errMsg = $('errMsg');
+  const submitBtn = $('submitBtn');
+  const form = $('completeForm');
+
+  // Cap DOB at "11 years ago today" so the picker can't offer impossible dates.
+  (function setDobMax() {
+    const t = new Date();
+    const min = new Date(t.getFullYear() - 11, t.getMonth(), t.getDate());
+    dob.max = min.toISOString().slice(0, 10);
+  })();
+
+  function updateDob() {
+    const v = dob.value;
+    if (!v) {
+      parentField.hidden = true;
+      parentEmail.required = false;
+      termsText.textContent = "I'm 16 or older, or my parent or guardian has agreed to these terms.";
+      dobHint.textContent = 'Used to show content for your year group.';
+      return;
+    }
+    const d = new Date(v);
+    if (isNaN(d.getTime())) return;
+    const age = ageOn(d, new Date());
+    if (age < 11) {
+      dobHint.textContent = 'Recall is for students aged 11 and over.';
+      dobHint.className = 'hint error';
+      parentField.hidden = true;
+      parentEmail.required = false;
+    } else if (age > 19) {
+      dobHint.textContent = 'This product is for secondary students. If you are at university, see the adult plan.';
+      dobHint.className = 'hint warn';
+      parentField.hidden = true;
+      parentEmail.required = false;
+      termsText.textContent = 'I am 16 or older and agree to these terms.';
+    } else if (age <= 15) {
+      dobHint.textContent = 'Under 16: a parent or guardian will be asked for consent.';
+      dobHint.className = 'hint warn';
+      parentField.hidden = false;
+      parentEmail.required = true;
+      termsText.textContent = "My parent or guardian has agreed to these terms.";
+    } else {
+      dobHint.textContent = 'Looks good.';
+      dobHint.className = 'hint ok';
+      parentField.hidden = true;
+      parentEmail.required = false;
+      termsText.textContent = 'I am 16 or older and agree to these terms.';
+    }
+  }
+  dob.addEventListener('input', updateDob);
+  dob.addEventListener('change', updateDob);
+
+  function checkParent() {
+    if (!parentField.hidden && parentEmail.value && name.value) {
+      // no-op hint; keep the default copy. (Parent-email uniqueness vs the
+      // student's own email is enforced server-side by complete_student_profile.)
+    }
+  }
+  parentEmail.addEventListener('input', checkParent);
+
+  function showError(msg) {
+    errMsg.textContent = msg;
+    err.classList.add('show');
+    err.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function hideError() { err.classList.remove('show'); }
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    hideError();
+
+    if (!name.value.trim()) return showError('Enter your name.');
+    if (!year.value) return showError('Select your year group.');
+    if (!dob.value) return showError('Enter your date of birth.');
+
+    const d = new Date(dob.value);
+    const age = ageOn(d, new Date());
+    if (isNaN(age) || age < 11) return showError('Recall is for students aged 11 and over.');
+    if (age > 19) return showError('This product is for secondary students. Contact support@recalleducation.co.uk for the adult plan.');
+
+    const needsConsent = age <= 15;
+    if (needsConsent) {
+      if (!parentEmail.value || !parentEmail.value.includes('@')) {
+        return showError('Enter a parent or guardian email — required for under-16s.');
+      }
+      if (parentEmail.value.trim().toLowerCase() === (currentEmail || '').trim().toLowerCase()) {
+        return showError('Parent email must be different from your email.');
+      }
+    }
+    if (!terms.checked) return showError('Please confirm the consent statement to continue.');
+
+    submitBtn.disabled = true;
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Saving…';
+
+    try {
+      const { data: rpcData, error: rpcErr } = await supabaseClient.rpc('complete_student_profile', {
+        p_full_name:    name.value.trim(),
+        p_year_group:  year.value,
+        p_dob:         dob.value,
+        p_parent_email: needsConsent ? parentEmail.value.trim() : null
+      });
+
+      if (rpcErr) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        return showError(explainAuthError(rpcErr.message));
+      }
+      const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+      if (!row || row.ok !== true) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        const reason = row && row.reason ? row.reason : 'unknown';
+        if (reason === 'parent_email_required') return showError('Enter a parent or guardian email — required for under-16s.');
+        if (reason === 'age_out_of_range') return showError('Recall is for students aged 11–19.');
+        if (reason === 'not_authenticated') return showError('Your session ended. Sign in again to continue.');
+        if (reason === 'profile_not_found') return showError('Your account could not be found. Sign in again to continue.');
+        return showError('We couldn\'t finish setup. Please try again.');
+      }
+
+      if (row.needs_consent) {
+        // Fire the consent email to the parent — same Edge Function the
+        // email/password signup uses. Best effort: if it fails the student
+        // can still confirm and re-request from the dashboard later.
+        try {
+          const { error: fnErr } = await supabaseClient.functions.invoke('send-consent-email', {
+            body: {
+              student_user_id: currentUserId,
+              parent_email: parentEmail.value.trim(),
+              student_name: name.value.trim(),
+              origin: window.location.origin
+            }
+          });
+          if (fnErr) console.error('send-consent-email invoke failed:', fnErr);
+        } catch (ex) {
+          console.error('send-consent-email threw:', ex);
+        }
+        showWaiting(
+          'Your account is ready, but we need a parent or guardian to confirm before you can sign in. We sent them a link by email — it expires in 3 days.'
+        );
+        return;
+      }
+
+      // Over-16: refresh the JWT so the role is current, then route.
+      try {
+        await supabaseClient.auth.refreshSession({ forceRefresh: true });
+      } catch (_) { /* best effort */ }
+      routeByRole(row.role);
+    } catch (ex) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+      showError('Network error. Check your connection and try again.');
+    }
+  });
+
+  // ---- Session + profile resolution ----
+  let currentUserId = null;
+  let currentEmail = null;
+  let handled = false;
+
+  async function resolve(session) {
+    if (handled) return;
+    handled = true;
+    if (!session || !session.user) {
+      window.location.href = 'login.html';
+      return;
+    }
+    currentUserId = session.user.id;
+    currentEmail = session.user.email || '';
+
+    // Force a token refresh so the custom access-token hook re-stamps the
+    // current role onto the JWT (the freshly-minted OAuth JWT predates any
+    // profile change). Mirrors auth/confirmed.html.
+    try {
+      const { data: refreshed } = await supabaseClient.auth.refreshSession({ forceRefresh: true });
+      if (refreshed && refreshed.user) session.user = refreshed.user;
+    } catch (_) { /* best effort */ }
+
+    let profile = null;
+    try {
+      const { data } = await supabaseClient
+        .from('profiles')
+        .select('year_group, dob, requires_parental_consent, consent_status, full_name, role')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      profile = data;
+    } catch (_) { /* fall through to the form */ }
+
+    // Already complete (DOB set) AND not blocked by consent → route straight on.
+    if (profile && profile.dob) {
+      if (profile.requires_parental_consent && profile.consent_status !== 'granted') {
+        // Profile complete but parent hasn't consented yet. Show the waiting
+        // state rather than bouncing them to a dashboard the auth hook would
+        // block anyway.
+        showWaiting(
+          'Your account is ready, but we\'re still waiting for a parent or guardian to confirm. Ask them to check their email — the link expires in 3 days.'
+        );
+        return;
+      }
+      routeByRole(profile.role);
+      return;
+    }
+
+    // Pre-fill name from the OAuth provider metadata if we have it.
+    const meta = session.user.user_metadata || {};
+    if (meta.full_name) name.value = meta.full_name;
+    else if (meta.name) name.value = meta.name;
+    else if (meta.user_metadata && meta.user_metadata.full_name) name.value = meta.user_metadata.full_name;
+
+    showForm();
+  }
+
+  supabaseClient.auth.getSession().then(({ data }) => {
+    if (data && data.session) resolve(data.session);
+  });
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') resolve(session);
+  });
+
+  // If nothing resolves in 6s, the OAuth link likely failed/expired.
+  setTimeout(function () {
+    if (handled) return;
+    handled = true;
+    $('loading').hidden = true;
+    $('formWrap').hidden = true;
+    $('waiting').hidden = true;
+    const card = document.querySelector('.card');
+    card.innerHTML =
+      '<h2>Sign-in timed out</h2>' +
+      '<p class="sub">We couldn\'t finish your sign-in. The link may have expired.</p>' +
+      '<div class="actions"><a class="btn-ghost" href="login.html">Back to sign in</a></div>';
+  }, 6000);
+</script>
+<script src="bubbles.js" defer></script>
+</body>
+</html>

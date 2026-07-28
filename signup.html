@@ -216,6 +216,25 @@
       content: ''; flex: 1; height: 1px; background: var(--line);
     }
 
+    .oauth {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+    }
+    .oauth-btn {
+      background: var(--bg-3);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 9px 8px;
+      font-family: inherit; font-size: 12.5px; font-weight: 500;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .oauth-btn:hover { background: var(--bg-4); border-color: var(--line-3); }
+    .oauth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .oauth-btn svg { width: 14px; height: 14px; }
+    @media (max-width: 480px) { .oauth { grid-template-columns: 1fr; } }
+
     .foot {
       margin-top: 22px;
       padding-top: 18px;
@@ -490,6 +509,23 @@
         <button type="submit" class="btn-primary" id="submitBtn">Create account</button>
       </form>
 
+      <div class="divider">or sign up with</div>
+
+      <div class="oauth">
+        <button class="oauth-btn" type="button" data-provider="google" aria-label="Sign up with Google">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v3.2h5.35c-.23 1.4-1.6 4.1-5.35 4.1-3.22 0-5.85-2.67-5.85-5.95s2.63-5.95 5.85-5.95c1.83 0 3.06.78 3.76 1.45l2.57-2.48C16.83 4.1 14.66 3.1 12 3.1 6.92 3.1 2.85 7.17 2.85 12.25S6.92 21.4 12 21.4c6.93 0 9.55-4.86 9.55-9.35 0-.63-.07-1.1-.2-1.95z"/></svg>
+          Google
+        </button>
+        <button class="oauth-btn" type="button" data-provider="azure" aria-label="Sign up with Microsoft">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.4 11.4H2V2h9.4v9.4zM22 11.4h-9.4V2H22v9.4zM11.4 22H2v-9.4h9.4V22zM22 22h-9.4v-9.4H22V22z"/></svg>
+          Microsoft
+        </button>
+        <button class="oauth-btn" type="button" data-provider="apple" aria-label="Sign up with Apple">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.4 2-3.5 2.1-3.6-1.1-1.6-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-3.9 2.4-1.7 2.9-.4 7.2 1.2 9.5.8 1.1 1.7 2.4 3 2.4 1.2 0 1.7-.8 3.1-.8 1.4 0 1.9.8 3.2.8 1.3 0 2.2-1.1 3-2.3.9-1.3 1.3-2.6 1.3-2.7-.1 0-2.6-1-2.6-3.9zM14.1 5.4c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3z"/></svg>
+          Apple
+        </button>
+      </div>
+
       <div class="foot">
         Already have an account? <a href="login.html">Sign in</a>
       </div>
@@ -541,6 +577,33 @@
         }
       }
     }
+  });
+
+  // ---------- OAuth (Google / Microsoft / Apple) ----------
+  // Each .oauth-btn carries a data-provider attr. We hand off to
+  // Supabase's OAuth flow and point the callback at /complete-profile.html,
+  // which collects the student-only fields (year group, DOB, parent email
+  // for under-16s) the provider can't give us — and applies the same
+  // parental-consent gate as the email/password path.
+  const OAUTH_REDIRECT_TO = window.location.origin + '/complete-profile.html';
+  document.querySelectorAll('.oauth-btn[data-provider]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const provider = btn.getAttribute('data-provider');
+      btn.disabled = true;
+      try {
+        const { error } = await supabaseClient.auth.signInWithOAuth({
+          provider,
+          options: { redirectTo: OAUTH_REDIRECT_TO }
+        });
+        if (error) {
+          btn.disabled = false;
+          console.error('OAuth ' + provider + ' failed:', error.message);
+        }
+      } catch (err) {
+        btn.disabled = false;
+        console.error('OAuth ' + provider + ' threw:', err);
+      }
+    });
   });
 </script>
 

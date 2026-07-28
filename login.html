@@ -469,15 +469,15 @@
       <div class="divider">or continue with</div>
 
       <div class="oauth">
-        <button class="oauth-btn" type="button" aria-label="Sign in with Google">
+        <button class="oauth-btn" type="button" data-provider="google" aria-label="Sign in with Google">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v3.2h5.35c-.23 1.4-1.6 4.1-5.35 4.1-3.22 0-5.85-2.67-5.85-5.95s2.63-5.95 5.85-5.95c1.83 0 3.06.78 3.76 1.45l2.57-2.48C16.83 4.1 14.66 3.1 12 3.1 6.92 3.1 2.85 7.17 2.85 12.25S6.92 21.4 12 21.4c6.93 0 9.55-4.86 9.55-9.35 0-.63-.07-1.1-.2-1.95z"/></svg>
           Google
         </button>
-        <button class="oauth-btn" type="button" aria-label="Sign in with Microsoft">
+        <button class="oauth-btn" type="button" data-provider="azure" aria-label="Sign in with Microsoft">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.4 11.4H2V2h9.4v9.4zM22 11.4h-9.4V2H22v9.4zM11.4 22H2v-9.4h9.4V22zM22 22h-9.4v-9.4H22V22z"/></svg>
           Microsoft
         </button>
-        <button class="oauth-btn" type="button" aria-label="Sign in with Apple">
+        <button class="oauth-btn" type="button" data-provider="apple" aria-label="Sign in with Apple">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.4 2-3.5 2.1-3.6-1.1-1.6-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-3.9 2.4-1.7 2.9-.4 7.2 1.2 9.5.8 1.1 1.7 2.4 3 2.4 1.2 0 1.7-.8 3.1-.8 1.4 0 1.9.8 3.2.8 1.3 0 2.2-1.1 3-2.3.9-1.3 1.3-2.6 1.3-2.7-.1 0-2.6-1-2.6-3.9zM14.1 5.4c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3z"/></svg>
           Apple
         </button>
@@ -565,6 +565,35 @@
         }
       }
     }
+  });
+
+  // ---------- OAuth (Google / Microsoft / Apple) ----------
+  // The three .oauth-btn buttons carry a data-provider attr. We kick off
+  // Supabase's OAuth flow and point the callback at /complete-profile.html,
+  // which detects whether the profile is complete (year group + DOB) and
+  // either routes the returning user to their dashboard or shows the
+  // completion form for a first-time SSO user.
+  const OAUTH_REDIRECT_TO = window.location.origin + '/complete-profile.html';
+  document.querySelectorAll('.oauth-btn[data-provider]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const provider = btn.getAttribute('data-provider');
+      btn.disabled = true;
+      try {
+        const { error } = await supabaseClient.auth.signInWithOAuth({
+          provider,
+          options: { redirectTo: OAUTH_REDIRECT_TO }
+        });
+        if (error) {
+          btn.disabled = false;
+          errMsg.textContent = explainAuthError(error.message);
+          errBanner.classList.add('show');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        errMsg.textContent = 'Network error. Check your connection and try again.';
+        errBanner.classList.add('show');
+      }
+    });
   });
 
   // Translate Supabase's auth error messages into something a student can act on.
