@@ -276,7 +276,7 @@
     try {
       const { data: profile } = await supabaseClient
         .from('profiles')
-        .select('requires_parental_consent, consent_status, full_name, role')
+        .select('requires_parental_consent, consent_status, full_name, role, dob')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -287,6 +287,19 @@
           const r = await supabaseClient.rpc('current_role');
           if (!r.error && r.data) role = r.data;
         } catch (_) { /* RPC not installed — fall through */ }
+      }
+
+      // SSO sign-ins never collect year group / DOB at the provider, so the
+      // profile row handle_new_user creates for them has dob = null. Email
+      // signups always have a DOB (handle_new_user writes it from signUp
+      // metadata), so this branch only fires for SSO users — send them to
+      // the completion page to collect the student-only fields (year, DOB,
+      // parent consent for under-16s) before they reach a dashboard. Routing
+      // SSO through confirmed.html — already in the Redirect URLs allowlist —
+      // means we don't depend on complete-profile.html being allowlisted.
+      if (profile && profile.dob == null) {
+        window.location.href = '../complete-profile.html';
+        return;
       }
 
       if (profile && profile.requires_parental_consent && profile.consent_status !== 'granted') {

@@ -569,10 +569,23 @@
   // which detects whether the profile is complete (year group + DOB) and
   // either routes the returning user to their dashboard or shows the
   // completion form for a first-time SSO user.
-  const OAUTH_REDIRECT_TO = window.location.origin + '/complete-profile.html';
+  // OAuth redirects to /auth/confirmed.html — a URL that's already in the
+  // Supabase Redirect URLs allowlist (email confirmation uses it). Routing
+  // SSO through there means we don't depend on /complete-profile.html being
+  // separately allowlisted, and confirmed.html routes incomplete profiles
+  // (no DOB — the SSO case) to /complete-profile.html for finalisation.
+  const OAUTH_REDIRECT_TO = window.location.origin + '/auth/confirmed.html';
   document.querySelectorAll('.oauth-btn[data-provider]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const provider = btn.getAttribute('data-provider');
+      // Opening the HTML file directly (file://) yields a bogus origin that
+      // Supabase can't redirect to — it silently drops the user back on the
+      // Site URL. Catch it with a clear message instead.
+      if (window.location.protocol !== 'http:' && window.location.protocol !== 'https:') {
+        const e = document.getElementById('err');
+        if (e) { const s = e.querySelector('span'); if (s) s.textContent = 'Open this page via your web server (http/https), not by opening the file directly.'; e.classList.add('show'); }
+        return;
+      }
       btn.disabled = true;
       try {
         const { error } = await supabaseClient.auth.signInWithOAuth({
