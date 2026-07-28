@@ -297,7 +297,12 @@
       // parent consent for under-16s) before they reach a dashboard. Routing
       // SSO through confirmed.html — already in the Redirect URLs allowlist —
       // means we don't depend on complete-profile.html being allowlisted.
-      if (profile && profile.dob == null) {
+      // Guard on role so an organiser / teacher / staff member whose row
+      // happens to lack a DOB isn't wrongly shipped off to the *student*
+      // completion form. OAuth is only offered to students, so in practice
+      // this fires for student-role (or unknown-role) rows with no DOB —
+      // i.e. fresh SSO sign-ins.
+      if ((!profile || profile.dob == null) && (!role || role === 'student')) {
         window.location.href = '../complete-profile.html';
         return;
       }
