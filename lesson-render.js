@@ -287,6 +287,22 @@
   }
 
   // ---------- practice renderers -------------------------------------------
+  // Inject the new card keyframes into a top-level <style> tag once so the
+  // student player (lesson.html), staff preview (lesson-creator.html), and
+  // the standalone HTML block all share the same animation vocabulary.
+  (function injectCardFx() {
+    if (typeof document === 'undefined') return;
+    if (document.getElementById('recall-card-fx')) return;
+    const s = document.createElement('style');
+    s.id = 'recall-card-fx';
+    s.textContent = `
+      @keyframes fx-card-in { from { opacity: 0; transform: translateX(28px) rotateY(-12deg) scale(0.96); } to { opacity: 1; transform: translateX(0) rotateY(0) scale(1); } }
+      @keyframes fx-card-in-back { from { opacity: 0; transform: translateX(-28px) rotateY(12deg) scale(0.96); } to { opacity: 1; transform: translateX(0) rotateY(0) scale(1); } }
+      @keyframes fx-card-rise { from { transform: scale(0.85) translateY(14px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+    `;
+    document.head.appendChild(s);
+  })();
+
   // Each function returns the static HTML for an interactive block. Event
   // listeners are attached by bindInteractive() once the HTML is in the
   // DOM.
@@ -1152,13 +1168,75 @@
         const cards = (b.data && b.data.cards) || [];
         if (!cards.length) return '<p style="color:var(--text-4)">[Card set: empty]</p>';
         return `<div class="cardset-stack">${cards.map((c, i) => `
-          <div class="flashcard" onclick="this.classList.toggle('flipped')">
+          <div class="flashcard" data-card-i="${i}" onclick="this.classList.toggle('flipped')">
             <div class="flashcard-inner">
               <div class="flashcard-face flashcard-front">${escapeHtml(c.front || '')}</div>
               <div class="flashcard-face flashcard-back">${escapeHtml(c.back || '')}</div>
             </div>
           </div>`).join('')}</div>`;
       }
+    },
+
+    // ---------- 3 new interactive card kinds (2026-08) ----------
+    // memory_game — classic pairs-matching memory. A 4x3 (or up to 6x4)
+    // grid of face-down cards. The student clicks two cards at a time;
+    // matched pairs stay face-up; mismatches shake and flip back after
+    // a short pause. Win celebration on complete.
+    memory_game: {
+      label: 'Memory pairs',
+      defaults: () => ({
+        prompt: 'Find the matching pairs.',
+        pairs: [
+          { left: 'Mitochondrion', right: 'Powerhouse of the cell' },
+          { left: 'Ribosome',      right: 'Site of protein synthesis' },
+          { left: 'Nucleus',       right: 'Stores DNA' },
+          { left: 'Chloroplast',   right: 'Site of photosynthesis' },
+          { left: 'Cell membrane', right: 'Controls what enters/exits' },
+          { left: 'Golgi',         right: 'Packages proteins' }
+        ],
+        required: false,
+        allowRetry: true
+      }),
+      render: renderMemoryGame
+    },
+
+    // swipe_cards — a tinder-style stack of cards. Each card has a
+    // front (the concept) and the student swipes or clicks ◀/▶ to
+    // classify it (e.g. "Mitosis / Meiosis"). Tracks right/wrong per
+    // card. Perfect for sorting review.
+    swipe_cards: {
+      label: 'Swipe cards',
+      defaults: () => ({
+        prompt: 'Swipe right if this is **Mitosis**, left if it\'s **Meiosis**.',
+        leftLabel: 'Meiosis',
+        rightLabel: 'Mitosis',
+        cards: [
+          { text: 'Produces two genetically identical daughter cells.', correct: 'right' },
+          { text: 'Produces four non-identical gametes.', correct: 'left' },
+          { text: 'Used for growth and tissue repair.', correct: 'right' },
+          { text: 'Halves the chromosome number.', correct: 'left' }
+        ],
+        required: false,
+        allowRetry: true
+      }),
+      render: renderSwipeCards
+    },
+
+    // card_slideshow — a rotating carousel of "concept cards" with
+    // auto-advance and dot navigation. Each card has a heading and
+    // body (markdown). Ideal for concept reviews.
+    card_slideshow: {
+      label: 'Card carousel',
+      defaults: () => ({
+        title: 'Key concepts',
+        autoAdvanceSeconds: 0,
+        cards: [
+          { heading: 'Mitochondria', body: 'The site of **aerobic respiration**, generating most of the cell\'s ATP.' },
+          { heading: 'Ribosomes',    body: 'The site of **protein synthesis**, found free in the cytoplasm and on the rough ER.' },
+          { heading: 'Nucleus',      body: 'Contains the cell\'s **DNA** and controls its activities.' }
+        ]
+      }),
+      render: renderCardSlideshow
     },
     steps: {
       label: 'Numbered steps',
@@ -1320,6 +1398,96 @@
       </div>
       <div data-pb="feedback"></div>
     `);
+  }
+
+  // ---------- 3 new card renderers (2026-08) ----------
+  // renderMemoryGame(b) — pairs-matching grid. Builds a flat array of
+  // {text, pairId} tiles (one per side of each pair), shuffles them,
+  // and lays them out as a CSS grid of flip-cards. The bind function
+  // handles the click logic.
+  function renderMemoryGame(b) {
+    const d = b.data || {};
+    const pairs = d.pairs || [];
+    if (!pairs.length) return practiceWrap('<div class="prompt">[Memory game: add pairs in the editor]</div>');
+    const tiles = [];
+    pairs.forEach((p, i) => {
+      tiles.push({ text: p.left || '', pairId: i, side: 'left' });
+      tiles.push({ text: p.right || '', pairId: i, side: 'right' });
+    });
+    // Shuffle.
+    for (let i = tiles.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+    }
+    // Choose a column count based on tile count (always even).
+    const cols = tiles.length <= 8 ? 3 : (tiles.length <= 12 ? 4 : (tiles.length <= 16 ? 4 : 5));
+    return practiceWrap(`
+      <div class="prompt">${escapeHtml(d.prompt || 'Find the matching pairs.')}</div>
+      <div class="mem-game" data-pbid="mem-game" style="--mem-cols:${cols};">
+        ${tiles.map((t, i) => `<div class="mem-tile" data-tile-i="${i}" data-pair="${t.pairId}">
+          <div class="mem-tile-inner">
+            <div class="mem-tile-face mem-tile-back"><span class="mem-tile-back-icon">?</span></div>
+            <div class="mem-tile-face mem-tile-front"><span class="mem-tile-text">${escapeHtml(t.text)}</span></div>
+          </div>
+        </div>`).join('')}
+      </div>
+      <div class="mem-status" data-pbid="mem-status">
+        <span class="mem-moves">Moves: <strong data-pbid="mem-moves">0</strong></span>
+        <span class="mem-matches">Matches: <strong data-pbid="mem-matches">0</strong> / ${pairs.length}</span>
+      </div>
+      <div class="check-row">
+        <button type="button" class="reset-btn" data-pb="reset" hidden>Play again</button>
+      </div>
+      <div data-pb="feedback"></div>
+    `);
+  }
+
+  // renderSwipeCards(b) — a stack of cards. Each card has text on the
+  // front; swiping/clicking ◀ ▶ marks it left or right. The bind
+  // function animates the card off the stack, then loads the next.
+  function renderSwipeCards(b) {
+    const d = b.data || {};
+    const cards = d.cards || [];
+    if (!cards.length) return practiceWrap('<div class="prompt">[Swipe cards: add cards in the editor]</div>');
+    return practiceWrap(`
+      <div class="prompt">${renderMarkdown(d.prompt || '')}</div>
+      <div class="swipe-wrap" data-pbid="swipe-wrap">
+        <div class="swipe-buttons">
+          <button type="button" class="swipe-btn left"  data-swipe="left"  title="${escapeHtml(d.leftLabel  || 'Left')}">◀ ${escapeHtml(d.leftLabel  || 'Left')}</button>
+          <button type="button" class="swipe-btn right" data-swipe="right" title="${escapeHtml(d.rightLabel || 'Right')}">${escapeHtml(d.rightLabel || 'Right')} ▶</button>
+        </div>
+        <div class="swipe-stage" data-pbid="swipe-stage" data-cards="${escapeHtml(JSON.stringify(cards))}">
+          ${cards.map((c, i) => `<div class="swipe-card" data-i="${i}" data-correct="${escapeHtml(c.correct || '')}">
+            <div class="swipe-card-body">${escapeHtml(c.text || '')}</div>
+          </div>`).join('')}
+        </div>
+        <div class="swipe-progress"><span data-pbid="swipe-pos">1</span> / <span data-pbid="swipe-total">${cards.length}</span></div>
+      </div>
+      <div data-pb="feedback"></div>
+    `);
+  }
+
+  // renderCardSlideshow(b) — rotating carousel of concept cards.
+  function renderCardSlideshow(b) {
+    const d = b.data || {};
+    const cards = d.cards || [];
+    if (!cards.length) return '<p style="color:var(--text-4)">[Card carousel: add cards in the editor]</p>';
+    return `<div class="cs-carousel" data-pbid="cs-carousel" data-cards="${escapeHtml(JSON.stringify(cards))}" data-auto="${parseInt(d.autoAdvanceSeconds, 10) || 0}">
+      ${d.title ? `<div class="cs-title">${escapeHtml(d.title)}</div>` : ''}
+      <div class="cs-stage" data-pbid="cs-stage">
+        <div class="cs-card" data-side="front">
+          <div class="cs-heading">${escapeHtml(cards[0].heading || '')}</div>
+          <div class="cs-body">${renderMarkdown(cards[0].body || '')}</div>
+        </div>
+      </div>
+      <div class="cs-controls">
+        <button type="button" class="cs-btn" data-cs="prev">◀</button>
+        <div class="cs-dots">
+          ${cards.map((_, i) => `<span class="cs-dot${i === 0 ? ' active' : ''}" data-cs-dot="${i}"></span>`).join('')}
+        </div>
+        <button type="button" class="cs-btn" data-cs="next">▶</button>
+      </div>
+    </div>`;
   }
 
   // ---------- interactivity wiring -----------------------------------------
@@ -2944,6 +3112,210 @@
     }));
   }
 
+  // ---------- 3 new card bindings (2026-08) ----------
+  // bindMemoryGame — click two tiles; matching pair stays face-up,
+  // mismatched pair shakes and flips back. Tracks moves + matches.
+  function bindMemoryGame(rootEl, d, blockId, onScore) {
+    const tiles = [...rootEl.querySelectorAll('.mem-tile')];
+    const movesEl = rootEl.querySelector('[data-pbid="mem-moves"]');
+    const matchesEl = rootEl.querySelector('[data-pbid="mem-matches"]');
+    const resetBtn = rootEl.querySelector('[data-pb="reset"]');
+    const totalPairs = (d.pairs || []).length;
+    let flipped = [];
+    let moves = 0, matches = 0;
+    let locked = false;
+    oneShot(rootEl.querySelector('[data-pbid="mem-game"]'), 'fx-fade-up');
+    stagger(rootEl.querySelector('[data-pbid="mem-game"]'), '.mem-tile', 60);
+    function finish() {
+      const score = totalPairs ? matches / totalPairs : 0;
+      showFeedback(rootEl, `🎉 **All matched in ${moves} moves!**`, 'ok');
+      if (resetBtn) resetBtn.hidden = false;
+      if (onScore) onScore(blockId, score, 1);
+      if (totalPairs && matches === totalPairs) {
+        confetti(rootEl);
+        oneShot(rootEl, 'fx-tada');
+      }
+    }
+    tiles.forEach(tile => {
+      ripple(tile);
+      tile.addEventListener('click', () => {
+        if (locked) return;
+        if (tile.classList.contains('matched') || tile.classList.contains('revealed')) return;
+        if (flipped.includes(tile)) return;
+        tile.classList.add('revealed');
+        flipped.push(tile);
+        if (flipped.length === 2) {
+          moves++;
+          if (movesEl) movesEl.textContent = String(moves);
+          const [a, b] = flipped;
+          if (a.dataset.pair === b.dataset.pair) {
+            // Match!
+            setTimeout(() => {
+              a.classList.add('matched');
+              b.classList.add('matched');
+              celebrate(a, false);
+              matches++;
+              if (matchesEl) matchesEl.textContent = String(matches);
+              flipped = [];
+              if (matches === totalPairs) finish();
+            }, 280);
+          } else {
+            locked = true;
+            shake(a); shake(b);
+            setTimeout(() => {
+              a.classList.remove('revealed');
+              b.classList.remove('revealed');
+              flipped = [];
+              locked = false;
+            }, 900);
+          }
+        }
+      });
+    });
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        tiles.forEach(t => { t.classList.remove('revealed', 'matched'); });
+        flipped = []; moves = 0; matches = 0; locked = false;
+        if (movesEl) movesEl.textContent = '0';
+        if (matchesEl) matchesEl.textContent = '0';
+        resetBtn.hidden = true;
+        clearFeedback(rootEl);
+        oneShot(rootEl.querySelector('[data-pbid="mem-game"]'), 'fx-fade-up');
+        stagger(rootEl.querySelector('[data-pbid="mem-game"]'), '.mem-tile', 40);
+      });
+    }
+  }
+
+  // bindSwipeCards — click ◀ or ▶ to "swipe" the top card off the stack.
+  // The card flies out in the chosen direction, the next card rises,
+  // and we tally correct/incorrect.
+  function bindSwipeCards(rootEl, d, blockId, onScore) {
+    const stage = rootEl.querySelector('[data-pbid="swipe-stage"]');
+    const posEl = rootEl.querySelector('[data-pbid="swipe-pos"]');
+    const totalEl = rootEl.querySelector('[data-pbid="swipe-total"]');
+    const btns = rootEl.querySelectorAll('.swipe-btn');
+    const cards = (stage && stage.dataset.cards) ? JSON.parse(stage.dataset.cards) : [];
+    if (!cards.length) return;
+    let i = 0, right = 0, wrong = 0;
+    if (totalEl) totalEl.textContent = String(cards.length);
+    btns.forEach(btn => ripple(btn));
+    oneShot(stage, 'fx-fade-up');
+    function advance(dir) {
+      if (i >= cards.length) return;
+      const card = stage.querySelector(`.swipe-card[data-i="${i}"]`);
+      if (!card) return;
+      const isRight = dir === 'right';
+      const correct = (cards[i].correct || '') === dir;
+      if (correct) right++; else wrong++;
+      // Animate card out.
+      card.classList.add(isRight ? 'swipe-out-right' : 'swipe-out-left');
+      if (correct) burst(card, { count: 8, distance: 40 });
+      else shake(card, true);
+      setTimeout(() => {
+        card.style.display = 'none';
+        i++;
+        if (posEl) posEl.textContent = String(Math.min(i + 1, cards.length));
+        if (i < cards.length) {
+          // Reveal next card by popping it in.
+          const next = stage.querySelector(`.swipe-card[data-i="${i}"]`);
+          if (next) {
+            next.classList.add('swipe-next');
+            requestAnimationFrame(() => next.classList.remove('swipe-next'));
+          }
+        } else {
+          finish();
+        }
+      }, 380);
+    }
+    function finish() {
+      const total = cards.length;
+      const score = total ? right / total : 0;
+      const msg = `${right} / ${total} correct.`;
+      showFeedback(rootEl, msg + (score === 1 ? ' 🎉' : ''), score === 1 ? 'ok' : (score >= 0.5 ? 'info' : 'bad'));
+      if (onScore) onScore(blockId, score, 1);
+      if (score === 1) {
+        confetti(rootEl);
+        oneShot(rootEl, 'fx-tada');
+      }
+      // Reset button to retry.
+      const btn = rootEl.querySelector('[data-pb="reset"]');
+      if (btn) {
+        btn.hidden = false;
+        btn.addEventListener('click', () => {
+          i = 0; right = 0; wrong = 0;
+          stage.querySelectorAll('.swipe-card').forEach(c => {
+            c.classList.remove('swipe-out-left', 'swipe-out-right');
+            c.style.display = '';
+          });
+          if (posEl) posEl.textContent = '1';
+          btn.hidden = true;
+          clearFeedback(rootEl);
+          oneShot(stage, 'fx-fade-up');
+        }, { once: true });
+      }
+    }
+    btns.forEach(btn => btn.addEventListener('click', () => advance(btn.dataset.swipe)));
+    // Add keyboard support: ← / →.
+    const onKey = (e) => {
+      if (e.key === 'ArrowLeft') advance('left');
+      else if (e.key === 'ArrowRight') advance('right');
+    };
+    rootEl.addEventListener('keydown', onKey);
+    rootEl.tabIndex = 0;
+  }
+
+  // bindCardSlideshow — dot nav + prev/next; optional auto-advance.
+  function bindCardSlideshow(el) {
+    if (!el) return;
+    const stage = el.querySelector('[data-pbid="cs-stage"]');
+    const dots = [...el.querySelectorAll('.cs-dot')];
+    const prev = el.querySelector('[data-cs="prev"]');
+    const next = el.querySelector('[data-cs="next"]');
+    let cards;
+    try { cards = JSON.parse(el.dataset.cards || '[]'); } catch (_) { cards = []; }
+    if (!cards.length) return;
+    let pos = 0;
+    let autoTimer = null;
+    if (prev) ripple(prev);
+    if (next) ripple(next);
+    function show(i) {
+      pos = ((i % cards.length) + cards.length) % cards.length;
+      const c = cards[pos];
+      stage.innerHTML = `<div class="cs-card" data-side="front"><div class="cs-heading">${escapeHtml(c.heading || '')}</div><div class="cs-body">${renderMarkdown(c.body || '')}</div></div>`;
+      const newCard = stage.querySelector('.cs-card');
+      newCard.classList.add('fx-slide-in-right');
+      dots.forEach((d, di) => d.classList.toggle('active', di === pos));
+    }
+    function step(dir) { show(pos + (dir === 'next' ? 1 : -1)); }
+    prev && prev.addEventListener('click', () => step('prev'));
+    next && next.addEventListener('click', () => step('next'));
+    dots.forEach((d, di) => d.addEventListener('click', () => show(di)));
+    // Auto-advance.
+    const autoSec = parseInt(el.dataset.auto, 10) || 0;
+    if (autoSec > 0) {
+      autoTimer = setInterval(() => step('next'), autoSec * 1000);
+      // Pause on hover.
+      el.addEventListener('mouseenter', () => clearInterval(autoTimer));
+      el.addEventListener('mouseleave', () => { autoTimer = setInterval(() => step('next'), autoSec * 1000); });
+    }
+    show(0);
+    oneShot(el, 'fx-fade-up');
+  }
+
+  // wireCardset — adds entry stagger + lift on hover for the existing
+  // cardset block (so it matches the new card animations).
+  function wireCardset(rootEl) {
+    const stack = rootEl.querySelector('.cardset-stack');
+    if (!stack) return;
+    oneShot(stack, 'fx-fade-up');
+    stagger(stack, '.flashcard', 80);
+    stack.querySelectorAll('.flashcard').forEach(c => {
+      c.addEventListener('mouseenter', () => {
+        if (!c.classList.contains('flipped')) oneShot(c, 'fx-float');
+      });
+    });
+  }
+
   // Master dispatch: called once per interactive block after the
   // HTML has been inserted into the DOM.
   function bindInteractive(rootEl, b, onScore) {
@@ -2967,11 +3339,16 @@
       case 'sequence':  bindSequence(rootEl, b.data, blockId, onScore); break;
       case 'connect':   bindConnect(rootEl, b.data, blockId, onScore); break;
       case 'pile':      bindPile(rootEl, b.data, blockId, onScore); break;
+      // New interactive card kinds (2026-08)
+      case 'memory_game':    bindMemoryGame(rootEl, b.data, blockId, onScore); break;
+      case 'swipe_cards':    bindSwipeCards(rootEl, b.data, blockId, onScore); break;
+      case 'card_slideshow': bindCardSlideshow(rootEl.querySelector('[data-pbid="cs-carousel"]')); break;
       // Study aids (no onScore; just wire up any DOM-driven behaviour)
       case 'flashcard_stack': wireFcDeck(rootEl.querySelector('[data-pbid="fcdeck"]')); break;
       case 'progress_meter':  wireProgMeter(rootEl.querySelector('[data-pbid="prog-meter"]')); break;
       case 'mindmap':         wireMindMap(rootEl.querySelector('[data-pbid="mindmap"]')); break;
       case 'flashcard':       wireFlashcardStudy(rootEl); break;
+      case 'cardset':         wireCardset(rootEl); break;
       // 'html' is interactive but the interaction is a postMessage from
       // the sandboxed iframe to the parent (lesson.html), not a
       // bindInteractive call. See buildHtmlSrcdoc + lesson.html.

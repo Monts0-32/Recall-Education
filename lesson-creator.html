@@ -640,6 +640,14 @@
       display: grid; place-items: center; text-align: center; padding: 14px;
     }
     .preview .flashcard-back { transform: rotateY(180deg); background: var(--blue-pale); border-color: var(--blue); }
+    .preview .flashcard:hover:not(.flipped) .flashcard-front { background: var(--bg-4); border-color: var(--line-3); }
+    .preview .flashcard-front::after {
+      content: 'tap to flip';
+      position: absolute; right: 10px; bottom: 8px;
+      font-size: 10px; color: var(--text-4);
+      letter-spacing: 0.04em; text-transform: uppercase;
+      font-weight: 600; opacity: 0.7;
+    }
     .preview .math-inline { background: var(--bg-3); padding: 2px 4px; border-radius: 3px; }
     .preview .math-display {
       background: var(--bg-3); border: 1px solid var(--line);
@@ -668,6 +676,69 @@
       color: var(--text-3);
     }
     .preview .cardset-stack { display: flex; flex-direction: column; gap: 10px; }
+    .preview .cardset-stack .flashcard { transition: transform 0.15s ease, box-shadow 0.2s ease; }
+    .preview .cardset-stack .flashcard:hover:not(.flipped) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+
+    /* Preview styles for new card kinds */
+    .preview .mem-game { display: grid; grid-template-columns: repeat(var(--mem-cols, 4), 1fr); gap: 6px; }
+    .preview .mem-tile { perspective: 600px; aspect-ratio: 1.4 / 1; cursor: pointer; }
+    .preview .mem-tile-inner { position: relative; width: 100%; height: 100%; transition: transform 0.4s; transform-style: preserve-3d; }
+    .preview .mem-tile.revealed .mem-tile-inner,
+    .preview .mem-tile.matched .mem-tile-inner { transform: rotateY(180deg); }
+    .preview .mem-tile-face {
+      position: absolute; inset: 0; backface-visibility: hidden;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      display: grid; place-items: center; padding: 6px;
+      font-size: 11.5px; text-align: center; color: var(--text);
+    }
+    .preview .mem-tile-face.mem-tile-front { transform: rotateY(180deg); background: var(--blue-pale); border-color: var(--blue); }
+    .preview .mem-tile.matched .mem-tile-front { background: var(--green-dim); border-color: var(--green); }
+    .preview .mem-status { display: flex; gap: 12px; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); margin-top: 4px; }
+    .preview .swipe-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .preview .swipe-buttons { display: flex; gap: 6px; }
+    .preview .swipe-btn {
+      background: var(--bg-3); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 5px 12px; border-radius: 999px;
+      font-family: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+    }
+    .preview .swipe-btn.left:hover  { background: var(--red-dim);   color: var(--red);   border-color: var(--red); }
+    .preview .swipe-btn.right:hover { background: var(--green-dim); color: var(--green); border-color: var(--green); }
+    .preview .swipe-stage { position: relative; width: 100%; max-width: 320px; height: 110px; }
+    .preview .swipe-card {
+      position: absolute; inset: 0;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      display: grid; place-items: center; text-align: center;
+      font-size: 13px; color: var(--text); padding: 10px;
+    }
+    .preview .swipe-progress { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); }
+    .preview .cs-carousel {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm); padding: 12px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .preview .cs-title { font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; }
+    .preview .cs-stage { width: 100%; min-height: 80px; display: grid; place-items: center; }
+    .preview .cs-card {
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-left: 3px solid var(--blue);
+      border-radius: var(--r-sm); padding: 10px 14px;
+      width: 100%;
+    }
+    .preview .cs-heading { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .preview .cs-body { color: var(--text-2); font-size: 12.5px; }
+    .preview .cs-controls { display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .preview .cs-btn {
+      background: var(--bg-2); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 3px 10px; border-radius: 999px;
+      font-family: inherit; font-size: 12px; cursor: pointer;
+    }
+    .preview .cs-dots { display: flex; gap: 5px; }
+    .preview .cs-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--bg-4); }
+    .preview .cs-dot.active { background: var(--blue); }
     .preview .steps-list { list-style: none; counter-reset: stepc; padding: 0; margin: 6px 0; display: flex; flex-direction: column; gap: 8px; }
     .preview .step-item {
       counter-increment: stepc; position: relative;
@@ -1464,6 +1535,9 @@
     @keyframes fx-heartbeat { 0%,100%{transform:scale(1)} 14%{transform:scale(1.15)} 28%{transform:scale(1)} 42%{transform:scale(1.15)} 70%{transform:scale(1)} }
     @keyframes fx-confetti { 0%{transform:translate(0,0) rotate(0);opacity:1} 100%{transform:translate(var(--cx,80px),var(--cy,160px)) rotate(var(--cr,720deg));opacity:0} }
     @keyframes fx-stagger-in { 0%{opacity:0;transform:translateY(6px) scale(0.96)} 100%{opacity:1;transform:translateY(0) scale(1)} }
+    @keyframes fx-card-in { from { opacity: 0; transform: translateX(28px) rotateY(-12deg) scale(0.96); } to { opacity: 1; transform: translateX(0) rotateY(0) scale(1); } }
+    @keyframes fx-card-in-back { from { opacity: 0; transform: translateX(-28px) rotateY(12deg) scale(0.96); } to { opacity: 1; transform: translateX(0) rotateY(0) scale(1); } }
+    @keyframes fx-card-rise { from { transform: scale(0.85) translateY(14px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
     .fx-pop     { animation: fx-pop .3s cubic-bezier(.34,1.56,.64,1); }
     .fx-shake   { animation: fx-shake .4s; }
     .fx-glow    { animation: fx-glow .8s ease-out; }
@@ -1635,6 +1709,14 @@
     .student-preview-body .flashcard-back {
       transform: rotateY(180deg); background: var(--blue-pale); border-color: var(--blue);
     }
+    .student-preview-body .flashcard:hover:not(.flipped) .flashcard-front { background: var(--bg-4); border-color: var(--line-3); }
+    .student-preview-body .flashcard-front::after {
+      content: 'tap to flip';
+      position: absolute; right: 12px; bottom: 10px;
+      font-size: 11px; color: var(--text-4);
+      letter-spacing: 0.04em; text-transform: uppercase;
+      font-weight: 600; opacity: 0.7;
+    }
     .student-preview-body .math-inline { background: var(--bg-3); padding: 2px 4px; border-radius: 3px; }
     .student-preview-body .math-display {
       background: var(--bg-3); border: 1px solid var(--line);
@@ -1663,6 +1745,74 @@
       color: var(--text-3);
     }
     .student-preview-body .cardset-stack { display: flex; flex-direction: column; gap: 12px; }
+    .student-preview-body .cardset-stack .flashcard { transition: transform 0.15s ease, box-shadow 0.2s ease; }
+    .student-preview-body .cardset-stack .flashcard:hover:not(.flipped) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+
+    /* New card kinds — student preview */
+    .student-preview-body .mem-game { display: grid; grid-template-columns: repeat(var(--mem-cols, 4), 1fr); gap: 8px; }
+    .student-preview-body .mem-tile { perspective: 800px; aspect-ratio: 1.4 / 1; cursor: pointer; }
+    .student-preview-body .mem-tile-inner { position: relative; width: 100%; height: 100%; transition: transform 0.45s cubic-bezier(.22,.61,.36,1); transform-style: preserve-3d; }
+    .student-preview-body .mem-tile.revealed .mem-tile-inner,
+    .student-preview-body .mem-tile.matched .mem-tile-inner { transform: rotateY(180deg); }
+    .student-preview-body .mem-tile-face {
+      position: absolute; inset: 0; backface-visibility: hidden;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      display: grid; place-items: center; padding: 10px;
+      font-size: 13px; text-align: center; color: var(--text);
+    }
+    .student-preview-body .mem-tile-face.mem-tile-front { transform: rotateY(180deg); background: var(--blue-pale); border-color: var(--blue); font-weight: 500; }
+    .student-preview-body .mem-tile.matched .mem-tile-front { background: var(--green-dim); border-color: var(--green); }
+    .student-preview-body .mem-status { display: flex; gap: 16px; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3); padding: 4px 0; }
+    .student-preview-body .swipe-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .student-preview-body .swipe-buttons { display: flex; gap: 8px; }
+    .student-preview-body .swipe-btn {
+      background: var(--bg-3); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 7px 14px; border-radius: 999px;
+      font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .student-preview-body .swipe-btn.left:hover  { background: var(--red-dim);   color: var(--red);   border-color: var(--red); }
+    .student-preview-body .swipe-btn.right:hover { background: var(--green-dim); color: var(--green); border-color: var(--green); }
+    .student-preview-body .swipe-stage { position: relative; width: 100%; max-width: 380px; height: 200px; }
+    .student-preview-body .swipe-card {
+      position: absolute; inset: 0;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      display: grid; place-items: center; text-align: center;
+      font-size: 15px; color: var(--text); padding: 18px;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.3);
+    }
+    .student-preview-body .swipe-card:nth-child(2) { transform: scale(0.95) translateY(6px); opacity: 0.7; }
+    .student-preview-body .swipe-card:nth-child(3) { transform: scale(0.9)  translateY(12px); opacity: 0.4; }
+    .student-preview-body .swipe-card:nth-child(n+4) { display: none; }
+    .student-preview-body .swipe-progress { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3); }
+    .student-preview-body .cs-carousel {
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-md); padding: 16px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .student-preview-body .cs-title { font-size: 12px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; }
+    .student-preview-body .cs-stage { width: 100%; min-height: 120px; display: grid; place-items: center; }
+    .student-preview-body .cs-card {
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      border-left: 3px solid var(--blue);
+      border-radius: var(--r-sm); padding: 16px 20px;
+      width: 100%;
+    }
+    .student-preview-body .cs-heading { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .student-preview-body .cs-body { color: var(--text-2); font-size: 13.5px; line-height: 1.55; }
+    .student-preview-body .cs-controls { display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .student-preview-body .cs-btn {
+      background: var(--bg-2); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 5px 12px; border-radius: 999px;
+      font-family: inherit; font-size: 13px; cursor: pointer;
+    }
+    .student-preview-body .cs-dots { display: flex; gap: 6px; }
+    .student-preview-body .cs-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bg-4); }
+    .student-preview-body .cs-dot.active { background: var(--blue); }
     .student-preview-body .steps-list { list-style: none; counter-reset: stepc; padding: 0; margin: 8px 0; display: flex; flex-direction: column; gap: 10px; }
     .student-preview-body .step-item {
       counter-increment: stepc; position: relative;
@@ -4146,7 +4296,7 @@
     'Text & structure': ['heading', 'text', 'callout', 'image', 'video', 'math', 'audio', 'divider', 'quote', 'keypoints', 'worked_example', 'reveal', 'flashcard'],
     'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot', 'categorise', 'slider', 'dial', 'sequence', 'connect', 'pile', 'html'],
     'Layout': ['accordion', 'tabs', 'compare', 'timeline', 'steps'],
-    'Study aids': ['objectives', 'prerequisites', 'glossary', 'summary', 'cardset', 'flashcard_stack', 'progress_meter', 'mindmap'],
+    'Study aids': ['objectives', 'prerequisites', 'glossary', 'summary', 'cardset', 'flashcard_stack', 'progress_meter', 'mindmap', 'memory_game', 'swipe_cards', 'card_slideshow'],
   };
   // password_checker is intentionally NOT in BLOCK_GROUPS — it can only
   // be added via the "Cyber (Y7) — Password strength" template card,
@@ -5467,6 +5617,165 @@
       return { front: line.slice(0, idx).trim(), back: line.slice(idx + 1).trim() };
     }).filter(c => c.front || c.back);
     state.dirty = true; renderEditorHeader();
+  };
+
+  // ----- Memory game (pairs) editor -----
+  function renderMemoryGameEditor(b, i) {
+    const pairs = b.data.pairs || [];
+    return `
+      <div class="form-row">
+        <label>Prompt</label>
+        <input value="${escapeHtml(b.data.prompt||'')}" oninput="updateBlock(${i}, {prompt: this.value})" placeholder="Find the matching pairs." />
+      </div>
+      <div class="form-row">
+        <label>Pairs (left and right tiles; each pair is matched)</label>
+        <div class="repeater">
+          ${pairs.map((p, j) => `
+            <div class="pair-row">
+              <input type="text" value="${escapeHtml(p.left||'')}" oninput="updateMemPair(${i}, ${j}, 'left', this.value)" placeholder="Left tile" />
+              <input type="text" value="${escapeHtml(p.right||'')}" oninput="updateMemPair(${i}, ${j}, 'right', this.value)" placeholder="Right tile" />
+              <button class="del" onclick="removeMemPair(${i}, ${j})">✕</button>
+            </div>
+          `).join('')}
+          <button class="add" onclick="addMemPair(${i})">+ Add pair</button>
+        </div>
+        <span class="hint">Use 4–12 pairs (must be even — each pair becomes 2 tiles).</span>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${b.data.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required — student must complete before marking lesson done
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${b.data.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview (click two tiles to flip them)</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateMemPair = (i, j, field, val) => {
+    const pairs = state.currentLesson.blocks[i].data.pairs || [];
+    if (!pairs[j]) pairs[j] = { left: '', right: '' };
+    pairs[j][field] = val;
+    state.dirty = true; renderEditorHeader();
+    // Refresh preview only (textarea keeps focus).
+    const block = document.querySelector(`.block[data-block-index="${i}"]`);
+    if (!block) return;
+    const preview = block.querySelector('.preview');
+    if (preview) {
+      preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
+      bindInteractive(preview, state.currentLesson.blocks[i]);
+    }
+  };
+  window.addMemPair = (i) => {
+    if (!state.currentLesson.blocks[i].data.pairs) state.currentLesson.blocks[i].data.pairs = [];
+    state.currentLesson.blocks[i].data.pairs.push({ left: '', right: '' });
+    renderBlocksList();
+  };
+  window.removeMemPair = (i, j) => {
+    state.currentLesson.blocks[i].data.pairs.splice(j, 1);
+    renderBlocksList();
+  };
+
+  // ----- Swipe cards editor -----
+  function renderSwipeCardsEditor(b, i) {
+    const cards = b.data.cards || [];
+    return `
+      <div class="form-row">
+        <label>Prompt (markdown)</label>
+        <textarea oninput="updateBlock(${i}, {prompt: this.value})" placeholder="Swipe right if **Mitosis**, left if **Meiosis**.">${escapeHtml(b.data.prompt || '')}</textarea>
+      </div>
+      <div class="form-row inline">
+        <label style="flex:1;">Left label
+          <input value="${escapeHtml(b.data.leftLabel||'Left')}" oninput="updateBlock(${i}, {leftLabel: this.value})" />
+        </label>
+        <label style="flex:1;">Right label
+          <input value="${escapeHtml(b.data.rightLabel||'Right')}" oninput="updateBlock(${i}, {rightLabel: this.value})" />
+        </label>
+      </div>
+      <div class="form-row">
+        <label>Cards (one per line, format: text | correct=left|right)</label>
+        <textarea oninput="updateSwipeCards(${i}, this.value)" placeholder="e.g.&#10;Produces two identical daughter cells | right&#10;Produces four non-identical gametes | left" style="min-height: 120px; font-family: 'JetBrains Mono', monospace; font-size: 12px;">${escapeHtml(cards.map(c => (c.text || '') + ' | ' + (c.correct || '')).join('\n'))}</textarea>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${b.data.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required — student must attempt before marking lesson done
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${b.data.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview (click ◀ / ▶ to swipe)</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateSwipeCards = (i, val) => {
+    const data = state.currentLesson.blocks[i].data;
+    data.cards = val.split('\n').map(line => {
+      const idx = line.lastIndexOf('|');
+      if (idx < 0) return { text: line.trim(), correct: '' };
+      const txt = line.slice(0, idx).trim();
+      const correct = line.slice(idx + 1).trim();
+      return { text: txt, correct: correct };
+    }).filter(c => c.text);
+    state.dirty = true; renderEditorHeader();
+    // Refresh preview only.
+    const block = document.querySelector(`.block[data-block-index="${i}"]`);
+    if (!block) return;
+    const preview = block.querySelector('.preview');
+    if (preview) {
+      preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
+      bindInteractive(preview, state.currentLesson.blocks[i]);
+    }
+  };
+
+  // ----- Card carousel editor -----
+  function renderCardSlideshowEditor(b, i) {
+    const cards = b.data.cards || [];
+    return `
+      <div class="form-row">
+        <label>Title (optional)</label>
+        <input value="${escapeHtml(b.data.title||'')}" oninput="updateBlock(${i}, {title: this.value})" placeholder="Key concepts" />
+      </div>
+      <div class="form-row inline">
+        <label>Auto-advance every (seconds, 0 = off)
+          <input type="number" min="0" max="60" step="1" value="${parseInt(b.data.autoAdvanceSeconds, 10) || 0}" oninput="updateBlock(${i}, {autoAdvanceSeconds: parseInt(this.value, 10) || 0})" style="width:100px;" />
+        </label>
+      </div>
+      <div class="form-row">
+        <label>Cards (one per line, format: heading | body markdown)</label>
+        <textarea oninput="updateCardSlideshow(${i}, this.value)" placeholder="e.g.&#10;Mitochondria | The site of **aerobic respiration**&#10;Ribosomes | The site of **protein synthesis**" style="min-height: 140px; font-family: 'JetBrains Mono', monospace; font-size: 12px;">${escapeHtml(cards.map(c => (c.heading || '') + ' | ' + (c.body || '')).join('\n'))}</textarea>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview (◀ / ▶ buttons or dots)</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateCardSlideshow = (i, val) => {
+    const data = state.currentLesson.blocks[i].data;
+    data.cards = val.split('\n').map(line => {
+      const idx = line.indexOf('|');
+      if (idx < 0) return { heading: line.trim(), body: '' };
+      return { heading: line.slice(0, idx).trim(), body: line.slice(idx + 1).trim() };
+    }).filter(c => c.heading || c.body);
+    state.dirty = true; renderEditorHeader();
+    // Refresh preview only.
+    const block = document.querySelector(`.block[data-block-index="${i}"]`);
+    if (!block) return;
+    const preview = block.querySelector('.preview');
+    if (preview) {
+      preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
+      bindInteractive(preview, state.currentLesson.blocks[i]);
+    }
   };
 
   // ----- Progress meter editor -----
@@ -6995,6 +7304,9 @@
     flashcard_stack: (b, i) => renderFlashcardStackEditor(b, i),
     progress_meter: (b, i) => renderProgressMeterEditor(b, i),
     mindmap:         (b, i) => renderMindmapEditor(b, i),
+    memory_game:     (b, i) => renderMemoryGameEditor(b, i),
+    swipe_cards:     (b, i) => renderSwipeCardsEditor(b, i),
+    card_slideshow:  (b, i) => renderCardSlideshowEditor(b, i),
     html:          (b, i) => renderHtmlEditor(b, i),
     denary_binary: (b, i) => renderDenaryBinaryEditor(b, i),
     password_checker: (b, i) => renderPasswordCheckerEditor(b, i),
