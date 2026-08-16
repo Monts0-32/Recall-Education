@@ -12,12 +12,13 @@
   <style>
     /* ----------------------------------------------------------------------
        Theme: "bubbley grey" + literal bubbles as a design element.
-       Recalled from the logo sphere: a dark grey body, a soft cyan/teal
-       primary arc, and rounded "bubble" surfaces. The page now also
-       carries actual bubble shapes — translucent spheres with a glassy
-       highlight + soft outer glow — as ambient decoration in the hero,
-       sections, and CTA. Primary actions are solid white with a faint
-       teal halo so they read as the lightest, largest bubble on the page.
+       Dark grey body, a warm amber/copper primary arc, and rounded
+       "bubble" surfaces. The page carries actual bubble shapes —
+       translucent spheres with a glassy highlight + soft outer glow —
+       as ambient decoration in the hero, sections, and CTA. Primary
+       actions are solid white with a faint amber halo so they read as
+       the lightest, largest bubble on the page. Subject dots stay
+       colour-coded for recognition.
        ---------------------------------------------------------------------- */
     :root {
       /* surfaces — warmer, slightly lifted greys. Steps chosen so cards
@@ -34,18 +35,25 @@
       --text-2:    #C9D1D9;
       --text-3:    #9098A4;
       --text-4:    #6B7280;
-      /* primary accent — cyan/teal pulled from the logo's dominant ring.
-         Now used for accents, not for buttons (which are white). */
-      --teal:      #56D4DD;
-      --teal-2:    #3FB8C4;
-      --teal-soft: #7CE0E8;
-      --teal-dim:  rgba(86, 212, 221, 0.18);
-      --teal-pale: rgba(86, 212, 221, 0.10);
-      --teal-glow: rgba(86, 212, 221, 0.30);
-      --blue:      #56D4DD;  /* alias kept for code that referenced the old --blue */
-      --blue-2:    #3FB8C4;
-      --blue-dim:  rgba(86, 212, 221, 0.18);
-      --blue-pale: rgba(86, 212, 221, 0.10);
+      /* primary accent — warm amber/copper. Replaces the previous
+         cyan/teal so the page reads as a premium, library-like dark
+         surface. White buttons remain white; the amber only appears on
+         links, eyebrows, step numbers, focus rings, the "continue" row
+         in the dashboard, progress bar, featured chapter highlight,
+         plan tags/ticks, FAQ plus-icon, and the email-input focus
+         ring. Subject dots stay colour-coded for recognition. */
+      --amber:      #E8B562;
+      --amber-2:    #D49A45;
+      --amber-soft: #F0C97A;
+      --amber-dim:  rgba(232, 181, 98, 0.18);
+      --amber-pale: rgba(232, 181, 98, 0.10);
+      --amber-glow: rgba(232, 181, 98, 0.30);
+      /* legacy aliases — kept so any JS / future code referencing
+         --blue still resolves to the new amber. */
+      --blue:      #E8B562;
+      --blue-2:    #D49A45;
+      --blue-dim:  rgba(232, 181, 98, 0.18);
+      --blue-pale: rgba(232, 181, 98, 0.10);
       --green:     #4FBE6A;
       --yellow:    #D8B14A;
       --purple:    #B388F8;
@@ -61,7 +69,7 @@
       /* shadows */
       --shadow-sm: 0 2px 6px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.10);
       --shadow-md: 0 8px 24px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.12);
-      --shadow-glow: 0 0 0 1px var(--teal-dim), 0 8px 24px rgba(0,0,0,0.22);
+      --shadow-glow: 0 0 0 1px var(--amber-dim), 0 8px 24px rgba(0,0,0,0.22);
     }
 
     * { box-sizing: border-box; }
@@ -75,17 +83,17 @@
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
-      /* very faint atmospheric teal, hint of light from the top-left
-         (logo's lit side). Sits behind everything. */
+      /* Faint warm-white top-edge vignette. The bubble field carries
+         all the colour on the page — the background is just a quiet
+         flat grey with a hint of warmth at the very top. */
       background-image:
-        radial-gradient(ellipse 1400px 700px at 0% -10%,
-          rgba(86, 212, 221, 0.07), transparent 60%),
-        radial-gradient(ellipse 900px 500px at 100% 20%,
-          rgba(86, 212, 221, 0.04), transparent 70%);
+        linear-gradient(180deg,
+          rgba(232, 181, 98, 0.08) 0%,
+          rgba(232, 181, 98, 0.00) 320px);
       background-attachment: fixed;
     }
-    ::selection { background: var(--teal); color: #0B0D0F; }
-    a { color: var(--teal-soft); text-decoration: none; }
+    ::selection { background: var(--amber); color: #0B0D0F; }
+    a { color: var(--amber-soft); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
     .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
@@ -110,7 +118,7 @@
     }
     .brand:hover { text-decoration: none; }
     /* Logo is round-ish from object-fit: cover. The new logo has a
-       white "R" with a strong chromatic ring, so a faint teal halo
+       white "R" with a strong chromatic ring, so a faint amber halo
        echoes the ring without competing. */
     .brand-mark {
       width: 30px; height: 30px;
@@ -118,7 +126,7 @@
       object-fit: cover;
       border-radius: 50%;
       box-shadow: 0 0 0 1px rgba(255,255,255,0.04),
-                  0 0 16px rgba(86,212,221,0.18);
+                  0 0 16px rgba(232,181,98,0.18);
     }
     nav.top ul { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; }
     nav.top a.nav-link {
@@ -132,10 +140,10 @@
     .nav-cta {
       background: #FFFFFF; color: #0B0D0F;
       padding: 7px 16px; border-radius: var(--r-pill); font-size: 14px; font-weight: 600;
-      box-shadow: 0 2px 10px rgba(255,255,255,0.10), 0 0 24px rgba(86,212,221,0.18);
+      box-shadow: 0 2px 10px rgba(255,255,255,0.10), 0 0 24px rgba(232,181,98,0.18);
       transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     }
-    .nav-cta:hover { background: #F0F2F5; box-shadow: 0 4px 16px rgba(255,255,255,0.16), 0 0 32px rgba(86,212,221,0.28); text-decoration: none; transform: translateY(-1px); }
+    .nav-cta:hover { background: #F0F2F5; box-shadow: 0 4px 16px rgba(255,255,255,0.16), 0 0 32px rgba(232,181,98,0.28); text-decoration: none; transform: translateY(-1px); }
 
     /* ---------- HERO ---------- */
     .hero { padding: 64px 0 56px; }
@@ -159,10 +167,10 @@
       background: #FFFFFF; color: #0B0D0F;
       padding: 11px 20px; border-radius: var(--r-pill); font-size: 14px; font-weight: 600;
       display: inline-flex; align-items: center; gap: 8px;
-      box-shadow: 0 4px 18px rgba(255,255,255,0.10), 0 0 32px rgba(86,212,221,0.22);
+      box-shadow: 0 4px 18px rgba(255,255,255,0.10), 0 0 32px rgba(232,181,98,0.22);
       transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     }
-    .btn-primary:hover { background: #F0F2F5; box-shadow: 0 6px 24px rgba(255,255,255,0.16), 0 0 40px rgba(86,212,221,0.32); text-decoration: none; transform: translateY(-1px); }
+    .btn-primary:hover { background: #F0F2F5; box-shadow: 0 6px 24px rgba(255,255,255,0.16), 0 0 40px rgba(232,181,98,0.32); text-decoration: none; transform: translateY(-1px); }
     .btn-ghost {
       color: var(--text); padding: 11px 16px; font-size: 14px; font-weight: 500;
       display: inline-flex; align-items: center; gap: 6px;
@@ -235,15 +243,15 @@
     .subj-row .name .exam { color: var(--text-3); font-weight: 400; font-size: 11px; margin-left: 6px; }
     .subj-row .prog-wrap { display: flex; align-items: center; gap: 8px; }
     .subj-row .prog { flex: 1; height: 6px; background: var(--bg-4); border-radius: var(--r-pill); overflow: hidden; }
-    .subj-row .prog i { display: block; height: 100%; background: linear-gradient(90deg, var(--teal-2), var(--teal)); border-radius: var(--r-pill); }
+    .subj-row .prog i { display: block; height: 100%; background: linear-gradient(90deg, var(--amber-2), var(--amber)); border-radius: var(--r-pill); }
     .subj-row .prog-pct { font-size: 11px; color: var(--text-3); font-weight: 600; min-width: 28px; text-align: right; }
     .subj-row .last { color: var(--text-3); font-size: 11px; }
-    .subj-row .action { text-align: right; font-size: 12px; color: var(--teal-soft); font-weight: 600; }
+    .subj-row .action { text-align: right; font-size: 12px; color: var(--amber-soft); font-weight: 600; }
     .subj-row .action span { padding: 4px 10px; border: 1px solid var(--line-2); border-radius: var(--r-pill); }
-    .subj-row.continue { background: var(--teal-pale); }
-    .subj-row.continue:hover { background: var(--teal-dim); }
+    .subj-row.continue { background: var(--amber-pale); }
+    .subj-row.continue:hover { background: var(--amber-dim); }
     .subj-row.continue .action span {
-      background: var(--teal); color: #0B0D0F; border-color: var(--teal);
+      background: var(--amber); color: #0B0D0F; border-color: var(--amber);
     }
     .subj-row .dot.maths { background: #56D4DD; color: #56D4DD; }
     .subj-row .dot.eng { background: #B388F8; color: #B388F8; }
@@ -267,7 +275,7 @@
       display: flex; flex-direction: column; gap: 6px;
       transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
     }
-    .subj-card:hover { border-color: var(--teal-dim); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .subj-card:hover { border-color: var(--amber-dim); transform: translateY(-2px); box-shadow: var(--shadow-md); }
     .subj-card .top { display: flex; align-items: center; gap: 10px; }
     .subj-card .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .subj-card h4 { margin: 0; font-size: 14px; font-weight: 600; color: var(--text); }
@@ -299,10 +307,10 @@
     .section-head { max-width: 720px; margin: 0 0 40px; }
     .section-head .eyebrow {
       display: inline-block; font-size: 12px; font-weight: 600;
-      color: var(--teal); letter-spacing: 0.02em;
+      color: var(--amber); letter-spacing: 0.02em;
       margin-bottom: 12px;
       padding: 4px 10px; border-radius: var(--r-pill);
-      background: var(--teal-pale);
+      background: var(--amber-pale);
     }
     h2.section-title {
       font-weight: 600;
@@ -322,11 +330,11 @@
       padding: 22px;
       transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
     }
-    .step:hover { border-color: var(--teal-dim); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .step:hover { border-color: var(--amber-dim); transform: translateY(-2px); box-shadow: var(--shadow-md); }
     .step .step-num {
       width: 30px; height: 30px;
-      background: var(--teal-pale); color: var(--teal);
-      border: 1px solid var(--teal-dim);
+      background: var(--amber-pale); color: var(--amber);
+      border: 1px solid var(--amber-dim);
       display: grid; place-items: center;
       border-radius: var(--r-pill);
       font-weight: 700; font-size: 13px;
@@ -388,9 +396,9 @@
       line-height: 1;
     }
     .ch .tick.pending { color: var(--text-4); }
-    .ch .tick.current { color: var(--teal); font-size: 14px; }
+    .ch .tick.current { color: var(--amber); font-size: 14px; }
     .ch .name { color: var(--text-2); line-height: 1.3; }
-    .ch.current { background: var(--teal-pale); }
+    .ch.current { background: var(--amber-pale); }
     .ch.current .name { color: var(--text); font-weight: 600; }
     .ch .dur { color: var(--text-3); font-size: 11px; text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; }
 
@@ -412,7 +420,7 @@
       font-size: 13.5px; color: var(--text-2);
     }
     .feature-list li:last-child { border-bottom: 1px solid var(--line); }
-    .feature-list li::before { content: '✓'; color: var(--teal); font-weight: 700; font-size: 12px; }
+    .feature-list li::before { content: '✓'; color: var(--amber); font-weight: 700; font-size: 12px; }
     .feature-list li b { color: var(--text); font-weight: 600; }
 
     /* ---------- EVIDENCE ---------- */
@@ -424,7 +432,7 @@
       padding: 22px;
       transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
     }
-    .ev-card:hover { border-color: var(--teal-dim); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .ev-card:hover { border-color: var(--amber-dim); transform: translateY(-2px); box-shadow: var(--shadow-md); }
     .ev-card .metric {
       font-weight: 700; font-size: 32px; line-height: 1;
       letter-spacing: -0.02em; color: var(--text);
@@ -448,15 +456,15 @@
     }
     .plan.featured-plan {
       background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
-      border-color: var(--teal-dim);
-      box-shadow: 0 0 0 1px var(--teal-dim), var(--shadow-md);
+      border-color: var(--amber-dim);
+      box-shadow: 0 0 0 1px var(--amber-dim), var(--shadow-md);
     }
     .plan .tag {
       display: inline-block; font-size: 11px; font-weight: 600;
-      color: var(--teal); letter-spacing: 0.02em;
+      color: var(--amber); letter-spacing: 0.02em;
       margin-bottom: 14px;
       padding: 4px 10px; border-radius: var(--r-pill);
-      background: var(--teal-pale);
+      background: var(--amber-pale);
     }
     .plan h3 { font-weight: 600; font-size: 18px; line-height: 1.2; margin: 0 0 4px; }
     .plan .desc { font-size: 13px; color: var(--text-2); margin: 0 0 22px; }
@@ -473,7 +481,7 @@
       font-size: 13px; color: var(--text-2);
       display: flex; gap: 8px; align-items: flex-start;
     }
-    .plan li::before { content: '✓'; color: var(--teal); font-weight: 700; flex-shrink: 0; }
+    .plan li::before { content: '✓'; color: var(--amber); font-weight: 700; flex-shrink: 0; }
     .plan li b { color: var(--text); font-weight: 600; }
     .plan .plan-cta {
       display: block; text-align: center; padding: 11px 18px;
@@ -486,7 +494,7 @@
     .plan .plan-cta:hover { background: var(--bg-4); border-color: var(--line-3); text-decoration: none; }
     .plan.featured-plan .plan-cta {
       background: #FFFFFF; color: #0B0D0F; border-color: #FFFFFF;
-      box-shadow: 0 4px 18px rgba(255,255,255,0.10), 0 0 32px rgba(86,212,221,0.22);
+      box-shadow: 0 4px 18px rgba(255,255,255,0.10), 0 0 32px rgba(232,181,98,0.22);
     }
     .plan.featured-plan .plan-cta:hover { background: #F0F2F5; border-color: #F0F2F5; }
 
@@ -501,7 +509,7 @@
       color: var(--text);
       background: none; border: none; padding: 20px 0; text-align: left; width: 100%;
     }
-    .faq-q:hover { color: var(--teal-soft); }
+    .faq-q:hover { color: var(--amber-soft); }
     .faq-q .pm {
       width: 26px; height: 26px;
       background: var(--bg-3); border: 1px solid var(--line-2);
@@ -511,7 +519,7 @@
       flex-shrink: 0;
       transition: background 0.15s ease, color 0.15s ease, transform 0.2s ease;
     }
-    .faq-item.open .pm { background: var(--teal); color: #0B0D0F; border-color: var(--teal); transform: rotate(45deg); }
+    .faq-item.open .pm { background: var(--amber); color: #0B0D0F; border-color: var(--amber); transform: rotate(45deg); }
     .faq-a { max-height: 0; overflow: hidden; transition: max-height 0.25s ease, padding 0.25s ease; color: var(--text-2); font-size: 14px; line-height: 1.6; }
     .faq-item.open .faq-a { max-height: 320px; padding-bottom: 20px; }
 
@@ -522,7 +530,7 @@
       border-radius: var(--r-lg);
       padding: 56px 48px;
       margin: 0 24px 80px;
-      box-shadow: 0 0 60px rgba(86, 212, 221, 0.06), var(--shadow-md);
+      box-shadow: 0 0 60px rgba(232, 181, 98, 0.06), var(--shadow-md);
       position: relative;
       overflow: hidden;
       isolation: isolate;  /* so the bubble shadows don't leak out */
@@ -547,17 +555,17 @@
       outline: none;
       transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
-    .cta-strip input[type=email]:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-pale); }
+    .cta-strip input[type=email]:focus { border-color: var(--amber); box-shadow: 0 0 0 3px var(--amber-pale); }
     .cta-strip input[type=email]::placeholder { color: var(--text-4); }
     .cta-strip button {
       background: #FFFFFF; color: #0B0D0F;
       border: 1px solid #FFFFFF; padding: 0 18px; border-radius: var(--r-pill);
       font-family: inherit; font-weight: 600; font-size: 14px;
       cursor: pointer;
-      box-shadow: 0 4px 18px rgba(255,255,255,0.10), 0 0 28px rgba(86,212,221,0.22);
+      box-shadow: 0 4px 18px rgba(255,255,255,0.10), 0 0 28px rgba(232,181,98,0.22);
       transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     }
-    .cta-strip button:hover { background: #F0F2F5; box-shadow: 0 6px 24px rgba(255,255,255,0.16), 0 0 36px rgba(86,212,221,0.30); transform: translateY(-1px); }
+    .cta-strip button:hover { background: #F0F2F5; box-shadow: 0 6px 24px rgba(255,255,255,0.16), 0 0 36px rgba(232,181,98,0.30); transform: translateY(-1px); }
     .cta-strip .micro { font-size: 12px; color: var(--text-3); }
 
     /* ---------- FOOTER ---------- */
@@ -570,7 +578,7 @@
     footer ul { list-style: none; padding: 0; margin: 0; }
     footer li { margin-bottom: 8px; }
     footer a { color: var(--text-3); font-size: 13px; }
-    footer a:hover { color: var(--teal-soft); text-decoration: none; }
+    footer a:hover { color: var(--amber-soft); text-decoration: none; }
     footer .bottom {
       display: flex; justify-content: space-between; align-items: center;
       padding-top: 20px; border-top: 1px solid var(--line);
@@ -604,7 +612,7 @@
       *, *::before, *::after { transition: none !important; animation: none !important; }
     }
     a:focus-visible, button:focus-visible, input:focus-visible {
-      outline: 2px solid var(--teal); outline-offset: 2px;
+      outline: 2px solid var(--amber); outline-offset: 2px;
     }
   </style>
 </head>
