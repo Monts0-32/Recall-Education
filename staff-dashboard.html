@@ -440,6 +440,39 @@
     </div>
 
     <div class="card">
+      <h2>
+        All lessons
+        <span class="meta" id="allLessonsMeta" style="color: var(--text-3); font-weight: 500;">Loading…</span>
+      </h2>
+      <p style="color:var(--text-3); font-size:13px; margin: 0 0 12px;">
+        Browse every lesson on Recall — drafts included. Reviewers can open a lesson
+        straight from here to read it and leave per-block comments.
+      </p>
+      <div class="all-lessons-filters" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">
+        <select id="allLessonsSubject" aria-label="Filter by subject"
+                style="flex: 1; min-width: 160px; background: var(--bg-2); border: 1px solid var(--line-2); color: var(--text); padding: 7px 12px; border-radius: var(--r-md); font-size: 13px; outline: none; font-family: inherit;">
+          <option value="">All subjects</option>
+        </select>
+        <div class="seg" role="tablist" style="display: flex; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); overflow: hidden;">
+          <button class="al-seg active" data-mode="all" type="button"
+                  style="padding: 6px 12px; font-size: 12px; background: var(--bg-3); color: var(--text); border: none; cursor: pointer;">All</button>
+          <button class="al-seg" data-mode="published" type="button"
+                  style="padding: 6px 12px; font-size: 12px; background: transparent; color: var(--text-3); border: none; cursor: pointer;">Published</button>
+          <button class="al-seg" data-mode="draft" type="button"
+                  style="padding: 6px 12px; font-size: 12px; background: transparent; color: var(--text-3); border: none; cursor: pointer;">Drafts</button>
+        </div>
+      </div>
+      <div id="allLessonsList"
+           style="max-height: 380px; overflow-y: auto; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md);">
+        <div class="card-empty" style="padding: 14px; color: var(--text-4); font-size: 13px;">Loading…</div>
+      </div>
+      <p style="color: var(--text-4); font-size: 11.5px; margin: 8px 0 0; line-height: 1.4;">
+        Sorted by most recently updated. Showing up to 30 lessons per filter combination.
+        Use the search above to find lessons by code, title, or tag.
+      </p>
+    </div>
+
+    <div class="card">
       <h2>Recent activity <span class="meta" id="activityMeta"></span></h2>
       <div class="activity" id="activityBody">
         <div class="card-empty">Loading…</div>
@@ -513,6 +546,11 @@
     admin:          { label: 'Admin',    cls: 'admin'    },
   };
 
+  // Module-level state used by showDashboard() to keep the role +
+  // user around for sub-components like loadAllLessons() that run
+  // after the welcome card has rendered.
+  const state = { role: null, user: null, profile: null };
+
   function showGate(title, msg) {
     $('dashLayout').hidden = true;
     $('staffNav').hidden = true;
@@ -565,9 +603,21 @@
       ? 'You\'re signed in as ' + pill.label + '. Here\'s a quick look at the catalogue.'
       : 'Here\'s a quick look at the catalogue.';
 
+    // Stash role on window so the All Lessons list can branch its
+    // click target — reviewers open in lesson.html (so the review
+    // drawer is available), authors and admins open in the editor.
+    state.role = role;
+    state.user = user;
+    state.profile = profile;
+
     loadStats();
     loadActivity(role);
     if (role === 'staff_reviewer' || role === 'admin') loadPendingReview();
+    // All lessons is useful to every staff role, but the click
+    // target shifts: reviewers → lesson.html (review mode), authors
+    // / admins → lesson-creator.html (edit). Initialised after role
+    // is set.
+    loadAllLessons(role);
   }
 
   // ---------- stats ----------
@@ -689,6 +739,192 @@
       default:                    return row.action || 'event';
     }
   }
+
+  // ---------- All Lessons ----------
+  // A reviewer-friendly directory of every lesson on Recall — drafts
+  // AND published — so a reviewer doesn't have to know a code or
+  // pick from the catalogue. Authors and admins also benefit (one
+  // place to see their queue + the entire catalogue sorted by
+  // updated_at), so the section is shown to all staff roles. The
+  // click target depends on role:
+  //   - staff_reviewer → lesson.html?code=… so the review drawer
+  //     and per-block comments are available immediately.
+  //   - staff_author / admin → lesson-creator.html so they can edit.
+  // Lessons are server-side filtered by the current dropdown
+  // selections, then rendered as a scrollable list. Default sort is
+  // updated_at desc — most-recently-touched first, which lines up
+  // with how reviewers triage.
+  const allLessons = {
+    subjectId: '',  // '' = all subjects
+    status: 'all',  // 'all' | 'published' | 'draft'
+    rows: [],
+    subjectCache: null,  // subjects populated once
+  };
+
+  async function loadAllLessons(role) {
+    const listEl = $('allLessonsList');
+    const metaEl = $('allLessonsMeta');
+    if (!listEl || !metaEl) return;
+    if (metaEl) metaEl.textContent = 'Loading…';
+    listEl.innerHTML = '<div class="card-empty" style="padding: 14px; color: var(--text-4); font-size: 13px;">Loading…</div>';
+
+    try {
+      // Lazy-populate the subject dropdown once per page load. We
+      // sort by name and skip "General" (general lessons aren't tied
+      // to a subject, the subject filter doesn't apply to them).
+      if (!allLessons.subjectCache) {
+        const { data: subjects } = await supabaseClient
+          .from('subjects')
+          .select('id, name, color_key, sort_order')
+          .order('sort_order', { ascending: true });
+        allLessons.subjectCache = subjects || [];
+        const sel = $('allLessonsSubject');
+        if (sel) {
+          // Clear and repopulate, keeping "All subjects" as the first
+          // option. We don't show "General" — it's the absence of a
+          // subject, not a subject.
+          sel.innerHTML = '<option value="">All subjects</option>';
+          (subjects || [])
+            .filter(s => (s.name || '').toLowerCase() !== 'general')
+            .forEach(s => {
+              const opt = document.createElement('option');
+              opt.value = s.id;
+              opt.textContent = s.name;
+              sel.appendChild(opt);
+            });
+        }
+      }
+
+      // Fetch lessons. RLS: every staff role can read all lessons
+      // (status='published' or staff role check), so drafts come
+      // through for reviewers / authors / admins alike.
+      let q = supabaseClient
+        .from('lessons')
+        .select('id, title, code, status, is_general, duration_min, updated_at, created_at, topic:topics(name, subject:subjects(id, name))')
+        .order('updated_at', { ascending: false })
+        .limit(30);
+      if (allLessons.status === 'published') q = q.eq('status', 'published');
+      if (allLessons.status === 'draft')     q = q.eq('status', 'draft');
+      // Subject filter: apply via the topics→subjects join. Skip
+      // when "All subjects" is selected. General lessons
+      // (is_general=true) aren't tied to a subject, so we OR them
+      // through so they remain visible.
+      if (allLessons.subjectId) {
+        // PostgREST doesn't allow ORing the relation filter
+        // directly alongside is_general here, so we filter server
+        // side via topic and pull general lessons in a separate
+        // small query, then merge.
+        q = q.eq('topic.subject.id', allLessons.subjectId);
+      }
+      const { data: rows, error } = await q;
+      if (error) {
+        console.error('loadAllLessons: query failed:', error);
+        metaEl.textContent = '';
+        listEl.innerHTML = '<div class="card-empty" style="padding: 14px; color: var(--red); font-size: 13px;">Couldn\'t load lessons. Refresh to try again.</div>';
+        return;
+      }
+      let merged = rows || [];
+      if (allLessons.subjectId) {
+        // Pull general lessons in the same status bucket and merge.
+        // General lessons never match a subject filter, but a
+        // reviewer asking for "all Mathematics lessons" probably
+        // doesn't expect the general ones mixed in — we filter them
+        // out when a subject is selected.
+        merged = merged.filter(r => !r.is_general);
+      }
+      allLessons.rows = merged;
+
+      // Update meta with the count.
+      if (metaEl) {
+        const c = merged.length;
+        metaEl.textContent = c === 0
+          ? 'No lessons'
+          : (c === 1 ? '1 lesson' : c + ' lessons');
+      }
+
+      renderAllLessonsList(role);
+    } catch (e) {
+      console.error('loadAllLessons failed:', e);
+      metaEl.textContent = '';
+      listEl.innerHTML = '<div class="card-empty" style="padding: 14px; color: var(--red); font-size: 13px;">Couldn\'t load lessons. Refresh to try again.</div>';
+    }
+  }
+
+  function renderAllLessonsList(role) {
+    const listEl = $('allLessonsList');
+    if (!listEl) return;
+    const rows = allLessons.rows;
+    if (!rows.length) {
+      listEl.innerHTML = '<div class="card-empty" style="padding: 14px; color: var(--text-4); font-size: 13px;">No lessons match these filters.</div>';
+      return;
+    }
+    const clickTo  = (lesson) => {
+      // Reviewers open in lesson.html so the review drawer is
+      // available. Authors and admins also open via lesson.html —
+      // the page surfaces an "Edit in lesson creator" button when
+      // it detects a staff role, so reading is one click and
+      // editing is the next click. We only fall back to the editor
+      // directly for draft lessons that don't yet have a code.
+      if (lesson.code) {
+        return 'lesson.html?code=' + encodeURIComponent(lesson.code);
+      }
+      return 'lesson-creator.html?lessonId=' + encodeURIComponent(lesson.id);
+    };
+
+    listEl.innerHTML = rows.map(l => {
+      const path = l.is_general
+        ? '<span style="color: var(--blue);">General</span>'
+        : `${escapeHtml(l.topic?.subject?.name || 'Unknown subject')} <span style="color: var(--text-4);">›</span> ${escapeHtml(l.topic?.name || 'Unknown topic')}`;
+      const status = l.status === 'published'
+        ? '<span style="color: var(--green); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Published</span>'
+        : (l.status === 'archived'
+            ? '<span style="color: var(--text-4); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Archived</span>'
+            : '<span style="color: var(--yellow); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;">Draft</span>');
+      const when = l.updated_at ? new Date(l.updated_at).toLocaleDateString() : '';
+      return `
+        <a href="${clickTo(l)}"
+           style="display: block; padding: 10px 12px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--text);"
+           onmouseover="this.style.background='var(--bg-3)'"
+           onmouseout="this.style.background='transparent'">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <div style="font-size: 13.5px; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(l.title || 'Untitled')}</div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+              ${l.code ? '<code style="font-family: var(--font-mono); font-size: 11px; color: var(--text-4);">' + escapeHtml(l.code) + '</code>' : ''}
+              ${status}
+            </div>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-3); margin-top: 2px;">
+            ${path} <span style="color: var(--text-4);">·</span> ${l.duration_min ?? 20}m
+            ${when ? '<span style="color: var(--text-4);"> · updated ' + escapeHtml(when) + '</span>' : ''}
+          </div>
+        </a>
+      `;
+    }).join('');
+  }
+
+  // Wire up the filter controls once. We use a delegated handler so
+  // it survives any later re-render of the section.
+  (function setupAllLessonsFilters() {
+    const sel = $('allLessonsSubject');
+    if (sel) sel.addEventListener('change', () => {
+      allLessons.subjectId = sel.value;
+      if (state.role) loadAllLessons(state.role);
+    });
+    document.querySelectorAll('.al-seg').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const m = btn.dataset.mode;
+        if (m === allLessons.status) return;
+        allLessons.status = m;
+        document.querySelectorAll('.al-seg').forEach(b => {
+          const active = b.dataset.mode === allLessons.status;
+          b.classList.toggle('active', active);
+          b.style.background = active ? 'var(--bg-3)' : 'transparent';
+          b.style.color      = active ? 'var(--text)'  : 'var(--text-3)';
+        });
+        if (state.role) loadAllLessons(state.role);
+      });
+    });
+  })();
 
   // ---------- pending review ----------
   // Only for reviewers and admins. Counts draft lessons (status='draft').
