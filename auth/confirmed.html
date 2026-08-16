@@ -247,6 +247,12 @@
           console.log('accept_staff_invite (deferred) ok:', acceptData);
         }
       } catch (e) { /* best effort — don't block the ready flow */ }
+      // Keep the token in a SEPARATE sessionStorage slot so the
+      // belt-and-braces reapply after the JWT refresh can re-run
+      // accept_staff_invite if the first call's role propagation
+      // didn't reach the routing branch. Both slots clear on a
+      // successful reapply.
+      try { sessionStorage.setItem('pending_staff_invite_reapply', pending); } catch (_) {}
       // The token is single-use regardless of outcome. Scrub it from
       // both places so a refresh on /auth/confirmed.html doesn't try
       // to accept the (now accepted/revoked/whatever) invite twice.
@@ -273,6 +279,43 @@
       }
     } catch (_) { /* best effort — fall through to the stale JWT */ }
 
+    // Belt-and-braces: re-apply the staff invite AFTER the JWT refresh
+    // and profile fetch. Why a second call?
+    //
+    //   1. The first accept_staff_invite call (above) ran before the
+    //      token refresh — at that point the hook stamps
+    //      app_metadata.role from profiles.role, which may still be
+    //      'student'. The hook is fast but timing-dependent.
+    //   2. If the first call hit an `email_mismatch` (the auth.users
+    //      email column hasn't been backfilled to lowercase yet at
+    //      insert time, or the trigger created the user with a
+    //      different case) the role wasn't applied. Re-running after
+    //      the profile fetch guarantees we read the current profile
+    //      role from the DB and retry.
+    //   3. accept_staff_invite is idempotent — re-running it on an
+    //      already-accepted invite returns 'already_accepted' which
+    //      we treat as success.
+    //
+    // We only re-run if the resolved role is still 'student' (or
+    // null), which is the failure mode we're protecting against. If
+    // the hook already restamped the staff role, this is a no-op.
+    let reapplyToken = '';
+    try {
+      const urlParam2 = (new URLSearchParams(window.location.search).get('pending_staff_invite') || '').trim();
+      if (/^[0-9a-f-]{36}$/i.test(urlParam2)) reapplyToken = urlParam2;
+      else {
+        const ss2 = (sessionStorage.getItem('pending_staff_invite_reapply') || '').trim();
+        if (/^[0-9a-f-]{36}$/i.test(ss2)) reapplyToken = ss2;
+      }
+    } catch (_) { /* fall through */ }
+
+    if (reapplyToken) {
+      // Stash the token in a NEW sessionStorage key (separate from
+      // pending_staff_invite which got scrubbed by the first call)
+      // so this belt-and-braces loop survives a slow profile read.
+      try { sessionStorage.setItem('pending_staff_invite_reapply', reapplyToken); } catch (_) {}
+    }
+
     try {
       const { data: profile } = await supabaseClient
         .from('profiles')
@@ -287,6 +330,53 @@
           const r = await supabaseClient.rpc('current_role');
           if (!r.error && r.data) role = r.data;
         } catch (_) { /* RPC not installed — fall through */ }
+      }
+
+      // Belt-and-braces staff-invite reapply. If the resolved role
+      // is still 'student' (or null) AND we have a reapply token
+      // stashed in sessionStorage, re-run accept_staff_invite now
+      // that we've read the actual DB state. This catches the two
+      // failure modes we've seen in production:
+      //   (a) First call hit `email_mismatch` because the
+      //       lowercase-comparison ran before Supabase normalised
+      //       the auth.users email column.
+      //   (b) First call ran but the JWT wasn't yet refreshed, so
+      //       the routing branch fell through to student.
+      //
+      // After the second call, refresh again so the JWT picks up
+      // the now-correct role.
+      const reapplyToken2 = (() => {
+        try { return (sessionStorage.getItem('pending_staff_invite_reapply') || '').trim(); }
+        catch (_) { return ''; }
+      })();
+      const staffRoles = ['staff_author', 'staff_reviewer', 'admin'];
+      if (reapplyToken2 && /^[0-9a-f-]{36}$/i.test(reapplyToken2) && (!role || role === 'student')) {
+        try {
+          const { data: acceptData2, error: acceptErr2 } =
+            await supabaseClient.rpc('accept_staff_invite', {
+              p_token: reapplyToken2, p_decision: 'accepted',
+            });
+          if (acceptErr2) {
+            console.warn('accept_staff_invite (reapply) failed:', acceptErr2);
+          } else if (acceptData2 && acceptData2.ok === false) {
+            console.warn('accept_staff_invite (reapply) refused:', acceptData2.reason, acceptData2);
+          } else {
+            console.log('accept_staff_invite (reapply) ok:', acceptData2);
+          }
+        } catch (_) { /* best effort */ }
+        try {
+          const { data: refreshed2, error: refreshErr2 } =
+            await supabaseClient.auth.refreshSession({ forceRefresh: true });
+          if (!refreshErr2 && refreshed2 && refreshed2.user) {
+            user = refreshed2.user;
+            role = refreshed2.user.app_metadata?.role || (profile && profile.role) || null;
+          }
+        } catch (_) { /* best effort */ }
+        // Token is single-use; clear it now regardless of outcome.
+        try { sessionStorage.removeItem('pending_staff_invite_reapply'); } catch (_) {}
+      } else if (reapplyToken2 && staffRoles.includes(role)) {
+        // Role already applied correctly — just clean up the stash.
+        try { sessionStorage.removeItem('pending_staff_invite_reapply'); } catch (_) {}
       }
 
       // SSO sign-ins never collect year group / DOB at the provider, so the

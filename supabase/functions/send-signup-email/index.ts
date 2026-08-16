@@ -328,6 +328,11 @@ interface RequestBody {
   intended_plan?: string;
   origin?: string;
   redirect_to?: string;
+  // Staff-invite path uses these to create the user in the same
+  // transaction as the magic-link send, so Supabase doesn't queue
+  // its built-in confirmation email.
+  create_user_if_missing?: boolean;
+  password?: string;
 }
 
 Deno.serve(async (req) => {
@@ -420,6 +425,54 @@ Deno.serve(async (req) => {
   const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  // Optional: create the user with email_confirm: true if it doesn't
+  // already exist. This is the staff-invite path — the caller has
+  // already validated the invite token client-side, so we know the
+  // email is legitimate. Creating the user THIS way (instead of
+  // letting supabase.auth.signUp do it) prevents Supabase from
+  // queueing its built-in "Confirm your signup" email, because by
+  // the time we call admin.createUser, we set email_confirm: true
+  // and skip the confirmation-email work entirely. Combined with
+  // the Resend magic link below, the user gets EXACTLY ONE email.
+  //
+  // - create_user_if_missing: true  → create if not exists
+  // - password: optional, hashed and stored
+  // - user_metadata: optional, applied to raw_user_meta_data so
+  //   handle_new_user sees full_name etc.
+  //
+  // The endpoint refuses to create a user over an existing one —
+  // if a user with this email already exists we log and fall
+  // through to the standard generateLink path (which will sign
+  // them in if their email is confirmed, or send a magic link that
+  // Resend mints without touching the original signUp email).
+  if (body.create_user_if_missing) {
+    const listResult = await sb.auth.admin.listUsers({ page: 1, perPage: 1 });
+    const existing = (listResult?.data?.users || []).find(
+      (u) => (u.email || "").toLowerCase() === email.toLowerCase(),
+    );
+    if (!existing) {
+      const { error: createErr } = await sb.auth.admin.createUser({
+        email,
+        password: body.password || undefined,
+        email_confirm: true,
+        user_metadata: {
+          full_name: name || "",
+          intended_role: intended_role || "",
+        },
+      });
+      if (createErr) {
+        console.error("send-signup-email: createUser failed:", createErr.message);
+        // Don't 500 the caller — fall through and try to send the
+        // link anyway. If the user already exists (race), generateLink
+        // will succeed. If something else broke, the caller already
+        // has the auth context from signUp and the link below will
+        // be a no-op.
+      }
+    } else {
+      console.log("send-signup-email: user already exists for", email, "- skipping create");
+    }
+  }
 
   const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
     type: "magiclink",

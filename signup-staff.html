@@ -441,73 +441,47 @@
       + '?pending_staff_invite=' + encodeURIComponent(pendingInvite.token);
 
     try {
-      const { data, error } = await supabaseClient.auth.signUp({
-        email: pendingInvite.email,
-        password: pw,
-        options: {
-          emailRedirectTo: redirectTo,
-          data: { full_name: name },
-        },
-      });
-      if (error) {
+      // Staff-invite path: server-side create. We do NOT call
+      // supabase.auth.signUp here because that triggers Supabase's
+      // built-in "Confirm your signup" email — duplicate of the
+      // branded Resend email send-signup-email fires immediately
+      // after. Instead, we ask the Edge Function to create the user
+      // via the admin API with email_confirm: true, send the branded
+      // magic link, and we're done — the user gets exactly one
+      // email. The Edge Function also skips creation if a user with
+      // this email already exists, in which case it falls through
+      // to the standard magic-link path.
+      const { error: fnErr } = await supabaseClient.functions.invoke(
+        'send-signup-email',
+        {
+          body: {
+            email: pendingInvite.email,
+            name,
+            intended_role: pendingInvite.role || 'admin',
+            origin: window.location.origin,
+            redirect_to: redirectTo,
+            // New flags — see supabase/functions/send-signup-email/index.ts
+            create_user_if_missing: true,
+            password: pw,
+          },
+        }
+      );
+      if (fnErr) {
         submitBtn.disabled = false;
         submitBtn.textContent = orig;
-        return showError(explainAuthError(error.message));
-      }
-      const newUserId = data && data.user && data.user.id;
-      if (!newUserId) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = orig;
-        return showError('Account was created but we couldn\'t finalise the invitation. Please sign in and try again.');
-      }
-      // Supabase's email-enumeration prevention: when the email is already
-      // registered, signUp returns success with identities=[]. The email
-      // field is readonly on this page (set from the invite token in step
-      // 1), so this is a defense-in-depth check — catches the edge case
-      // where someone is already a Recall user with this email but is
-      // being invited as staff.
-      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = orig;
-        return showError(explainAuthError('User already registered'));
+        return showError('Could not create your account: ' + (fnErr.message || 'edge function error'));
       }
 
-      // We can't accept the invite right here — accept_staff_invite is
-      // SECURITY DEFINER and re-validates auth.uid() against the
-      // invite's email, but Supabase hasn't issued a session yet
-      // (email confirmation creates the session, not signUp). The
-      // primary path is now to bake the token into the post-confirm
-      // URL (the signingUp redirectTo above), which survives email-
-      // client tab/cookie boundaries. sessionStorage is a defensive
-      // fallback for the rare case where the URL param is stripped.
-      try {
-        sessionStorage.setItem('pending_staff_invite', pendingInvite.token);
-      } catch (_) { /* sessionStorage blocked — won't grant role */ }
-
-      // Send the branded Resend confirmation email so the staff
-      // member gets a role-aware "welcome to the team" message
-      // instead of Supabase's generic "Confirm your email".
-      try {
-        const { error: fnErr } = await supabaseClient.functions.invoke(
-          'send-signup-email',
-          {
-            body: {
-              email: pendingInvite.email,
-              name,
-              intended_role: pendingInvite.role || 'admin',
-              origin: window.location.origin,
-              redirect_to: redirectTo,
-            },
-          }
-        );
-        if (fnErr) console.error('send-signup-email invoke failed:', fnErr);
-      } catch (err) {
-        console.error('send-signup-email threw:', err);
-      }
+      // Belt-and-braces: stash the token so a slow Edge Function
+      // can't drop it. Both sessionStorage keys are read by
+      // auth/confirmed.html — primary uses the URL param, this is
+      // a fallback.
+      try { sessionStorage.setItem('pending_staff_invite', pendingInvite.token); } catch (_) {}
+      try { sessionStorage.setItem('pending_staff_invite_reapply', pendingInvite.token); } catch (_) {}
 
       showOk(
         'Account created. Check ' + pendingInvite.email
-        + ' for a confirmation link — once you click it, your '
+        + ' for a single confirmation link from the Recall team — once you click it, your '
         + (pendingInvite.role || 'staff') + ' role will be applied automatically.'
       );
       Array.from($('signupForm').elements).forEach(el => { el.disabled = true; });
