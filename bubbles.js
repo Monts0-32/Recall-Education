@@ -160,6 +160,7 @@
 
     /* ---- Buttons: always white at rest, lift on hover ----
        Every button variant on the site — primary, secondary, ghost,
+       oauth, success, danger, raw <button> elements — uses a white
        base background. Hover/active shift to a soft off-white with a
        brighter teal halo and a 1px lift so the click feels tactile.
        Success keeps a green border and danger keeps a red border so
