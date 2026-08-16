@@ -125,23 +125,26 @@ grant execute on function public.confirm_staff_invite_email() to authenticated;
 --   user has a session (via the post-confirm page), which is too late
 --   — Supabase's worker has already queued the email.
 --
---   This trigger runs synchronously inside the on_auth_user_created
---   trigger (which is itself inside the same transaction as the
---   auth.users INSERT). By stamping email_confirmed_at BEFORE
---   Supabase's email task reads the row, the auto-email is skipped.
---   Order is:
---     1. client calls supabase.auth.signUp() — row created
---     2. on_auth_user_created fires → handle_new_user runs first
---     3. THEN this trigger fires and sets email_confirmed_at = now()
---     4. Supabase's email task reads the row, sees
---        email_confirmed_at IS NOT NULL, skips the auto-email
---     5. send-signup-email (called client-side right after signUp)
---        fires the Resend branded email — the only one the user sees.
---
---   Safety: only applies when a matching, unaccepted, unexpired
---   staff_invites row exists for the new user's email. Otherwise the
---   trigger is a no-op and the standard Supabase confirmation flow
---   continues as normal.
+-- Implementation notes:
+--   * AFTER INSERT, not BEFORE INSERT. BEFORE-INSERT triggers on
+--     auth.users are a Supabase anti-pattern: the GoTrue server has
+--     internal logic that runs in parallel and rejects / overwrites
+--     NEW-row mutations made by user triggers, which surfaces to the
+--     client as a 500 "Database error saving new user". Observed in
+--     the wild Aug 2026 when this exact file first shipped with a
+--     BEFORE INSERT trigger — every signup broke. AFTER INSERT just
+--     observes NEW and modifies the row via a SECURITY DEFINER UPDATE,
+--     which is safe.
+--   * Wrapped in EXCEPTION WHEN OTHERS. If the lookup-or-update
+--     fails for ANY reason (a future migration drops staff_invites,
+--     auth.users gets renamed, RLS on staff_invites blocks the
+--     SECURITY DEFINER read, etc.), signup still completes. Worst
+--     case: the user gets the duplicate Supabase email they would
+--     have gotten anyway. Signup is never blocked by this trigger.
+--   * The UPDATE runs inside the same transaction as the INSERT, so
+--     by the time Supabase's email worker observes the row (which
+--     happens via NOTIFY at commit time), email_confirmed_at is
+--     already set and the auto-confirmation email is skipped.
 -- ============================================================================
 
 create or replace function public._confirm_staff_invite_on_signup()
@@ -153,30 +156,38 @@ as $$
 declare
   v_invite_count int;
 begin
+  -- Already confirmed by some other path — leave it alone.
   if new.email_confirmed_at is not null then
-    -- Already confirmed (some other path got there first). Don't
-    -- double-stamp or fight with it.
     return new;
   end if;
 
-  select count(*) into v_invite_count
-    from public.staff_invites
-   where lower(email) = lower(new.email)
-     and status = 'pending'
-     and accepted_at is null
-     and (expires_at is null or expires_at > now());
+  begin
+    select count(*) into v_invite_count
+      from public.staff_invites
+     where lower(email) = lower(new.email)
+       and status = 'pending'
+       and accepted_at is null
+       and (expires_at is null or expires_at > now());
 
-  if v_invite_count = 0 then
-    return new;
-  end if;
+    if v_invite_count > 0 then
+      update auth.users
+         set email_confirmed_at = now(),
+             updated_at = now()
+       where id = new.id
+         and email_confirmed_at is null;
+    end if;
+  exception when others then
+    -- Never block signup on this. Worst case the staff invitee
+    -- gets both emails (the original behaviour pre-this-trigger).
+    raise warning 'confirm_staff_invite_on_signup skipped for user % (%): %',
+      new.id, new.email, sqlerrm;
+  end;
 
-  new.email_confirmed_at := now();
-  new.updated_at := now();
   return new;
 end;
 $$;
 
 drop trigger if exists confirm_staff_invite_on_signup on auth.users;
 create trigger confirm_staff_invite_on_signup
-  before insert on auth.users
+  after insert on auth.users
   for each row execute function public._confirm_staff_invite_on_signup();
