@@ -613,6 +613,11 @@
   // bubble the card wins the click because the card's own stacking
   // context (from the :where() lift) is above the bubble field.
   const BUBBLE_CSS = `
+    /* Register the per-bubble jitter custom properties so the keyframe
+       animates them smoothly (without this, --jx / --jy would jump
+       rather than tween between stops). */
+    @property --jx { syntax: '<length>'; inherits: true; initial-value: 0px; }
+    @property --jy { syntax: '<length>'; inherits: true; initial-value: 0px; }
     .bubble-field {
       position: fixed;
       inset: 0;
@@ -646,8 +651,8 @@
           transparent 70%);
       box-shadow:
         inset 6px 10px 24px rgba(255,255,255,0.10),
-        inset -8px -10px 30px rgba(232,181,98,0.06),
-        0 0 32px rgba(232,181,98,0.10),
+        inset -8px -10px 30px rgba(86,212,221,0.06),
+        0 0 32px rgba(86,212,221,0.10),
         0 8px 28px rgba(0,0,0,0.20);
       border: 1px solid rgba(255,255,255,0.06);
     }
@@ -655,22 +660,97 @@
       background:
         radial-gradient(circle at 50% 50%, transparent 38%, transparent 100%),
         conic-gradient(from 200deg,
-          rgba(232,181,98,0.0)   0deg,
-          rgba(212,154,69,0.55)  40deg,
-          rgba(240,201,122,0.60) 80deg,
-          rgba(255,255,255,0.40) 130deg,
-          rgba(216,177,74,0.50)  180deg,
-          rgba(242,107,98,0.50)  230deg,
-          rgba(232,181,98,0.50)  280deg,
-          rgba(212,154,69,0.50)  340deg,
-          rgba(232,181,98,0.0)   360deg);
+          rgba(86,212,221,0.0)  0deg,
+          rgba(86,212,221,0.5)  40deg,
+          rgba(124,224,232,0.6) 80deg,
+          rgba(255,255,255,0.4) 130deg,
+          rgba(216,177,74,0.5)  180deg,
+          rgba(242,107,98,0.5)  230deg,
+          rgba(179,136,248,0.5) 280deg,
+          rgba(86,212,221,0.5)  340deg,
+          rgba(86,212,221,0.0)  360deg);
       -webkit-mask: radial-gradient(circle, transparent 0%, transparent 50%, #000 70%, #000 100%);
               mask: radial-gradient(circle, transparent 0%, transparent 50%, #000 70%, #000 100%);
       box-shadow:
         inset 6px 10px 24px rgba(255,255,255,0.12),
-        0 0 50px rgba(232,181,98,0.20),
+        0 0 50px rgba(86,212,221,0.20),
         0 8px 28px rgba(0,0,0,0.20);
       border: 1px solid rgba(255,255,255,0.06);
+    }
+    /* Glass — frosted-glass feel: a faint white core with a thicker
+       outer teal glow. Sits well as the small/medium accent bubbles. */
+    .bubble--glass {
+      background:
+        radial-gradient(circle at 32% 30%,
+          rgba(255,255,255,0.30) 0%,
+          rgba(255,255,255,0.12) 22%,
+          rgba(255,255,255,0.04) 45%,
+          transparent 75%),
+        radial-gradient(circle at 70% 75%,
+          rgba(86,212,221,0.10) 0%,
+          transparent 60%);
+      box-shadow:
+        inset 5px 8px 18px rgba(255,255,255,0.18),
+        inset -6px -10px 22px rgba(86,212,221,0.10),
+        0 0 28px rgba(86,212,221,0.10),
+        0 8px 24px rgba(0,0,0,0.18);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+    /* White — pure translucent sphere, no chromatic ring. Reads as a
+       clean pearl; pairs with the iridescent ones for rhythm. */
+    .bubble--white {
+      background:
+        radial-gradient(circle at 30% 26%,
+          rgba(255,255,255,0.42) 0%,
+          rgba(255,255,255,0.18) 22%,
+          rgba(255,255,255,0.05) 45%,
+          transparent 75%),
+        radial-gradient(circle at 70% 75%,
+          rgba(255,255,255,0.05) 0%,
+          transparent 70%);
+      box-shadow:
+        inset 6px 10px 22px rgba(255,255,255,0.22),
+        0 0 28px rgba(255,255,255,0.08),
+        0 8px 26px rgba(0,0,0,0.22);
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+    /* Cyan — solid teal-tinted sphere, more saturated than glass. */
+    .bubble--cyan {
+      background:
+        radial-gradient(circle at 30% 26%,
+          rgba(255,255,255,0.30) 0%,
+          rgba(124,224,232,0.28) 22%,
+          rgba(86,212,221,0.18) 50%,
+          rgba(63,184,196,0.10) 80%,
+          transparent 100%);
+      box-shadow:
+        inset 6px 10px 22px rgba(124,224,232,0.22),
+        inset -8px -10px 26px rgba(86,212,221,0.18),
+        0 0 36px rgba(86,212,221,0.22),
+        0 8px 26px rgba(0,0,0,0.22);
+      border: 1px solid rgba(124,224,232,0.20);
+    }
+    /* Subtle ambient float — each bubble drifts a few px on its own
+       clock so the field never feels frozen between scroll events.
+       Animation-duration AND animation-delay are per-bubble (set inline
+       via --float-dur / --float-delay) so the bubbles don't all bob
+       in lockstep. The keyframe writes CSS custom properties so it
+       doesn't fight the inline transform written by the scroll/pop
+       handlers — applyTransform reads the jitters and folds them into
+       the final translate3d. */
+    .bubble {
+      animation: bubble-jitter var(--float-dur, 6s) ease-in-out infinite;
+      animation-delay: var(--float-delay, 0s);
+    }
+    @keyframes bubble-jitter {
+      0%   { --jx: 0px;   --jy: 0px; }
+      25%  { --jx: 3px;   --jy: -5px; }
+      50%  { --jx: 0px;   --jy: -8px; }
+      75%  { --jx: -3px;  --jy: -4px; }
+      100% { --jx: 0px;   --jy: 0px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .bubble { animation: none !important; }
     }
     .bubble--xs { --bubble-size: 16px; }
     .bubble--sm { --bubble-size: 32px; }
@@ -1000,6 +1080,7 @@
       ];
       const W = window.innerWidth;
       const H = window.innerHeight;
+      const VARIANTS_RAND = ["iridescent", "iridescent", "glass", "glass", "white", "cyan"];
       for (let i = 0; i < count; i++) {
         const r = Math.random();
         let size = 32;
@@ -1011,9 +1092,10 @@
           ? Math.random() * (W * 0.2)
           : W * 0.8 + Math.random() * (W * 0.2);
         const y = Math.random() * H;
+        const variant = VARIANTS_RAND[Math.floor(Math.random() * VARIANTS_RAND.length)];
         // No alts — the pop handler picks a fresh random margin pos
         // on click.
-        createBubble(x, y, size, []);
+        createBubble(x, y, size, [], variant);
       }
       return;
     }
@@ -1023,51 +1105,78 @@
       const alts = parseAlts(p.alts, [window.innerWidth, window.innerHeight]);
       const x = alts[0].x;
       const y = alts[0].y;
-      createBubble(x, y, p.size, p.alts);
+      createBubble(x, y, p.size, p.alts, p.variant);
     }
   }
 
   // ----- 6. Bubble lifecycle: spawn, pop, resize ------------------------
-  // Each bubble has a base position (in viewport px). The bubbles are
-  // fixed — they don't drift on scroll and they don't wrap around. The
-  // scroll listener is still installed (so resize can re-clamp
-  // positions) but the per-bubble `factor` is 0, so `y_drawn = baseY`
-  // and no parallax is applied.
+  // Each bubble has a base position (in viewport px). Bubbles drift on
+  // scroll at a per-bubble parallax speed (factor 0.15..0.65), wrap from
+  // the bottom back to the top when they leave the viewport, and bob on
+  // their own CSS-animation clock for ambient float.
   //
   // Click → pop. The pop function animates scale(1.6) + opacity 0,
   // teleports to the next alt position, then fades back. While the pop
   // is running, `b.popping` is true and the scroll handler skips the
   // bubble so the animation isn't clobbered.
+  //
+  // Visual variants: iridescent (rainbow ring), glass (frosted),
+  // white (pearl), cyan (saturated teal). The placement tables already
+  // name the variant per bubble, so the rendered field actually varies
+  // rather than every bubble being the same iridescent ring at a
+  // different size.
 
-  function createBubble(x, y, size, altsData) {
+  const VARIANT_CLASS = {
+    iridescent: "bubble--iridescent",
+    glass:      "bubble--glass",
+    white:      "bubble--white",
+    cyan:       "bubble--cyan",
+  };
+
+  function createBubble(x, y, size, altsData, variantName) {
     const el = document.createElement("div");
-    // Every bubble is the iridescent (rainbow) variant.
     const sizeClass = SIZE_CLASS[size] || "bubble--md";
-    el.className = "bubble " + sizeClass + " bubble--iridescent";
+    const variantClass = VARIANT_CLASS[variantName] || "bubble--iridescent";
+    el.className = "bubble " + sizeClass + " " + variantClass;
     el.style.opacity = "0";
     el.style.transform = `translate3d(${x - size/2}px, ${y - size/2}px, 0)`;
+    // Each bubble gets its own float duration (5–9s) and delay
+    // (0–4s) so the field doesn't bob in lockstep. Bigger bubbles get
+    // longer periods so they feel heavier.
+    const floatDur = 5 + Math.random() * 4 + (size > 80 ? 1.5 : 0);
+    const floatDelay = -Math.random() * 4;   // negative so it starts mid-cycle
+    el.style.setProperty("--float-dur", floatDur.toFixed(2) + "s");
+    el.style.setProperty("--float-delay", floatDelay.toFixed(2) + "s");
     overlay.appendChild(el);
 
     // Alts is the raw placement data — viewport-relative percentages.
     // We re-parse on pop (against the current viewport) so positions
     // stay correct after rotation. Random-spawn bubbles get an empty
     // alts list; their pop picks a fresh random margin position.
+    // factor is the parallax depth: a positive factor makes the bubble
+    // appear to move DOWN slower than the page (i.e. it lags, like a
+    // bubble caught in slower-moving fluid); negative factors would
+    // make it move faster than the page. We use a small positive value
+    // (0.15..0.65, weighted by size — bigger bubbles drift more) so the
+    // whole field breathes when you scroll.
+    const factor = 0.15 + Math.random() * 0.50 + (size > 80 ? 0.10 : 0);
     const b = {
       el,
       size,
       baseX: x,
       baseY: y,
-      factor: 0,   // fixed: no scroll-driven drift (was 0.15..0.65 parallax depth)
+      factor,
       alts: altsData || [],
       altIndex: 0,
       popping: false,
+      variant: variantName || "iridescent",
     };
     bubbles.push(b);
 
-    // Click → pop. stopPropagation is defensive: the field has
-    // pointer-events: none, so the click can't have come from empty
-    // space, but if any future page wires a click on the bubble
-    // field's parent this prevents it firing too.
+    // Click → pop & regrow. Every bubble (including home page) pops on
+    // click and reappears at its next alt position. Stop the float
+    // animation while popping so the keyframe transform doesn't fight
+    // the pop's transform.
     el.addEventListener("click", (e) => {
       e.stopPropagation();
       if (b.popping) return;
@@ -1084,7 +1193,13 @@
 
   function applyTransform(b, x, y, scale) {
     const s = scale == null ? 1 : scale;
-    b.el.style.transform = `translate3d(${x - b.size/2}px, ${y - b.size/2}px, 0) scale(${s})`;
+    // Read the per-bubble jitter from the CSS custom properties that
+    // the float keyframe is animating. getComputedPropertyValue lets us
+    // pull the current animated value without forcing a layout.
+    const cs = getComputedStyle(b.el);
+    const jx = parseFloat(cs.getPropertyValue("--jx")) || 0;
+    const jy = parseFloat(cs.getPropertyValue("--jy")) || 0;
+    b.el.style.transform = `translate3d(${x - b.size/2 + jx}px, ${y - b.size/2 + jy}px, 0) scale(${s})`;
   }
 
   // ---- 6a. Pop & regrow ------------------------------------------------
@@ -1160,17 +1275,50 @@
     b.baseY = Math.random() * H;
   }
 
-  // ---- 6b. Scroll handler (now a no-op) ---------------------------------
-  // Bubbles are fixed in the viewport — they do not drift on scroll and
-  // they do not wrap. The handler remains so the pop animation's exit/
-  // entry transforms (which are set in the pop path, not here) aren't
-  // clobbered if a scroll happens mid-pop, but with factor=0 it does
-  // nothing on its own.
+  // ---- 6b. Scroll handler ----------------------------------------------
+  // Each bubble has a per-bubble parallax `factor` (0.15..0.75) so the
+  // whole field breathes as you scroll — bigger bubbles drift more,
+  // smaller ones lag less. When a bubble would scroll fully off the
+  // bottom, it wraps to the top of the viewport (and vice versa for
+  // upward wrap). This keeps the field alive on long pages where the
+  // hand-placed alts don't cover the lower half.
+  //
+  // rAF-driven (passive listener): we don't run a per-frame timer; we
+  // re-paint once per scroll event using requestAnimationFrame. That
+  // gives smooth 60fps updates with zero idle CPU when the page is
+  // still.
+  let scrollScheduled = false;
   function onScroll() {
+    if (scrollScheduled) return;
+    scrollScheduled = true;
+    requestAnimationFrame(() => {
+      scrollScheduled = false;
+      paint();
+    });
+  }
+
+  function paint() {
+    const H = window.innerHeight;
     for (let i = 0; i < bubbles.length; i++) {
       const b = bubbles[i];
       if (b.popping) continue;   // don't clobber the pop animation
-      applyTransform(b, b.baseX, b.baseY, 1);
+      // Parallax: the bubble lags the page by `factor`. baseY is in
+      // viewport px (the original position when the bubble was spawned
+      // / popped). Adding factor * scrollY shifts it DOWN relative to
+      // the viewport as the page scrolls.
+      let y = b.baseY + window.scrollY * b.factor;
+      // Wrap: if the bubble has scrolled fully off the bottom, send it
+      // back to the top (and vice versa). The wrap distance is the
+      // viewport height so the bubble reappears the moment the top edge
+      // is crossed.
+      if (y > H + b.size) {
+        y -= H + b.size;
+        b.baseY += H + b.size;   // keep base in sync so future wraps are correct
+      } else if (y < -b.size) {
+        y += H + b.size;
+        b.baseY -= H + b.size;
+      }
+      applyTransform(b, b.baseX, y, 1);
     }
   }
 
@@ -1192,14 +1340,12 @@
         // else: random-spawn bubble — baseX/baseY are already px,
         // just leave them.
       }
-      onScroll();   // re-apply transforms at the new viewport
+      paint();   // re-apply transforms at the new viewport
     }, 200);
   });
 
-  // ---- 6c. Initial paint -----------------------------------------------
-  // No scroll listener: bubbles are fixed in the viewport, so scroll
-  // is irrelevant. The transforms are set once in spawn() and again on
-  // resize.
+  // ---- 6c. Initial paint + scroll listener ------------------------------
   spawn();
-  onScroll();   // apply initial transforms at the current viewport
+  paint();                        // apply initial transforms
+  window.addEventListener("scroll", onScroll, { passive: true });
 })();
