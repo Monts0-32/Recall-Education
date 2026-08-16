@@ -158,11 +158,24 @@
     body a:hover { text-decoration: underline; }
     body a:focus-visible { outline: 2px solid var(--teal); }
 
-    /* ---- Primary buttons: white + teal halo + pill ---- */
+    /* ---- Buttons: always white at rest, lift on hover ----
+       Every button variant on the site — primary, secondary, ghost,
+       base background. Hover/active shift to a soft off-white with a
+       brighter teal halo and a 1px lift so the click feels tactile.
+       Success keeps a green border and danger keeps a red border so
+       their intent is still readable at a glance. */
     body .btn-primary,
     body .btn.primary,
     body button.primary,
-    body .btn.btn-primary {
+    body .btn.btn-primary,
+    body .btn-ghost,
+    body .btn.secondary,
+    body .btn-secondary,
+    body .btn.ghost,
+    body .btn-link,
+    body .btn,
+    body .oauth-btn,
+    body button:not(.bubble):not(.nav-link):not(.role-pill):not(.check-btn):not(.check):not(.close):not(.icon-btn):not(.oauth-google):not(.oauth-microsoft) {
       background: #FFFFFF;
       color: #0B0D0F;
       border: 1px solid #FFFFFF;
@@ -177,7 +190,15 @@
     body .btn-primary:hover,
     body .btn.primary:hover,
     body button.primary:hover,
-    body .btn.btn-primary:hover {
+    body .btn.btn-primary:hover,
+    body .btn-ghost:hover,
+    body .btn.secondary:hover,
+    body .btn-secondary:hover,
+    body .btn.ghost:hover,
+    body .btn-link:hover,
+    body .btn:hover,
+    body .oauth-btn:hover,
+    body button:not(.bubble):not(.nav-link):not(.role-pill):not(.check-btn):not(.check):not(.close):not(.icon-btn):hover {
       background: #F0F2F5;
       border-color: #F0F2F5;
       box-shadow: 0 6px 24px rgba(255,255,255,0.16),
@@ -185,53 +206,76 @@
       text-decoration: none;
       transform: translateY(-1px);
     }
-    /* btn-success (lesson) — keep its green intent but bubbley green */
+    body .btn-primary:active,
+    body .btn.primary:active,
+    body button.primary:active,
+    body .btn.btn-primary:active,
+    body .btn-ghost:active,
+    body .btn.secondary:active,
+    body .btn-secondary:active,
+    body .btn.ghost:active,
+    body .btn-link:active,
+    body .btn:active,
+    body .oauth-btn:active,
+    body button:not(.bubble):not(.nav-link):not(.role-pill):not(.check-btn):not(.check):not(.close):not(.icon-btn):not(.oauth-google):not(.oauth-microsoft):active {
+      background: #E5E8EC;
+      border-color: #E5E8EC;
+      box-shadow: 0 2px 8px rgba(255,255,255,0.08),
+                  0 0 24px rgba(86,212,221,0.20);
+      transform: translateY(0);
+    }
+    /* Success — white fill, green border so the action reads as a
+       positive outcome without colouring the whole button. */
     body .btn-success {
-      background: var(--green);
-      border: 1px solid var(--green);
+      background: #FFFFFF;
       color: #0B0D0F;
+      border: 1px solid #4FBE6A;
       border-radius: var(--r-pill);
+      padding: 10px 18px;
+      font-weight: 600;
+      box-shadow: 0 4px 18px rgba(255,255,255,0.10),
+                  0 0 24px rgba(79,190,106,0.22);
+      transition: background 0.15s ease, box-shadow 0.15s ease,
+                  transform 0.15s ease, border-color 0.15s ease;
     }
     body .btn-success:hover {
-      background: #6BD183;
+      background: #F0F2F5;
       border-color: #6BD183;
+      box-shadow: 0 6px 24px rgba(255,255,255,0.16),
+                  0 0 32px rgba(79,190,106,0.32);
+      transform: translateY(-1px);
     }
-    /* Secondary / ghost buttons — pill, line-2 border */
-    body .btn-ghost,
-    body .btn.secondary,
-    body .btn-secondary,
-    body .btn.ghost,
-    body .oauth-btn,
-    body .role-card,
-    body .btn-link {
-      background: rgba(255,255,255,0.02);
-      color: var(--text);
-      border: 1px solid var(--line-2);
-      border-radius: var(--r-pill);
-      padding: 9px 16px;
-      font-weight: 500;
+    body .btn-success:active {
+      background: #E5E8EC;
+      border-color: #5BCB76;
+      transform: translateY(0);
     }
-    body .btn-ghost:hover,
-    body .btn.secondary:hover,
-    body .btn-secondary:hover,
-    body .btn.ghost:hover,
-    body .btn-link:hover {
-      background: var(--bg-2);
-      border-color: var(--line-3);
-      text-decoration: none;
-    }
-    body .oauth-btn { background: var(--bg-3); }
-
-    /* Danger button stays the rgba-red recipe but on the bubbley palette */
+    /* Danger — white fill, red border so destructive actions read
+       as destructive without darkening the whole button. */
     body .btn-danger {
-      background: rgba(242, 107, 98, 0.12);
-      color: #FFB3AC;
-      border: 1px solid rgba(242, 107, 98, 0.40);
+      background: #FFFFFF;
+      color: #C24A42;
+      border: 1px solid rgba(242, 107, 98, 0.60);
       border-radius: var(--r-pill);
+      padding: 10px 18px;
+      font-weight: 600;
+      box-shadow: 0 4px 18px rgba(255,255,255,0.10),
+                  0 0 24px rgba(242,107,98,0.22);
+      transition: background 0.15s ease, box-shadow 0.15s ease,
+                  transform 0.15s ease, border-color 0.15s ease;
     }
     body .btn-danger:hover {
-      background: rgba(242, 107, 98, 0.20);
-      border-color: rgba(242, 107, 98, 0.60);
+      background: #FFF5F4;
+      border-color: rgba(242, 107, 98, 0.85);
+      color: #A03A33;
+      box-shadow: 0 6px 24px rgba(255,255,255,0.16),
+                  0 0 32px rgba(242,107,98,0.32);
+      transform: translateY(-1px);
+    }
+    body .btn-danger:active {
+      background: #FFE6E3;
+      border-color: rgba(242, 107, 98, 1);
+      transform: translateY(0);
     }
 
     /* ---- Cards / form surfaces: gradient + bigger radius ---- */
@@ -524,12 +568,27 @@
       border-radius: var(--r-lg);
     }
     body.accept-invite .btn {
-      background: var(--panel);
-      color: var(--text);
-      border: 1px solid var(--border);
+      background: #FFFFFF;
+      color: #0B0D0F;
+      border: 1px solid #FFFFFF;
       border-radius: var(--r-pill);
+      padding: 10px 18px;
+      font-weight: 600;
+      box-shadow: 0 4px 18px rgba(255,255,255,0.10),
+                  0 0 32px rgba(86,212,221,0.22);
+      transition: background 0.15s ease, box-shadow 0.15s ease,
+                  transform 0.15s ease, border-color 0.15s ease;
     }
-    body.accept-invite .btn:hover { background: var(--bg-3); }
+    body.accept-invite .btn:hover {
+      background: #F0F2F5;
+      border-color: #F0F2F5;
+      transform: translateY(-1px);
+    }
+    body.accept-invite .btn:active {
+      background: #E5E8EC;
+      border-color: #E5E8EC;
+      transform: translateY(0);
+    }
     body.accept-invite .btn.primary {
       background: #FFFFFF;
       color: #0B0D0F;
@@ -612,10 +671,12 @@
         0 8px 28px rgba(0,0,0,0.20);
       border: 1px solid rgba(255,255,255,0.06);
     }
+    .bubble--xs { --bubble-size: 16px; }
     .bubble--sm { --bubble-size: 32px; }
     .bubble--md { --bubble-size: 80px; }
     .bubble--lg { --bubble-size: 160px; }
     .bubble--xl { --bubble-size: 280px; }
+    .bubble--xxl { --bubble-size: 380px; }
     /* Lift the host page's content above the overlay so the bubble
        never sits on top of any UI. Uses :where() so the rule has
        zero specificity and can't clobber any pre-existing z-index
@@ -756,74 +817,95 @@
 
   // ---- Auth pages (8 bubbles) ----
   // Card sits centered, max-width ~520px. Bubbles live in the four
-  // corners and four edges of the visible margin.
+  // corners and four edges of the visible margin. Sizes are spread
+  // from xs (16px) up to xl (280px) so the visual rhythm is clearly
+  // varied — not the same medium/small pattern on every page.
   const AUTH = [
-    P("4%",  "10%", 140, "iridescent", [
-      { x: "4%",  y: "10%" }, { x: "8%",  y: "14%" },
-      { x: "6%",  y: "6%"  },
+    // Hero corners — one big iridescent anchor on each side
+    P("2%",  "8%",   280, "iridescent", [
+      { x: "2%",  y: "8%"  }, { x: "6%",  y: "12%" },
+      { x: "4%",  y: "4%"  },
     ]),
-    P("92%", "12%", 80, "cyan", [
-      { x: "92%", y: "12%" }, { x: "88%", y: "16%" },
+    P("88%", "10%",  160, "cyan", [
+      { x: "88%", y: "10%" }, { x: "84%", y: "14%" },
     ]),
-    P("3%",  "55%", 60, "white", [
-      { x: "3%",  y: "55%" }, { x: "7%",  y: "58%" },
+    // Mid-page accents — small + medium on opposite sides
+    P("3%",  "50%",  80, "white", [
+      { x: "3%",  y: "50%" }, { x: "7%",  y: "54%" },
     ]),
-    P("94%", "60%", 100, "white", [
-      { x: "94%", y: "60%" }, { x: "90%", y: "64%" },
+    P("92%", "55%",  100, "white", [
+      { x: "92%", y: "55%" }, { x: "88%", y: "59%" },
     ]),
-    P("6%",  "85%", 50, "glass", [
+    // Lower margin — a tiny dot and a medium orb
+    P("6%",  "85%",  32, "glass", [
       { x: "6%",  y: "85%" }, { x: "10%", y: "88%" },
     ]),
-    P("92%", "88%", 70, "cyan", [
-      { x: "92%", y: "88%" }, { x: "88%", y: "92%" },
+    P("90%", "88%",  70, "cyan", [
+      { x: "90%", y: "88%" }, { x: "86%", y: "92%" },
     ]),
-    P("22%", "94%", 30, "glass", [
+    // Two extra-small sprinkles for texture
+    P("22%", "94%",  16, "glass", [
       { x: "22%", y: "94%" }, { x: "26%", y: "96%" },
     ]),
-    P("78%", "20%", 40, "white", [
+    P("78%", "20%",  40, "white", [
       { x: "78%", y: "20%" }, { x: "74%", y: "24%" },
     ]),
   ];
 
-  // ---- App pages (6 bubbles, sparser) ----
+  // ---- App pages (8 bubbles) ----
   // Sidebar on the left, dash-bar at the top, main content in the
-  // middle. Bubbles live in the right margin and corners, plus a
-  // couple hidden behind the sidebar area.
+  // middle. Bubbles live in the right margin, corners, and a couple
+  // behind the sidebar area. Sizes run the full range so the page
+  // reads as deliberately varied rather than uniform.
   const APP = [
-    P("3%",  "12%", 80, "cyan", [
+    // Top-right hero anchor
+    P("92%", "8%",   280, "iridescent", [
+      { x: "92%", y: "8%"  }, { x: "88%", y: "12%" },
+      { x: "94%", y: "4%"  },
+    ]),
+    // Top-left medium counterweight (sits over the sidebar)
+    P("3%",  "12%",  80, "cyan", [
       { x: "3%",  y: "12%" }, { x: "6%",  y: "16%" },
     ]),
-    P("94%", "10%", 100, "iridescent", [
-      { x: "94%", y: "10%" }, { x: "90%", y: "14%" },
-      { x: "96%", y: "6%"  },
+    // Right margin — a small + a tiny dot
+    P("96%", "38%",  32, "white", [
+      { x: "96%", y: "38%" }, { x: "92%", y: "42%" },
     ]),
-    P("96%", "40%", 50, "white", [
-      { x: "96%", y: "40%" }, { x: "92%", y: "44%" },
+    P("94%", "62%",  16, "glass", [
+      { x: "94%", y: "62%" }, { x: "90%", y: "66%" },
     ]),
-    P("4%",  "70%", 60, "glass", [
-      { x: "4%",  y: "70%" }, { x: "8%",  y: "74%" },
+    // Left margin — medium glass + small white
+    P("4%",  "50%",  100, "glass", [
+      { x: "4%",  y: "50%" }, { x: "8%",  y: "54%" },
     ]),
-    P("94%", "80%", 30, "cyan", [
-      { x: "94%", y: "80%" }, { x: "90%", y: "84%" },
+    P("2%",  "82%",  40, "white", [
+      { x: "2%",  y: "82%" }, { x: "6%",  y: "86%" },
     ]),
-    P("50%", "92%", 70, "white", [
-      { x: "50%", y: "92%" }, { x: "54%", y: "96%" },
+    // Bottom-right large anchor
+    P("90%", "86%",  160, "white", [
+      { x: "90%", y: "86%" }, { x: "86%", y: "90%" },
+    ]),
+    // Bottom-centre tiny dot
+    P("50%", "94%",  16, "cyan", [
+      { x: "50%", y: "94%" }, { x: "46%", y: "96%" },
     ]),
   ];
 
   // ---- Email templates (sparse, 4) ----
+  // Even with only 4 bubbles, run the full size range so the page
+  // doesn't look like a uniform row of same-size dots.
   const EMAIL = [
-    P("4%",  "10%", 100, "iridescent", [
-      { x: "4%",  y: "10%" }, { x: "8%",  y: "14%" },
+    P("3%",  "10%",  280, "iridescent", [
+      { x: "3%",  y: "10%" }, { x: "7%",  y: "14%" },
     ]),
-    P("94%", "20%", 60, "cyan", [
-      { x: "94%", y: "20%" }, { x: "90%", y: "24%" },
+    P("92%", "18%",  80, "cyan", [
+      { x: "92%", y: "18%" }, { x: "88%", y: "22%" },
     ]),
-    P("6%",  "70%", 50, "white", [
-      { x: "6%",  y: "70%" }, { x: "10%", y: "74%" },
+    P("6%",  "72%",  32, "white", [
+      { x: "6%",  y: "72%" }, { x: "10%", y: "76%" },
     ]),
-    P("92%", "85%", 40, "glass", [
-      { x: "92%", y: "85%" }, { x: "88%", y: "88%" },
+    P("94%", "86%",  16, "glass", [
+      { x: "94%", y: "86%" }, { x: "90%", y: "90%" },
     ]),
   ];
 
@@ -890,10 +972,12 @@
 
   // Size → CSS class.
   const SIZE_CLASS = {
+    16:  "bubble--xs",
     32:  "bubble--sm",
     80:  "bubble--md",
     160: "bubble--lg",
     280: "bubble--xl",
+    380: "bubble--xxl",
   };
 
   const bubbles = [];
@@ -942,14 +1026,12 @@
     }
   }
 
-  // ----- 6. Bubble lifecycle: spawn, drift, pop ------------------------
-  // Each bubble has a base position (in viewport px) and a parallax
-  // factor in [0.15, 0.65]. On scroll, the bubble's drawn y is
-  //   y_drawn = baseY + scrollY * factor
-  // so it flows downward as the user scrolls. When y_drawn exits the
-  // bottom of the viewport, the bubble wraps: baseY is decremented by
-  // (viewportHeight + size) and baseX is randomised in the outer 20%
-  // margin, so a fresh bubble appears at the top.
+  // ----- 6. Bubble lifecycle: spawn, pop, resize ------------------------
+  // Each bubble has a base position (in viewport px). The bubbles are
+  // fixed — they don't drift on scroll and they don't wrap around. The
+  // scroll listener is still installed (so resize can re-clamp
+  // positions) but the per-bubble `factor` is 0, so `y_drawn = baseY`
+  // and no parallax is applied.
   //
   // Click → pop. The pop function animates scale(1.6) + opacity 0,
   // teleports to the next alt position, then fades back. While the pop
@@ -974,7 +1056,7 @@
       size,
       baseX: x,
       baseY: y,
-      factor: 0.15 + Math.random() * 0.5,   // 0.15..0.65 parallax depth
+      factor: 0,   // fixed: no scroll-driven drift (was 0.15..0.65 parallax depth)
       alts: altsData || [],
       altIndex: 0,
       popping: false,
@@ -1077,35 +1159,18 @@
     b.baseY = Math.random() * H;
   }
 
-  // ---- 6b. Scroll → drift + wrap ---------------------------------------
-  // Passive listener — scroll-driven motion is information about
-  // what's on the page below, so it stays on even with reduce-motion.
+  // ---- 6b. Scroll handler (now a no-op) ---------------------------------
+  // Bubbles are fixed in the viewport — they do not drift on scroll and
+  // they do not wrap. The handler remains so the pop animation's exit/
+  // entry transforms (which are set in the pop path, not here) aren't
+  // clobbered if a scroll happens mid-pop, but with factor=0 it does
+  // nothing on its own.
   function onScroll() {
-    const sy = window.scrollY;
-    const vh = window.innerHeight;
     for (let i = 0; i < bubbles.length; i++) {
       const b = bubbles[i];
       if (b.popping) continue;   // don't clobber the pop animation
-      let yDrawn = b.baseY + sy * b.factor;
-      if (yDrawn > vh + b.size) {
-        // Wrap: subtract a full screen so the bubble re-enters from
-        // the top, and randomise x in the outer 20% margin.
-        b.baseY -= vh + b.size;
-        pickRandomMarginX(b);
-        yDrawn = b.baseY + sy * b.factor;
-      }
-      applyTransform(b, b.baseX, yDrawn, 1);
+      applyTransform(b, b.baseX, b.baseY, 1);
     }
-  }
-
-  // Like pickRandomMarginPos but only touches x (used during wrap so
-  // the bubble's y is whatever the wrap math produced).
-  function pickRandomMarginX(b) {
-    const W = window.innerWidth;
-    const side = Math.random() < 0.5 ? "left" : "right";
-    b.baseX = side === "left"
-      ? Math.random() * (W * 0.2)
-      : W * 0.8 + Math.random() * (W * 0.2);
   }
 
   // Re-parse alts + reposition under the new viewport. We keep each
@@ -1126,14 +1191,14 @@
         // else: random-spawn bubble — baseX/baseY are already px,
         // just leave them.
       }
-      onScroll();   // re-apply transforms
+      onScroll();   // re-apply transforms at the new viewport
     }, 200);
   });
 
   // ---- 6c. Initial paint -----------------------------------------------
+  // No scroll listener: bubbles are fixed in the viewport, so scroll
+  // is irrelevant. The transforms are set once in spawn() and again on
+  // resize.
   spawn();
-  onScroll();   // set initial transforms (handles both pre-scrollY=0
-                // and the rare case where the page is restored with a
-                // non-zero scroll position on first paint)
-  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();   // apply initial transforms at the current viewport
 })();
