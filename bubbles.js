@@ -613,13 +613,15 @@
   // bubble the card wins the click because the card's own stacking
   // context (from the :where() lift) is above the bubble field.
   const BUBBLE_CSS = `
-    /* The bubble field sits at z-index 1 (above page content) so the
-       bubbles are reliably clickable in margins. The page's own nav
-       still wins (z-index 50) so the top bar is unaffected. */
+    /* The bubble field sits at z-index 0 — the same level as the page
+       background. Crucial page UI (nav at z-index 50, buttons, cards)
+       paints above the bubbles via the :where() lift at the bottom of
+       this block. Bubbles remain clickable in the margins where
+       nothing covers them. */
     .bubble-field {
       position: fixed;
       inset: 0;
-      z-index: 1;
+      z-index: 0;
       overflow: hidden;
       pointer-events: none;
     }
@@ -1327,8 +1329,8 @@
     //   swayAmp / swayPeriod: tiny lateral wobble on top of vx so the
     //         path isn't a dead-straight line
     const dir = Math.random() < 0.5 ? -1 : 1;
-    const vx = dir * (4 + Math.random() * 10 + (size > 80 ? -2 : 0));  // px/sec
-    const vyBase = -(6 + Math.random() * 8);                           // px/sec (up = neg)
+    const vx = dir * (3 + Math.random() * 7 + (size > 80 ? -1.5 : 0));  // px/sec (gentle horizontal drift)
+    const vyBase = -(2 + Math.random() * 3);                            // px/sec (very gentle vertical drift — bubbles in still air barely rise)
     const bobAmp = 4 + Math.random() * 10 + (size > 80 ? 6 : 0);
     const bobPeriod = 4 + Math.random() * 6;                           // sec
     const bobPhase = Math.random() * Math.PI * 2;
@@ -1552,10 +1554,22 @@
     const parallaxMax = H * 0.5;
     const sideWidth = W * SIDE_FRAC;
 
-    // -- Pass 1: drift, bob, sway, side-clamp -----------------------------
+    // -- Pass 1: drift, bob, sway, continuous-wrap, side-clamp ------------
+    // All wrap-around uses MODULO so the position is always continuous
+    // — no teleports, no jolts. The bubble's `px` and `py` are kept
+    // inside the viewport (or its assigned margin) at all times.
     for (let i = 0; i < bubbles.length; i++) {
       const b = bubbles[i];
       if (b.popping) continue;   // pop owns transform while running
+
+      // Velocity damping — any impulse (collision, scroll jolt, dt
+      // spike) decays smoothly toward zero rather than snapping. With
+      // damp ≈ 0.96/frame at 60fps, the velocity halves every ~17
+      // frames (~280ms), which is fast enough to recover from a jolt
+      // but slow enough to feel like inertia rather than a hard stop.
+      const damp = Math.pow(0.96, dt * 60);
+      b.vx *= damp;
+      b.vyBase *= damp;
 
       // Continuous drift
       b.px += b.vx * dt;
@@ -1571,32 +1585,38 @@
       const swayAngle = (t / b.swayPeriod) * Math.PI * 2 + b.swayPhase;
       const swayOffsetX = Math.sin(swayAngle) * b.swayAmp;
 
-      // Side-restriction: clamp the bubble to its assigned margin and
-      // bounce off the inner edge. Each bubble has a side ("left" or
-      // "right") and a velocity sign — when vx would push it past the
-      // inner edge of its margin, flip vx.
+      // Continuous horizontal wrap within the bubble's assigned margin
+      // (left margin = 0..sideWidth, right margin = W-sideWidth..W).
+      // Using modulo means the bubble's px is always in-range, with no
+      // teleport when it would leave the margin.
       const innerEdge = b.side === "left" ? sideWidth : W - sideWidth;
       if (b.side === "left") {
+        const marginRange = sideWidth;   // px wraps over [0, sideWidth]
+        b.px = ((b.px % marginRange) + marginRange) % marginRange;
+        // Inner-edge bounce: when the bubble reaches the inner edge,
+        // flip its horizontal velocity. The bob/sway offset can briefly
+        // push past, but we let that happen naturally — it reads as
+        // the bubble wobbling against an invisible wall.
         if (b.px > innerEdge - b.size) {
-          // Hit the inner edge — flip and clamp
-          b.vx = Math.abs(b.vx);
           b.px = innerEdge - b.size;
-        }
-        // Outer wrap: when the bubble leaves the LEFT edge entirely,
-        // wrap to the right end of the same margin so the field stays
-        // continuous.
-        if (b.px + b.size < 0) {
-          b.px = innerEdge - b.size;
+          if (b.vx > 0) b.vx = -b.vx * 0.7;   // partial bounce
         }
       } else {
+        // Right margin: wrap over [W-sideWidth, W].
+        const marginStart = W - sideWidth;
+        const marginRange = sideWidth;
+        b.px = marginStart + ((b.px - marginStart) % marginRange + marginRange) % marginRange;
         if (b.px < innerEdge) {
-          b.vx = -Math.abs(b.vx);
           b.px = innerEdge;
-        }
-        if (b.px > W) {
-          b.px = innerEdge;
+          if (b.vx < 0) b.vx = -b.vx * 0.7;
         }
       }
+
+      // Continuous vertical wrap: bubble wraps over [0, H] so it never
+      // leaves the viewport — no teleport when it would otherwise
+      // drift off the top or bottom.
+      const Hrange = H;
+      b.py = ((b.py % Hrange) + Hrange) % Hrange;
 
       // Stash the current bob/sway offsets on the bubble so the
       // collision pass can use them when computing positions.
@@ -1610,15 +1630,19 @@
       b._parallaxY = Math.sin(scrollY * 0.0015 + b.bobPhase) * parallaxMax * b.factor;
     }
 
-    // -- Pass 2: collision avoidance --------------------------------------
-    // For each pair of non-popping bubbles whose bounding circles
-    // overlap, push them apart along the line between their centres
-    // (split 50/50) and dampen the closing component of their
-    // relative velocity. Bubbles on different sides are skipped — they
-    // can never meet because the centre 60% is off-limits to both.
+    // -- Pass 2: collision avoidance (soft spring) -------------------------
+    // For each pair of same-side bubbles whose bounding circles
+    // overlap, apply a SOFT correction: only a fraction of the overlap
+    // is corrected each frame, and the closing velocity is gently
+    // dampened rather than reflected with a hard bounce. This makes
+    // bubbles ease apart over several frames instead of snapping, which
+    // was the source of the visible "jolt" when two large bubbles got
+    // close.
     //
-    // Soft separation with a small "personal space" buffer so bubbles
-    // don't sit exactly touching — they leave a few px gap.
+    // Bubbles on different sides are skipped — they can never meet
+    // because the centre 60% is off-limits to both.
+    const SEPARATION = 0.35;   // fraction of overlap resolved per frame
+    const REST_VN    = 0.0;    // no bounce — just dampen
     for (let i = 0; i < bubbles.length; i++) {
       const a = bubbles[i];
       if (a.popping) continue;
@@ -1628,8 +1652,6 @@
       for (let j = i + 1; j < bubbles.length; j++) {
         const b = bubbles[j];
         if (b.popping) continue;
-        // Same-side only — different sides never collide because the
-        // centre column is forbidden territory.
         if (a.side !== b.side) continue;
         const bcx = b.px + b.size / 2;
         const bcy = b.py + b.size / 2 + b._parallaxY;
@@ -1637,72 +1659,47 @@
         const dx = bcx - acx;
         const dy = bcy - acy;
         const dist = Math.hypot(dx, dy);
-        const minDist = ar + br + 4;   // 4px personal-space buffer
+        const minDist = ar + br + 6;   // 6px personal-space buffer
         if (dist >= minDist || dist === 0) continue;
         // Unit vector from a → b
         const nx = dx / dist;
         const ny = dy / dist;
         const overlap = minDist - dist;
-        // Split the push 50/50. If either bubble is at a side boundary
-        // and the push would shove it past, the OTHER bubble takes the
-        // full push so we respect the side-restriction.
-        const aClamped = a.side === "left"
-          ? (a.px - overlap / 2 < 0)
-          : (a.px + overlap / 2 + a.size > W);
-        const bClamped = a.side === "left"
-          ? (b.px - overlap / 2 < 0)
-          : (b.px + overlap / 2 + b.size > W);
-        let aPush = overlap / 2;
-        let bPush = overlap / 2;
-        if (aClamped && !bClamped) { aPush = 0;        bPush = overlap; }
-        else if (bClamped && !aClamped) { aPush = overlap; bPush = 0;   }
-        else if (aClamped && bClamped) { aPush = 0;        bPush = 0;   }
-        a.px -= nx * aPush;
-        a.py -= ny * aPush;
-        b.px += nx * bPush;
-        b.py += ny * bPush;
+        // Soft spring: correct only a fraction of the overlap per
+        // frame. With 0.35 and a 60Hz loop, full separation takes
+        // ~5 frames (~80ms) — fast enough to feel responsive, slow
+        // enough to never produce a visible snap.
+        const correction = overlap * SEPARATION;
+        a.px -= nx * correction * 0.5;
+        a.py -= ny * correction * 0.5;
+        b.px += nx * correction * 0.5;
+        b.py += ny * correction * 0.5;
         // Dampen the closing component of relative velocity so the
-        // bubbles don't keep ramming each other. We project v onto the
-        // collision normal and zero out the closing component. Closing
-        // = the component that brings them together along the normal.
+        // bubbles don't keep ramming each other. Soft damping (no
+        // bounce) — they slow down and drift apart.
         const rvx = b.vx - a.vx;
         const rvy = b.vyBase - a.vyBase;
         const vn  = rvx * nx + rvy * ny;   // negative = closing
-        if (vn < 0) {
-          // Bounce: split the impulse, with restitution 0.6 (gentle,
-          // bubbles in real fluids don't fully bounce off each other).
-          const j = -(1 + 0.6) * vn / 2;
-          a.vx -= j * nx;
-          a.vyBase -= j * ny;
-          b.vx += j * nx;
-          b.vyBase += j * ny;
+        if (vn < REST_VN) {
+          // Apply only 30% of the closing impulse each frame so the
+          // damping itself is gradual.
+          const dampingFactor = 0.30;
+          const j = -(vn - REST_VN) * dampingFactor;
+          a.vx -= j * nx * 0.5;
+          a.vyBase -= j * ny * 0.5;
+          b.vx += j * nx * 0.5;
+          b.vyBase += j * ny * 0.5;
         }
       }
     }
 
-    // -- Pass 3: write transforms + boundary wrap --------------------------
+    // -- Pass 3: write transforms -----------------------------------------
+    // Pass 1 already wrapped px/py into their valid ranges (continuous
+    // modulo), so Pass 3 just writes the transform with the bob, sway
+    // and parallax offsets folded in.
     for (let i = 0; i < bubbles.length; i++) {
       const b = bubbles[i];
       if (b.popping) continue;
-      // After collisions, re-clamp to the side margin in case the push
-      // pushed a bubble past it. Use the bubble's stored sway/parallax.
-      const innerEdge = b.side === "left" ? sideWidth : W - sideWidth;
-      if (b.side === "left") {
-        if (b.px > innerEdge - b.size) b.px = innerEdge - b.size;
-        if (b.px < 0) b.px = innerEdge - b.size;
-      } else {
-        if (b.px < innerEdge) b.px = innerEdge;
-        if (b.px + b.size > W) b.px = innerEdge;
-      }
-      // Vertical wrap: if the bubble has drifted fully off the top
-      // (vyBase makes bubbles rise), wrap it to the bottom of the
-      // viewport; same for bottom → top. This keeps every bubble in
-      // view forever, regardless of how long the page is.
-      if (b.py + b.size < 0) {
-        b.py = H;
-      } else if (b.py > H) {
-        b.py = -b.size;
-      }
       const finalX = b.px + (b._swayX || 0);
       const finalY = b.py + (b._bobY || 0) + (b._parallaxY || 0);
       b.el.style.transform =
