@@ -473,6 +473,39 @@
     currentUserId = session.user.id;
     currentEmail = session.user.email || '';
 
+    // Defence: complete-profile.html is the OAuth-completion page. Email/
+    // password signups collect year/DOB/parent-email on signup.html
+    // before the user is created, and staff signups (which also use
+    // email/password, with the staff invite doing the email validation)
+    // shouldn't see a student form at all. If a non-SSO user lands here
+    // (e.g. via a stale link, a deep-link from a doc, or a routing bug
+    // upstream), route them to the right surface for their role rather
+    // than showing them a form meant for SSO students.
+    //
+    // The check is the same SSO test auth/confirmed.html uses: an
+    // identity with provider != 'email' means the user actually came
+    // from Google/Microsoft/Apple. Without that, this page is wrong.
+    const identities = Array.isArray(session.user.identities) ? session.user.identities : [];
+    const ssoProvider = identities.find((id) => id && id.provider && id.provider !== 'email');
+    const isSso = !!ssoProvider || !!(session.user.app_metadata && session.user.app_metadata.provider && session.user.app_metadata.provider !== 'email');
+    if (!isSso) {
+      // Pull the role and route to the matching surface. If we can't
+      // read the profile, default to the student dashboard — the auth
+      // hook on that page will redirect to login if the session is
+      // somehow bad.
+      let role = (session.user.app_metadata && session.user.app_metadata.role) || null;
+      try {
+        const { data: p } = await supabaseClient
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (p && p.role) role = p.role;
+      } catch (_) { /* fall through to default */ }
+      routeByRole(role);
+      return;
+    }
+
     // Force a token refresh so the custom access-token hook re-stamps the
     // current role onto the JWT (the freshly-minted OAuth JWT predates any
     // profile change). Mirrors auth/confirmed.html.

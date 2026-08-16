@@ -294,15 +294,33 @@
       // signups always have a DOB (handle_new_user writes it from signUp
       // metadata), so this branch only fires for SSO users — send them to
       // the completion page to collect the student-only fields (year, DOB,
-      // parent consent for under-16s) before they reach a dashboard. Routing
-      // SSO through confirmed.html — already in the Redirect URLs allowlist —
-      // means we don't depend on complete-profile.html being allowlisted.
-      // Guard on role so an organiser / teacher / staff member whose row
-      // happens to lack a DOB isn't wrongly shipped off to the *student*
-      // completion form. OAuth is only offered to students, so in practice
-      // this fires for student-role (or unknown-role) rows with no DOB —
-      // i.e. fresh SSO sign-ins.
-      if ((!profile || profile.dob == null) && (!role || role === 'student')) {
+      // parent consent for under-16s) before they reach a dashboard.
+      //
+      // Two checks together make this safe for the staff-invite case:
+      //   (a) we look at the actual identity providers on the user, not
+      //       just "no DOB yet". An OAuth provider means real SSO; an
+      //       email identity means email/password signup (where dob is
+      //       already set or should be set by the signup form — never
+      //       here).
+      //   (b) we skip the redirect if the URL still has
+      //       ?pending_staff_invite= — that user is in the middle of
+      //       accepting a staff invite and the role is being applied
+      //       this same renderReady() call. Bouncing them to
+      //       complete-profile.html would demote them to student and
+      //       force them to type a year group and DOB they don't have.
+      //
+      // Routing SSO through confirmed.html — already in the Redirect URLs
+      // allowlist — means we don't depend on complete-profile.html being
+      // allowlisted.
+      const urlHasPendingInvite = /[?&]pending_staff_invite=/.test(
+        window.location.search
+      );
+      const identities = Array.isArray(user.identities) ? user.identities : [];
+      const ssoProvider = identities.find((id) => id && id.provider && id.provider !== 'email');
+      const isSso = !!ssoProvider || !!(user.app_metadata && user.app_metadata.provider && user.app_metadata.provider !== 'email');
+      const isStudentRole = !role || role === 'student';
+      const isIncompleteProfile = !profile || profile.dob == null;
+      if (!urlHasPendingInvite && isIncompleteProfile && isStudentRole && isSso) {
         window.location.href = '../complete-profile.html';
         return;
       }
@@ -391,9 +409,21 @@
   // RPC. Best effort — failure doesn't block the rest of the ready
   // state.
   async function markEmailConfirmed() {
+    // If the user is here via a staff invite (?pending_staff_invite=),
+    // their email was already validated by the invite link. Confirm it
+    // server-side via the staff-specific RPC (which only acts when a
+    // matching live invite exists) so Supabase never sends them a
+    // "Confirm your signup" email. For everyone else, fall back to the
+    // general confirm_my_email() (idempotent no-op if already confirmed).
+    const urlHasPendingInvite = /[?&]pending_staff_invite=/.test(
+      window.location.search
+    );
+    const fn = urlHasPendingInvite
+      ? 'confirm_staff_invite_email'
+      : 'confirm_my_email';
     try {
-      const { error } = await supabaseClient.rpc('confirm_my_email');
-      if (error) console.warn('confirm_my_email failed:', error.message);
+      const { error } = await supabaseClient.rpc(fn);
+      if (error) console.warn(fn + ' failed:', error.message);
     } catch (e) { /* best effort */ }
   }
 
