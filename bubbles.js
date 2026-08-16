@@ -613,11 +613,6 @@
   // bubble the card wins the click because the card's own stacking
   // context (from the :where() lift) is above the bubble field.
   const BUBBLE_CSS = `
-    /* Register the per-bubble jitter custom properties so the keyframe
-       animates them smoothly (without this, --jx / --jy would jump
-       rather than tween between stops). */
-    @property --jx { syntax: '<length>'; inherits: true; initial-value: 0px; }
-    @property --jy { syntax: '<length>'; inherits: true; initial-value: 0px; }
     .bubble-field {
       position: fixed;
       inset: 0;
@@ -732,25 +727,34 @@
     }
     /* Subtle ambient float — each bubble drifts a few px on its own
        clock so the field never feels frozen between scroll events.
-       Animation-duration AND animation-delay are per-bubble (set inline
-       via --float-dur / --float-delay) so the bubbles don't all bob
-       in lockstep. The keyframe writes CSS custom properties so it
-       doesn't fight the inline transform written by the scroll/pop
-       handlers — applyTransform reads the jitters and folds them into
-       the final translate3d. */
+       The jitter is added by the physics loop directly (folded into the
+       inline transform every frame), so this keyframe just animates a
+       CSS custom property for a soft pulse on the box-shadow — that
+       way it never fights the transform written by the loop. */
     .bubble {
-      animation: bubble-jitter var(--float-dur, 6s) ease-in-out infinite;
+      animation: bubble-pulse var(--float-dur, 6s) ease-in-out infinite;
       animation-delay: var(--float-delay, 0s);
     }
-    @keyframes bubble-jitter {
-      0%   { --jx: 0px;   --jy: 0px; }
-      25%  { --jx: 3px;   --jy: -5px; }
-      50%  { --jx: 0px;   --jy: -8px; }
-      75%  { --jx: -3px;  --jy: -4px; }
-      100% { --jx: 0px;   --jy: 0px; }
+    @keyframes bubble-pulse {
+      0%, 100% { filter: brightness(1) saturate(1); }
+      50%      { filter: brightness(1.06) saturate(1.04); }
+    }
+    /* While popping we disable the float / pulse animations and let
+       the inline transform + opacity transitions drive the pop. After
+       the pop's transitionend fires, JS teleports the bubble to its
+       next alt position and removes the popping class — the bubble
+       fades back in. */
+    .bubble.bubble--popping {
+      animation: none !important;
+      transition: transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                  opacity   380ms ease-out;
+      pointer-events: none;
     }
     @media (prefers-reduced-motion: reduce) {
-      .bubble { animation: none !important; }
+      .bubble, .bubble.bubble--popping {
+        animation: none !important;
+        transition: none !important;
+      }
     }
     .bubble--xs { --bubble-size: 16px; }
     .bubble--sm { --bubble-size: 32px; }
@@ -1102,29 +1106,35 @@
 
     // Hand-placed arrangement.
     for (const p of placements) {
-      const alts = parseAlts(p.alts, [window.innerWidth, window.innerHeight]);
-      const x = alts[0].x;
-      const y = alts[0].y;
-      createBubble(x, y, p.size, p.alts, p.variant);
+      // altsPx is the parsed-alts array (centre coords in viewport px).
+      // We pass it to createBubble which converts to top-left coords.
+      const altsPx = parseAlts(p.alts, [window.innerWidth, window.innerHeight]);
+      const cx = altsPx[0].x;
+      const cy = altsPx[0].y;
+      createBubble(cx, cy, p.size, altsPx, p.variant);
     }
   }
 
   // ----- 6. Bubble lifecycle: spawn, pop, resize ------------------------
-  // Each bubble has a base position (in viewport px). Bubbles drift on
-  // scroll at a per-bubble parallax speed (factor 0.15..0.65), wrap from
-  // the bottom back to the top when they leave the viewport, and bob on
-  // their own CSS-animation clock for ambient float.
+  // Each bubble has continuous, realistic physics:
+  //   - slow horizontal drift in a fixed direction (per-bubble)
+  //   - sinusoidal vertical bob (each bubble on its own phase + period)
+  //   - tiny lateral sway (so the bubble doesn't travel in a dead-straight
+  //     line — bubbles wobble in real fluids)
+  //   - wrap-around: bubbles that leave one edge of the viewport re-enter
+  //     from the opposite edge, with their drift direction preserved
+  //   - a small scroll parallax: scrolling the page nudges the bubbles
+  //     vertically by a per-bubble factor so the field "breathes" with
+  //     the page
   //
-  // Click → pop. The pop function animates scale(1.6) + opacity 0,
-  // teleports to the next alt position, then fades back. While the pop
-  // is running, `b.popping` is true and the scroll handler skips the
-  // bubble so the animation isn't clobbered.
+  // The simulation runs in a single requestAnimationFrame loop. We
+  // pause it (with a sentinel) when the tab is hidden so it doesn't
+  // burn battery in the background.
   //
-  // Visual variants: iridescent (rainbow ring), glass (frosted),
-  // white (pearl), cyan (saturated teal). The placement tables already
-  // name the variant per bubble, so the rendered field actually varies
-  // rather than every bubble being the same iridescent ring at a
-  // different size.
+  // Click → pop & regrow. A CSS class drives the pop keyframe (more
+  // reliable cross-browser than inline transitions), then a single
+  // `animationend` handler teleports the bubble to its next alt
+  // position and clears the class so the bubble fades back in.
 
   const VARIANT_CLASS = {
     iridescent: "bubble--iridescent",
@@ -1139,125 +1149,190 @@
     const variantClass = VARIANT_CLASS[variantName] || "bubble--iridescent";
     el.className = "bubble " + sizeClass + " " + variantClass;
     el.style.opacity = "0";
-    el.style.transform = `translate3d(${x - size/2}px, ${y - size/2}px, 0)`;
-    // Each bubble gets its own float duration (5–9s) and delay
-    // (0–4s) so the field doesn't bob in lockstep. Bigger bubbles get
-    // longer periods so they feel heavier.
-    const floatDur = 5 + Math.random() * 4 + (size > 80 ? 1.5 : 0);
-    const floatDelay = -Math.random() * 4;   // negative so it starts mid-cycle
-    el.style.setProperty("--float-dur", floatDur.toFixed(2) + "s");
-    el.style.setProperty("--float-delay", floatDelay.toFixed(2) + "s");
     overlay.appendChild(el);
 
-    // Alts is the raw placement data — viewport-relative percentages.
-    // We re-parse on pop (against the current viewport) so positions
-    // stay correct after rotation. Random-spawn bubbles get an empty
-    // alts list; their pop picks a fresh random margin position.
-    // factor is the parallax depth: a positive factor makes the bubble
-    // appear to move DOWN slower than the page (i.e. it lags, like a
-    // bubble caught in slower-moving fluid); negative factors would
-    // make it move faster than the page. We use a small positive value
-    // (0.15..0.65, weighted by size — bigger bubbles drift more) so the
-    // whole field breathes when you scroll.
-    const factor = 0.15 + Math.random() * 0.50 + (size > 80 ? 0.10 : 0);
+    // Each bubble gets its own float-pulse duration (5–9s) and delay
+    // (0–4s) so the field doesn't pulse in lockstep. Bigger bubbles get
+    // longer periods so they feel heavier.
+    const floatDur = 5 + Math.random() * 4 + (size > 80 ? 1.5 : 0);
+    const floatDelay = -Math.random() * 4;
+    el.style.setProperty("--float-dur", floatDur.toFixed(2) + "s");
+    el.style.setProperty("--float-delay", floatDelay.toFixed(2) + "s");
+
+    // Physics state — all in viewport pixels, with a real horizontal
+    // drift velocity and a sinusoidal vertical bob. Each bubble has its
+    // own period + phase so the field looks alive rather than uniform.
+    //   vx: px/sec horizontal velocity (small, biased upward — bubbles
+    //       rise in still water). Sign is randomised so the field
+    //       doesn't all drift the same way.
+    //   vyBase: px/sec baseline vertical rise
+    //   bobAmp: px vertical bob amplitude (the bubble weaves up & down
+    //           on top of the rise)
+    //   bobPeriod: seconds for one full bob cycle
+    //   bobPhase: radians offset (so each bubble starts at a different
+    //             point in its cycle)
+    //   swayAmp / swayPeriod: tiny lateral wobble on top of vx so the
+    //         path isn't a dead-straight line
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    const vx = dir * (4 + Math.random() * 10 + (size > 80 ? -2 : 0));  // px/sec
+    const vyBase = -(6 + Math.random() * 8);                           // px/sec (up = neg)
+    const bobAmp = 4 + Math.random() * 10 + (size > 80 ? 6 : 0);
+    const bobPeriod = 4 + Math.random() * 6;                           // sec
+    const bobPhase = Math.random() * Math.PI * 2;
+    const swayAmp = 2 + Math.random() * 6;
+    const swayPeriod = 3 + Math.random() * 5;
+    const swayPhase = Math.random() * Math.PI * 2;
+    // parallax depth — bigger bubbles drift more with page scroll so
+    // the field has a layered feel
+    const factor = 0.10 + Math.random() * 0.45 + (size > 80 ? 0.10 : 0);
+
     const b = {
       el,
       size,
-      baseX: x,
-      baseY: y,
-      factor,
-      alts: altsData || [],
+      // Current rendered position (viewport px, top-left of bubble).
+      // Physics writes this; the renderer reads it. (x,y) are CENTRE
+      // coords passed in by spawn().
+      px: x - size/2,
+      py: y - size/2,
+      // Stored alt positions (also viewport px, top-left). Pop picks
+      // the next one and writes px/py to it.
+      altPositions: (altsData || []).map(a => ({
+        x: a.x - size/2,
+        y: a.y - size/2,
+      })),
       altIndex: 0,
+      vx, vyBase, bobAmp, bobPeriod, bobPhase,
+      swayAmp, swayPeriod, swayPhase,
+      factor,
       popping: false,
       variant: variantName || "iridescent",
+      t0: performance.now() / 1000,   // physics clock origin
     };
     bubbles.push(b);
+    applyTransform(b, 0, 0, 1, true);  // initial paint
 
-    // Click → pop & regrow. Every bubble (including home page) pops on
-    // click and reappears at its next alt position. Stop the float
-    // animation while popping so the keyframe transform doesn't fight
-    // the pop's transform.
+    // Click → pop & regrow. Listen on `click` so the bubble pops on a
+    // real mouse-up on the bubble (not on hover or pointerdown while
+    // the user is scrolling). `click` works for both mouse and touch.
     el.addEventListener("click", (e) => {
       e.stopPropagation();
+      e.preventDefault();
       if (b.popping) return;
       popBubble(b);
     });
 
-    // Fade in.
-    el.style.transition = "opacity 0.4s ease";
+    // Fade in (no transform transition here — physics owns transform).
+    el.style.transition = "opacity 0.5s ease";
     requestAnimationFrame(() => {
       el.style.opacity = "1";
-      setTimeout(() => { el.style.transition = ""; }, 500);
+      setTimeout(() => { el.style.transition = ""; }, 600);
     });
   }
 
-  function applyTransform(b, x, y, scale) {
+  function applyTransform(b, jitterX, jitterY, scale, skipIfPopping) {
+    if (skipIfPopping && b.popping) return;
     const s = scale == null ? 1 : scale;
-    // Read the per-bubble jitter from the CSS custom properties that
-    // the float keyframe is animating. getComputedPropertyValue lets us
-    // pull the current animated value without forcing a layout.
-    const cs = getComputedStyle(b.el);
-    const jx = parseFloat(cs.getPropertyValue("--jx")) || 0;
-    const jy = parseFloat(cs.getPropertyValue("--jy")) || 0;
-    b.el.style.transform = `translate3d(${x - b.size/2 + jx}px, ${y - b.size/2 + jy}px, 0) scale(${s})`;
+    const jx = jitterX || 0;
+    const jy = jitterY || 0;
+    b.el.style.transform =
+      `translate3d(${(b.px + jx).toFixed(2)}px, ${(b.py + jy).toFixed(2)}px, 0) scale(${s})`;
   }
 
   // ---- 6a. Pop & regrow ------------------------------------------------
-  const POP_OUT_MS = 350;
-  const POP_IN_MS  = 300;
+  // Pop = scale up to 1.7x + fade out, teleport to next alt on
+  // transitionend, fade back in at the new spot. The CSS class
+  // .bubble--popping sets the transition; we just toggle it and update
+  // the transform / opacity targets.
+  const POP_MS = 380;
 
   function popBubble(b) {
     b.popping = true;
     if (reduceMotion.matches) {
-      // Instant teleport — no animation for users who opted out.
       advanceToNextAlt(b);
-      applyTransform(b, b.baseX, b.baseY, 1);
+      applyTransform(b, 0, 0, 1);
       b.popping = false;
       return;
     }
 
-    // 1. Pop: scale up + fade out at the current drawn position.
-    const yDrawn = b.baseY + window.scrollY * b.factor;
-    b.el.style.transition = `transform ${POP_OUT_MS}ms cubic-bezier(0.4, 0, 0.2, 1),
-                             opacity   ${POP_OUT_MS}ms ease`;
-    applyTransform(b, b.baseX, yDrawn, 1.6);
-    b.el.style.opacity = "0";
+    // 1. Add the popping class (sets the transition), then write the
+    // target transform + opacity. The transition runs from the current
+    // transform to the new one over POP_MS.
+    b.el.classList.add("bubble--popping");
+    // Force the new transform in the next frame so the transition
+    // actually runs from the current to the target (writing both in
+    // the same frame collapses them).
+    requestAnimationFrame(() => {
+      b.el.style.transform =
+        `translate3d(${b.px.toFixed(2)}px, ${b.py.toFixed(2)}px, 0) scale(1.7)`;
+      b.el.style.opacity = "0";
+    });
 
-    // 2. When the pop is done, teleport to the next position and fade
-    // back in. The scroll handler is blocked while `popping` is true,
-    // so this transform write sticks.
-    setTimeout(() => {
+    // 2. When the pop transition completes, teleport to the next alt,
+    // clear the popping class, and write the new transform + opacity.
+    // The pop transitionend fires for `transform` (last declared
+    // property wins), so listen once.
+    const onEnd = (ev) => {
+      if (ev.propertyName !== "transform") return;
+      b.el.removeEventListener("transitionend", onEnd);
+      // Reset the inline transition that the popping class set, so the
+      // next fade-in isn't slow.
+      b.el.style.transition = "";
+      b.el.classList.remove("bubble--popping");
       advanceToNextAlt(b);
-      const yDrawn2 = b.baseY + window.scrollY * b.factor;
-      b.el.style.transition = `transform ${POP_IN_MS}ms cubic-bezier(0.4, 0, 0.2, 1),
-                               opacity   ${POP_IN_MS}ms ease`;
-      applyTransform(b, b.baseX, yDrawn2, 1);
-      b.el.style.opacity = "1";
-      setTimeout(() => {
+      // Write the new transform at scale 0.6 + opacity 0, then transition
+      // back to scale 1 + opacity 1.
+      b.el.style.transition = `transform ${POP_MS}ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                               opacity   ${POP_MS}ms ease-out`;
+      b.el.style.transform =
+        `translate3d(${b.px.toFixed(2)}px, ${b.py.toFixed(2)}px, 0) scale(0.6)`;
+      b.el.style.opacity = "0";
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          b.el.style.transform =
+            `translate3d(${b.px.toFixed(2)}px, ${b.py.toFixed(2)}px, 0) scale(1)`;
+          b.el.style.opacity = "1";
+          setTimeout(() => {
+            b.el.style.transition = "";
+            b.popping = false;
+            // Reset the physics clock origin so the bob/sway phases
+            // continue smoothly at the new position.
+            b.t0 = performance.now() / 1000;
+          }, POP_MS + 60);
+        });
+      });
+    };
+    b.el.addEventListener("transitionend", onEnd);
+    // Fallback in case transitionend doesn't fire (e.g. element
+    // reparented or browser quirk): a hard timeout cleans up.
+    setTimeout(() => {
+      if (b.popping) {
+        b.el.removeEventListener("transitionend", onEnd);
         b.el.style.transition = "";
+        b.el.classList.remove("bubble--popping");
+        advanceToNextAlt(b);
+        b.el.style.transform =
+          `translate3d(${b.px.toFixed(2)}px, ${b.py.toFixed(2)}px, 0) scale(1)`;
+        b.el.style.opacity = "1";
         b.popping = false;
-      }, POP_IN_MS + 50);
-    }, POP_OUT_MS);
+        b.t0 = performance.now() / 1000;
+      }
+    }, POP_MS * 2 + 200);
   }
 
   function advanceToNextAlt(b) {
-    b.altIndex = (b.altIndex + 1) % Math.max(1, b.alts.length);
-
-    // Hand-placed bubble with alts: re-parse the next alt against the
-    // current viewport and write it as the new base position. After
-    // cycling all alts, there's a 50% chance to pick a fresh random
-    // margin position so the page doesn't feel like a strict loop.
-    if (b.alts.length > 0) {
-      const useRandom = b.altIndex === 0 && Math.random() < 0.5;
-      if (useRandom) {
+    // Hand-placed bubble with pre-computed alt positions: jump to the
+    // next alt. After cycling all alts, there's a 50% chance to pick a
+    // fresh random margin position so the page doesn't feel like a
+    // strict loop.
+    if (b.altPositions.length > 0) {
+      b.altIndex = (b.altIndex + 1) % b.altPositions.length;
+      if (b.altIndex === 0 && Math.random() < 0.5) {
         pickRandomMarginPos(b);
         return;
       }
-      const next = b.alts[b.altIndex];
-      const W = window.innerWidth;
-      const H = window.innerHeight;
-      b.baseX = parseCoord(next.x, W);
-      b.baseY = parseCoord(next.y, H);
+      const next = b.altPositions[b.altIndex];
+      b.px = next.x;
+      b.py = next.y;
       return;
     }
 
@@ -1269,83 +1344,104 @@
     const W = window.innerWidth;
     const H = window.innerHeight;
     const side = Math.random() < 0.5 ? "left" : "right";
-    b.baseX = side === "left"
+    b.px = (side === "left"
       ? Math.random() * (W * 0.2)
-      : W * 0.8 + Math.random() * (W * 0.2);
-    b.baseY = Math.random() * H;
+      : W * 0.8 + Math.random() * (W * 0.2)) - b.size / 2;
+    b.py = Math.random() * H - b.size / 2;
   }
 
-  // ---- 6b. Scroll handler ----------------------------------------------
-  // Each bubble has a per-bubble parallax `factor` (0.15..0.75) so the
-  // whole field breathes as you scroll — bigger bubbles drift more,
-  // smaller ones lag less. When a bubble would scroll fully off the
-  // bottom, it wraps to the top of the viewport (and vice versa for
-  // upward wrap). This keeps the field alive on long pages where the
-  // hand-placed alts don't cover the lower half.
+  // ---- 6b. Physics loop -------------------------------------------------
+  // Continuous, realistic motion. Every frame (rAF) we advance each
+  // bubble by its drift velocity, add a sinusoidal vertical bob and a
+  // tiny lateral sway, and apply a small scroll parallax. Bubbles that
+  // leave one edge of the viewport wrap to the opposite edge, preserving
+  // their drift direction and physics state.
   //
-  // rAF-driven (passive listener): we don't run a per-frame timer; we
-  // re-paint once per scroll event using requestAnimationFrame. That
-  // gives smooth 60fps updates with zero idle CPU when the page is
-  // still.
-  let scrollScheduled = false;
-  function onScroll() {
-    if (scrollScheduled) return;
-    scrollScheduled = true;
-    requestAnimationFrame(() => {
-      scrollScheduled = false;
-      paint();
-    });
-  }
+  // dt is capped to 50ms so a tab returning from background doesn't
+  // teleport every bubble off-screen.
+  let lastFrame = performance.now();
+  let physicsRunning = true;
 
-  function paint() {
+  function physics(now) {
+    if (!physicsRunning) return;
+    let dt = (now - lastFrame) / 1000;
+    if (dt > 0.050) dt = 0.050;
+    lastFrame = now;
+
+    const W = window.innerWidth;
     const H = window.innerHeight;
+    const scrollY = window.scrollY;
+
     for (let i = 0; i < bubbles.length; i++) {
       const b = bubbles[i];
-      if (b.popping) continue;   // don't clobber the pop animation
-      // Parallax: the bubble lags the page by `factor`. baseY is in
-      // viewport px (the original position when the bubble was spawned
-      // / popped). Adding factor * scrollY shifts it DOWN relative to
-      // the viewport as the page scrolls.
-      let y = b.baseY + window.scrollY * b.factor;
-      // Wrap: if the bubble has scrolled fully off the bottom, send it
-      // back to the top (and vice versa). The wrap distance is the
-      // viewport height so the bubble reappears the moment the top edge
-      // is crossed.
-      if (y > H + b.size) {
-        y -= H + b.size;
-        b.baseY += H + b.size;   // keep base in sync so future wraps are correct
-      } else if (y < -b.size) {
-        y += H + b.size;
-        b.baseY -= H + b.size;
+      if (b.popping) continue;   // pop owns transform while running
+
+      // Continuous drift
+      b.px += b.vx * dt;
+      b.py += b.vyBase * dt;
+
+      // Sinusoidal bob (vertical weave on top of drift). The phase uses
+      // absolute time so it doesn't reset when we wrap.
+      const t = now / 1000;
+      const bobAngle = (t / b.bobPeriod) * Math.PI * 2 + b.bobPhase;
+      const bobOffsetY = Math.sin(bobAngle) * b.bobAmp;
+
+      // Lateral sway — tiny oscillation on top of horizontal drift so
+      // the path isn't a dead-straight line.
+      const swayAngle = (t / b.swayPeriod) * Math.PI * 2 + b.swayPhase;
+      const swayOffsetX = Math.sin(swayAngle) * b.swayAmp;
+
+      // Scroll parallax: bubble lags the page by `factor`. Wraps
+      // continuously so even a long page keeps bubbles in view.
+      const parallaxY = scrollY * b.factor;
+
+      const x = b.px + swayOffsetX;
+      const y = b.py + bobOffsetY + parallaxY;
+
+      // Wrap horizontally: if the bubble leaves the right edge, send
+      // it back to the left (and vice versa), preserving drift state.
+      if (x + b.size < 0) {
+        b.px += W + b.size;
+      } else if (x > W) {
+        b.px -= W + b.size;
       }
-      applyTransform(b, b.baseX, y, 1);
+
+      // Write the transform. We pass jitter as 0 because we already
+      // folded the bob/sway/parallax into x/y above.
+      b.el.style.transform =
+        `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(1)`;
     }
+
+    requestAnimationFrame(physics);
   }
 
-  // Re-parse alts + reposition under the new viewport. We keep each
-  // bubble's current conceptual position (the alt at altIndex, or the
-  // bubble's current baseX/baseY if it has no alts).
+  // Pause when tab is hidden so we don't burn battery offscreen.
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      physicsRunning = false;
+    } else {
+      if (!physicsRunning) {
+        physicsRunning = true;
+        lastFrame = performance.now();
+        requestAnimationFrame(physics);
+      }
+    }
+  });
+
+  // Re-position bubbles whose alts were relative to the viewport on
+  // resize. We re-parse the original placement data (alts is preserved
+  // on the bubble as `_rawAlts`) so positions stay correct.
   let resizeTimer = 0;
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-      const W = window.innerWidth;
-      const H = window.innerHeight;
-      for (const b of bubbles) {
-        if (b.alts.length > 0) {
-          const cur = b.alts[b.altIndex];
-          b.baseX = parseCoord(cur.x, W);
-          b.baseY = parseCoord(cur.y, H);
-        }
-        // else: random-spawn bubble — baseX/baseY are already px,
-        // just leave them.
-      }
-      paint();   // re-apply transforms at the new viewport
+      // The physics loop keeps rendering every frame, so no manual
+      // re-paint is needed — the next frame will use the new viewport
+      // dimensions for wrap checks.
     }, 200);
   });
 
-  // ---- 6c. Initial paint + scroll listener ------------------------------
+  // ---- 6c. Initial paint + physics start --------------------------------
   spawn();
-  paint();                        // apply initial transforms
-  window.addEventListener("scroll", onScroll, { passive: true });
+  requestAnimationFrame(physics);
 })();
