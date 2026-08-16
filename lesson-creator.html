@@ -2337,19 +2337,33 @@
 
     // Role check: read from the JWT first (the normal path — the
     // auth hook stamps app_metadata.role on every token), and fall
-    // back to the public.current_role() RPC if the claim is missing.
-    // The RPC fallback exists because the auth hook has been observed
-    // not to fire for some users on this Supabase project (Jul 2026);
-    // reading from the DB is one extra round-trip but bulletproof.
+    // Role resolution order (was buggy before): previously we read
+    // app_metadata.role from the JWT, then fell back to the
+    // current_role() RPC. The JWT route is fast but the auth hook has
+    // been observed not to fire for some users on this Supabase
+    // project (Jul 2026) — those users had a stale/wrong role and
+    // saw the generic "Staff access only" wall instead of the
+    // reviewer-specific tools.
     //
-    // We still load the profile for the user's display name.
-    let role = state.user.app_metadata?.role;
+    // The fix: load the profile row FIRST and treat profiles.role as
+    // the source of truth. The JWT/RPC values are still used as a
+    // tie-breaker if profiles.role is null, but profiles wins.
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id, full_name, role')
+      .eq('id', state.user.id)
+      .maybeSingle();
+
+    state.profile = profile;
+
+    let role = (profile && profile.role) || state.user.app_metadata?.role || null;
     if (!role) {
       try {
         const r = await supabaseClient.rpc('current_role');
         if (!r.error && r.data) role = r.data;
       } catch (_) { /* RPC not installed — fall through */ }
     }
+
     // Editors: staff_author + admin. Reviewers deliberately don't land
     // here — they review on lesson.html and use the comment RPCs, not
     // the catalogue editor. Gate them with a friendly redirect rather
@@ -2374,14 +2388,6 @@
       return;
     }
     state.role = role;
-
-    const { data: profile } = await supabaseClient
-      .from('profiles')
-      .select('id, full_name, role')
-      .eq('id', state.user.id)
-      .maybeSingle();
-
-    state.profile = profile;
     $('userName').textContent = (profile && profile.full_name) || state.user.email;
     $('signOutBtn').hidden = false;
     // Rank pill in the top nav.

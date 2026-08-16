@@ -425,6 +425,23 @@ begin
                               'invited_email', v.email);
   end if;
 
+  -- Upsert the profile row BEFORE the role update. handle_new_user()
+  -- (the on_auth_user_created trigger) is wrapped in `exception when
+  -- others` and silently swallows every profile-write failure, which
+  -- can leave a freshly-signed-up staff invitee with NO profile row
+  -- at all. Without this guard, the role UPDATE below would affect
+  -- zero rows and the user would silently land on the student
+  -- dashboard with whatever default the next page load applied.
+  --
+  -- Insert path explicitly carries the invited staff role, so a
+  -- stuck-missing-row invitee becomes staff on the spot rather than
+  -- staying 'student'. Conflict path leaves the existing role alone
+  -- (we never want this RPC to demote a current staff member — that
+  -- has to go through the explicit revoke path in admin.html).
+  insert into public.profiles (id, role)
+    values (v_caller, v.role)
+    on conflict (id) do nothing;
+
   update public.profiles
      set role = v.role,
          updated_at = now()

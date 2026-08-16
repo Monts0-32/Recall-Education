@@ -313,7 +313,12 @@
 </head>
 <body>
 
-<nav class="top">
+<!-- The top nav is hidden by default and only revealed once the role
+     check passes — otherwise a non-staff visitor sees a "STAFF" badge
+     floating above an access-denied message, which reads as misalignment.
+     Both the nav and the gate live behind #staffRoot, hidden until boot()
+     decides to show one or the other. -->
+<nav class="top" id="staffNav" hidden>
   <div class="row">
     <a class="brand" href="index.html">
       <img class="brand-mark" src="logo.png" alt="Recall" /> Recall
@@ -327,10 +332,11 @@
   </div>
 </nav>
 
-<!-- The gate is only visible briefly on first load while the role
-     check runs (auth.getUser, then JWT/RPC fallback). If the user
-     isn't signed in or isn't staff, we replace the dashboard with a
-     centred message instead. -->
+<!-- The gate is shown briefly on first load while the role check runs
+     (auth.getUser, then JWT/RPC fallback). For non-staff sign-ins we
+     bounce them to the student dashboard immediately so they never
+     see the staff chrome at all. For signed-out users we leave the
+     gate message with a sign-in CTA. -->
 <div id="gate" class="gate" hidden>
   <h1 id="gateTitle">Verifying access…</h1>
   <p id="gateMsg">One moment.</p>
@@ -509,6 +515,7 @@
 
   function showGate(title, msg) {
     $('dashLayout').hidden = true;
+    $('staffNav').hidden = true;
     $('gate').hidden = false;
     $('gateTitle').textContent = title;
     $('gateMsg').textContent = msg;
@@ -538,6 +545,7 @@
 
   function showDashboard(user, role, profile) {
     $('gate').hidden = true;
+    $('staffNav').hidden = false;
     $('dashLayout').hidden = false;
 
     // Top nav
@@ -736,6 +744,25 @@
     }
     const allowed = ['staff_author', 'staff_reviewer', 'admin'];
     if (!role || !allowed.includes(role)) {
+      // Two cases hit this branch:
+      //   - signed-in student → send them straight to their own dashboard
+      //     so they never see the STAFF chrome at all (and aren't
+      //     tempted to interact with admin/staff tools they don't
+      //     have permission for).
+      //   - signed-in user whose role hasn't been stamped yet (rare —
+      //     JWT claim not yet populated). Show the gate briefly so
+      //     they can sign back in / contact an admin. The most common
+      //     real-world cause here is a stale token; sending them to
+      //     /dashboard.html would just bounce them back via the
+      //     student-side gate.
+      //
+      // We tell them apart by role value: if there's no role at all
+      // they're a missing-role user; otherwise they're a confirmed
+      // student / teacher / organiser who landed here by mistake.
+      if (role) {
+        window.location.replace('dashboard.html');
+        return;
+      }
       showGate(
         'Staff access only',
         'Your account is signed in, but it does not have staff permissions. Ask an admin to invite you from the admin console.'

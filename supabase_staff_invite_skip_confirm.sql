@@ -109,3 +109,74 @@ end;
 $$;
 
 grant execute on function public.confirm_staff_invite_email() to authenticated;
+
+-- ============================================================================
+-- TRIGGER: confirm staff-invited users at auth.users INSERT time
+-- ============================================================================
+--
+-- Why this trigger exists (separate from the RPC above):
+--   `supabase.auth.signUp()` queues Supabase's built-in "Confirm your
+--   signup" email the moment the row is created with
+--   email_confirmed_at IS NULL. The branded Resend email from
+--   send-signup-email is sent a beat later by the client. Without
+--   intervention the user gets BOTH emails.
+--
+--   The confirm_staff_invite_email() RPC above runs only after the
+--   user has a session (via the post-confirm page), which is too late
+--   — Supabase's worker has already queued the email.
+--
+--   This trigger runs synchronously inside the on_auth_user_created
+--   trigger (which is itself inside the same transaction as the
+--   auth.users INSERT). By stamping email_confirmed_at BEFORE
+--   Supabase's email task reads the row, the auto-email is skipped.
+--   Order is:
+--     1. client calls supabase.auth.signUp() — row created
+--     2. on_auth_user_created fires → handle_new_user runs first
+--     3. THEN this trigger fires and sets email_confirmed_at = now()
+--     4. Supabase's email task reads the row, sees
+--        email_confirmed_at IS NOT NULL, skips the auto-email
+--     5. send-signup-email (called client-side right after signUp)
+--        fires the Resend branded email — the only one the user sees.
+--
+--   Safety: only applies when a matching, unaccepted, unexpired
+--   staff_invites row exists for the new user's email. Otherwise the
+--   trigger is a no-op and the standard Supabase confirmation flow
+--   continues as normal.
+-- ============================================================================
+
+create or replace function public._confirm_staff_invite_on_signup()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  v_invite_count int;
+begin
+  if new.email_confirmed_at is not null then
+    -- Already confirmed (some other path got there first). Don't
+    -- double-stamp or fight with it.
+    return new;
+  end if;
+
+  select count(*) into v_invite_count
+    from public.staff_invites
+   where lower(email) = lower(new.email)
+     and status = 'pending'
+     and accepted_at is null
+     and (expires_at is null or expires_at > now());
+
+  if v_invite_count = 0 then
+    return new;
+  end if;
+
+  new.email_confirmed_at := now();
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists confirm_staff_invite_on_signup on auth.users;
+create trigger confirm_staff_invite_on_signup
+  before insert on auth.users
+  for each row execute function public._confirm_staff_invite_on_signup();
