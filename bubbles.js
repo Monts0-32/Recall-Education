@@ -1473,7 +1473,9 @@
     // Bounded parallax: wrap the offset to [-H/2, H/2] so even a 5000px
     // scroll doesn't push the bubble far off the viewport.
     const parallaxMax = H * 0.5;
+    const sideWidth = W * SIDE_FRAC;
 
+    // -- Pass 1: drift, bob, sway, side-clamp -----------------------------
     for (let i = 0; i < bubbles.length; i++) {
       const b = bubbles[i];
       if (b.popping) continue;   // pop owns transform while running
@@ -1492,45 +1494,128 @@
       const swayAngle = (t / b.swayPeriod) * Math.PI * 2 + b.swayPhase;
       const swayOffsetX = Math.sin(swayAngle) * b.swayAmp;
 
-      // Bounded scroll parallax.
-      let parallaxY = scrollY * b.factor;
-      parallaxY = ((parallaxY + parallaxMax) % (parallaxMax * 2)) - parallaxMax;
-
-      const x = b.px + swayOffsetX;
-      const y = b.py + bobOffsetY + parallaxY;
-
       // Side-restriction: clamp the bubble to its assigned margin and
       // bounce off the inner edge. Each bubble has a side ("left" or
       // "right") and a velocity sign — when vx would push it past the
       // inner edge of its margin, flip vx.
-      const sideWidth = W * SIDE_FRAC;
       const innerEdge = b.side === "left" ? sideWidth : W - sideWidth;
       if (b.side === "left") {
-        if (x > innerEdge - b.size / 2) {
+        if (b.px > innerEdge - b.size) {
           // Hit the inner edge — flip and clamp
           b.vx = Math.abs(b.vx);
-          b.px = innerEdge - b.size / 2 - swayOffsetX;
+          b.px = innerEdge - b.size;
         }
         // Outer wrap: when the bubble leaves the LEFT edge entirely,
         // wrap to the right end of the same margin so the field stays
         // continuous.
-        if (x + b.size / 2 < 0) {
-          b.px = innerEdge - b.size / 2;
+        if (b.px + b.size < 0) {
+          b.px = innerEdge - b.size;
         }
       } else {
-        if (x < innerEdge + b.size / 2) {
+        if (b.px < innerEdge) {
           b.vx = -Math.abs(b.vx);
-          b.px = innerEdge + b.size / 2 - swayOffsetX;
+          b.px = innerEdge;
         }
-        if (x - b.size / 2 > W) {
-          b.px = innerEdge + b.size / 2;
+        if (b.px > W) {
+          b.px = innerEdge;
         }
       }
 
-      // Write the transform — re-read px (which may have been clamped).
-      const finalX = b.px + swayOffsetX;
+      // Stash the current bob/sway offsets on the bubble so the
+      // collision pass can use them when computing positions.
+      b._swayX = swayOffsetX;
+      b._bobY  = bobOffsetY;
+      b._parallaxY = ((scrollY * b.factor + parallaxMax) % (parallaxMax * 2)) - parallaxMax;
+    }
+
+    // -- Pass 2: collision avoidance --------------------------------------
+    // For each pair of non-popping bubbles whose bounding circles
+    // overlap, push them apart along the line between their centres
+    // (split 50/50) and dampen the closing component of their
+    // relative velocity. Bubbles on different sides are skipped — they
+    // can never meet because the centre 60% is off-limits to both.
+    //
+    // Soft separation with a small "personal space" buffer so bubbles
+    // don't sit exactly touching — they leave a few px gap.
+    for (let i = 0; i < bubbles.length; i++) {
+      const a = bubbles[i];
+      if (a.popping) continue;
+      const acx = a.px + a.size / 2;
+      const acy = a.py + a.size / 2 + a._parallaxY;
+      const ar  = a.size / 2;
+      for (let j = i + 1; j < bubbles.length; j++) {
+        const b = bubbles[j];
+        if (b.popping) continue;
+        // Same-side only — different sides never collide because the
+        // centre column is forbidden territory.
+        if (a.side !== b.side) continue;
+        const bcx = b.px + b.size / 2;
+        const bcy = b.py + b.size / 2 + b._parallaxY;
+        const br  = b.size / 2;
+        const dx = bcx - acx;
+        const dy = bcy - acy;
+        const dist = Math.hypot(dx, dy);
+        const minDist = ar + br + 4;   // 4px personal-space buffer
+        if (dist >= minDist || dist === 0) continue;
+        // Unit vector from a → b
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const overlap = minDist - dist;
+        // Split the push 50/50. If either bubble is at a side boundary
+        // and the push would shove it past, the OTHER bubble takes the
+        // full push so we respect the side-restriction.
+        const aClamped = a.side === "left"
+          ? (a.px - overlap / 2 < 0)
+          : (a.px + overlap / 2 + a.size > W);
+        const bClamped = a.side === "left"
+          ? (b.px - overlap / 2 < 0)
+          : (b.px + overlap / 2 + b.size > W);
+        let aPush = overlap / 2;
+        let bPush = overlap / 2;
+        if (aClamped && !bClamped) { aPush = 0;        bPush = overlap; }
+        else if (bClamped && !aClamped) { aPush = overlap; bPush = 0;   }
+        else if (aClamped && bClamped) { aPush = 0;        bPush = 0;   }
+        a.px -= nx * aPush;
+        a.py -= ny * aPush;
+        b.px += nx * bPush;
+        b.py += ny * bPush;
+        // Dampen the closing component of relative velocity so the
+        // bubbles don't keep ramming each other. We project v onto the
+        // collision normal and zero out the closing component. Closing
+        // = the component that brings them together along the normal.
+        const rvx = b.vx - a.vx;
+        const rvy = b.vyBase - a.vyBase;
+        const vn  = rvx * nx + rvy * ny;   // negative = closing
+        if (vn < 0) {
+          // Bounce: split the impulse, with restitution 0.6 (gentle,
+          // bubbles in real fluids don't fully bounce off each other).
+          const j = -(1 + 0.6) * vn / 2;
+          a.vx -= j * nx;
+          a.vyBase -= j * ny;
+          b.vx += j * nx;
+          b.vyBase += j * ny;
+        }
+      }
+    }
+
+    // -- Pass 3: write transforms -----------------------------------------
+    for (let i = 0; i < bubbles.length; i++) {
+      const b = bubbles[i];
+      if (b.popping) continue;
+      // After collisions, re-clamp to the side margin in case the push
+      // pushed a bubble past it. Use the bubble's stored sway/parallax.
+      const innerEdge = b.side === "left" ? sideWidth : W - sideWidth;
+      if (b.side === "left") {
+        if (b.px > innerEdge - b.size) b.px = innerEdge - b.size;
+        if (b.px < 0) b.px = innerEdge - b.size;
+      } else {
+        if (b.px < innerEdge) b.px = innerEdge;
+        if (b.px + b.size > W) b.px = innerEdge;
+      }
+      const finalX = b.px + (b._swayX || 0);
+      const finalY = b.py + (b._bobY || 0) + (b._parallaxY || 0);
       b.el.style.transform =
-        `translate3d(${finalX.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(1)`;
+        `translate3d(${finalX.toFixed(2)}px, ${finalY.toFixed(2)}px, 0) scale(1)`;
     }
 
     requestAnimationFrame(physics);
