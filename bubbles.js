@@ -789,19 +789,46 @@
        the pop's transitionend fires, JS teleports the bubble to its
        next alt position and removes the popping class — the bubble
        fades back in. */
-    .bubble.bubble--popping {
-      animation: none !important;
-      transition: transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                  opacity   380ms ease-out;
+    /* -- Pop phases ---------------------------------------------------------
+       A real bubble pop has three visible stages:
+         1. WOBBLE (0–110ms)  — surface tension makes the bubble shake
+                               briefly before it bursts. CSS keyframe
+                               on the body so the iridescent rim shakes
+                               with it.
+         2. BURST (110–420ms) — body scales up 1×→1.7× and fades. The
+                               rim ring expands outward 1×→3.2× and
+                               fades. A bright centre flash pulses at
+                               the moment of burst.
+         3. FRAGMENTS (180–580ms) — three small ring "fragments" scatter
+                                  outward at different angles from the
+                                  burst point, fading as they go. These
+                                  are box-shadows on the ::after so we
+                                  don't need extra DOM nodes.
+       JS toggles the classes: .bubble--wobbling is added on click,
+       removed after ~110ms, then .bubble--popping is added.
+    */
+    .bubble.bubble--wobbling {
+      animation: bubble-wobble 110ms ease-in-out !important;
       pointer-events: none;
     }
-    /* Burst ring — a thin expanding outline-only circle that scales
-       1×→3.2× and fades during the pop. Implemented as ::after so it
-       sits on top of the body without fighting its transform. The
-       animation runs from the moment the popping class is applied;
-       JS removes the popping class on transitionend, which also stops
-       the burst ring (animation-fill-mode: forwards keeps it at the
-       final state until then). */
+    @keyframes bubble-wobble {
+      0%   { transform: var(--bubble-tx, translate3d(0,0,0)) scale(1)      rotate(0deg);   filter: brightness(1); }
+      20%  { transform: var(--bubble-tx, translate3d(0,0,0)) scale(1.06)   rotate(2deg);   filter: brightness(1.15); }
+      45%  { transform: var(--bubble-tx, translate3d(0,0,0)) scale(0.97)   rotate(-3deg);  filter: brightness(1.05); }
+      70%  { transform: var(--bubble-tx, translate3d(0,0,0)) scale(1.04)   rotate(1.5deg); filter: brightness(1.10); }
+      100% { transform: var(--bubble-tx, translate3d(0,0,0)) scale(1)      rotate(0deg);   filter: brightness(1); }
+    }
+    .bubble.bubble--popping {
+      animation: none !important;
+      transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+                  opacity   320ms ease-out;
+      pointer-events: none;
+    }
+    /* Burst ring + fragments + flash. The ::after is a thin border +
+       three stacked box-shadow rings that act as fragments scattering
+       at 0°, 120°, 240° around the burst. The body element itself
+       provides the centre flash (a brief bright inset that pulses at
+       the start of the burst). */
     .bubble::after {
       content: "";
       position: absolute;
@@ -810,31 +837,73 @@
       pointer-events: none;
       border: 1.5px solid rgba(255,255,255,0.55);
       box-shadow:
+        /* Primary ring — expands 1×→3.2× */
         0 0 8px rgba(255,200,220,0.35),
         inset 0 0 8px rgba(255,255,255,0.20);
       opacity: 0;
       transform: scale(1);
       transform-origin: center;
     }
+    /* Centre flash — a brief bright inset on the body when popping. The
+       body's own box-shadow can't be animated cleanly (it would lose
+       the bubble's resting shadow), so we use a brief CSS filter pulse
+       and let the burst ring handle the visual. */
     .bubble.bubble--popping::after {
-      animation: bubble-burst 460ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+      animation: bubble-burst 460ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards,
+                 bubble-flash 220ms ease-out forwards,
+                 bubble-fragments 580ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
     }
     @keyframes bubble-burst {
-      0%   { opacity: 0;    transform: scale(1);    border-color: rgba(255,255,255,0.65); }
-      18%  { opacity: 0.85; transform: scale(1.18); border-color: rgba(255,255,255,0.55); }
-      55%  { opacity: 0.35; transform: scale(2.10); border-color: rgba(200,220,255,0.30); }
-      100% { opacity: 0;    transform: scale(3.20); border-color: rgba(200,220,255,0.00); }
+      0%   { opacity: 0;    transform: scale(1);    border-color: rgba(255,255,255,0.75); }
+      14%  { opacity: 0.95; transform: scale(1.22); border-color: rgba(255,255,255,0.65); }
+      50%  { opacity: 0.45; transform: scale(2.10); border-color: rgba(210,225,255,0.35); }
+      100% { opacity: 0;    transform: scale(3.30); border-color: rgba(210,225,255,0.00); }
     }
-    /* Tiny "droplets" — three small filled circles that shoot outward
-       at angles during the pop. Implemented as ::before on the
-       popping state for simplicity (we already use ::before for the
-       iridescent ring on iridescent bubbles, so for popping droplets
-       we add an inner wrapper only when popping — handled in JS by
-       temporarily inserting nodes. To avoid that complexity, we use
-       a single ::after ring + the body scale-up, which already reads
-       as a clean pop. */
+    @keyframes bubble-flash {
+      0%   { box-shadow: 0 0 0 rgba(255,255,255,0.0); }
+      18%  { box-shadow:
+               0 0 24px rgba(255,255,255,0.85),
+               0 0 48px rgba(255,210,225,0.55),
+               inset 0 0 18px rgba(255,255,255,0.55); }
+      100% { box-shadow:
+               0 0 8px rgba(255,200,220,0.35),
+               inset 0 0 8px rgba(255,255,255,0.20); }
+    }
+    /* Three fragments — small filled discs that shoot outward at 0°,
+       120°, 240° from the burst point. We implement them as additional
+       ::after siblings by stacking on a SECOND pseudo... but ::after
+       is already used. So instead we use three inset shadows on the
+       ::after that animate outward at different angles. The inset
+       radius is animated to "shoot" outward. */
+    @keyframes bubble-fragments {
+      0%   {
+        box-shadow:
+          0 0 8px rgba(255,200,220,0.35),
+          inset 0 0 0 rgba(255,255,255,0),
+          inset 0 0 0 rgba(255,255,255,0),
+          inset 0 0 0 rgba(255,255,255,0);
+      }
+      30%  {
+        box-shadow:
+          0 0 8px rgba(255,200,220,0.35),
+          /* fragment 1 — top, 12px out */
+          inset  0  12px 0 rgba(255,180,210,0.85),
+          /* fragment 2 — bottom-right, 12px out */
+          inset  10px -10px 0 rgba(190,180,255,0.85),
+          /* fragment 3 — bottom-left, 12px out */
+          inset -10px -10px 0 rgba(180,230,220,0.85);
+      }
+      100% {
+        box-shadow:
+          0 0 8px rgba(255,200,220,0.35),
+          inset  0  60px 0 rgba(255,180,210,0),
+          inset  50px -50px 0 rgba(190,180,255,0),
+          inset -50px -50px 0 rgba(180,230,220,0);
+      }
+    }
     @media (prefers-reduced-motion: reduce) {
-      .bubble, .bubble.bubble--popping, .bubble.bubble--popping::after {
+      .bubble, .bubble.bubble--wobbling, .bubble.bubble--popping,
+      .bubble.bubble--popping::after {
         animation: none !important;
         transition: none !important;
       }
@@ -1333,6 +1402,10 @@
   // the transform / opacity targets.
   const POP_MS = 380;
 
+  // The wobble pre-phase runs this long — the surface tension makes the
+  // bubble shake briefly before bursting.
+  const WOBBLE_MS = 110;
+
   function popBubble(b) {
     b.popping = true;
     if (reduceMotion.matches) {
@@ -1342,61 +1415,65 @@
       return;
     }
 
-    // 1. Add the popping class (sets the transition), then write the
-    // target transform + opacity. The transition runs from the current
-    // transform to the new one over POP_MS.
-    b.el.classList.add("bubble--popping");
-    // Force the new transform in the next frame so the transition
-    // actually runs from the current to the target (writing both in
-    // the same frame collapses them).
-    requestAnimationFrame(() => {
-      b.el.style.transform =
-        `translate3d(${b.px.toFixed(2)}px, ${b.py.toFixed(2)}px, 0) scale(1.7)`;
-      b.el.style.opacity = "0";
-    });
+    // 1. WOBBLE — add the wobbling class. The CSS keyframe shakes the
+    // bubble (scale + rotate jitter) for WOBBLE_MS. The physics loop
+    // is paused (b.popping=true) so it doesn't fight the keyframe.
+    b.el.classList.add("bubble--wobbling");
+    // Seed the keyframe with the current physics position so the
+    // wobble starts where the bubble is, not at the origin. CSS
+    // variables carry through the keyframe stops.
+    b.el.style.setProperty("--bubble-tx",
+      `translate3d(${b.px.toFixed(2)}px, ${b.py.toFixed(2)}px, 0)`);
 
-    // 2. When the pop transition completes, teleport to the next alt,
-    // clear the popping class, and write the new transform + opacity.
-    // The pop transitionend fires for `transform` (last declared
-    // property wins), so listen once.
-    const onEnd = (ev) => {
-      if (ev.propertyName !== "transform") return;
-      b.el.removeEventListener("transitionend", onEnd);
-      // Reset the inline transition that the popping class set, so the
-      // next fade-in isn't slow.
-      b.el.style.transition = "";
-      b.el.classList.remove("bubble--popping");
-      advanceToNextAlt(b);
-      // Write the new transform at scale 0.6 + opacity 0, then transition
-      // back to scale 1 + opacity 1.
-      b.el.style.transition = `transform ${POP_MS}ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                               opacity   ${POP_MS}ms ease-out`;
-      b.el.style.transform =
-        `translate3d(${b.px.toFixed(2)}px, ${b.py.toFixed(2)}px, 0) scale(0.6)`;
-      b.el.style.opacity = "0";
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          b.el.style.transform =
-            `translate3d(${b.px.toFixed(2)}px, ${b.py.toFixed(2)}px, 0) scale(1)`;
-          b.el.style.opacity = "1";
-          setTimeout(() => {
-            b.el.style.transition = "";
-            b.popping = false;
-            // Reset the physics clock origin so the bob/sway phases
-            // continue smoothly at the new position.
-            b.t0 = performance.now() / 1000;
-          }, POP_MS + 60);
-        });
-      });
-    };
-    b.el.addEventListener("transitionend", onEnd);
-    // Fallback in case transitionend doesn't fire (e.g. element
-    // reparented or browser quirk): a hard timeout cleans up.
     setTimeout(() => {
-      if (b.popping) {
+      if (!b.popping) return;   // cancelled / already finished
+      // 2. BURST — swap wobbling for popping. The popping class sets
+      // the transition, and we write scale(1.7) + opacity 0 in the
+      // next frame so the transition runs from current to target.
+      b.el.classList.remove("bubble--wobbling");
+      b.el.style.removeProperty("--bubble-tx");
+      b.el.classList.add("bubble--popping");
+      requestAnimationFrame(() => {
+        b.el.style.transform =
+          `translate3d(${b.px.toFixed(2)}px, ${b.py.toFixed(2)}px, 0) scale(1.7)`;
+        b.el.style.opacity = "0";
+      });
+
+      // 3. On burst transitionend, teleport to the next alt and regrow.
+      const onEnd = (ev) => {
+        if (ev.propertyName !== "transform") return;
         b.el.removeEventListener("transitionend", onEnd);
         b.el.style.transition = "";
         b.el.classList.remove("bubble--popping");
+        advanceToNextAlt(b);
+        b.el.style.transition = `transform ${POP_MS}ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                                 opacity   ${POP_MS}ms ease-out`;
+        b.el.style.transform =
+          `translate3d(${b.px.toFixed(2)}px, ${b.py.toFixed(2)}px, 0) scale(0.6)`;
+        b.el.style.opacity = "0";
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            b.el.style.transform =
+              `translate3d(${b.px.toFixed(2)}px, ${b.py.toFixed(2)}px, 0) scale(1)`;
+            b.el.style.opacity = "1";
+            setTimeout(() => {
+              b.el.style.transition = "";
+              b.popping = false;
+              b.t0 = performance.now() / 1000;
+            }, POP_MS + 60);
+          });
+        });
+      };
+      b.el.addEventListener("transitionend", onEnd);
+    }, WOBBLE_MS);
+
+    // Hard-timeout fallback in case transitionend never fires.
+    setTimeout(() => {
+      if (b.popping) {
+        b.el.classList.remove("bubble--wobbling");
+        b.el.classList.remove("bubble--popping");
+        b.el.style.transition = "";
+        b.el.style.removeProperty("--bubble-tx");
         advanceToNextAlt(b);
         b.el.style.transform =
           `translate3d(${b.px.toFixed(2)}px, ${b.py.toFixed(2)}px, 0) scale(1)`;
@@ -1404,7 +1481,7 @@
         b.popping = false;
         b.t0 = performance.now() / 1000;
       }
-    }, POP_MS * 2 + 200);
+    }, WOBBLE_MS + POP_MS * 2 + 400);
   }
 
   function advanceToNextAlt(b) {
@@ -1525,7 +1602,12 @@
       // collision pass can use them when computing positions.
       b._swayX = swayOffsetX;
       b._bobY  = bobOffsetY;
-      b._parallaxY = ((scrollY * b.factor + parallaxMax) % (parallaxMax * 2)) - parallaxMax;
+      // Bounded, CONTINUOUS scroll parallax — sin() so the offset
+      // never jumps (modulo wraps would teleport on every wrap). The
+      // frequency is low so fast scrolling only nudges the bubble
+      // gently, and the amplitude stays within [-parallaxMax, +parallaxMax]
+      // so a 5000px scroll can't push it off-screen.
+      b._parallaxY = Math.sin(scrollY * 0.0015 + b.bobPhase) * parallaxMax * b.factor;
     }
 
     // -- Pass 2: collision avoidance --------------------------------------
@@ -1598,7 +1680,7 @@
       }
     }
 
-    // -- Pass 3: write transforms -----------------------------------------
+    // -- Pass 3: write transforms + boundary wrap --------------------------
     for (let i = 0; i < bubbles.length; i++) {
       const b = bubbles[i];
       if (b.popping) continue;
@@ -1611,6 +1693,15 @@
       } else {
         if (b.px < innerEdge) b.px = innerEdge;
         if (b.px + b.size > W) b.px = innerEdge;
+      }
+      // Vertical wrap: if the bubble has drifted fully off the top
+      // (vyBase makes bubbles rise), wrap it to the bottom of the
+      // viewport; same for bottom → top. This keeps every bubble in
+      // view forever, regardless of how long the page is.
+      if (b.py + b.size < 0) {
+        b.py = H;
+      } else if (b.py > H) {
+        b.py = -b.size;
       }
       const finalX = b.px + (b._swayX || 0);
       const finalY = b.py + (b._bobY || 0) + (b._parallaxY || 0);
