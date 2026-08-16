@@ -633,101 +633,142 @@
       cursor: pointer;
       will-change: transform, opacity;
       transform: translate3d(0, 0, 0);
-      /* Base sphere: a soft translucent highlight at the top-left
-         (the glassy specular) over a near-transparent body, with a
-         very faint outer halo. Each variant overrides this for its
-         own ring/colour. */
+      /* Real soap-bubble anatomy, stacked bottom-up:
+           1. a deep cool inner shadow on the lower-right (the bubble's
+              "underside" curve catches less light)
+           2. a soft outer drop shadow on the page
+           3. a 1px inner rim that darkens at the edge (thin-film
+              thickness)
+           4. on top: a sharp pinpoint specular at the top-left, a
+              softer secondary highlight just below it, and a thin
+              bright crescent at the bottom (the surface reflection).
+         The body fill is mostly transparent so the dark page shows
+         through, like a real glass sphere. */
       background:
-        radial-gradient(circle at 32% 28%,
+        /* Sharp specular hotspot (top-left, small + bright) */
+        radial-gradient(circle at 28% 24%,
+          rgba(255,255,255,0.95) 0%,
+          rgba(255,255,255,0.55) 3%,
+          rgba(255,255,255,0.18) 9%,
+          rgba(255,255,255,0.00) 16%),
+        /* Softer secondary highlight just under the hotspot */
+        radial-gradient(circle at 30% 38%,
+          rgba(255,255,255,0.35) 0%,
+          rgba(255,255,255,0.10) 14%,
+          rgba(255,255,255,0.00) 28%),
+        /* Bottom crescent — the surface reflection */
+        radial-gradient(ellipse 50% 22% at 50% 92%,
           rgba(255,255,255,0.40) 0%,
-          rgba(255,255,255,0.16) 18%,
-          rgba(255,255,255,0.04) 42%,
-          transparent 72%);
+          rgba(255,255,255,0.15) 35%,
+          rgba(255,255,255,0.00) 70%),
+        /* Cool blue-grey tint in the body (the bubble's interior
+           colour when light passes through the film) */
+        radial-gradient(circle at 50% 50%,
+          rgba(190,210,230,0.06) 0%,
+          rgba(190,210,230,0.00) 70%);
       box-shadow:
-        inset 0 0 24px rgba(255,255,255,0.18),
-        inset -10px -16px 36px rgba(180,210,235,0.12),
-        0 0 32px rgba(255,255,255,0.06),
-        0 10px 30px rgba(0,0,0,0.22);
-      border: 1px solid rgba(255,255,255,0.14);
+        /* Inner top-left brightening (the lit side) */
+        inset  8px 10px 24px rgba(255,255,255,0.18),
+        /* Inner lower-right darkening (the shadowed underside) */
+        inset -10px -14px 30px rgba(80,110,140,0.32),
+        /* Thin dark rim from the film's edge */
+        inset  0  0   2px rgba(255,255,255,0.06),
+        /* Outer drop shadow on the page */
+                0  12px 30px rgba(0,0,0,0.28),
+                0  0   44px rgba(180,210,235,0.10);
+      border: 1px solid rgba(255,255,255,0.10);
     }
-    /* Iridescent — soap-bubble ring. Soft pastel hues (rose, lavender,
-       mint, peach, sky) so it reads like the reference photo rather
-       than a saturated teal disc. The mask leaves the centre mostly
-       transparent so the bubble body shows the dark page through it. */
+    /* Iridescent — soap-bubble ring (the photo reference). Soft
+       pastel hues concentrated at the RIM only (60–90% of the radius)
+       via a tight mask, so the centre stays translucent. This is what
+       makes a real bubble read: a thin coloured band, not a coloured
+       disc. */
     .bubble--iridescent {
       background:
-        radial-gradient(circle at 50% 50%, transparent 40%, transparent 100%),
-        conic-gradient(from 200deg,
-          rgba(255,180,210,0.00)  0deg,
-          rgba(255,180,210,0.55)  35deg,
-          rgba(195,160,255,0.60)  75deg,
-          rgba(255,255,255,0.55) 115deg,
-          rgba(180,240,210,0.55) 155deg,
-          rgba(255,235,170,0.55) 200deg,
-          rgba(255,180,210,0.55) 245deg,
-          rgba(180,220,255,0.60) 290deg,
-          rgba(195,160,255,0.55) 330deg,
-          rgba(255,180,210,0.00) 360deg);
-      -webkit-mask: radial-gradient(circle, transparent 0%, transparent 38%, #000 62%, #000 100%);
-              mask: radial-gradient(circle, transparent 0%, transparent 38%, #000 62%, #000 100%);
+        /* Base sphere layers inherited from .bubble stay because we
+           don't redeclare background here — only the iridescent rim
+           is added via the ::before pseudo (see below). */
+        radial-gradient(circle at 28% 24%,
+          rgba(255,255,255,0.95) 0%,
+          rgba(255,255,255,0.55) 3%,
+          rgba(255,255,255,0.18) 9%,
+          rgba(255,255,255,0.00) 16%),
+        radial-gradient(circle at 30% 38%,
+          rgba(255,255,255,0.35) 0%,
+          rgba(255,255,255,0.10) 14%,
+          rgba(255,255,255,0.00) 28%),
+        radial-gradient(ellipse 50% 22% at 50% 92%,
+          rgba(255,255,255,0.40) 0%,
+          rgba(255,255,255,0.15) 35%,
+          rgba(255,255,255,0.00) 70%);
+      /* The iridescent rim is rendered by .bubble--iridescent::before
+         (below) so the ring can sit on top of the body without
+         fighting its highlights. */
       box-shadow:
-        inset 0 0 22px rgba(255,255,255,0.22),
-        0 0 60px rgba(255,200,220,0.18),
-        0 10px 30px rgba(0,0,0,0.20);
-      border: 1px solid rgba(255,255,255,0.16);
+        inset  8px 10px 24px rgba(255,255,255,0.18),
+        inset -10px -14px 30px rgba(80,110,140,0.32),
+        inset  0  0   2px rgba(255,255,255,0.06),
+                0  12px 30px rgba(0,0,0,0.28),
+                0  0   50px rgba(255,200,220,0.16);
+      border: 1px solid rgba(255,255,255,0.10);
     }
-    /* Glass — frosted clear sphere with a faint pastel halo. Sits well
-       as the small/medium accent bubbles. */
+    /* The iridescent ring — a child element stacked above the body.
+       It's a full-size conic-gradient masked to a thin band at the
+       rim (62–92% radius). The conic stops are pastels matching the
+       reference photo: pink → lavender → mint → pale yellow → sky →
+       pink. */
+    .bubble--iridescent::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      pointer-events: none;
+      background: conic-gradient(from 200deg,
+        rgba(255,170,210,0.00)  0deg,
+        rgba(255,170,210,0.65)  35deg,
+        rgba(195,160,255,0.70)  75deg,
+        rgba(255,255,255,0.60) 115deg,
+        rgba(170,235,210,0.65) 155deg,
+        rgba(255,230,170,0.65) 200deg,
+        rgba(255,170,210,0.65) 245deg,
+        rgba(170,220,255,0.70) 290deg,
+        rgba(195,160,255,0.65) 330deg,
+        rgba(255,170,210,0.00) 360deg);
+      -webkit-mask: radial-gradient(circle,
+        transparent 0%,   transparent 62%,
+        #000 72%,         #000 90%,
+        transparent 100%);
+              mask: radial-gradient(circle,
+        transparent 0%,   transparent 62%,
+        #000 72%,         #000 90%,
+        transparent 100%);
+    }
+    /* Glass — frosted clear sphere, no chromatic ring. */
     .bubble--glass {
-      background:
-        radial-gradient(circle at 32% 28%,
-          rgba(255,255,255,0.42) 0%,
-          rgba(255,255,255,0.18) 22%,
-          rgba(255,255,255,0.04) 45%,
-          transparent 75%),
-        radial-gradient(circle at 72% 76%,
-          rgba(180,220,235,0.18) 0%,
-          transparent 60%);
       box-shadow:
-        inset 5px 8px 18px rgba(255,255,255,0.20),
-        inset -6px -10px 22px rgba(180,210,235,0.16),
-        0 0 28px rgba(255,255,255,0.08),
-        0 10px 26px rgba(0,0,0,0.18);
-      border: 1px solid rgba(255,255,255,0.18);
+        inset  6px  8px 20px rgba(255,255,255,0.22),
+        inset -8px -10px 22px rgba(120,150,180,0.22),
+        inset  0  0   2px rgba(255,255,255,0.06),
+                0  10px 26px rgba(0,0,0,0.24),
+                0  0   30px rgba(180,210,235,0.12);
     }
     /* White — clean pearl highlight, no chromatic ring. */
     .bubble--white {
-      background:
-        radial-gradient(circle at 30% 26%,
-          rgba(255,255,255,0.55) 0%,
-          rgba(255,255,255,0.22) 22%,
-          rgba(255,255,255,0.06) 45%,
-          transparent 75%),
-        radial-gradient(circle at 70% 75%,
-          rgba(255,255,255,0.08) 0%,
-          transparent 70%);
       box-shadow:
-        inset 6px 10px 22px rgba(255,255,255,0.30),
-        0 0 28px rgba(255,255,255,0.10),
-        0 10px 28px rgba(0,0,0,0.22);
-      border: 1px solid rgba(255,255,255,0.20);
+        inset  8px 10px 22px rgba(255,255,255,0.32),
+        inset -8px -10px 22px rgba(150,170,190,0.20),
+        inset  0  0   2px rgba(255,255,255,0.08),
+                0  10px 28px rgba(0,0,0,0.24),
+                0  0   28px rgba(255,255,255,0.12);
     }
-    /* Cyan — translucent sphere with a faint teal tint, still mostly
-       glassy rather than saturated. */
+    /* Cyan — translucent sphere with a faint teal tint. */
     .bubble--cyan {
-      background:
-        radial-gradient(circle at 30% 26%,
-          rgba(255,255,255,0.40) 0%,
-          rgba(180,235,240,0.30) 22%,
-          rgba(124,224,232,0.16) 50%,
-          rgba(86,212,221,0.08) 80%,
-          transparent 100%);
       box-shadow:
-        inset 6px 10px 22px rgba(180,235,240,0.24),
-        inset -8px -10px 26px rgba(86,212,221,0.18),
-        0 0 36px rgba(124,224,232,0.18),
-        0 10px 26px rgba(0,0,0,0.22);
-      border: 1px solid rgba(180,235,240,0.24);
+        inset  8px 10px 22px rgba(180,235,240,0.26),
+        inset -8px -10px 26px rgba(63,140,160,0.30),
+        inset  0  0   2px rgba(180,235,240,0.10),
+                0  10px 26px rgba(0,0,0,0.24),
+                0  0   36px rgba(124,224,232,0.18);
     }
     /* Subtle ambient float — each bubble drifts a few px on its own
        clock so the field never feels frozen between scroll events.
@@ -754,11 +795,50 @@
                   opacity   380ms ease-out;
       pointer-events: none;
     }
+    /* Burst ring — a thin expanding outline-only circle that scales
+       1×→3.2× and fades during the pop. Implemented as ::after so it
+       sits on top of the body without fighting its transform. The
+       animation runs from the moment the popping class is applied;
+       JS removes the popping class on transitionend, which also stops
+       the burst ring (animation-fill-mode: forwards keeps it at the
+       final state until then). */
+    .bubble::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      pointer-events: none;
+      border: 1.5px solid rgba(255,255,255,0.55);
+      box-shadow:
+        0 0 8px rgba(255,200,220,0.35),
+        inset 0 0 8px rgba(255,255,255,0.20);
+      opacity: 0;
+      transform: scale(1);
+      transform-origin: center;
+    }
+    .bubble.bubble--popping::after {
+      animation: bubble-burst 460ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+    }
+    @keyframes bubble-burst {
+      0%   { opacity: 0;    transform: scale(1);    border-color: rgba(255,255,255,0.65); }
+      18%  { opacity: 0.85; transform: scale(1.18); border-color: rgba(255,255,255,0.55); }
+      55%  { opacity: 0.35; transform: scale(2.10); border-color: rgba(200,220,255,0.30); }
+      100% { opacity: 0;    transform: scale(3.20); border-color: rgba(200,220,255,0.00); }
+    }
+    /* Tiny "droplets" — three small filled circles that shoot outward
+       at angles during the pop. Implemented as ::before on the
+       popping state for simplicity (we already use ::before for the
+       iridescent ring on iridescent bubbles, so for popping droplets
+       we add an inner wrapper only when popping — handled in JS by
+       temporarily inserting nodes. To avoid that complexity, we use
+       a single ::after ring + the body scale-up, which already reads
+       as a clean pop. */
     @media (prefers-reduced-motion: reduce) {
-      .bubble, .bubble.bubble--popping {
+      .bubble, .bubble.bubble--popping, .bubble.bubble--popping::after {
         animation: none !important;
         transition: none !important;
       }
+      .bubble.bubble--popping::after { opacity: 0; }
     }
     .bubble--xs { --bubble-size: 16px; }
     .bubble--sm { --bubble-size: 32px; }
