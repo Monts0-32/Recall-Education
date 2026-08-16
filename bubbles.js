@@ -613,10 +613,13 @@
   // bubble the card wins the click because the card's own stacking
   // context (from the :where() lift) is above the bubble field.
   const BUBBLE_CSS = `
+    /* The bubble field sits at z-index 1 (above page content) so the
+       bubbles are reliably clickable in margins. The page's own nav
+       still wins (z-index 50) so the top bar is unaffected. */
     .bubble-field {
       position: fixed;
       inset: 0;
-      z-index: 0;
+      z-index: 1;
       overflow: hidden;
       pointer-events: none;
     }
@@ -626,104 +629,105 @@
       width:  var(--bubble-size, 80px);
       height: var(--bubble-size, 80px);
       border-radius: 50%;
-      /* pointer-events: auto so the bubble catches clicks; the field
-         below stays pointer-events: none so empty space passes through.
-         Where a card covers a bubble, the card's own stacking context
-         (from the :where() lift) wins, so the click still hits the UI. */
       pointer-events: auto;
       cursor: pointer;
       will-change: transform, opacity;
       transform: translate3d(0, 0, 0);
-      /* No base transition — the scroll handler needs transforms
-         to be instant (otherwise the bubble would lag 350ms behind
-         every scroll). The pop function sets its own transition
-         inline for the duration of the pop animation. */
+      /* Base sphere: a soft translucent highlight at the top-left
+         (the glassy specular) over a near-transparent body, with a
+         very faint outer halo. Each variant overrides this for its
+         own ring/colour. */
       background:
-        radial-gradient(circle at 30% 28%,
-          rgba(255,255,255,0.22) 0%,
-          rgba(255,255,255,0.08) 18%,
-          rgba(255,255,255,0.02) 40%,
-          transparent 70%);
+        radial-gradient(circle at 32% 28%,
+          rgba(255,255,255,0.40) 0%,
+          rgba(255,255,255,0.16) 18%,
+          rgba(255,255,255,0.04) 42%,
+          transparent 72%);
       box-shadow:
-        inset 6px 10px 24px rgba(255,255,255,0.10),
-        inset -8px -10px 30px rgba(86,212,221,0.06),
-        0 0 32px rgba(86,212,221,0.10),
-        0 8px 28px rgba(0,0,0,0.20);
-      border: 1px solid rgba(255,255,255,0.06);
+        inset 0 0 24px rgba(255,255,255,0.18),
+        inset -10px -16px 36px rgba(180,210,235,0.12),
+        0 0 32px rgba(255,255,255,0.06),
+        0 10px 30px rgba(0,0,0,0.22);
+      border: 1px solid rgba(255,255,255,0.14);
     }
+    /* Iridescent — soap-bubble ring. Soft pastel hues (rose, lavender,
+       mint, peach, sky) so it reads like the reference photo rather
+       than a saturated teal disc. The mask leaves the centre mostly
+       transparent so the bubble body shows the dark page through it. */
     .bubble--iridescent {
       background:
-        radial-gradient(circle at 50% 50%, transparent 38%, transparent 100%),
+        radial-gradient(circle at 50% 50%, transparent 40%, transparent 100%),
         conic-gradient(from 200deg,
-          rgba(86,212,221,0.0)  0deg,
-          rgba(86,212,221,0.5)  40deg,
-          rgba(124,224,232,0.6) 80deg,
-          rgba(255,255,255,0.4) 130deg,
-          rgba(216,177,74,0.5)  180deg,
-          rgba(242,107,98,0.5)  230deg,
-          rgba(179,136,248,0.5) 280deg,
-          rgba(86,212,221,0.5)  340deg,
-          rgba(86,212,221,0.0)  360deg);
-      -webkit-mask: radial-gradient(circle, transparent 0%, transparent 50%, #000 70%, #000 100%);
-              mask: radial-gradient(circle, transparent 0%, transparent 50%, #000 70%, #000 100%);
+          rgba(255,180,210,0.00)  0deg,
+          rgba(255,180,210,0.55)  35deg,
+          rgba(195,160,255,0.60)  75deg,
+          rgba(255,255,255,0.55) 115deg,
+          rgba(180,240,210,0.55) 155deg,
+          rgba(255,235,170,0.55) 200deg,
+          rgba(255,180,210,0.55) 245deg,
+          rgba(180,220,255,0.60) 290deg,
+          rgba(195,160,255,0.55) 330deg,
+          rgba(255,180,210,0.00) 360deg);
+      -webkit-mask: radial-gradient(circle, transparent 0%, transparent 38%, #000 62%, #000 100%);
+              mask: radial-gradient(circle, transparent 0%, transparent 38%, #000 62%, #000 100%);
       box-shadow:
-        inset 6px 10px 24px rgba(255,255,255,0.12),
-        0 0 50px rgba(86,212,221,0.20),
-        0 8px 28px rgba(0,0,0,0.20);
-      border: 1px solid rgba(255,255,255,0.06);
+        inset 0 0 22px rgba(255,255,255,0.22),
+        0 0 60px rgba(255,200,220,0.18),
+        0 10px 30px rgba(0,0,0,0.20);
+      border: 1px solid rgba(255,255,255,0.16);
     }
-    /* Glass — frosted-glass feel: a faint white core with a thicker
-       outer teal glow. Sits well as the small/medium accent bubbles. */
+    /* Glass — frosted clear sphere with a faint pastel halo. Sits well
+       as the small/medium accent bubbles. */
     .bubble--glass {
       background:
-        radial-gradient(circle at 32% 30%,
-          rgba(255,255,255,0.30) 0%,
-          rgba(255,255,255,0.12) 22%,
+        radial-gradient(circle at 32% 28%,
+          rgba(255,255,255,0.42) 0%,
+          rgba(255,255,255,0.18) 22%,
           rgba(255,255,255,0.04) 45%,
           transparent 75%),
-        radial-gradient(circle at 70% 75%,
-          rgba(86,212,221,0.10) 0%,
+        radial-gradient(circle at 72% 76%,
+          rgba(180,220,235,0.18) 0%,
           transparent 60%);
       box-shadow:
-        inset 5px 8px 18px rgba(255,255,255,0.18),
-        inset -6px -10px 22px rgba(86,212,221,0.10),
-        0 0 28px rgba(86,212,221,0.10),
-        0 8px 24px rgba(0,0,0,0.18);
-      border: 1px solid rgba(255,255,255,0.10);
+        inset 5px 8px 18px rgba(255,255,255,0.20),
+        inset -6px -10px 22px rgba(180,210,235,0.16),
+        0 0 28px rgba(255,255,255,0.08),
+        0 10px 26px rgba(0,0,0,0.18);
+      border: 1px solid rgba(255,255,255,0.18);
     }
-    /* White — pure translucent sphere, no chromatic ring. Reads as a
-       clean pearl; pairs with the iridescent ones for rhythm. */
+    /* White — clean pearl highlight, no chromatic ring. */
     .bubble--white {
       background:
         radial-gradient(circle at 30% 26%,
-          rgba(255,255,255,0.42) 0%,
-          rgba(255,255,255,0.18) 22%,
-          rgba(255,255,255,0.05) 45%,
+          rgba(255,255,255,0.55) 0%,
+          rgba(255,255,255,0.22) 22%,
+          rgba(255,255,255,0.06) 45%,
           transparent 75%),
         radial-gradient(circle at 70% 75%,
-          rgba(255,255,255,0.05) 0%,
+          rgba(255,255,255,0.08) 0%,
           transparent 70%);
       box-shadow:
-        inset 6px 10px 22px rgba(255,255,255,0.22),
-        0 0 28px rgba(255,255,255,0.08),
-        0 8px 26px rgba(0,0,0,0.22);
-      border: 1px solid rgba(255,255,255,0.14);
+        inset 6px 10px 22px rgba(255,255,255,0.30),
+        0 0 28px rgba(255,255,255,0.10),
+        0 10px 28px rgba(0,0,0,0.22);
+      border: 1px solid rgba(255,255,255,0.20);
     }
-    /* Cyan — solid teal-tinted sphere, more saturated than glass. */
+    /* Cyan — translucent sphere with a faint teal tint, still mostly
+       glassy rather than saturated. */
     .bubble--cyan {
       background:
         radial-gradient(circle at 30% 26%,
-          rgba(255,255,255,0.30) 0%,
-          rgba(124,224,232,0.28) 22%,
-          rgba(86,212,221,0.18) 50%,
-          rgba(63,184,196,0.10) 80%,
+          rgba(255,255,255,0.40) 0%,
+          rgba(180,235,240,0.30) 22%,
+          rgba(124,224,232,0.16) 50%,
+          rgba(86,212,221,0.08) 80%,
           transparent 100%);
       box-shadow:
-        inset 6px 10px 22px rgba(124,224,232,0.22),
+        inset 6px 10px 22px rgba(180,235,240,0.24),
         inset -8px -10px 26px rgba(86,212,221,0.18),
-        0 0 36px rgba(86,212,221,0.22),
-        0 8px 26px rgba(0,0,0,0.22);
-      border: 1px solid rgba(124,224,232,0.20);
+        0 0 36px rgba(124,224,232,0.18),
+        0 10px 26px rgba(0,0,0,0.22);
+      border: 1px solid rgba(180,235,240,0.24);
     }
     /* Subtle ambient float — each bubble drifts a few px on its own
        clock so the field never feels frozen between scroll events.
@@ -1194,6 +1198,10 @@
       // coords passed in by spawn().
       px: x - size/2,
       py: y - size/2,
+      // Which side of the page this bubble belongs to. The physics
+      // loop clamps drift to the assigned margin (≤ 20% from the edge)
+      // and never lets the bubble enter the centre 60% of the page.
+      side: (x < window.innerWidth / 2) ? "left" : "right",
       // Stored alt positions (also viewport px, top-left). Pop picks
       // the next one and writes px/py to it.
       altPositions: (altsData || []).map(a => ({
@@ -1344,6 +1352,7 @@
     const W = window.innerWidth;
     const H = window.innerHeight;
     const side = Math.random() < 0.5 ? "left" : "right";
+    b.side = side;
     b.px = (side === "left"
       ? Math.random() * (W * 0.2)
       : W * 0.8 + Math.random() * (W * 0.2)) - b.size / 2;
@@ -1353,12 +1362,22 @@
   // ---- 6b. Physics loop -------------------------------------------------
   // Continuous, realistic motion. Every frame (rAF) we advance each
   // bubble by its drift velocity, add a sinusoidal vertical bob and a
-  // tiny lateral sway, and apply a small scroll parallax. Bubbles that
-  // leave one edge of the viewport wrap to the opposite edge, preserving
-  // their drift direction and physics state.
+  // tiny lateral sway, and apply a small scroll parallax.
+  //
+  // Constraints:
+  //   - Bubbles only ever live in the left margin (x ≤ 20% of width)
+  //     or the right margin (x ≥ 80% of width). When a bubble would
+  //     drift toward the centre, it bounces off the inner edge and
+  //     reverses direction; when it reaches the outer edge, it wraps
+  //     to the opposite end of the same margin. Bubbles never enter
+  //     the centre 60% column where the page content lives.
+  //   - Scroll parallax is bounded — the parallax offset is computed
+  //     mod the viewport height so long pages never accumulate an
+  //     unbounded offset that pushes bubbles off-screen.
   //
   // dt is capped to 50ms so a tab returning from background doesn't
   // teleport every bubble off-screen.
+  const SIDE_FRAC = 0.20;   // left margin = 0..20%, right = 80..100%
   let lastFrame = performance.now();
   let physicsRunning = true;
 
@@ -1371,6 +1390,9 @@
     const W = window.innerWidth;
     const H = window.innerHeight;
     const scrollY = window.scrollY;
+    // Bounded parallax: wrap the offset to [-H/2, H/2] so even a 5000px
+    // scroll doesn't push the bubble far off the viewport.
+    const parallaxMax = H * 0.5;
 
     for (let i = 0; i < bubbles.length; i++) {
       const b = bubbles[i];
@@ -1380,8 +1402,7 @@
       b.px += b.vx * dt;
       b.py += b.vyBase * dt;
 
-      // Sinusoidal bob (vertical weave on top of drift). The phase uses
-      // absolute time so it doesn't reset when we wrap.
+      // Sinusoidal bob (vertical weave on top of drift).
       const t = now / 1000;
       const bobAngle = (t / b.bobPeriod) * Math.PI * 2 + b.bobPhase;
       const bobOffsetY = Math.sin(bobAngle) * b.bobAmp;
@@ -1391,25 +1412,45 @@
       const swayAngle = (t / b.swayPeriod) * Math.PI * 2 + b.swayPhase;
       const swayOffsetX = Math.sin(swayAngle) * b.swayAmp;
 
-      // Scroll parallax: bubble lags the page by `factor`. Wraps
-      // continuously so even a long page keeps bubbles in view.
-      const parallaxY = scrollY * b.factor;
+      // Bounded scroll parallax.
+      let parallaxY = scrollY * b.factor;
+      parallaxY = ((parallaxY + parallaxMax) % (parallaxMax * 2)) - parallaxMax;
 
       const x = b.px + swayOffsetX;
       const y = b.py + bobOffsetY + parallaxY;
 
-      // Wrap horizontally: if the bubble leaves the right edge, send
-      // it back to the left (and vice versa), preserving drift state.
-      if (x + b.size < 0) {
-        b.px += W + b.size;
-      } else if (x > W) {
-        b.px -= W + b.size;
+      // Side-restriction: clamp the bubble to its assigned margin and
+      // bounce off the inner edge. Each bubble has a side ("left" or
+      // "right") and a velocity sign — when vx would push it past the
+      // inner edge of its margin, flip vx.
+      const sideWidth = W * SIDE_FRAC;
+      const innerEdge = b.side === "left" ? sideWidth : W - sideWidth;
+      if (b.side === "left") {
+        if (x > innerEdge - b.size / 2) {
+          // Hit the inner edge — flip and clamp
+          b.vx = Math.abs(b.vx);
+          b.px = innerEdge - b.size / 2 - swayOffsetX;
+        }
+        // Outer wrap: when the bubble leaves the LEFT edge entirely,
+        // wrap to the right end of the same margin so the field stays
+        // continuous.
+        if (x + b.size / 2 < 0) {
+          b.px = innerEdge - b.size / 2;
+        }
+      } else {
+        if (x < innerEdge + b.size / 2) {
+          b.vx = -Math.abs(b.vx);
+          b.px = innerEdge + b.size / 2 - swayOffsetX;
+        }
+        if (x - b.size / 2 > W) {
+          b.px = innerEdge + b.size / 2;
+        }
       }
 
-      // Write the transform. We pass jitter as 0 because we already
-      // folded the bob/sway/parallax into x/y above.
+      // Write the transform — re-read px (which may have been clamped).
+      const finalX = b.px + swayOffsetX;
       b.el.style.transform =
-        `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(1)`;
+        `translate3d(${finalX.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(1)`;
     }
 
     requestAnimationFrame(physics);
@@ -1426,19 +1467,6 @@
         requestAnimationFrame(physics);
       }
     }
-  });
-
-  // Re-position bubbles whose alts were relative to the viewport on
-  // resize. We re-parse the original placement data (alts is preserved
-  // on the bubble as `_rawAlts`) so positions stay correct.
-  let resizeTimer = 0;
-  window.addEventListener("resize", () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-      // The physics loop keeps rendering every frame, so no manual
-      // re-paint is needed — the next frame will use the new viewport
-      // dimensions for wrap checks.
-    }, 200);
   });
 
   // ---- 6c. Initial paint + physics start --------------------------------
