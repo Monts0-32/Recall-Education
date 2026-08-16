@@ -646,8 +646,8 @@
           transparent 70%);
       box-shadow:
         inset 6px 10px 24px rgba(255,255,255,0.10),
-        inset -8px -10px 30px rgba(86,212,221,0.06),
-        0 0 32px rgba(86,212,221,0.10),
+        inset -8px -10px 30px rgba(232,181,98,0.06),
+        0 0 32px rgba(232,181,98,0.10),
         0 8px 28px rgba(0,0,0,0.20);
       border: 1px solid rgba(255,255,255,0.06);
     }
@@ -655,20 +655,20 @@
       background:
         radial-gradient(circle at 50% 50%, transparent 38%, transparent 100%),
         conic-gradient(from 200deg,
-          rgba(86,212,221,0.0)  0deg,
-          rgba(86,212,221,0.5)  40deg,
-          rgba(124,224,232,0.6) 80deg,
-          rgba(255,255,255,0.4) 130deg,
-          rgba(216,177,74,0.5)  180deg,
-          rgba(242,107,98,0.5)  230deg,
-          rgba(179,136,248,0.5) 280deg,
-          rgba(86,212,221,0.5)  340deg,
-          rgba(86,212,221,0.0)  360deg);
+          rgba(232,181,98,0.0)   0deg,
+          rgba(212,154,69,0.55)  40deg,
+          rgba(240,201,122,0.60) 80deg,
+          rgba(255,255,255,0.40) 130deg,
+          rgba(216,177,74,0.50)  180deg,
+          rgba(242,107,98,0.50)  230deg,
+          rgba(232,181,98,0.50)  280deg,
+          rgba(212,154,69,0.50)  340deg,
+          rgba(232,181,98,0.0)   360deg);
       -webkit-mask: radial-gradient(circle, transparent 0%, transparent 50%, #000 70%, #000 100%);
               mask: radial-gradient(circle, transparent 0%, transparent 50%, #000 70%, #000 100%);
       box-shadow:
         inset 6px 10px 24px rgba(255,255,255,0.12),
-        0 0 50px rgba(86,212,221,0.20),
+        0 0 50px rgba(232,181,98,0.20),
         0 8px 28px rgba(0,0,0,0.20);
       border: 1px solid rgba(255,255,255,0.06);
     }
