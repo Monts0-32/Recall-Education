@@ -882,10 +882,15 @@
       //     Going there would be dead-end UX for reviewers even
       //     though the editor's role gate is doing the right thing
       //     server-side.
-      //   - Drafts without a code route to the editor via the lesson
-      //     viewer's "Edit in creator" link once a code is generated.
+      //   - Drafts without a code still route by role: reviewers go
+      //     through lesson.html?lesson=<id> so the lesson viewer's
+      //     role-aware chrome (read-only for them) renders; authors
+      //     and admins go straight to the editor.
       if (lesson.code) {
         return 'lesson.html?code=' + encodeURIComponent(lesson.code);
+      }
+      if (isReviewer) {
+        return 'lesson.html?lesson=' + encodeURIComponent(lesson.id);
       }
       return 'lesson-creator.html?lessonId=' + encodeURIComponent(lesson.id);
     };

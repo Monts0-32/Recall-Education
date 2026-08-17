@@ -1618,7 +1618,33 @@
           .maybeSingle();
         if (error) { showGate('Lookup failed', error.message); return; }
         if (!data) { showGate('No such lesson', `No lesson found for code ${code}.`); return; }
-        if (data.status !== 'published') {
+        // Resolve role *before* the published-status gate so staff
+        // (authors, reviewers, admins) can open DRAFT lessons for
+        // review / editing. Without this gate swap, a reviewer
+        // opening a draft from the staff dashboard's "All lessons"
+        // list sees "Not available" even though their entire job is
+        // to review drafts. The status check stays in place for
+        // anyone who isn't staff.
+        //
+        // Token refresh isn't required here — the same JWT we have
+        // at boot time is enough; the hook has stamped role into
+        // app_metadata by the point the user has loaded the
+        // dashboard and clicked through.
+        let isStaff = false;
+        try {
+          const { data: ud } = await supabaseClient.auth.getUser();
+          if (ud?.user) {
+            let r = ud.user.app_metadata?.role;
+            if (!r) {
+              try {
+                const res = await supabaseClient.rpc('current_role');
+                if (!res.error && res.data) r = res.data;
+              } catch (_) { /* not installed */ }
+            }
+            isStaff = (r === 'staff_author' || r === 'staff_reviewer' || r === 'admin');
+          }
+        } catch (_) { /* signed out / failure → treat as non-staff */ }
+        if (!isStaff && data.status !== 'published') {
           showGate('Not available', `Lesson ${code} isn't published yet.`);
           return;
         }
