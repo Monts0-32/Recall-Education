@@ -48,10 +48,10 @@
       position: sticky; top: 0; z-index: 50;
     }
     nav.top .row {
-      max-width: 1280px; margin: 0 auto;
+      max-width: 100%; margin: 0 auto;
       padding: 0 24px;
       display: flex; align-items: center; justify-content: space-between;
-      height: 64px;
+      height: 56px;
     }
     .brand {
       display: flex; align-items: center; gap: 10px;
@@ -97,7 +97,7 @@
 
     /* ---------- LAYOUT ---------- */
     main.profile-page {
-      max-width: 880px;
+      max-width: 720px;
       margin: 0 auto;
       padding: 32px 24px 60px;
     }
@@ -147,23 +147,25 @@
       border: 1px solid var(--line);
       border-radius: var(--r-md);
       padding: 20px 22px;
+      margin-bottom: 18px;
     }
     .profile-head {
-      display: flex; gap: 24px; align-items: center;
-      margin-bottom: 22px;
+      display: flex; gap: 22px; align-items: flex-start;
     }
     .profile-avatar {
-      width: 96px; height: 96px;
+      width: 80px; height: 80px;
       border-radius: 50%;
       overflow: hidden; flex-shrink: 0;
       background: var(--bg-3);
       display: flex; align-items: center; justify-content: center;
-      color: #fff; font-weight: 700; font-size: 30px;
+      color: #fff; font-weight: 700; font-size: 26px;
     }
     .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .profile-head-meta { flex: 1; min-width: 0; }
     .profile-head-meta h1 {
       margin: 0 0 6px;
       font-size: 22px; font-weight: 700;
+      letter-spacing: -0.015em;
     }
     .role-pill {
       display: inline-block;
@@ -187,16 +189,13 @@
 
     /* ---------- BIO ---------- */
     .profile-bio {
-      background: var(--bg-3);
-      border: 1px solid var(--line);
-      border-radius: var(--r-md);
-      padding: 16px 18px;
-      margin-bottom: 18px;
+      margin-top: 14px;
     }
     .profile-bio-text {
       margin: 0;
       color: var(--text-2);
       font-size: 14px;
+      line-height: 1.55;
       white-space: pre-wrap;
       word-break: break-word;
     }
@@ -205,7 +204,7 @@
       font-style: italic;
     }
     .profile-bio-actions {
-      margin-top: 8px;
+      margin-top: 6px;
       display: flex; justify-content: flex-end;
     }
     .link-btn {
@@ -243,7 +242,6 @@
     /* ---------- ACTION ROW ---------- */
     .profile-actions {
       display: flex; gap: 10px; flex-wrap: wrap;
-      margin-bottom: 22px;
     }
     /* Follow toggles between the primary "Follow" state (blue) and the
        secondary-style "Unfollow" state (matches .btn-ghost/secondary tones). */
@@ -278,38 +276,46 @@
     /* ---------- STATS ROW ---------- */
     .profile-stats {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      grid-template-columns: repeat(4, 1fr);
       gap: 12px;
-      margin-bottom: 24px;
     }
     .stat {
-      background: var(--bg-3);
+      background: var(--bg-2);
       border: 1px solid var(--line);
       border-radius: var(--r-md);
-      padding: 14px 16px;
-      text-align: center;
+      padding: 16px 18px;
       cursor: pointer;
       color: var(--text);
-      font-family: inherit; font-size: 12px;
+      font-family: inherit;
+      text-align: left;
     }
-    .stat:hover { background: var(--bg-4); }
+    .stat:hover { background: var(--bg-3); }
     .stat[data-open]:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-    .stat b {
+    .stat .label {
+      font-size: 11.5px; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+    }
+    .stat .value {
       display: block;
-      font-size: 20px; font-weight: 700;
-      color: var(--text); margin-bottom: 2px;
+      font-size: 24px; font-weight: 700;
+      letter-spacing: -0.015em;
+      margin-top: 4px;
+      color: var(--text);
       font-variant-numeric: tabular-nums;
     }
     .stat.readonly { cursor: default; }
-    .stat.readonly:hover { background: var(--bg-3); }
+    .stat.readonly:hover { background: var(--bg-2); }
+    @media (max-width: 720px) {
+      .profile-stats { grid-template-columns: repeat(2, 1fr); }
+    }
 
     /* ---------- MUTUALS GRID ---------- */
-    .profile-recent-mutuals { margin-top: 8px; }
     .profile-recent-mutuals h2 {
-      margin: 0 0 12px;
-      font-size: 13px; font-weight: 600;
-      color: var(--text-3); text-transform: uppercase;
-      letter-spacing: 0.04em;
+      margin: 0 0 14px;
+      font-size: 14px; font-weight: 600;
+      letter-spacing: 0.01em;
+      color: var(--text);
+      display: flex; align-items: center; gap: 8px;
     }
     .mutuals-grid {
       display: grid;
@@ -425,55 +431,60 @@
         <h1 id="displayName"></h1>
         <span id="rolePill" class="role-pill"></span>
         <div id="schoolLine" class="profile-school"></div>
+        <div class="profile-bio">
+          <p id="bioText" class="profile-bio-text"></p>
+          <div class="profile-bio-actions">
+            <button id="editBioBtn" class="link-btn" type="button" hidden>Edit bio</button>
+          </div>
+          <form id="bioForm" class="profile-bio-form" hidden>
+            <textarea id="bioInput" maxlength="500" rows="4"
+                      placeholder="Tell people about yourself…"></textarea>
+            <div class="profile-bio-foot">
+              <span id="bioCounter" class="counter">0 / 500</span>
+              <span class="spacer"></span>
+              <button id="bioCancel" class="btn-ghost" type="button">Cancel</button>
+              <button id="bioSave" class="btn-primary" type="submit">Save</button>
+            </div>
+          </form>
+        </div>
       </div>
     </header>
+  </section>
 
-    <section class="profile-bio">
-      <p id="bioText" class="profile-bio-text"></p>
-      <div class="profile-bio-actions">
-        <button id="editBioBtn" class="link-btn" type="button" hidden>Edit bio</button>
-      </div>
-      <form id="bioForm" class="profile-bio-form" hidden>
-        <textarea id="bioInput" maxlength="500" rows="4"
-                  placeholder="Tell people about yourself…"></textarea>
-        <div class="profile-bio-foot">
-          <span id="bioCounter" class="counter">0 / 500</span>
-          <span class="spacer"></span>
-          <button id="bioCancel" class="btn-ghost" type="button">Cancel</button>
-          <button id="bioSave" class="btn-primary" type="submit">Save</button>
-        </div>
-      </form>
-    </section>
+  <section class="profile-card profile-actions" hidden id="actionsCard">
+    <button id="followBtn" class="btn-primary" type="button" hidden>Follow</button>
+    <button id="messageBtn" class="btn-ghost" type="button" hidden>Message</button>
+    <button id="likeBtn" class="like-btn" type="button" hidden>
+      <span class="heart"></span>
+      <span>Like</span>
+      <span id="likeCount">0</span>
+    </button>
+  </section>
 
-    <section class="profile-actions">
-      <button id="followBtn" class="btn-primary" type="button" hidden>Follow</button>
-      <button id="messageBtn" class="btn-ghost" type="button" hidden>Message</button>
-      <button id="likeBtn" class="like-btn" type="button" hidden>
-        <span class="heart"></span>
-        <span>Like</span>
-        <span id="likeCount">0</span>
-      </button>
-    </section>
-
-    <section class="profile-stats">
+  <section class="profile-card" hidden id="statsCard">
+    <div class="profile-stats">
       <button class="stat" type="button" data-open="followers">
-        <b id="statFollowers">0</b> Followers
+        <div class="label">Followers</div>
+        <span class="value" id="statFollowers">0</span>
       </button>
       <button class="stat" type="button" data-open="following">
-        <b id="statFollowing">0</b> Following
+        <div class="label">Following</div>
+        <span class="value" id="statFollowing">0</span>
       </button>
       <button class="stat" type="button" data-open="mutuals">
-        <b id="statMutuals">0</b> Mutual friends
+        <div class="label">Mutual friends</div>
+        <span class="value" id="statMutuals">0</span>
       </button>
       <div class="stat readonly">
-        <b id="statLikedBy">0</b> Liked by
+        <div class="label">Liked by</div>
+        <span class="value" id="statLikedBy">0</span>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="profile-recent-mutuals">
-      <h2>Mutual friends</h2>
-      <div id="mutualsGrid" class="mutuals-grid"></div>
-    </section>
+  <section class="profile-recent-mutuals profile-card" id="mutualsCard" hidden>
+    <h2>Mutual friends</h2>
+    <div id="mutualsGrid" class="mutuals-grid"></div>
   </section>
 
   <div id="listModal" class="profile-modal" hidden>

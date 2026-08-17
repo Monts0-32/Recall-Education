@@ -178,7 +178,10 @@
         if (error) throw error;
         if (!data || data.found === false) {
           showError('Profile not found.');
-          document.getElementById('profileCard').hidden = true;
+          ['profileCard', 'actionsCard', 'statsCard', 'mutualsCard'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.hidden = true;
+          });
           return;
         }
         render(data);
@@ -189,7 +192,10 @@
     }
 
     function render(p) {
-      document.getElementById('profileCard').hidden = false;
+      ['profileCard', 'actionsCard', 'statsCard', 'mutualsCard'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.hidden = false;
+      });
 
       // header
       paintAvatarBig(document.getElementById('avatarBig'), p);
