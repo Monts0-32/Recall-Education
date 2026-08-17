@@ -112,6 +112,20 @@
     }
     .side button:hover { background: var(--bg-2); color: var(--text); }
     .side button.active { background: var(--blue-dim); color: var(--blue); }
+    .side a.side-link {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: var(--r-sm);
+      background: transparent;
+      color: var(--text-2);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13.5px;
+      text-align: left;
+      text-decoration: none;
+    }
+    .side a.side-link:hover { background: var(--bg-2); color: var(--text); text-decoration: none; }
     .side button .count {
       margin-left: auto;
       font-size: 11px;
@@ -618,6 +632,11 @@
     <button data-section="dev">
       <span>Developer tools</span>
     </button>
+    <div class="section-label">Safety</div>
+    <a href="moderation.html" class="side-link">
+      <span>Moderation queue</span>
+      <span class="count" id="modCount">0</span>
+    </a>
   </aside>
 
   <main>
@@ -1069,6 +1088,16 @@
       // since the count itself isn't sensitive.
       const inviteCount = await supabaseClient.rpc('count_staff_invites', { p_status: 'pending' });
       $('kpiInvites').textContent = (inviteCount.data ?? 0);
+
+      // Pending moderation flag count (sidebar badge). The RPC is granted
+      // to any staff role; the count itself isn't sensitive.
+      try {
+        const modCount = await supabaseClient.rpc('list_pending_moderation_flags', {
+          p_kind: null, p_limit: 200
+        });
+        const modEl = $('modCount');
+        if (modEl) modEl.textContent = (modCount.data || []).length;
+      } catch (_) { /* leave badge at 0 */ }
 
       const recentTbody = $('recentActions');
       const rows = recentResp.data || [];

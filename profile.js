@@ -348,7 +348,13 @@
         closeForm();
       } catch (err) {
         console.error(err);
-        toast('Could not save bio', 'error');
+        if (err && err.message && err.message.startsWith('moderation:')) {
+          toast("Bio contains content that isn't allowed. Please edit and try again.", 'error');
+        } else if (err && err.message && err.message.includes('too long')) {
+          toast('Bio is too long (max 500 characters).', 'error');
+        } else {
+          toast('Could not save bio. Please try again.', 'error');
+        }
       } finally {
         bioSave.disabled = false;
       }

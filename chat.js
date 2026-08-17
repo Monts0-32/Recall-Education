@@ -857,13 +857,16 @@
         paintMessages();
         paintThreadList();
       } catch (e) {
+        // Remove the optimistic message — the send failed, so the user
+        // shouldn't see a "pending" entry that never arrives.
         const idx = activeMessages.findIndex((m) => m.id === tempId);
-        if (idx >= 0) {
-          activeMessages[idx]._pending = false;
-          activeMessages[idx]._failed = true;
-        }
+        if (idx >= 0) activeMessages.splice(idx, 1);
         paintMessages();
-        showToast('Could not send message');
+        if (e && e.message && e.message.startsWith('moderation:')) {
+          showToast("Your message contains content that isn't allowed. Please edit and try again.");
+        } else {
+          showToast('Could not send message');
+        }
       } finally {
         sendBtn.disabled = !textarea.value.trim();
         textarea.focus();
