@@ -1754,43 +1754,61 @@
   });
 
   // Mount the notification bell once we have a session.
+  let bellPending = null;
   function mountBell(user) {
     if (!user) return;
     const slot = document.getElementById('bellSlot');
     if (slot && slot.firstChild) return; // already mounted
-    if (!window.recallTopbar) {
-      // The deferred script hasn't loaded yet — retry shortly.
-      setTimeout(() => mountBell(user), 50);
-      return;
-    }
-    window.recallTopbar.mount('bellSlot', { supabaseClient, user });
+    if (bellPending) return bellPending;
+    bellPending = (async () => {
+      if (!window.recallTopbar) {
+        // The deferred script hasn't loaded yet — wait and retry.
+        await new Promise((r) => setTimeout(r, 50));
+        bellPending = null;
+        return mountBell(user);
+      }
+      window.recallTopbar.mount('bellSlot', { supabaseClient, user });
+      bellPending = null;
+    })();
+    return bellPending;
   }
   // Mount the header avatar chip once we have a user + profile.
   let headerAvatarHandle = null;
+  let headerAvatarPending = null;
   async function mountHeaderAvatar(user) {
     if (!user) return;
+    if (headerAvatarHandle) return;
+    if (headerAvatarPending) return headerAvatarPending;
     if (!window.recallHeaderAvatar) {
       // The deferred script hasn't loaded yet — retry shortly.
-      setTimeout(() => mountHeaderAvatar(user), 50);
-      return;
+      headerAvatarPending = new Promise((resolve) => {
+        setTimeout(() => {
+          headerAvatarPending = null;
+          mountHeaderAvatar(user).then(resolve);
+        }, 50);
+      });
+      return headerAvatarPending;
     }
-    if (headerAvatarHandle) return;
-    let profile = state && state.profile ? state.profile : null;
-    if (!profile) {
-      try {
-        const { data } = await supabaseClient
-          .from('profiles')
-          .select('id, full_name, role, avatar_url')
-          .eq('id', user.id)
-          .maybeSingle();
-        profile = data || { id: user.id, full_name: '', role: '', avatar_url: null };
-      } catch (_) {
-        profile = { id: user.id, full_name: '', role: '', avatar_url: null };
+    headerAvatarPending = (async () => {
+      let profile = state && state.profile ? state.profile : null;
+      if (!profile) {
+        try {
+          const { data } = await supabaseClient
+            .from('profiles')
+            .select('id, full_name, role, avatar_url')
+            .eq('id', user.id)
+            .maybeSingle();
+          profile = data || { id: user.id, full_name: '', role: '', avatar_url: null };
+        } catch (_) {
+          profile = { id: user.id, full_name: '', role: '', avatar_url: null };
+        }
       }
-    }
-    headerAvatarHandle = window.recallHeaderAvatar.mount('avatarSlot', {
-      supabaseClient, user, profile
-    });
+      headerAvatarHandle = window.recallHeaderAvatar.mount('avatarSlot', {
+        supabaseClient, user, profile
+      });
+      headerAvatarPending = null;
+    })();
+    return headerAvatarPending;
   }
   supabaseClient.auth.getSession().then(({ data }) => {
     if (data && data.session && data.session.user) {

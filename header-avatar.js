@@ -195,6 +195,11 @@
 
     const slot = document.getElementById(slotId);
     if (!slot) return null;
+    if (slot.firstChild) {
+      // Already mounted — return a no-op handle so callers that store the
+      // return value can still guard against double-mounts.
+      return { open: function () {}, close: function () {}, refresh: function () {} };
+    }
 
     injectStyle();
 
