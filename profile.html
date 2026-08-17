@@ -76,6 +76,22 @@
       cursor: pointer;
     }
     .btn-ghost:hover { background: var(--bg-2); }
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      padding: 8px 14px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      border: 1px solid var(--blue);
+      cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-secondary {
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid var(--line-2);
+      padding: 7px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 500;
+      cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    .btn-secondary:hover { background: var(--bg-4); border-color: var(--line-3); text-decoration: none; }
 
     /* ---------- LAYOUT ---------- */
     main.profile-page {
@@ -221,30 +237,14 @@
       color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums;
     }
     .profile-bio-foot .spacer { flex: 1; }
-    .profile-bio-foot .btn-primary {
-      background: var(--blue); color: #fff;
-      border: 1px solid var(--blue);
-      padding: 7px 16px;
-      border-radius: var(--r-sm);
-      font-family: inherit; font-size: 13px; font-weight: 600;
-      cursor: pointer;
-    }
-    .profile-bio-foot .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
 
     /* ---------- ACTION ROW ---------- */
     .profile-actions {
       display: flex; gap: 10px; flex-wrap: wrap;
       margin-bottom: 22px;
     }
-    .profile-actions .btn-primary {
-      background: var(--blue); color: #fff;
-      border: 1px solid var(--blue);
-      padding: 8px 18px;
-      border-radius: var(--r-sm);
-      font-family: inherit; font-size: 13.5px; font-weight: 600;
-      cursor: pointer;
-    }
-    .profile-actions .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    /* Follow toggles between the primary "Follow" state (blue) and the
+       secondary-style "Unfollow" state (matches .btn-ghost/secondary tones). */
     .profile-actions .btn-primary.is-following {
       background: var(--bg-3); color: var(--text);
       border-color: var(--line-2);
@@ -256,22 +256,22 @@
       background: transparent;
       color: var(--text-2);
       border: 1px solid var(--line-2);
-      padding: 8px 16px;
+      padding: 7px 14px;
       border-radius: var(--r-sm);
-      font-family: inherit; font-size: 13.5px; font-weight: 600;
+      font-family: inherit; font-size: 13px; font-weight: 500;
       cursor: pointer;
       display: inline-flex; align-items: center; gap: 8px;
     }
-    .like-btn:hover { background: var(--bg-3); }
-    .like-btn .heart { font-size: 14px; }
+    .like-btn:hover { background: var(--bg-2); }
+    .like-btn .heart { font-size: 13px; line-height: 1; }
+    .like-btn .heart::before { content: '♡'; }
     .like-btn.is-liked {
       color: var(--red);
       border-color: var(--red);
       background: rgba(248,81,73,0.08);
     }
     .like-btn.is-liked .heart::before { content: '♥'; }
-    .like-btn .heart::before { content: '♡'; }
-    .like-btn.is-liked .heart::before { content: '♥'; }
+    .like-btn.is-liked:hover { background: rgba(248,81,73,0.12); }
 
     /* ---------- STATS ROW ---------- */
     .profile-stats {
