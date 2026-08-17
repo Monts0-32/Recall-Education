@@ -1,593 +1,643 @@
-// profile.js
+// ============================================================================
+// profile.js — Profile page module.
+// Mirrors the boot / chrome shape used by staff-dashboard.html so the page
+// looks and behaves like every other authenticated surface on the site:
+//   * top nav (bell + avatar + sign-out) revealed only after auth
+//   * gate card for signed-out / error states
+//   * main content built from the same .card rhythm as the dashboard
 //
-// Profile page. Self-view when URL has no `?id=` (or matches the caller);
-// otherwise views another user's profile. Follows / likes are mutual-edge /
-// single-like respectively; helpers from header-avatar.js are duplicated
-// here because modules are intentionally IIFE-isolated.
-//
-// Public surface:
-//   window.recallProfile = { mount }
-//
+// All profile data is loaded via SECURITY DEFINER RPCs:
+//   * get_profile_for_view(p_target_id)  -> one JSONB
+//   * set_my_bio(p_bio)                   -> void
+//   * toggle_follow(p_target_id)          -> JSONB
+//   * toggle_profile_like(p_target_id)    -> JSONB
+//   * search_profiles_for_follow(q, lim)  -> setof
+//   * list_profile_followers / _following / _mutuals_with_me -> setof
+// ============================================================================
+
 (function () {
   'use strict';
 
-  // -------------------------------------------------------------------
-  // helpers (intentional duplicates from header-avatar.js — modules are
-  // IIFE-isolated and that file is bootstrap-only)
-  // -------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Supabase client — same shape as every other page.
+  // ---------------------------------------------------------------------------
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const KEEP_KEY = 'recall.keepSignedIn';
+  let keepSignedIn = true;
+  try {
+    const raw = localStorage.getItem(KEEP_KEY);
+    if (raw === '0') keepSignedIn = false;
+    else if (raw === '1') keepSignedIn = true;
+    else localStorage.setItem(KEEP_KEY, '1');
+  } catch (_) { /* private mode etc. */ }
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    persistSession: keepSignedIn,
+    autoRefreshToken: keepSignedIn,
+    detectSessionInUrl: true,
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) {
+          return fetch(url, options);
+        }
+      }
+    }
+  });
+  window.supabaseClient = supabaseClient;
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+  // ---------------------------------------------------------------------------
+  // Tiny helpers (mirror staff-dashboard.html).
+  // ---------------------------------------------------------------------------
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+  function toast(msg, kind) {
+    const wrap = $('toastWrap');
+    if (!wrap) return;
+    const t = document.createElement('div');
+    t.className = 'toast' + (kind ? ' ' + kind : '');
+    t.textContent = msg;
+    wrap.appendChild(t);
+    setTimeout(() => t.remove(), 3200);
   }
 
-  function initials(name) {
+  function initialsOf(name) {
     if (!name) return '?';
     const parts = String(name).trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return '?';
+    if (!parts.length) return '?';
     if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
-  function hueFromId(id) {
+  function hueOf(id) {
     if (!id) return 200;
     let h = 0;
     const s = String(id).replace(/-/g, '');
-    for (let i = 0; i < s.length; i++) {
-      h = (h * 31 + s.charCodeAt(i)) >>> 0;
-    }
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
     return h % 360;
   }
 
-  function roleLabel(role) {
-    switch (role) {
-      case 'staff_author':    return 'Author';
-      case 'staff_reviewer':  return 'Reviewer';
-      case 'admin':           return 'Admin';
-      case 'school_organiser':return 'School';
-      case 'teacher':         return 'Teacher';
-      case 'student':         return 'Student';
-      default:                return role || 'Member';
+  function paintAvatar(elt, p, sizePx) {
+    if (!elt) return;
+    if (sizePx) { elt.style.width = sizePx + 'px'; elt.style.height = sizePx + 'px'; }
+    if (p && p.avatar_url) {
+      elt.innerHTML = '<img alt="" src="' + escapeHtml(p.avatar_url) + '">';
+    } else {
+      const hue = hueOf(p && p.id);
+      elt.style.background = 'hsl(' + hue + ' 55% 38%)';
+      elt.textContent = initialsOf(p && p.full_name);
     }
   }
 
-  function uuidValidate(s) {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s || ''));
+  function roleLabel(r) {
+    switch (r) {
+      case 'staff_author':     return 'Author';
+      case 'staff_reviewer':   return 'Reviewer';
+      case 'admin':            return 'Admin';
+      case 'school_organiser': return 'School';
+      case 'teacher':          return 'Teacher';
+      case 'student':          return 'Student';
+      default:                 return r || 'Member';
+    }
   }
 
   function parseTargetId() {
-    const q = new URLSearchParams(location.search).get('id');
-    return q && uuidValidate(q) ? q : null;
+    const raw = new URLSearchParams(location.search).get('id');
+    if (!raw) return null;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) return null;
+    return raw.toLowerCase();
   }
 
-  function paintAvatarBig(box, profile) {
-    box.innerHTML = '';
-    if (profile && profile.avatar_url) {
-      const img = document.createElement('img');
-      img.alt = '';
-      img.src = profile.avatar_url;
-      box.appendChild(img);
+  function el(tag, attrs, children) {
+    const e = document.createElement(tag);
+    if (attrs) {
+      for (const k in attrs) {
+        if (k === 'class') e.className = attrs[k];
+        else if (k === 'text') e.textContent = attrs[k];
+        else if (k === 'html') e.innerHTML = attrs[k];
+        else if (k === 'style' && typeof attrs[k] === 'object') Object.assign(e.style, attrs[k]);
+        else e.setAttribute(k, attrs[k]);
+      }
+    }
+    if (children) {
+      for (const c of (Array.isArray(children) ? children : [children])) {
+        if (c == null) continue;
+        if (typeof c === 'string') e.appendChild(document.createTextNode(c));
+        else e.appendChild(c);
+      }
+    }
+    return e;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Page state.
+  // ---------------------------------------------------------------------------
+  const state = {
+    user: null,
+    me: null,        // caller's profile row
+    targetId: null,
+    target: null,    // get_profile_for_view JSON
+    isSelf: false,
+    channel: null,
+  };
+
+  // ---------------------------------------------------------------------------
+  // Gate / show main.
+  // ---------------------------------------------------------------------------
+  function showGate(title, msg) {
+    $('profileNav').hidden = true;
+    $('profileMain').hidden = true;
+    $('gate').hidden = false;
+    $('gateTitle').textContent = title;
+    $('gateMsg').textContent = msg;
+  }
+
+  function showMain() {
+    $('gate').hidden = true;
+    $('profileNav').hidden = false;
+    $('profileMain').hidden = false;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Render — paints every card from state.target.
+  // ---------------------------------------------------------------------------
+  function render() {
+    const p = state.target;
+    const me = state.me;
+    const isSelf = state.isSelf;
+
+    // Welcome + identity.
+    const name = (p.full_name || '').trim() || 'Unnamed';
+    $('welcomeTitle').textContent = isSelf ? 'Your profile' : name + '’s profile';
+    $('welcomeSub').textContent = isSelf
+      ? 'Edit your bio, see who follows you, and find people on Recall.'
+      : 'Bio, stats, and mutual friends.';
+
+    $('displayName').textContent = name;
+    paintAvatar($('avatarBig'), p, 64);
+
+    const pill = $('rolePill');
+    pill.className = 'role-pill ' + (p.role || '');
+    pill.textContent = roleLabel(p.role);
+
+    const school = $('schoolLine');
+    if (p.school_name) {
+      school.textContent = p.school_name;
+      school.hidden = false;
     } else {
-      box.style.background = 'hsl(' + hueFromId((profile && profile.id) || '00000000') + ' 55% 38%)';
-      box.textContent = initials((profile && profile.full_name) || '?');
+      school.hidden = true;
     }
-  }
 
-  function paintAvatarSmall(box, r) {
-    box.innerHTML = '';
-    if (r && r.avatar_url) {
-      const img = document.createElement('img');
-      img.alt = '';
-      img.src = r.avatar_url;
-      box.appendChild(img);
+    // Identity card is always visible while we have a target.
+    $('identityCard').hidden = false;
+
+    // Bio.
+    const bioText = $('bioText');
+    if (p.bio && p.bio.trim()) {
+      bioText.textContent = p.bio;
+      bioText.classList.remove('empty');
     } else {
-      box.style.background = 'hsl(' + hueFromId((r && r.id) || '00000000') + ' 55% 38%)';
-      box.textContent = initials((r && r.full_name) || '?');
+      bioText.textContent = isSelf
+        ? "You haven't written a bio yet."
+        : (name + ' hasn’t written a bio yet.');
+      bioText.classList.add('empty');
     }
-  }
-
-  // -------------------------------------------------------------------
-  // load() — runs once on DOMContentLoaded
-  // -------------------------------------------------------------------
-
-  async function load() {
-    const sb = window.supabaseClient;
-    if (!sb) {
-      showError('Sign-in required — redirecting.');
-      window.location.href = 'login.html';
-      return;
+    $('bioCard').hidden = false;
+    if (isSelf) {
+      $('bioActions').hidden = false;
+      $('editBioBtn').hidden = false;
+    } else {
+      $('bioActions').hidden = true;
+      $('editBioBtn').hidden = true;
     }
 
-    let session = null;
-    try {
-      const { data } = await sb.auth.getSession();
-      session = data && data.session ? data.session : null;
-    } catch (_) {}
-    if (!session || !session.user) {
-      window.location.href = 'login.html';
-      return;
-    }
-    const user = session.user;
-
-    let me = null;
-    try {
-      const { data: meRow } = await sb
-        .from('profiles')
-        .select('id, full_name, role, avatar_url, school_id')
-        .eq('id', user.id)
-        .maybeSingle();
-      me = meRow || { id: user.id, full_name: user.user_metadata?.full_name || '', role: '', avatar_url: null, school_id: null };
-    } catch (_) {
-      me = { id: user.id, full_name: user.user_metadata?.full_name || '', role: '', avatar_url: null, school_id: null };
+    // Actions.
+    $('actionsCard').hidden = false;
+    if (isSelf) {
+      $('followBtn').hidden = true;
+      $('messageBtn').hidden = true;
+      $('likeBtn').hidden = true;
+    } else {
+      $('followBtn').hidden = false;
+      const isFollowing = !!p.caller_follows_target;
+      $('followBtn').textContent = isFollowing ? 'Unfollow' : 'Follow';
+      $('followBtn').classList.toggle('is-following', isFollowing);
+      $('messageBtn').hidden = false;
+      $('likeBtn').hidden = false;
+      $('likeCount').textContent = String(p.likes_count || 0);
+      $('likeBtn').classList.toggle('is-liked', !!p.caller_likes_this_profile);
     }
 
-    if (window.recallTopbar && typeof window.recallTopbar.mount === 'function') {
-      try {
-        window.recallTopbar.mount('bellSlot', { supabaseClient: sb, user: user });
-      } catch (e) { console.error('topbar mount failed:', e); }
-    }
-    if (window.recallHeaderAvatar && typeof window.recallHeaderAvatar.mount === 'function') {
-      try {
-        window.recallHeaderAvatar.mount('avatarSlot', {
-          supabaseClient: sb,
-          user: user,
-          profile: me
+    // Stats.
+    $('statsCard').hidden = false;
+    $('statFollowers').textContent = String(p.follower_count || 0);
+    $('statFollowing').textContent = String(p.following_count || 0);
+    $('statMutuals').textContent = String(p.mutual_friend_count_with_caller || 0);
+    $('statLikedBy').textContent = String(p.likes_count || 0);
+
+    // Mutuals grid.
+    const mutuals = Array.isArray(p.recent_mutuals) ? p.recent_mutuals : [];
+    const grid = $('mutualsGrid');
+    grid.innerHTML = '';
+    if (isSelf) {
+      $('mutualsCard').hidden = true;
+    } else if (mutuals.length === 0) {
+      $('mutualsCard').hidden = false;
+      $('mutualsMeta').textContent = '';
+      grid.appendChild(el('div', { class: 'card-empty', text:
+        'When you and ' + (p.full_name || 'this person') + ' follow each other, you’ll see them here.'
+      }));
+    } else {
+      $('mutualsCard').hidden = false;
+      $('mutualsMeta').textContent = mutuals.length + (mutuals.length === 1 ? ' friend' : ' friends');
+      for (const m of mutuals) {
+        const tile = el('a', {
+          class: 'mutual-tile',
+          href: 'profile.html?id=' + encodeURIComponent(m.id),
+          target: '_blank', rel: 'noopener',
         });
-      } catch (e) { console.error('headerAvatar mount failed:', e); }
+        const av = el('div', { class: 'av' });
+        paintAvatar(av, m);
+        tile.appendChild(av);
+        tile.appendChild(el('div', { class: 'name', text: m.full_name || 'Unnamed' }));
+        tile.appendChild(el('span', { class: 'role-pill ' + (m.role || ''), text: roleLabel(m.role) }));
+        grid.appendChild(tile);
+      }
     }
 
-    const signOutBtn = document.getElementById('signOutBtn');
-    if (signOutBtn) {
-      signOutBtn.hidden = false;
-      signOutBtn.addEventListener('click', async () => {
-        try { await sb.auth.signOut(); } catch (_) { /* ignore */ }
-        window.location.href = 'login.html';
-      });
-    }
-
-    const targetId = parseTargetId() || user.id;
-    mount({ supabaseClient: sb, user: user, profile: me, targetId: targetId });
+    // Search card is for everyone; the RPC excludes the caller anyway.
+    $('searchCard').hidden = false;
   }
 
-  // -------------------------------------------------------------------
-  // mount — wires the page
-  // -------------------------------------------------------------------
-
-  function mount(opts) {
-    const sb = opts.supabaseClient;
-    const user = opts.user;
-    const me = opts.profile;
-    const targetId = opts.targetId;
-    const isSelf = targetId === user.id;
-    let realtimeChannel = null;
-
-    function showError(msg) {
-      const el = document.getElementById('errorLine');
-      if (!el) return;
-      el.textContent = msg;
-      el.hidden = false;
-    }
-
-    async function refresh() {
-      try {
-        const { data, error } = await sb.rpc('get_profile_for_view', { p_target_id: targetId });
-        if (error) throw error;
-        if (!data || data.found === false) {
-          showError('Profile not found.');
-          ['profileCard', 'actionsCard', 'statsCard', 'mutualsCard'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.hidden = true;
-          });
-          return;
-        }
-        render(data);
-      } catch (e) {
-        showError('Could not load profile.');
-        console.error('get_profile_for_view failed:', e);
-      }
-    }
-
-    function render(p) {
-      ['profileCard', 'actionsCard', 'statsCard', 'mutualsCard'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.hidden = false;
+  // ---------------------------------------------------------------------------
+  // Fetch + repaint the profile view.
+  // ---------------------------------------------------------------------------
+  async function refresh() {
+    try {
+      const { data, error } = await supabaseClient.rpc('get_profile_for_view', {
+        p_target_id: state.targetId,
       });
-
-      // header
-      paintAvatarBig(document.getElementById('avatarBig'), p);
-      document.getElementById('displayName').textContent = p.full_name || 'Unnamed';
-
-      const pill = document.getElementById('rolePill');
-      pill.textContent = roleLabel(p.role);
-      pill.className = 'role-pill role-' + (p.role || '');
-
-      const schoolLine = document.getElementById('schoolLine');
-      const schoolName = p.school_name || '';
-      schoolLine.textContent = schoolName ? ('At ' + schoolName) : '';
-
-      // bio
-      const bioText = document.getElementById('bioText');
-      const bioBtn = document.getElementById('editBioBtn');
-      if (p.bio && String(p.bio).trim()) {
-        bioText.textContent = p.bio;
-        bioText.classList.remove('empty');
-      } else {
-        bioText.textContent = isSelf ? "You haven't written a bio yet." : "This user hasn't written a bio.";
-        bioText.classList.add('empty');
+      if (error) throw error;
+      if (!data || data.found === false) {
+        showGate('Profile not found', 'No profile matches that id.');
+        return;
       }
-      bioBtn.hidden = !isSelf;
+      state.target = data;
+      render();
+    } catch (e) {
+      console.error('get_profile_for_view failed:', e);
+      showGate('Could not load profile', 'Try refreshing.');
+    }
+  }
 
-      // action buttons
-      const followBtn = document.getElementById('followBtn');
-      const likeBtn = document.getElementById('likeBtn');
-      const messageBtn = document.getElementById('messageBtn');
-      followBtn.hidden = isSelf;
-      likeBtn.hidden = isSelf;
-      messageBtn.hidden = isSelf;
+  // ---------------------------------------------------------------------------
+  // Bio editor.
+  // ---------------------------------------------------------------------------
+  function wireBio() {
+    const bioBtn   = $('editBioBtn');
+    const bioForm  = $('bioForm');
+    const bioInput = $('bioInput');
+    const bioCount = $('bioCounter');
+    const bioSave  = $('bioSave');
+    const bioCancel= $('bioCancel');
+    const bioText  = $('bioText');
 
-      if (!isSelf) {
-        const callerFollows = !!p.caller_follows_target;
-        followBtn.textContent = callerFollows ? 'Unfollow' : 'Follow';
-        followBtn.classList.toggle('is-following', callerFollows);
-        likeBtn.classList.toggle('is-liked', !!p.caller_likes_this_profile);
-        document.getElementById('likeCount').textContent = String(p.likes_count || 0);
-      }
-
-      // stats
-      document.getElementById('statFollowers').textContent = String(p.follower_count || 0);
-      document.getElementById('statFollowing').textContent = String(p.following_count || 0);
-      document.getElementById('statMutuals').textContent = String(p.mutual_friend_count_with_caller || 0);
-      document.getElementById('statLikedBy').textContent = String(p.likes_count || 0);
-
-      // mutuals grid
-      const grid = document.getElementById('mutualsGrid');
-      grid.innerHTML = '';
-      const ms = Array.isArray(p.recent_mutuals) ? p.recent_mutuals : [];
-      if (!ms.length) {
-        const empty = document.createElement('div');
-        empty.style.color = 'var(--text-3)';
-        empty.style.fontSize = '13px';
-        empty.style.padding = '16px 0';
-        empty.textContent = isSelf
-          ? 'When you and another user follow each other, you\'ll see them here.'
-          : 'No mutual friends yet.';
-        grid.appendChild(empty);
-      } else {
-        ms.forEach((m) => grid.appendChild(mutualCard(m)));
-      }
+    function openForm() {
+      const current = (state.target && state.target.bio) || '';
+      bioInput.value = current;
+      bioCount.textContent = bioInput.value.length + ' / 500';
+      bioForm.hidden = false;
+      bioBtn.hidden = true;
+      bioText.hidden = true;
+      bioInput.focus();
+      // Caret to end.
+      const v = bioInput.value;
+      bioInput.setSelectionRange(v.length, v.length);
+    }
+    function closeForm() {
+      bioForm.hidden = true;
+      bioBtn.hidden = false;
+      bioText.hidden = false;
     }
 
-    function mutualCard(m) {
-      const a = document.createElement('a');
-      a.className = 'mutual-card';
-      a.href = 'profile.html?id=' + encodeURIComponent(m.id);
-      a.target = '_blank';
-      a.rel = 'noopener';
-
-      const av = document.createElement('div');
-      av.className = 'mutual-avatar';
-      paintAvatarSmall(av, m);
-      a.appendChild(av);
-
-      const nm = document.createElement('div');
-      nm.className = 'mutual-name';
-      nm.textContent = m.full_name || 'Unknown';
-      a.appendChild(nm);
-
-      const ro = document.createElement('div');
-      ro.className = 'mutual-role';
-      ro.textContent = roleLabel(m.role);
-      a.appendChild(ro);
-
-      return a;
-    }
-
-    // ----- Follow -----
-    const followBtn = document.getElementById('followBtn');
-    followBtn.addEventListener('click', async () => {
-      if (followBtn.disabled) return;
-      followBtn.disabled = true;
+    bioBtn.addEventListener('click', openForm);
+    bioCancel.addEventListener('click', closeForm);
+    bioInput.addEventListener('input', () => {
+      bioCount.textContent = bioInput.value.length + ' / 500';
+    });
+    bioForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const value = bioInput.value;
+      bioSave.disabled = true;
       try {
-        const { data, error } = await sb.rpc('toggle_follow', { p_target_id: targetId });
+        const { error } = await supabaseClient.rpc('set_my_bio', { p_bio: value });
+        if (error) throw error;
+        state.target.bio = value.trim() || null;
+        if (state.target.bio) {
+          bioText.textContent = state.target.bio;
+          bioText.classList.remove('empty');
+        } else {
+          bioText.textContent = "You haven't written a bio yet.";
+          bioText.classList.add('empty');
+        }
+        toast('Bio saved', 'success');
+        closeForm();
+      } catch (err) {
+        console.error(err);
+        toast('Could not save bio', 'error');
+      } finally {
+        bioSave.disabled = false;
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Follow / like / message actions.
+  // ---------------------------------------------------------------------------
+  function wireActions() {
+    $('followBtn').addEventListener('click', async () => {
+      if (state.isSelf) return;
+      const btn = $('followBtn');
+      btn.disabled = true;
+      try {
+        const { data, error } = await supabaseClient.rpc('toggle_follow', {
+          p_target_id: state.targetId,
+        });
         if (error) throw error;
         if (data) {
-          followBtn.textContent = data.is_following ? 'Unfollow' : 'Follow';
-          followBtn.classList.toggle('is-following', !!data.is_following);
+          state.target.caller_follows_target = !!data.is_following;
+          if (typeof data.is_mutual_now === 'boolean') {
+            state.target.is_friend_with_caller = data.is_mutual_now;
+          }
         }
+        // Refresh numbers from the canonical RPC.
         await refresh();
-      } catch (e) {
-        showError('Could not update follow. Try again.');
-        console.error('toggle_follow failed:', e);
+        toast(state.target.caller_follows_target ? 'Following' : 'Unfollowed', 'success');
+      } catch (err) {
+        console.error(err);
+        toast('Could not update follow', 'error');
       } finally {
-        followBtn.disabled = false;
+        btn.disabled = false;
       }
     });
 
-    // ----- Like -----
-    const likeBtn = document.getElementById('likeBtn');
-    likeBtn.addEventListener('click', async () => {
-      if (likeBtn.disabled) return;
-      likeBtn.disabled = true;
+    $('likeBtn').addEventListener('click', async () => {
+      if (state.isSelf) return;
+      const btn = $('likeBtn');
+      btn.disabled = true;
       try {
-        const { data, error } = await sb.rpc('toggle_profile_like', { p_target_id: targetId });
+        const { data, error } = await supabaseClient.rpc('toggle_profile_like', {
+          p_target_id: state.targetId,
+        });
         if (error) throw error;
         if (data) {
-          document.getElementById('likeCount').textContent = String(data.likes_count || 0);
-          document.getElementById('statLikedBy').textContent = String(data.likes_count || 0);
-          likeBtn.classList.toggle('is-liked', !!data.liked);
+          state.target.caller_likes_this_profile = !!data.liked;
+          state.target.likes_count = data.likes_count;
+          $('likeCount').textContent = String(data.likes_count || 0);
+          $('likeBtn').classList.toggle('is-liked', !!data.liked);
+          $('statLikedBy').textContent = String(data.likes_count || 0);
         }
-      } catch (e) {
-        showError('Could not update like. Try again.');
-        console.error('toggle_profile_like failed:', e);
+      } catch (err) {
+        console.error(err);
+        toast('Could not update like', 'error');
       } finally {
-        likeBtn.disabled = false;
+        btn.disabled = false;
       }
     });
 
-    // ----- Message -----
-    const messageBtn = document.getElementById('messageBtn');
-    messageBtn.addEventListener('click', () => {
+    $('messageBtn').addEventListener('click', () => {
+      if (state.isSelf) return;
       if (window.recallChat && typeof window.recallChat.openWithUser === 'function') {
-        try {
-          window.recallChat.openWithUser(targetId);
-          return;
-        } catch (_) { /* fall through */ }
-      }
-      // Fallback — no chat module mounted (e.g. students); bounce to the
-      // chat-incapable profile reload of self. Avoids a dead button.
-      showError('Chat isn\'t available on this account.');
-    });
-
-    // ----- Bio edit (self only) -----
-    if (isSelf) {
-      const bioBtn = document.getElementById('editBioBtn');
-      const bioForm = document.getElementById('bioForm');
-      const bioInput = document.getElementById('bioInput');
-      const bioTextEl = document.getElementById('bioText');
-      const bioCounter = document.getElementById('bioCounter');
-      const bioSave = document.getElementById('bioSave');
-      const bioCancel = document.getElementById('bioCancel');
-
-      function updateCounter() {
-        const len = (bioInput.value || '').length;
-        bioCounter.textContent = len + ' / 500';
-      }
-
-      bioBtn.addEventListener('click', () => {
-        bioInput.value = (bioTextEl.textContent && !bioTextEl.classList.contains('empty')) ? bioTextEl.textContent : '';
-        bioInput.value = bioInput.value === "You haven't written a bio yet." ? '' : bioInput.value;
-        updateCounter();
-        bioTextEl.hidden = true;
-        document.querySelector('#profileCard .profile-bio-actions').hidden = true;
-        bioForm.hidden = false;
-        bioInput.focus();
-        // Move caret to end.
-        const v = bioInput.value;
-        bioInput.value = '';
-        bioInput.value = v;
-      });
-
-      bioCancel.addEventListener('click', () => {
-        bioForm.hidden = true;
-        bioTextEl.hidden = false;
-        document.querySelector('#profileCard .profile-bio-actions').hidden = false;
-      });
-
-      bioInput.addEventListener('input', updateCounter);
-
-      bioForm.addEventListener('submit', async (ev) => {
-        ev.preventDefault();
-        bioSave.disabled = true;
-        try {
-          const { error } = await sb.rpc('set_my_bio', { p_bio: bioInput.value });
-          if (error) throw error;
-          const newBio = (bioInput.value || '').trim();
-          if (newBio) {
-            bioTextEl.textContent = newBio;
-            bioTextEl.classList.remove('empty');
-          } else {
-            bioTextEl.textContent = "You haven't written a bio yet.";
-            bioTextEl.classList.add('empty');
-          }
-          bioForm.hidden = true;
-          bioTextEl.hidden = false;
-          document.querySelector('#profileCard .profile-bio-actions').hidden = false;
-        } catch (e) {
-          showError('Could not save bio.');
-          console.error('set_my_bio failed:', e);
-        } finally {
-          bioSave.disabled = false;
-        }
-      });
-    }
-
-    // ----- Search -----
-    const searchInput = document.getElementById('searchInput');
-    const searchResults = document.getElementById('searchResults');
-    let searchDebounce = null;
-    function clearSearch() {
-      searchResults.hidden = true;
-      searchResults.innerHTML = '';
-    }
-    searchInput.addEventListener('input', () => {
-      clearTimeout(searchDebounce);
-      const q = searchInput.value.trim();
-      if (!q) { clearSearch(); return; }
-      searchDebounce = setTimeout(async () => {
-        try {
-          const { data, error } = await sb.rpc('search_profiles_for_follow', {
-            p_query: q,
-            p_limit: 8
-          });
-          if (error) throw error;
-          searchResults.innerHTML = '';
-          const rows = Array.isArray(data) ? data : [];
-          if (!rows.length) {
-            const empty = document.createElement('div');
-            empty.style.padding = '14px';
-            empty.style.color = 'var(--text-3)';
-            empty.style.fontSize = '13px';
-            empty.textContent = 'No matches.';
-            searchResults.appendChild(empty);
-          } else {
-            rows.forEach((r) => {
-              const a = document.createElement('a');
-              a.className = 'search-hit';
-              a.href = 'profile.html?id=' + encodeURIComponent(r.id);
-              a.target = '_blank';
-              a.rel = 'noopener';
-
-              const av = document.createElement('div');
-              av.className = 'mutual-avatar';
-              paintAvatarSmall(av, r);
-              a.appendChild(av);
-
-              const nm = document.createElement('span');
-              nm.className = 'search-hit-name';
-              nm.textContent = r.full_name || 'Unknown';
-              a.appendChild(nm);
-
-              const ro = document.createElement('span');
-              ro.className = 'search-hit-role';
-              ro.textContent = roleLabel(r.role);
-              a.appendChild(ro);
-
-              searchResults.appendChild(a);
-            });
-          }
-          searchResults.hidden = false;
-        } catch (e) {
-          console.error('search_profiles_for_follow failed:', e);
-        }
-      }, 180);
-    });
-    document.addEventListener('click', (ev) => {
-      if (!document.querySelector('.profile-search').contains(ev.target)) {
-        clearSearch();
+        window.recallChat.openWithUser(state.targetId);
+      } else if (window.recallChat && typeof window.recallChat.toggle === 'function') {
+        window.recallChat.toggle();
+        toast('Open the chat to message ' + (state.target.full_name || 'this person'), 'success');
+      } else {
+        toast('Chat isn’t loaded yet', 'error');
       }
     });
-
-    // ----- Stats modal -----
-    const listModal = document.getElementById('listModal');
-    const listTitle = document.getElementById('listModalTitle');
-    const listBody = document.getElementById('listModalBody');
-    const listClose = document.getElementById('listClose');
-    listClose.addEventListener('click', () => { listModal.hidden = true; });
-    listModal.addEventListener('click', (ev) => {
-      if (ev.target === listModal) listModal.hidden = true;
-    });
-    document.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape' && !listModal.hidden) listModal.hidden = true;
-    });
-
-    function openList(kind) {
-      listTitle.textContent = ({
-        followers: 'Followers',
-        following: 'Following',
-        mutuals:   'Mutual friends'
-      })[kind] || 'List';
-      listBody.innerHTML = '';
-      const loading = document.createElement('div');
-      loading.className = 'modal-list-empty';
-      loading.textContent = 'Loading…';
-      listBody.appendChild(loading);
-      listModal.hidden = false;
-
-      const rpcName = ({
-        followers: 'list_profile_followers',
-        following: 'list_profile_following',
-        mutuals:   'list_profile_mutuals_with_me'
-      })[kind];
-      if (!rpcName) return;
-      sb.rpc(rpcName, { p_target: targetId, p_limit: 50 })
-        .then(({ data, error }) => {
-          if (error) throw error;
-          const rows = Array.isArray(data) ? data : [];
-          listBody.innerHTML = '';
-          if (!rows.length) {
-            const empty = document.createElement('div');
-            empty.className = 'modal-list-empty';
-            empty.textContent = 'Nothing here yet.';
-            listBody.appendChild(empty);
-            return;
-          }
-          rows.forEach((r) => {
-            const a = document.createElement('a');
-            a.className = 'modal-list-item';
-            a.href = 'profile.html?id=' + encodeURIComponent(r.id);
-            a.target = '_blank';
-            a.rel = 'noopener';
-
-            const av = document.createElement('div');
-            av.className = 'mutual-avatar';
-            paintAvatarSmall(av, r);
-            a.appendChild(av);
-
-            const nm = document.createElement('span');
-            nm.className = 'search-hit-name';
-            nm.textContent = r.full_name || 'Unknown';
-            a.appendChild(nm);
-
-            const ro = document.createElement('span');
-            ro.className = 'search-hit-role';
-            ro.textContent = roleLabel(r.role);
-            a.appendChild(ro);
-
-            listBody.appendChild(a);
-          });
-        })
-        .catch((e) => {
-          console.error(rpcName + ' failed:', e);
-          listBody.innerHTML = '';
-          const empty = document.createElement('div');
-          empty.className = 'modal-list-empty';
-          empty.textContent = 'Could not load list.';
-          listBody.appendChild(empty);
-        });
-    }
-
-    document.querySelectorAll('.profile-stats .stat[data-open]').forEach((btn) => {
-      btn.addEventListener('click', () => openList(btn.dataset.open));
-    });
-
-    // ----- Realtime (self-view only) -----
-    if (isSelf) {
-      try {
-        realtimeChannel = sb
-          .channel('profile-self:' + user.id)
-          .on('postgres_changes', {
-            event: '*', schema: 'public', table: 'profile_follows',
-            filter: 'followee_id=eq.' + user.id
-          }, () => refresh())
-          .on('postgres_changes', {
-            event: '*', schema: 'public', table: 'profile_follows',
-            filter: 'follower_id=eq.' + user.id
-          }, () => refresh())
-          .on('postgres_changes', {
-            event: '*', schema: 'public', table: 'profile_likes',
-            filter: 'profile_id=eq.' + user.id
-          }, () => refresh())
-          .subscribe();
-      } catch (e) { console.error('realtime subscribe failed:', e); }
-    }
-    window.addEventListener('beforeunload', () => {
-      if (realtimeChannel && sb && typeof sb.removeChannel === 'function') {
-        try { sb.removeChannel(realtimeChannel); } catch (_) { /* ignore */ }
-      }
-    });
-
-    refresh();
   }
 
-  window.recallProfile = { mount: mount };
+  // ---------------------------------------------------------------------------
+  // Stats modal (Followers / Following / Mutual friends).
+  // ---------------------------------------------------------------------------
+  function wireStats() {
+    const modal = $('listModal');
+    const title = $('listModalTitle');
+    const body  = $('listModalBody');
+    $('listClose').addEventListener('click', () => { modal.hidden = true; });
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.hidden = true; });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.hidden) modal.hidden = true;
+    });
+
+    document.querySelectorAll('[data-open]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const kind = btn.getAttribute('data-open');
+        await openList(kind);
+      });
+    });
+
+    async function openList(kind) {
+      title.textContent = kind === 'followers' ? 'Followers'
+        : kind === 'following' ? 'Following'
+        : 'Mutual friends';
+      body.innerHTML = '<div class="list-empty">Loading…</div>';
+      modal.hidden = false;
+      let rows = [];
+      try {
+        if (kind === 'followers') {
+          ({ data: rows } = await supabaseClient.rpc('list_profile_followers', { p_target: state.targetId, p_limit: 100 }));
+        } else if (kind === 'following') {
+          ({ data: rows } = await supabaseClient.rpc('list_profile_following', { p_target: state.targetId, p_limit: 100 }));
+        } else {
+          ({ data: rows } = await supabaseClient.rpc('list_profile_mutuals_with_me', { p_target: state.targetId, p_limit: 100 }));
+        }
+      } catch (err) {
+        console.error(err);
+        body.innerHTML = '<div class="list-empty">Could not load.</div>';
+        return;
+      }
+      rows = rows || [];
+      if (!rows.length) {
+        body.innerHTML = '<div class="list-empty">Nobody here yet.</div>';
+        return;
+      }
+      body.innerHTML = '';
+      for (const r of rows) {
+        const a = el('a', {
+          class: 'list-row',
+          href: 'profile.html?id=' + encodeURIComponent(r.id),
+          target: '_blank', rel: 'noopener',
+        });
+        const av = el('div', { class: 'av' });
+        paintAvatar(av, r);
+        a.appendChild(av);
+        a.appendChild(el('div', { class: 'name', text: r.full_name || 'Unnamed' }));
+        a.appendChild(el('div', { class: 'role', text: roleLabel(r.role) }));
+        body.appendChild(a);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Search (find people to follow).
+  // ---------------------------------------------------------------------------
+  function wireSearch() {
+    const input = $('searchInput');
+    const out = $('searchResults');
+    if (!input || !out) return;
+    let timer = null;
+    let lastQuery = null;
+
+    function render(rows) {
+      out.innerHTML = '';
+      if (!rows.length) {
+        out.innerHTML = '<div style="padding:14px;color:var(--text-4);font-size:13px;">No matches.</div>';
+        out.hidden = false;
+        return;
+      }
+      for (const r of rows) {
+        const a = el('a', {
+          class: 'search-hit',
+          href: 'profile.html?id=' + encodeURIComponent(r.id),
+          target: '_blank', rel: 'noopener',
+        });
+        const av = el('div', { class: 'av' });
+        paintAvatar(av, r);
+        a.appendChild(av);
+        const who = el('div', { class: 'who', text: r.full_name || 'Unnamed' });
+        a.appendChild(who);
+        a.appendChild(el('div', { class: 'role', text: roleLabel(r.role) }));
+        out.appendChild(a);
+      }
+      out.hidden = false;
+    }
+
+    async function run(q) {
+      if (q === lastQuery) return;
+      lastQuery = q;
+      try {
+        const { data, error } = await supabaseClient.rpc('search_profiles_for_follow', {
+          p_query: q, p_limit: 8,
+        });
+        if (q !== lastQuery) return;
+        if (error) throw error;
+        render(data || []);
+      } catch (err) {
+        console.error(err);
+        out.innerHTML = '<div style="padding:14px;color:var(--red);font-size:13px;">Search failed.</div>';
+        out.hidden = false;
+      }
+    }
+
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      const q = input.value.trim();
+      if (!q) { out.hidden = true; out.innerHTML = ''; lastQuery = null; return; }
+      timer = setTimeout(() => run(q), 180);
+    });
+    input.addEventListener('focus', () => {
+      if (input.value.trim()) { lastQuery = null; run(input.value.trim()); }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Realtime: when this is the caller's own profile, repaint on any follow /
+  // like change. Other tabs on the same profile also update via the broadcast
+  // below.
+  // ---------------------------------------------------------------------------
+  function wireRealtime() {
+    if (state.channel) {
+      try { supabaseClient.removeChannel(state.channel); } catch (_) {}
+      state.channel = null;
+    }
+    const ch = supabaseClient.channel('profile:' + state.targetId);
+    ch.on('postgres_changes',
+      { event: '*', schema: 'public', table: 'profile_follows', filter: 'followee_id=eq.' + state.targetId },
+      () => refresh()
+    ).on('postgres_changes',
+      { event: '*', schema: 'public', table: 'profile_follows', filter: 'follower_id=eq.' + state.targetId },
+      () => refresh()
+    ).on('postgres_changes',
+      { event: '*', schema: 'public', table: 'profile_likes', filter: 'profile_id=eq.' + state.targetId },
+      () => refresh()
+    ).subscribe();
+    state.channel = ch;
+    window.addEventListener('beforeunload', () => {
+      if (state.channel) {
+        try { supabaseClient.removeChannel(state.channel); } catch (_) {}
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Boot — mirrors staff-dashboard.html: getUser → fetch caller profile →
+  // wire chrome → load profile view.
+  // ---------------------------------------------------------------------------
+  async function boot() {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (error || !data || !data.user) {
+      showGate('Sign-in required', 'Sign in to view profiles.');
+      return;
+    }
+    const user = data.user;
+    state.user = user;
+
+    const { data: me } = await supabaseClient
+      .from('profiles')
+      .select('id, full_name, role, avatar_url')
+      .eq('id', user.id)
+      .maybeSingle();
+    state.me = me || { id: user.id, full_name: '', role: null, avatar_url: null };
+
+    const requested = parseTargetId();
+    state.targetId = requested || user.id;
+    state.isSelf = (state.targetId === user.id);
+
+    // Top nav.
+    $('userName').textContent = (me && me.full_name) || user.email || 'You';
+    $('signOutBtn').hidden = false;
+    $('signOutBtn').addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+
+    // Mount notification bell + header avatar dropdown.
+    if (window.recallTopbar) {
+      window.recallTopbar.mount('bellSlot', { supabaseClient, user });
+    }
+    if (window.recallHeaderAvatar) {
+      window.recallHeaderAvatar.mount('avatarSlot', {
+        supabaseClient, user, profile: state.me,
+      });
+    }
+    if (window.recallChat) {
+      window.recallChat.mount({
+        supabaseClient, user, profile: state.me,
+      });
+    }
+
+    showMain();
+    wireBio();
+    wireActions();
+    wireStats();
+    wireSearch();
+    wireRealtime();
+    await refresh();
+  }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', load);
+    document.addEventListener('DOMContentLoaded', boot);
   } else {
-    load();
+    boot();
   }
 })();

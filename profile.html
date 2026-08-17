@@ -1,12 +1,15 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Profile · Recall Education</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Profile · Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    /* Token palette mirrors every other authenticated page. No new globals. */
+    /* ---------- shared token palette (every page uses this) ---------- */
     :root {
       --bg:        #0D1117;
       --bg-2:      #161B22;
@@ -24,7 +27,11 @@
       --blue-dim:  rgba(56,139,253,0.15);
       --blue-pale: rgba(56,139,253,0.08);
       --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
       --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
       --r-sm: 6px;
       --r-md: 8px;
     }
@@ -41,7 +48,7 @@
     a { color: var(--blue); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    /* ---------- TOP NAV ---------- */
+    /* ---------- TOP NAV (mirrors staff-dashboard line 53-71) ---------- */
     nav.top {
       border-bottom: 1px solid var(--line);
       background: var(--bg);
@@ -55,17 +62,20 @@
     }
     .brand {
       display: flex; align-items: center; gap: 10px;
-      font-weight: 700; font-size: 16px;
+      font-weight: 700; font-size: 15px;
       color: var(--text);
     }
     .brand:hover { text-decoration: none; }
     .brand-mark {
-      width: 28px; height: 28px;
+      width: 26px; height: 26px;
       display: block;
       object-fit: cover;
       border-radius: var(--r-sm);
     }
-    nav.top .right { display: flex; align-items: center; gap: 14px; font-size: 13px; }
+    nav.top .right {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 13px; color: var(--text-3);
+    }
     .btn-ghost {
       background: transparent;
       color: var(--text-2);
@@ -76,12 +86,14 @@
       cursor: pointer;
     }
     .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+
+    /* ---------- BUTTONS (mirrors staff-dashboard line 293-310) ---------- */
     .btn-primary {
       background: var(--blue); color: #fff;
       padding: 10px 18px; border-radius: var(--r-sm);
       font-family: inherit; font-size: 13.5px; font-weight: 600;
       border: 1px solid var(--blue);
-      cursor: pointer; text-decoration: none;
+      cursor: pointer;
       display: inline-flex; align-items: center; gap: 8px;
     }
     .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; color: #fff; }
@@ -90,108 +102,102 @@
       border: 1px solid var(--line-2);
       padding: 9px 16px; border-radius: var(--r-sm);
       font-family: inherit; font-size: 13.5px; font-weight: 500;
-      cursor: pointer; text-decoration: none;
+      cursor: pointer;
       display: inline-flex; align-items: center; gap: 8px;
     }
     .btn-secondary:hover { background: var(--bg-4); border-color: var(--line-3); text-decoration: none; color: var(--text); }
 
-    /* ---------- LAYOUT ---------- */
-    main.profile-page {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 32px 24px 60px;
-    }
-    .profile-search {
-      position: relative;
-      margin: 0 0 24px;
-    }
-    .profile-search input {
-      width: 100%;
-      background: var(--bg-2);
-      color: var(--text);
-      border: 1px solid var(--line-2);
-      border-radius: var(--r-sm);
-      padding: 11px 14px;
-      font-family: inherit; font-size: 14px;
-    }
-    .profile-search input:focus {
-      outline: none; border-color: var(--blue);
-      box-shadow: 0 0 0 3px var(--blue-dim);
-    }
-    .profile-search-results {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0; right: 0;
+    /* ---------- GATE (mirrors staff-dashboard line 312-324) ---------- */
+    .gate {
+      max-width: 520px;
+      margin: 80px auto;
+      padding: 32px;
       background: var(--bg-2);
       border: 1px solid var(--line-2);
       border-radius: var(--r-md);
-      box-shadow: 0 12px 32px rgba(0,0,0,0.5);
-      max-height: 360px; overflow-y: auto;
-      z-index: 5;
+      text-align: center;
     }
-    .search-hit {
-      display: flex; align-items: center; gap: 12px;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--line);
-      color: var(--text);
-      text-decoration: none;
-    }
-    .search-hit:last-child { border-bottom: 0; }
-    .search-hit:hover { background: var(--bg-3); text-decoration: none; }
-    .search-hit-name { font-weight: 600; font-size: 13.5px; }
-    .search-hit-role { color: var(--text-3); font-size: 12px; margin-left: auto; }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+    .gate .muted { color: var(--text-4); font-size: 12px; }
 
-    /* ---------- PROFILE CARD ---------- */
-    .profile-card {
+    /* ---------- MAIN (mirrors staff-dashboard line 162-176) ---------- */
+    main.profile-main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    /* ---------- WELCOME (mirrors .welcome on staff-dashboard line 167-176) ---------- */
+    .welcome { margin-bottom: 22px; }
+    .welcome h1 {
+      margin: 0 0 4px;
+      font-size: 24px; font-weight: 700;
+      letter-spacing: -0.015em;
+    }
+    .welcome p { margin: 0; color: var(--text-3); font-size: 14px; }
+
+    /* ---------- CARD (mirrors .card on staff-dashboard line 202-218) ---------- */
+    .card {
       background: var(--bg-2);
       border: 1px solid var(--line);
       border-radius: var(--r-md);
       padding: 20px 22px;
       margin-bottom: 18px;
     }
-    .profile-head {
-      display: flex; gap: 22px; align-items: flex-start;
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 14px; font-weight: 600;
+      letter-spacing: 0.01em;
+      color: var(--text);
+      display: flex; align-items: center; gap: 8px;
     }
-    .profile-avatar {
-      width: 80px; height: 80px;
+    .card h2 .meta { font-size: 11.5px; color: var(--text-4); font-weight: 500; }
+    .card-empty { color: var(--text-4); font-size: 12.5px; padding: 4px 0; }
+
+    /* ---------- IDENTITY ROW (avatar + name + role pill + school) ---------- */
+    .identity {
+      display: flex; align-items: center; gap: 18px;
+      margin-bottom: 18px;
+    }
+    .identity .avatar {
+      width: 64px; height: 64px;
       border-radius: 50%;
-      overflow: hidden; flex-shrink: 0;
       background: var(--bg-3);
-      display: flex; align-items: center; justify-content: center;
-      color: #fff; font-weight: 700; font-size: 26px;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 22px;
+      overflow: hidden; flex-shrink: 0;
     }
-    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .profile-head-meta { flex: 1; min-width: 0; }
-    .profile-head-meta h1 {
-      margin: 0 0 6px;
-      font-size: 22px; font-weight: 700;
-      letter-spacing: -0.015em;
+    .identity .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .identity .meta { flex: 1; min-width: 0; }
+    .identity .name {
+      font-size: 20px; font-weight: 700; color: var(--text);
+      letter-spacing: -0.015em; margin: 0 0 4px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
+    .identity .school { color: var(--text-3); font-size: 13px; }
+
+    /* ---------- ROLE PILL (mirrors staff-dashboard line 84-95) ---------- */
     .role-pill {
       display: inline-block;
-      padding: 2px 10px;
+      padding: 2px 9px;
       border-radius: 999px;
-      font-size: 11px; font-weight: 600;
-      letter-spacing: 0.04em; text-transform: uppercase;
-      background: var(--bg-3);
-      color: var(--text-2);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      background: var(--bg-3); color: var(--text-3);
       border: 1px solid var(--line-2);
     }
-    .role-pill.role-staff_author,
-    .role-pill.role-staff_reviewer,
-    .role-pill.role-admin { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
-    .role-pill.role-teacher,
-    .role-pill.role-school_organiser { background: var(--bg-3); color: var(--green); border-color: var(--green); }
-    .role-pill.role-student { background: var(--bg-3); color: var(--text-3); }
-    .profile-school {
-      color: var(--text-3); font-size: 13px; margin-top: 6px;
-    }
+    .role-pill.staff_author,
+    .role-pill.staff_reviewer,
+    .role-pill.admin       { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
+    .role-pill.teacher,
+    .role-pill.school_organiser { background: var(--green-dim); color: var(--green); border-color: var(--green); }
+    .role-pill.student     { background: var(--bg-3); color: var(--text-3); border-color: var(--line-2); }
 
     /* ---------- BIO ---------- */
-    .profile-bio {
-      margin-top: 14px;
-    }
-    .profile-bio-text {
+    .bio p {
       margin: 0;
       color: var(--text-2);
       font-size: 14px;
@@ -199,13 +205,10 @@
       white-space: pre-wrap;
       word-break: break-word;
     }
-    .profile-bio-text.empty {
-      color: var(--text-4);
-      font-style: italic;
-    }
-    .profile-bio-actions {
-      margin-top: 6px;
-      display: flex; justify-content: flex-end;
+    .bio p.empty { color: var(--text-4); font-style: italic; }
+    .bio .actions {
+      margin-top: 10px;
+      display: flex; gap: 8px; justify-content: flex-end; align-items: center;
     }
     .link-btn {
       background: none; border: 0;
@@ -214,8 +217,7 @@
       padding: 0;
     }
     .link-btn:hover { text-decoration: underline; }
-
-    .profile-bio-form textarea {
+    .bio textarea {
       width: 100%;
       background: var(--bg);
       color: var(--text);
@@ -226,58 +228,54 @@
       resize: vertical;
       min-height: 80px;
     }
-    .profile-bio-form textarea:focus {
+    .bio textarea:focus {
       outline: none; border-color: var(--blue);
       box-shadow: 0 0 0 3px var(--blue-dim);
     }
-    .profile-bio-foot {
+    .bio .foot {
       display: flex; align-items: center; gap: 12px;
       margin-top: 10px;
     }
-    .profile-bio-foot .counter {
-      color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums;
-    }
-    .profile-bio-foot .spacer { flex: 1; }
+    .bio .counter { color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+    .bio .spacer { flex: 1; }
 
-    /* ---------- ACTION ROW ---------- */
-    .profile-actions {
-      display: flex; gap: 10px; flex-wrap: wrap;
-    }
-    /* Follow toggles between the primary "Follow" state (blue) and the
-       secondary-style "Unfollow" state (matches .btn-ghost/secondary tones). */
-    .profile-actions .btn-primary.is-following {
+    /* ---------- ACTIONS ROW ---------- */
+    .cta-row { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+    /* Unfollow = same shape as primary but de-emphasised (secondary tone). */
+    .btn-primary.is-following {
       background: var(--bg-3); color: var(--text);
       border-color: var(--line-2);
     }
-    .profile-actions .btn-primary.is-following:hover {
-      background: var(--bg-4);
+    .btn-primary.is-following:hover {
+      background: var(--bg-4); color: var(--text);
+      border-color: var(--line-3);
     }
     .like-btn {
       background: transparent;
       color: var(--text-2);
       border: 1px solid var(--line-2);
-      padding: 9px 16px;
-      border-radius: var(--r-sm);
+      padding: 9px 16px; border-radius: var(--r-sm);
       font-family: inherit; font-size: 13.5px; font-weight: 500;
       cursor: pointer;
       display: inline-flex; align-items: center; gap: 8px;
     }
-    .like-btn:hover { background: var(--bg-2); color: var(--text); }
-    .like-btn .heart { font-size: 13.5px; line-height: 1; }
+    .like-btn:hover { background: var(--bg-3); color: var(--text); }
+    .like-btn .heart { font-size: 14px; line-height: 1; }
     .like-btn .heart::before { content: '♡'; }
     .like-btn.is-liked {
       color: var(--red);
       border-color: var(--red);
-      background: rgba(248,81,73,0.08);
+      background: var(--red-dim);
     }
     .like-btn.is-liked .heart::before { content: '♥'; }
-    .like-btn.is-liked:hover { background: rgba(248,81,73,0.12); color: var(--red); }
+    .like-btn.is-liked:hover { background: var(--red-dim); color: var(--red); }
 
-    /* ---------- STATS ROW ---------- */
-    .profile-stats {
+    /* ---------- STATS (mirrors staff-dashboard line 178-200) ---------- */
+    .stats {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 12px;
+      margin-bottom: 18px;
     }
     .stat {
       background: var(--bg-2);
@@ -290,74 +288,112 @@
       text-align: left;
     }
     .stat:hover { background: var(--bg-3); }
-    .stat[data-open]:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .stat:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
     .stat .label {
       font-size: 11.5px; color: var(--text-3);
       text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
     }
     .stat .value {
       display: block;
-      font-size: 24px; font-weight: 700;
+      font-size: 26px; font-weight: 700;
       letter-spacing: -0.015em;
       margin-top: 4px;
-      color: var(--text);
       font-variant-numeric: tabular-nums;
     }
     .stat.readonly { cursor: default; }
     .stat.readonly:hover { background: var(--bg-2); }
-    @media (max-width: 720px) {
-      .profile-stats { grid-template-columns: repeat(2, 1fr); }
-    }
 
-    /* ---------- MUTUALS GRID ---------- */
-    .profile-recent-mutuals h2 {
-      margin: 0 0 14px;
-      font-size: 14px; font-weight: 600;
-      letter-spacing: 0.01em;
-      color: var(--text);
-      display: flex; align-items: center; gap: 8px;
-    }
+    /* ---------- MUTUALS GRID (mirrors .staff-grid on staff-dashboard line 256-290) ---------- */
     .mutuals-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
       gap: 10px;
     }
-    .mutual-card {
-      background: var(--bg-3);
-      border: 1px solid var(--line);
-      border-radius: var(--r-md);
-      padding: 12px;
+    .mutual-tile {
       display: flex; flex-direction: column; align-items: center; gap: 6px;
-      color: var(--text); text-decoration: none;
+      padding: 12px 10px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      cursor: pointer;
+      text-align: center;
+      transition: border-color 0.15s ease, background 0.15s ease;
+      text-decoration: none;
+      color: var(--text);
     }
-    .mutual-card:hover { background: var(--bg-4); text-decoration: none; }
-    .mutual-avatar {
+    .mutual-tile:hover { border-color: var(--blue); background: var(--bg-2); text-decoration: none; }
+    .mutual-tile .av {
       width: 40px; height: 40px;
       border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      color: #fff; font-weight: 600; font-size: 14px;
+      background: var(--bg-3);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: #fff;
       overflow: hidden;
-      background: var(--bg-4);
     }
-    .mutual-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .mutual-name {
-      font-size: 12.5px; font-weight: 600; color: var(--text);
-      text-align: center;
-      overflow: hidden; text-overflow: ellipsis;
-      max-width: 100%; white-space: nowrap;
+    .mutual-tile .av img { width: 100%; height: 100%; object-fit: cover; }
+    .mutual-tile .name {
+      font-size: 12.5px; font-weight: 600;
+      max-width: 100%;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .mutual-role { font-size: 11px; color: var(--text-3); text-align: center; }
+
+    /* ---------- SEARCH (inside a card) ---------- */
+    .search-card .hint { color: var(--text-3); font-size: 13px; margin: 0 0 12px; }
+    .search-card .field { position: relative; }
+    .search-card input {
+      width: 100%;
+      background: var(--bg-2);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 8px 12px;
+      font-family: inherit; font-size: 13px;
+      outline: none;
+    }
+    .search-card input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-dim);
+    }
+    .search-results {
+      margin-top: 8px; max-height: 360px; overflow-y: auto;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+    }
+    .search-hit {
+      display: block;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-decoration: none;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .search-hit:last-child { border-bottom: 0; }
+    .search-hit:hover { background: var(--bg-3); text-decoration: none; }
+    .search-hit .who {
+      font-size: 13.5px; font-weight: 500;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .search-hit .av {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--bg-3);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: #fff;
+      overflow: hidden; flex-shrink: 0;
+    }
+    .search-hit .av img { width: 100%; height: 100%; object-fit: cover; }
+    .search-hit .role { color: var(--text-3); font-size: 11.5px; margin-left: auto; }
 
     /* ---------- LIST MODAL ---------- */
-    .profile-modal {
+    .modal-back {
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.6);
       display: flex; align-items: center; justify-content: center;
-      z-index: 60;
-      padding: 24px;
+      z-index: 60; padding: 24px;
     }
-    .profile-modal[hidden] { display: none !important; }
-    .profile-modal-card {
+    .modal-back[hidden] { display: none !important; }
+    .modal-card {
       background: var(--bg-2);
       border: 1px solid var(--line-2);
       border-radius: var(--r-md);
@@ -365,104 +401,139 @@
       display: flex; flex-direction: column;
       overflow: hidden;
     }
-    .profile-modal-card header {
+    .modal-card header {
       padding: 16px 18px;
       border-bottom: 1px solid var(--line);
       display: flex; align-items: center; justify-content: space-between;
     }
-    .profile-modal-card h3 { margin: 0; font-size: 16px; font-weight: 600; }
-    .profile-modal-card .modal-list {
-      flex: 1; overflow-y: auto;
-      padding: 8px 0;
-    }
-    .modal-list-item {
+    .modal-card h3 { margin: 0; font-size: 16px; font-weight: 600; }
+    .modal-card .list { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .list-row {
       display: flex; align-items: center; gap: 12px;
       padding: 10px 18px;
       color: var(--text);
       text-decoration: none;
     }
-    .modal-list-item:hover { background: var(--bg-3); text-decoration: none; }
-    .modal-list-empty {
+    .list-row:hover { background: var(--bg-3); text-decoration: none; }
+    .list-row .av {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--bg-3);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #fff;
+      overflow: hidden; flex-shrink: 0;
+    }
+    .list-row .av img { width: 100%; height: 100%; object-fit: cover; }
+    .list-row .name { font-size: 13.5px; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .list-row .role { font-size: 11.5px; color: var(--text-3); }
+    .list-empty {
       padding: 32px 18px; text-align: center;
       color: var(--text-3); font-size: 13px;
     }
 
-    /* ---------- ERROR / GATE ---------- */
-    .error-line {
-      background: rgba(248,81,73,0.08);
-      border: 1px solid var(--red);
-      color: var(--text);
-      padding: 14px 18px;
-      border-radius: var(--r-sm);
-      margin: 24px 0;
-      font-size: 13.5px;
+    /* ---------- TOASTS ---------- */
+    .toast-wrap {
+      position: fixed; bottom: 20px; right: 20px; z-index: 100;
+      display: flex; flex-direction: column; gap: 8px;
     }
+    .toast {
+      background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      padding: 10px 14px; color: var(--text-2); font-size: 13px;
+      max-width: 320px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .toast.success { border-color: var(--green); color: var(--green); }
+    .toast.error   { border-color: var(--red);   color: var(--red); }
+
     a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
       outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+
+    @media (max-width: 720px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .identity .avatar { width: 56px; height: 56px; }
+      .identity .name { font-size: 18px; }
     }
   </style>
 </head>
 <body>
 
-<nav class="top">
+<nav class="top" id="profileNav" hidden>
   <div class="row">
     <a class="brand" href="index.html">
       <img class="brand-mark" src="logo.png" alt="Recall" /> Recall
     </a>
     <div class="right">
-      <div id="bellSlot"></div>
+      <span id="userName"></span>
       <div id="avatarSlot" style="display: inline-flex;"></div>
+      <div id="bellSlot"></div>
       <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
     </div>
   </div>
 </nav>
 
-<main class="profile-page">
-  <section class="profile-search">
-    <input id="searchInput" type="text" placeholder="Find people to follow…"
-           autocomplete="off" />
-    <div id="searchResults" class="profile-search-results" hidden></div>
-  </section>
+<div id="gate" class="gate" hidden>
+  <h1 id="gateTitle">Verifying access…</h1>
+  <p id="gateMsg">One moment.</p>
+  <p class="muted"><a class="btn-link" href="login.html">Sign in</a> · <a class="btn-link" href="index.html">Back to home</a></p>
+</div>
 
-  <section id="profileCard" class="profile-card" hidden>
-    <header class="profile-head">
-      <div id="avatarBig" class="profile-avatar"></div>
-      <div class="profile-head-meta">
-        <h1 id="displayName"></h1>
-        <span id="rolePill" class="role-pill"></span>
-        <div id="schoolLine" class="profile-school"></div>
-        <div class="profile-bio">
-          <p id="bioText" class="profile-bio-text"></p>
-          <div class="profile-bio-actions">
-            <button id="editBioBtn" class="link-btn" type="button" hidden>Edit bio</button>
-          </div>
-          <form id="bioForm" class="profile-bio-form" hidden>
-            <textarea id="bioInput" maxlength="500" rows="4"
-                      placeholder="Tell people about yourself…"></textarea>
-            <div class="profile-bio-foot">
-              <span id="bioCounter" class="counter">0 / 500</span>
-              <span class="spacer"></span>
-              <button id="bioCancel" class="btn-ghost" type="button">Cancel</button>
-              <button id="bioSave" class="btn-primary" type="submit">Save</button>
-            </div>
-          </form>
-        </div>
+<main class="profile-main" id="profileMain" hidden>
+
+  <div class="welcome">
+    <h1 id="welcomeTitle">Profile</h1>
+    <p id="welcomeSub">Loading…</p>
+  </div>
+
+  <!-- IDENTITY CARD -->
+  <div class="card" id="identityCard" hidden>
+    <div class="identity">
+      <div class="avatar" id="avatarBig"></div>
+      <div class="meta">
+        <div class="name" id="displayName">…</div>
+        <span class="role-pill" id="rolePill"></span>
+        <div class="school" id="schoolLine"></div>
       </div>
-    </header>
-  </section>
+    </div>
+  </div>
 
-  <section class="profile-card profile-actions" hidden id="actionsCard">
-    <button id="followBtn" class="btn-primary" type="button" hidden>Follow</button>
-    <button id="messageBtn" class="btn-ghost" type="button" hidden>Message</button>
-    <button id="likeBtn" class="like-btn" type="button" hidden>
-      <span class="heart"></span>
-      <span>Like</span>
-      <span id="likeCount">0</span>
-    </button>
-  </section>
+  <!-- BIO CARD -->
+  <div class="card bio" id="bioCard" hidden>
+    <h2>About</h2>
+    <p id="bioText" class="empty">You haven't written a bio yet.</p>
+    <div class="actions" id="bioActions" hidden>
+      <button class="link-btn" type="button" id="editBioBtn">Edit bio</button>
+    </div>
+    <form id="bioForm" hidden>
+      <textarea id="bioInput" maxlength="500" rows="4"
+                placeholder="Tell people about yourself…"></textarea>
+      <div class="foot">
+        <span class="counter" id="bioCounter">0 / 500</span>
+        <span class="spacer"></span>
+        <button class="btn-ghost" type="button" id="bioCancel">Cancel</button>
+        <button class="btn-primary" type="submit" id="bioSave">Save</button>
+      </div>
+    </form>
+  </div>
 
-  <section class="profile-card" hidden id="statsCard">
-    <div class="profile-stats">
+  <!-- ACTIONS CARD (follow / message / like) -->
+  <div class="card" id="actionsCard" hidden>
+    <h2>Connect</h2>
+    <div class="cta-row">
+      <button class="btn-primary" type="button" id="followBtn" hidden>Follow</button>
+      <button class="btn-ghost"  type="button" id="messageBtn" hidden>Message</button>
+      <button class="like-btn"   type="button" id="likeBtn" hidden>
+        <span class="heart"></span>
+        <span>Like</span>
+        <span id="likeCount">0</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- STATS CARD -->
+  <div class="card" id="statsCard" hidden>
+    <h2>Activity</h2>
+    <div class="stats">
       <button class="stat" type="button" data-open="followers">
         <div class="label">Followers</div>
         <span class="value" id="statFollowers">0</span>
@@ -480,62 +551,44 @@
         <span class="value" id="statLikedBy">0</span>
       </div>
     </div>
-  </section>
+  </div>
 
-  <section class="profile-recent-mutuals profile-card" id="mutualsCard" hidden>
-    <h2>Mutual friends</h2>
+  <!-- MUTUAL FRIENDS CARD -->
+  <div class="card" id="mutualsCard" hidden>
+    <h2>Mutual friends <span class="meta" id="mutualsMeta"></span></h2>
     <div id="mutualsGrid" class="mutuals-grid"></div>
-  </section>
+  </div>
 
-  <div id="listModal" class="profile-modal" hidden>
-    <div class="profile-modal-card">
-      <header>
-        <h3 id="listModalTitle">List</h3>
-        <button id="listClose" class="link-btn" type="button">Close</button>
-      </header>
-      <div id="listModalBody" class="modal-list"></div>
+  <!-- FIND PEOPLE CARD -->
+  <div class="card search-card" id="searchCard" hidden>
+    <h2>Find people to follow</h2>
+    <p class="hint">Type a name. Results open in a new tab.</p>
+    <div class="field">
+      <input id="searchInput" type="search" placeholder="Search by name…" autocomplete="off" />
+      <div id="searchResults" class="search-results" hidden></div>
     </div>
   </div>
 
-  <p id="errorLine" class="error-line" hidden></p>
 </main>
 
+<!-- List modal -->
+<div id="listModal" class="modal-back" hidden>
+  <div class="modal-card">
+    <header>
+      <h3 id="listModalTitle">List</h3>
+      <button class="link-btn" type="button" id="listClose">Close</button>
+    </header>
+    <div id="listModalBody" class="list"></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  // Mirrors the boot snippet from index.html / lesson-creator.html etc.
-  // Mirrors KEEP_KEY behaviour from login.html.
-  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
-  const KEEP_KEY = 'recall.keepSignedIn';
-  let keepSignedIn = true;
-  try {
-    const raw = localStorage.getItem(KEEP_KEY);
-    if (raw === '0') keepSignedIn = false;
-    else if (raw === '1') keepSignedIn = true;
-    else localStorage.setItem(KEEP_KEY, '1');
-  } catch (_) {}
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    persistSession: keepSignedIn,
-    autoRefreshToken: keepSignedIn,
-    detectSessionInUrl: true,
-    global: {
-      fetch: (url, options = {}) => {
-        try {
-          const u = new URL(url, window.location.href);
-          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
-            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
-          }
-          return fetch(u.toString(), options);
-        } catch (_) {
-          return fetch(url, options);
-        }
-      }
-    }
-  });
-  window.supabaseClient = supabaseClient;
-</script>
 <script src="topbar.js" defer></script>
 <script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
+<script src="bubbles.js" defer></script>
 <script src="profile.js" defer></script>
 </body>
 </html>
