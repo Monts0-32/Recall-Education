@@ -939,11 +939,22 @@
     state.school = school;
 
     // Sidebar identity
-    $('userName').textContent = meta.full_name || state.user.email;
+    function setNavName() {
+      const el = $('userName');
+      if (!el) { setTimeout(setNavName, 30); return; }
+      el.textContent = meta.full_name || state.user.email;
+    }
+    setNavName();
     $('userAvatar').textContent = initials(meta.full_name || state.user.email);
     $('userMeta').textContent = 'School organiser';
-    $('navName').textContent = meta.full_name || '';
-    $('signOutBtn').hidden = false;
+    const navName = $('navName');
+    if (navName) navName.textContent = meta.full_name || '';
+    function unhideSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(unhideSignOut, 30); return; }
+      btn.hidden = false;
+    }
+    unhideSignOut();
 
     $('schoolNameCrumb').textContent = school.name;
     $('welcomeTitle').textContent = `Welcome back, ${(meta.full_name || '').split(' ')[0] || 'there'}`;
@@ -1896,10 +1907,17 @@
   }
 
   // ---------- sign out ----------
-  $('signOutBtn').addEventListener('click', async () => {
-    await supabaseClient.auth.signOut();
-    window.location.href = 'login.html';
-  });
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
 
   // ---------- start ----------
   boot();

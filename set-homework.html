@@ -623,8 +623,14 @@
     }
     state.school = { id: profile.school_id };
 
-    $('navName').textContent = meta.full_name || state.user.email;
-    $('signOutBtn').hidden = false;
+    const navName = $('navName');
+    if (navName) navName.textContent = meta.full_name || state.user.email;
+    function unhideSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(unhideSignOut, 30); return; }
+    btn.hidden = false;
+  }
+  unhideSignOut();
     $('sub').textContent = 'Fill in the details and pick who should see it.';
 
     // Default the due date to a week from now, rounded to 9am local
@@ -1267,10 +1273,17 @@
     }
   });
 
-  $('signOutBtn').addEventListener('click', async () => {
-    await supabaseClient.auth.signOut();
-    window.location.href = 'login.html';
-  });
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
 
   boot();
 </script>

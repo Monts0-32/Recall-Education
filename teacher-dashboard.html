@@ -436,8 +436,14 @@
     state.school = school;
 
     // Sidebar identity
-    $('navName').textContent = meta.full_name || state.user.email;
-    $('signOutBtn').hidden = false;
+    const navName = $('navName');
+    if (navName) navName.textContent = meta.full_name || state.user.email;
+    function unhideSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(unhideSignOut, 30); return; }
+    btn.hidden = false;
+  }
+  unhideSignOut();
     $('welcomeTitle').textContent = `Welcome, ${(meta.full_name || '').split(' ')[0] || 'teacher'}`;
     $('welcomeSub').textContent = school ? `Teaching at ${school.name}.` : '';
     $('schoolPill').textContent = school ? school.name : '—';
@@ -628,10 +634,17 @@
     }).join('');
   }
 
-  $('signOutBtn').addEventListener('click', async () => {
-    await supabaseClient.auth.signOut();
-    window.location.href = 'login.html';
-  });
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
 
   boot();
 </script>

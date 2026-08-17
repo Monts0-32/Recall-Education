@@ -607,11 +607,23 @@
     // Top nav.
     // (userName is hidden by CSS — the avatar button + identity card are the
     // canonical display-name surfaces on the profile page.)
-    $('signOutBtn').hidden = false;
-    $('signOutBtn').addEventListener('click', async () => {
-      await supabaseClient.auth.signOut();
-      window.location.href = 'login.html';
-    });
+    function unhideSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(unhideSignOut, 30); return; }
+      btn.hidden = false;
+    }
+    unhideSignOut();
+    function wireSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(wireSignOut, 30); return; }
+      if (btn.dataset.recallSignOutWired) return;
+      btn.dataset.recallSignOutWired = '1';
+      btn.addEventListener('click', async () => {
+        await supabaseClient.auth.signOut();
+        window.location.href = 'login.html';
+      });
+    }
+    wireSignOut();
 
     // Mount notification bell + header avatar dropdown.
     function mountBell() {

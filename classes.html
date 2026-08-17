@@ -551,7 +551,12 @@
     // navName no longer rendered — header.js shows the name in the avatar button.
     const navName = document.getElementById('navName');
     if (navName) navName.textContent = meta.full_name || state.user.email;
-    $('signOutBtn').hidden = false;
+    function unhideSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(unhideSignOut, 30); return; }
+    btn.hidden = false;
+  }
+  unhideSignOut();
     $('schoolPill').textContent = school ? school.name : '—';
     $('sub').textContent = school ? `Classes at ${school.name}.` : 'Classes for your school.';
 
@@ -895,10 +900,17 @@
     }
   });
 
-  $('signOutBtn').addEventListener('click', async () => {
-    await supabaseClient.auth.signOut();
-    window.location.href = 'login.html';
-  });
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
 
   boot();
 </script>

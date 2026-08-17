@@ -3524,12 +3524,19 @@
   }
 
   // ---------- sign out ----------
-  $('signOutBtn').addEventListener('click', async () => {
-    // Best-effort flush so we don't lose a final beat of time.
-    flush(false);
-    await supabaseClient.auth.signOut();
-    location.href = 'auth/login.html';
-  });
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      // Best-effort flush so we don't lose a final beat of time.
+      flush(false);
+      await supabaseClient.auth.signOut();
+      location.href = 'auth/login.html';
+    });
+  }
+  wireSignOut();
 </script>
 <script src="header.js" defer></script>
 <script src="bubbles.js" defer></script>

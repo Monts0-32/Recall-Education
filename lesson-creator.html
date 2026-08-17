@@ -2496,8 +2496,18 @@
       return;
     }
     state.role = role;
-    $('userName').textContent = (profile && profile.full_name) || state.user.email;
-    $('signOutBtn').hidden = false;
+    function setNavName() {
+      const el = $('userName');
+      if (!el) { setTimeout(setNavName, 30); return; }
+      el.textContent = (profile && profile.full_name) || state.user.email;
+    }
+    setNavName();
+    function unhideSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(unhideSignOut, 30); return; }
+      btn.hidden = false;
+    }
+    unhideSignOut();
 
     // Mount the notification bell — staff gets the same notification
     // hub as the rest of the staff/admin pages.
@@ -2588,13 +2598,25 @@
     // Hide the sidebar and the top-nav brand so the gate fills the page.
     const sidebar = document.querySelector('.sidebar');
     if (sidebar) sidebar.style.display = 'none';
-    $('userName').textContent = name || '';
+    function setNavName2() {
+      const el2 = $('userName');
+      if (!el2) { setTimeout(setNavName2, 30); return; }
+      el2.textContent = name || '';
+    }
+    setNavName2();
   }
 
-  $('signOutBtn').addEventListener('click', async () => {
-    await supabaseClient.auth.signOut();
-    window.location.href = 'login.html';
-  });
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
 
   // ---------- catalog (card grid) ----------
   // The left rail is a breadcrumb-driven card grid. Each level is a

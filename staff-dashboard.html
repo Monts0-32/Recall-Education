@@ -588,7 +588,7 @@
 
   function showGate(title, msg) {
     $('dashLayout').hidden = true;
-    $('staffNav').hidden = true;
+    const staffNav = $('staffNav'); if (staffNav) staffNav.hidden = true;
     $('gate').hidden = false;
     $('gateTitle').textContent = title;
     $('gateMsg').textContent = msg;
@@ -638,12 +638,22 @@
 
   function showDashboard(user, role, profile) {
     $('gate').hidden = true;
-    $('staffNav').hidden = false;
+    const staffNav = $('staffNav'); if (staffNav) staffNav.hidden = false;
     $('dashLayout').hidden = false;
 
     // Top nav
-    $('userName').textContent = (profile && profile.full_name) || user.email;
-    $('signOutBtn').hidden = false;
+    function setNavName() {
+      const el = $('userName');
+      if (!el) { setTimeout(setNavName, 30); return; }
+      el.textContent = (profile && profile.full_name) || user.email;
+    }
+    setNavName();
+    function unhideSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(unhideSignOut, 30); return; }
+      btn.hidden = false;
+    }
+    unhideSignOut();
     applyRole(role);
 
     // Profile card on left rail
@@ -1126,10 +1136,17 @@
   };
 
   // ---------- sign out ----------
-  $('signOutBtn').addEventListener('click', async () => {
-    await supabaseClient.auth.signOut();
-    window.location.href = 'login.html';
-  });
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
 
   // ---------- boot ----------
   async function boot() {
@@ -1175,7 +1192,12 @@
         'Staff access only',
         'Your account is signed in, but it does not have staff permissions. Ask an admin to invite you from the admin console.'
       );
-      $('userName').textContent = (user.user_metadata && user.user_metadata.full_name) || user.email;
+      function setNavName2() {
+        const el2 = $('userName');
+        if (!el2) { setTimeout(setNavName2, 30); return; }
+        el2.textContent = (user.user_metadata && user.user_metadata.full_name) || user.email;
+      }
+      setNavName2();
       return;
     }
 

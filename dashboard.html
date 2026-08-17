@@ -1029,7 +1029,14 @@
     // as a guarded no-op so any stale references stay harmless.
     const navName = document.getElementById('navName');
     if (navName) navName.textContent = name || '';
-    $('signOutBtn').hidden = !name;
+    // signOutBtn is created by the deferred header.js module, so this may
+    // not exist yet — retry until it does.
+    function setSignOutHidden(hidden) {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(() => setSignOutHidden(hidden), 30); return; }
+      btn.hidden = hidden;
+    }
+    setSignOutHidden(!name);
   }
 
   // Time-of-day greeting. Pools keyed by hour, deterministically indexed
@@ -1609,10 +1616,17 @@
     if (session) revealStaffTools(session);
   });
 
-  $('signOutBtn').addEventListener('click', async function () {
-    await supabaseClient.auth.signOut();
-    window.location.href = 'index.html';
-  });
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async function () {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'index.html';
+    });
+  }
+  wireSignOut();
 
   // ============================================================
   // LESSON SEARCH BAR
