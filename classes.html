@@ -288,16 +288,7 @@
 </head>
 <body>
 
-<nav class="top">
-  <div class="row">
-    <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
-    <div class="right">
-      <div id="avatarSlot" style="display: inline-flex;"></div>
-      <span id="navName" style="color: var(--text-3);"></span>
-      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
-    </div>
-  </div>
-</nav>
+<div id="headerSlot" data-mode="auth"></div>
 
 <div class="layout" id="main">
   <div class="crumbs">
@@ -557,7 +548,9 @@
       .maybeSingle();
     state.school = school;
 
-    $('navName').textContent = meta.full_name || state.user.email;
+    // navName no longer rendered — header.js shows the name in the avatar button.
+    const navName = document.getElementById('navName');
+    if (navName) navName.textContent = meta.full_name || state.user.email;
     $('signOutBtn').hidden = false;
     $('schoolPill').textContent = school ? school.name : '—';
     $('sub').textContent = school ? `Classes at ${school.name}.` : 'Classes for your school.';
@@ -905,6 +898,7 @@
 
   boot();
 </script>
+<script src="header.js" defer></script>
 <script src="bubbles.js" defer></script>
 <script src="header-avatar.js" defer></script>
 <script src="chat.js" defer></script>

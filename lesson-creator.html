@@ -2228,21 +2228,7 @@
 </head>
 <body>
 
-<nav class="top">
-  <div class="row">
-    <a class="brand" href="index.html">
-      <img class="brand-mark" src="logo.png" alt="Recall" /> Recall
-      <span class="tag">STAFF</span>
-    </a>
-    <div class="right">
-      <span id="rankPill" class="rank-pill" hidden></span>
-      <span id="userName">…</span>
-      <div id="avatarSlot" style="display: inline-flex;"></div>
-      <div id="bellSlot"></div>
-      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
-    </div>
-  </div>
-</nav>
+<div id="headerSlot" data-mode="auth"></div>
 
 <div class="layout">
   <!-- ===== SIDEBAR ===== -->
@@ -7701,6 +7687,7 @@
   // ---------- go ----------
   boot();
 </script>
+<script src="header.js" defer></script>
 <script src="topbar.js" defer></script>
 <script src="header-avatar.js" defer></script>
 <script src="chat.js" defer></script>

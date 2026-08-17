@@ -1683,16 +1683,7 @@
 </head>
 <body>
 
-<nav class="top">
-  <div class="row">
-    <a class="brand" href="dashboard.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
-    <div class="nav-right">
-      <div id="avatarSlot" style="display: inline-flex;"></div>
-      <a href="dashboard.html">Back to dashboard</a>
-      <button id="signOutBtn" type="button">Sign out</button>
-    </div>
-  </div>
-</nav>
+<div id="headerSlot" data-mode="auth"></div>
 
 <div class="lesson-head" id="head" hidden>
   <div class="crumb-row" id="crumbRow"></div>
@@ -3538,6 +3529,7 @@
     location.href = 'auth/login.html';
   });
 </script>
+<script src="header.js" defer></script>
 <script src="bubbles.js" defer></script>
 <script src="header-avatar.js" defer></script>
 </body>

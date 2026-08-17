@@ -351,16 +351,7 @@
 </head>
 <body>
 
-<nav class="top">
-  <div class="row">
-    <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
-    <div class="right">
-      <div id="avatarSlot" style="display: inline-flex;"></div>
-      <span id="navName" style="color: var(--text-3);"></span>
-      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
-    </div>
-  </div>
-</nav>
+<div id="headerSlot" data-mode="auth"></div>
 
 <div class="layout">
   <div class="crumbs">
@@ -1279,6 +1270,7 @@
 
   boot();
 </script>
+<script src="header.js" defer></script>
 <script src="bubbles.js" defer></script>
 <script src="header-avatar.js" defer></script>
 <script src="chat.js" defer></script>

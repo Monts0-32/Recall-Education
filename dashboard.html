@@ -643,17 +643,7 @@
   </div>
 </div>
 
-<nav class="top">
-  <div class="row">
-    <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
-    <div class="right">
-      <span id="navName" style="color: var(--text-3);"></span>
-      <div id="avatarSlot" style="display: inline-flex;"></div>
-      <div id="bellSlot"></div>
-      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
-    </div>
-  </div>
-</nav>
+<div id="headerSlot" data-mode="auth"></div>
 
 <div class="layout">
 
@@ -1034,7 +1024,11 @@
       ? "Pick up where you left off, or start something new."
       : "Your dashboard is being set up. Sign in or confirm your email to get started.";
     $('dashBarPill').textContent = yearGroup || 'Y12';
-    $('navName').textContent = name || '';
+    // navName used to live in the inline nav; the shared header renders the
+    // user name inside the avatar button instead. The old call is preserved
+    // as a guarded no-op so any stale references stay harmless.
+    const navName = document.getElementById('navName');
+    if (navName) navName.textContent = name || '';
     $('signOutBtn').hidden = !name;
   }
 
@@ -1785,6 +1779,7 @@
     }
   });
 </script>
+<script src="header.js" defer></script>
 <script src="topbar.js" defer></script>
 <script src="header-avatar.js" defer></script>
 <script src="bubbles.js" defer></script>

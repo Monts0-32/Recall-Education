@@ -150,11 +150,7 @@
 </head>
 <body>
 
-<nav class="top">
-  <div class="row">
-    <a class="brand" href="../index.html"><img class="brand-mark" src="../logo.png" alt="Recall" /> Recall</a>
-  </div>
-</nav>
+<div id="headerSlot" data-mode="auth"></div>
 
 <main class="wrap">
   <div class="card">
@@ -567,6 +563,7 @@
     $('state').insertAdjacentElement('afterend', fallback);
   }, 4000);
 </script>
+<script src="../header.js" defer></script>
 <script src="../bubbles.js" defer></script>
 </body>
 </html>

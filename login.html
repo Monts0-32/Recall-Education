@@ -382,12 +382,10 @@
 </head>
 <body>
 
-<nav class="top">
-  <div class="row">
-<a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
-    <div class="right">Don't have an account? <a href="#" id="openRolePicker">Sign up</a></div>
-  </div>
-</nav>
+<div id="headerSlot" data-mode="minimal"></div>
+<div class="recall-header-extra" style="display: none;">
+  Don't have an account? <a href="#" id="openRolePicker">Sign up</a>
+</div>
 
 <main class="page">
 
@@ -882,6 +880,7 @@
     });
   });
 </script>
+<script src="header.js" defer></script>
 <script src="bubbles.js" defer></script>
 </body>
 </html>
