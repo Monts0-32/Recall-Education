@@ -75,50 +75,7 @@
     a { color: var(--teal-soft); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    /* ---------- NAV (mirrors index.html) ---------- */
-    nav.top {
-      position: sticky; top: 0; z-index: 50;
-      background: rgba(26, 29, 34, 0.78);
-      backdrop-filter: saturate(140%) blur(12px);
-      -webkit-backdrop-filter: saturate(140%) blur(12px);
-      border-bottom: 1px solid var(--line);
-    }
-    nav.top .row {
-      max-width: var(--maxw); margin: 0 auto;
-      padding: 0 24px;
-      display: flex; align-items: center; justify-content: space-between;
-      height: 64px;
-    }
-    .brand {
-      display: flex; align-items: center; gap: 10px;
-      font-weight: 700; font-size: 16px;
-      color: var(--text);
-      text-decoration: none;
-    }
-    .brand:hover { text-decoration: none; }
-    .brand-mark {
-      width: 30px; height: 30px;
-      display: block;
-      object-fit: cover;
-      border-radius: 50%;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.04),
-                  0 0 16px rgba(86,212,221,0.18);
-    }
-    .brand .tag {
-      font-size: 11px; font-weight: 600;
-      background: var(--teal-pale); color: var(--teal);
-      padding: 3px 10px; border-radius: var(--r-pill);
-      margin-left: 6px;
-      letter-spacing: 0.02em;
-    }
-    nav.top ul { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; }
-    nav.top a.nav-link {
-      color: var(--text-2); font-size: 14px; font-weight: 500;
-      padding: 7px 12px; border-radius: var(--r-pill);
-      text-decoration: none;
-    }
-    nav.top a.nav-link:hover { color: var(--text); background: var(--bg-3); text-decoration: none; }
-    .nav-right { display: flex; align-items: center; gap: 8px; }
+    /* ---------- NAV is provided by header.js (data-mode="auth" data-tag="Moderation") ---------- */
 
     /* ---------- LAYOUT ---------- */
     .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
@@ -618,19 +575,7 @@
   </div>
 
   <div id="app" class="hidden">
-    <nav class="top">
-      <div class="row">
-        <a class="brand" href="index.html">
-          <img class="brand-mark" src="logo.png" alt="Recall" />
-          Recall
-          <span class="tag">Moderation</span>
-        </a>
-        <div class="nav-right">
-          <span id="bellSlot"></span>
-          <span id="avatarSlot"></span>
-        </div>
-      </div>
-    </nav>
+    <div id="headerSlot" data-mode="auth" data-tag="Moderation"></div>
 
     <div class="wrap page">
       <div class="page-head">
@@ -744,6 +689,7 @@
     });
     window.supabaseClient = supabaseClient;
   </script>
+  <script src="header.js" defer></script>
   <script src="topbar.js" defer></script>
   <script src="header-avatar.js" defer></script>
   <script>
