@@ -330,6 +330,7 @@
   <div class="row">
     <a class="brand" href="dashboard.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
     <div class="right">
+      <div id="avatarSlot" style="display: inline-flex;"></div>
       <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
     </div>
   </div>
@@ -595,6 +596,19 @@
     state.user = user;
     $('signOutBtn').hidden = false;
 
+    // Mount the header avatar chip.
+    if (window.recallHeaderAvatar) {
+      let avatarProfile = { id: user.id, full_name: '', role: '', avatar_url: null };
+      try {
+        const { data: p } = await supabaseClient
+          .from('profiles').select('id, full_name, role, avatar_url').eq('id', user.id).maybeSingle();
+        if (p) avatarProfile = p;
+      } catch (_) { /* fall through */ }
+      window.recallHeaderAvatar.mount('avatarSlot', {
+        supabaseClient, user, profile: avatarProfile
+      });
+    }
+
     const { data: rows, error } = await supabaseClient.rpc('list_my_assignments');
     if (error) {
       $('sub').textContent = 'Couldn\'t load your homework. Refresh to try again.';
@@ -797,5 +811,6 @@
   load();
 </script>
 <script src="bubbles.js" defer></script>
+<script src="header-avatar.js" defer></script>
 </body>
 </html>

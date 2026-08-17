@@ -2237,6 +2237,7 @@
     <div class="right">
       <span id="rankPill" class="rank-pill" hidden></span>
       <span id="userName">…</span>
+      <div id="avatarSlot" style="display: inline-flex;"></div>
       <div id="bellSlot"></div>
       <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
     </div>
@@ -2471,7 +2472,7 @@
     // tie-breaker if profiles.role is null, but profiles wins.
     const { data: profile } = await supabaseClient
       .from('profiles')
-      .select('id, full_name, role')
+      .select('id, full_name, role, avatar_url')
       .eq('id', state.user.id)
       .maybeSingle();
 
@@ -2516,6 +2517,31 @@
     // hub as the rest of the staff/admin pages.
     if (window.recallTopbar) {
       window.recallTopbar.mount('bellSlot', { supabaseClient, user: state.user });
+    }
+    // Header avatar chip + dropdown.
+    if (window.recallHeaderAvatar) {
+      const avatarProfile = {
+        id: state.user.id,
+        full_name: state.profile ? state.profile.full_name : '',
+        role: state.profile ? state.profile.role : '',
+        avatar_url: state.profile ? state.profile.avatar_url : null
+      };
+      window.recallHeaderAvatar.mount('avatarSlot', {
+        supabaseClient, user: state.user, profile: avatarProfile
+      });
+    }
+    // Floating chat FAB for staff.
+    if (window.recallChat) {
+      window.recallChat.mount({
+        supabaseClient,
+        user: state.user,
+        profile: {
+          id: state.user.id,
+          full_name: state.profile ? state.profile.full_name : '',
+          role: state.profile ? state.profile.role : '',
+          avatar_url: state.profile ? state.profile.avatar_url : null
+        }
+      });
     }
     // Rank pill in the top nav.
     const ROLE_PILL = {
@@ -7676,6 +7702,8 @@
   boot();
 </script>
 <script src="topbar.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
 <script src="bubbles.js" defer></script>
 </body>
 </html>

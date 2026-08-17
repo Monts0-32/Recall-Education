@@ -1123,7 +1123,8 @@ returns table (
   role            text,
   email           text,
   last_sign_in_at timestamptz,
-  created_at      timestamptz
+  created_at      timestamptz,
+  avatar_url      text
 )
 language sql
 security definer
@@ -1131,7 +1132,7 @@ set search_path = public
 stable
 as $$
   select p.id, p.full_name, p.role, u.email::text,
-         u.last_sign_in_at, p.created_at
+         u.last_sign_in_at, p.created_at, p.avatar_url
     from public.profiles p
     join auth.users u on u.id = p.id
    where p.role in ('staff_author', 'staff_reviewer', 'admin')

@@ -1070,6 +1070,7 @@
   </div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   document.querySelectorAll('.faq-item').forEach(function (item) {
     const q = item.querySelector('.faq-q');
@@ -1078,6 +1079,50 @@
       q.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
   });
+
+  // Supabase client + keep-signed-in preference, mirroring login.html so a
+  // returning user lands with their session intact. Mounts the welcome bar
+  // (avatar + name + bell + dashboard link + sign-out) above the marketing
+  // nav when a session is present.
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const KEEP_KEY = 'recall.keepSignedIn';
+  let keepSignedIn = true;
+  try {
+    const raw = localStorage.getItem(KEEP_KEY);
+    if (raw === '0') keepSignedIn = false;
+    else if (raw === '1') keepSignedIn = true;
+    else localStorage.setItem(KEEP_KEY, '1');
+  } catch (_) {}
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    persistSession: keepSignedIn,
+    autoRefreshToken: keepSignedIn,
+    detectSessionInUrl: true,
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) {
+          return fetch(url, options);
+        }
+      }
+    }
+  });
+  window.supabaseClient = supabaseClient;
+</script>
+<script src="topbar.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="index-welcome.js" defer></script>
+<script>
+  if (window.recallIndexWelcome && typeof window.recallIndexWelcome.mount === 'function') {
+    window.recallIndexWelcome.mount({
+      supabaseClient: window.supabaseClient
+    });
+  }
 </script>
 <script src="bubbles.js" defer></script>
 </body>

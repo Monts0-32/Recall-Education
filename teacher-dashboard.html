@@ -215,6 +215,32 @@
       padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px;
     }
 
+    /* ---------- school team tiles ---------- */
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    .team-tile {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 14px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      cursor: pointer;
+      transition: border-color .15s, transform .15s;
+    }
+    .team-tile:hover { border-color: var(--blue); transform: translateY(-1px); }
+    .team-avatar-circle {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 600; font-size: 14px;
+      overflow: hidden; background: var(--bg-3);
+    }
+    .team-avatar-circle img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .team-name { font-size: 13px; font-weight: 600; color: var(--text); text-align: center; }
+    .team-role { font-size: 11px; color: var(--text-3); }
+
     .gate {
       max-width: 520px;
       margin: 80px auto;
@@ -241,6 +267,7 @@
   <div class="row">
     <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
     <div class="right">
+      <div id="avatarSlot" style="display: inline-flex;"></div>
       <span id="navName" style="color: var(--text-3);"></span>
       <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
     </div>
@@ -316,6 +343,18 @@
       <div class="empty">Loading…</div>
     </div>
   </div>
+
+  <div class="card" data-card-id="school-team">
+    <div class="card-head">
+      <div>
+        <h3>School team</h3>
+        <div class="sub">Other teachers in your school. Click to start a direct message.</div>
+      </div>
+    </div>
+    <div class="team-grid" id="schoolTeamBody">
+      <div class="empty">Loading…</div>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -386,7 +425,7 @@
     // Find the school the user belongs to. RLS gives same-school read.
     const { data: profile } = await supabaseClient
       .from('profiles')
-      .select('school_id, full_name')
+      .select('id, school_id, full_name, role, avatar_url')
       .eq('id', state.user.id)
       .maybeSingle();
 
@@ -414,9 +453,106 @@
     $('setHomeworkCta').href = 'set-homework.html?school=' + encodeURIComponent(state.school.id);
 
     // Load everything in parallel
-    await Promise.all([loadMembers(), loadAssignments()]);
+    await Promise.all([loadMembers(), loadAssignments(), loadSchoolTeam()]);
     renderKpis();
     renderHomework();
+
+    // Mount header avatar (name + pic + sign-out) and chat FAB (1:1 DM only).
+    const profileRow = profile || {
+      id: state.user.id,
+      full_name: meta.full_name || '',
+      role: role,
+      avatar_url: null
+    };
+    if (window.recallHeaderAvatar && typeof window.recallHeaderAvatar.mount === 'function') {
+      try {
+        window.recallHeaderAvatar.mount('avatarSlot', {
+          supabaseClient,
+          user: state.user,
+          profile: profileRow
+        });
+      } catch (e) { console.error('headerAvatar mount failed:', e); }
+    }
+    if (window.recallChat && typeof window.recallChat.mount === 'function') {
+      try {
+        window.recallChat.mount({
+          supabaseClient,
+          user: state.user,
+          profile: profileRow
+        });
+      } catch (e) { console.error('chat mount failed:', e); }
+    }
+  }
+
+  // ---------- school team (slim row of same-school teachers) ----------
+  function teamInitials(name) {
+    if (!name) return '?';
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  function teamHue(id) {
+    if (!id) return 200;
+    let h = 0;
+    const s = String(id).replace(/-/g, '');
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return h % 360;
+  }
+  async function loadSchoolTeam() {
+    const body = $('schoolTeamBody');
+    if (!body) return;
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_teachers', {
+        p_school_id: state.school ? state.school.id : null
+      });
+      if (error) throw error;
+      const team = (data || []).filter((m) => m.id !== state.user.id);
+      body.innerHTML = '';
+      if (!team.length) {
+        body.appendChild(Object.assign(document.createElement('div'), {
+          className: 'roster-empty',
+          textContent: 'No other teachers in your school yet.'
+        }));
+        return;
+      }
+      for (const m of team) {
+        const tile = document.createElement('div');
+        tile.className = 'team-tile';
+        const av = document.createElement('div');
+        av.className = 'team-avatar-circle';
+        if (m.avatar_url) {
+          av.innerHTML = '<img alt="" src="' + escapeHtml(m.avatar_url) + '">';
+        } else {
+          av.style.background = 'hsl(' + teamHue(m.id) + ' 55% 38%)';
+          av.textContent = teamInitials(m.full_name);
+        }
+        tile.appendChild(av);
+        const nm = document.createElement('div');
+        nm.className = 'team-name';
+        nm.textContent = m.full_name || 'Unnamed';
+        tile.appendChild(nm);
+        const role1 = document.createElement('div');
+        role1.className = 'team-role';
+        role1.textContent = m.role === 'school_organiser' ? 'Organiser' : 'Teacher';
+        tile.appendChild(role1);
+        tile.addEventListener('click', () => {
+          if (window.recallChat && typeof window.recallChat.openWithUser === 'function') {
+            window.recallChat.openWithUser(m.id);
+          } else if (window.recallChat && typeof window.recallChat.toggle === 'function') {
+            window.recallChat.toggle();
+          }
+        });
+        body.appendChild(tile);
+      }
+    } catch (e) {
+      console.error('loadSchoolTeam failed:', e);
+      body.innerHTML = '';
+      body.appendChild(Object.assign(document.createElement('div'), {
+        className: 'roster-empty',
+        textContent: 'Could not load school team.'
+      }));
+    }
   }
 
   async function loadMembers() {
@@ -505,5 +641,7 @@
   boot();
 </script>
 <script src="bubbles.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
 </body>
 </html>

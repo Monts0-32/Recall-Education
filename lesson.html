@@ -1687,6 +1687,7 @@
   <div class="row">
     <a class="brand" href="dashboard.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
     <div class="nav-right">
+      <div id="avatarSlot" style="display: inline-flex;"></div>
       <a href="dashboard.html">Back to dashboard</a>
       <button id="signOutBtn" type="button">Sign out</button>
     </div>
@@ -1969,7 +1970,7 @@
     // Profile — used to enforce parental consent
     const { data: profile } = await supabaseClient
       .from('profiles')
-      .select('id, full_name, requires_parental_consent, consent_status, deleted_at')
+      .select('id, full_name, requires_parental_consent, consent_status, deleted_at, avatar_url')
       .eq('id', session.user.id)
       .maybeSingle();
     session.profile = profile;
@@ -1984,6 +1985,24 @@
         'Your account is ready, but a parent or guardian needs to confirm before you can study. We sent them a link by email — it expires in 3 days.'
       );
       return;
+    }
+
+    // Mount the header avatar chip.
+    if (window.recallHeaderAvatar) {
+      let avatarProfile = {
+        id: session.user.id,
+        full_name: profile ? profile.full_name : '',
+        role: '',
+        avatar_url: profile ? profile.avatar_url : null
+      };
+      try {
+        const { data: p } = await supabaseClient
+          .from('profiles').select('role').eq('id', session.user.id).maybeSingle();
+        if (p && p.role) avatarProfile.role = p.role;
+      } catch (_) { /* fall through */ }
+      window.recallHeaderAvatar.mount('avatarSlot', {
+        supabaseClient, user: session.user, profile: avatarProfile
+      });
     }
 
     // Detect staff role. Same pattern as lesson-creator.html: read
@@ -3520,5 +3539,6 @@
   });
 </script>
 <script src="bubbles.js" defer></script>
+<script src="header-avatar.js" defer></script>
 </body>
 </html>

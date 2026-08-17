@@ -648,6 +648,7 @@
     <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
     <div class="right">
       <span id="navName" style="color: var(--text-3);"></span>
+      <div id="avatarSlot" style="display: inline-flex;"></div>
       <div id="bellSlot"></div>
       <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
     </div>
@@ -1431,7 +1432,7 @@
     try {
       const { data: profile } = await supabaseClient
         .from('profiles')
-        .select('year_group, consent_status, requires_parental_consent, deleted_at, school_id, role')
+        .select('year_group, consent_status, requires_parental_consent, deleted_at, school_id, role, full_name, avatar_url')
         .eq('id', user.id)
         .maybeSingle();
       if (profile) {
@@ -1749,14 +1750,43 @@
     if (!user || !window.recallTopbar) return;
     window.recallTopbar.mount('bellSlot', { supabaseClient, user });
   }
+  // Mount the header avatar chip once we have a user + profile.
+  let headerAvatarHandle = null;
+  async function mountHeaderAvatar(user) {
+    if (!user || !window.recallHeaderAvatar) return;
+    if (headerAvatarHandle) return;
+    let profile = state && state.profile ? state.profile : null;
+    if (!profile) {
+      try {
+        const { data } = await supabaseClient
+          .from('profiles')
+          .select('id, full_name, role, avatar_url')
+          .eq('id', user.id)
+          .maybeSingle();
+        profile = data || { id: user.id, full_name: '', role: '', avatar_url: null };
+      } catch (_) {
+        profile = { id: user.id, full_name: '', role: '', avatar_url: null };
+      }
+    }
+    headerAvatarHandle = window.recallHeaderAvatar.mount('avatarSlot', {
+      supabaseClient, user, profile
+    });
+  }
   supabaseClient.auth.getSession().then(({ data }) => {
-    if (data && data.session && data.session.user) mountBell(data.session.user);
+    if (data && data.session && data.session.user) {
+      mountBell(data.session.user);
+      mountHeaderAvatar(data.session.user);
+    }
   });
   supabaseClient.auth.onAuthStateChange((_event, session) => {
-    if (session && session.user) mountBell(session.user);
+    if (session && session.user) {
+      mountBell(session.user);
+      mountHeaderAvatar(session.user);
+    }
   });
 </script>
 <script src="topbar.js" defer></script>
+<script src="header-avatar.js" defer></script>
 <script src="bubbles.js" defer></script>
 </body>
 </html>

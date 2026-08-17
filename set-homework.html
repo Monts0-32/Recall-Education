@@ -355,6 +355,7 @@
   <div class="row">
     <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
     <div class="right">
+      <div id="avatarSlot" style="display: inline-flex;"></div>
       <span id="navName" style="color: var(--text-3);"></span>
       <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
     </div>
@@ -617,7 +618,7 @@
     // Find school
     const { data: profile } = await supabaseClient
       .from('profiles')
-      .select('school_id')
+      .select('id, school_id, full_name, role, avatar_url')
       .eq('id', state.user.id)
       .maybeSingle();
     if (!profile || !profile.school_id) {
@@ -650,6 +651,32 @@
     setupKindHandler();
     addResourceRow();
     seedQuizBuilder();
+
+    // Mount header avatar + chat FAB (1:1 DM only) for teachers and organisers.
+    const profileRow = profile || {
+      id: state.user.id,
+      full_name: meta.full_name || '',
+      role: role,
+      avatar_url: null
+    };
+    if (window.recallHeaderAvatar && typeof window.recallHeaderAvatar.mount === 'function') {
+      try {
+        window.recallHeaderAvatar.mount('avatarSlot', {
+          supabaseClient,
+          user: state.user,
+          profile: profileRow
+        });
+      } catch (e) { console.error('headerAvatar mount failed:', e); }
+    }
+    if (window.recallChat && typeof window.recallChat.mount === 'function') {
+      try {
+        window.recallChat.mount({
+          supabaseClient,
+          user: state.user,
+          profile: profileRow
+        });
+      } catch (e) { console.error('chat mount failed:', e); }
+    }
   }
 
   // Format a Date for an <input type="datetime-local">.
@@ -1253,5 +1280,7 @@
   boot();
 </script>
 <script src="bubbles.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
 </body>
 </html>

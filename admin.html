@@ -569,6 +569,7 @@
   <span class="admin-pill">Admin</span>
   <div class="right">
     <span class="me" id="userName">—</span>
+    <div id="avatarSlot" style="display: inline-flex;"></div>
     <div id="bellSlot"></div>
     <a href="dashboard.html">Dashboard</a>
     <a href="#" id="signOutBtn">Sign out</a>
@@ -656,6 +657,7 @@
         <table>
           <thead>
             <tr>
+              <th></th>
               <th>Name / email</th>
               <th>Role</th>
               <th>Last sign-in</th>
@@ -663,7 +665,7 @@
               <th style="text-align: right;">Actions</th>
             </tr>
           </thead>
-          <tbody id="staffRows"><tr class="empty-row"><td colspan="5">Loading…</td></tr></tbody>
+          <tbody id="staffRows"><tr class="empty-row"><td colspan="6">Loading…</td></tr></tbody>
         </table>
       </div>
     </section>
@@ -966,6 +968,38 @@
     if (window.recallTopbar) {
       window.recallTopbar.mount('bellSlot', { supabaseClient, user: data.user });
     }
+    // Header avatar chip + dropdown.
+    if (window.recallHeaderAvatar) {
+      let avatarProfile = { id: data.user.id, full_name: '', role: role, avatar_url: null };
+      try {
+        const { data: p } = await supabaseClient
+          .from('profiles').select('id, full_name, avatar_url').eq('id', data.user.id).maybeSingle();
+        if (p) {
+          avatarProfile.id = p.id;
+          avatarProfile.full_name = p.full_name || avatarProfile.full_name;
+          avatarProfile.avatar_url = p.avatar_url;
+        }
+      } catch (_) { /* fall through */ }
+      window.recallHeaderAvatar.mount('avatarSlot', {
+        supabaseClient, user: data.user, profile: avatarProfile
+      });
+    }
+    // Floating chat FAB for admins.
+    if (window.recallChat) {
+      let chatProfile = { id: data.user.id, full_name: '', role: role, avatar_url: null };
+      try {
+        const { data: p } = await supabaseClient
+          .from('profiles').select('id, full_name, avatar_url').eq('id', data.user.id).maybeSingle();
+        if (p) {
+          chatProfile.id = p.id;
+          chatProfile.full_name = p.full_name || chatProfile.full_name;
+          chatProfile.avatar_url = p.avatar_url;
+        }
+      } catch (_) { /* fall through */ }
+      window.recallChat.mount({
+        supabaseClient, user: data.user, profile: chatProfile
+      });
+    }
   }
 
   function showGate(title, body, kind) {
@@ -1049,24 +1083,25 @@
   // =========================================================================
   async function loadStaff() {
     const tbody = $('staffRows');
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Loading…</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Loading…</td></tr>';
     // profiles doesn't have last_sign_in_at (that's on auth.users),
     // and auth.users isn't RLS-open. The list_staff RPC joins them
     // and is the only way to get the "last sign-in" column for the
     // table.
     const { data, error } = await supabaseClient.rpc('list_staff');
     if (error) {
-      tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Error: ${escapeHtml(error.message)}</td></tr>`;
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Error: ${escapeHtml(error.message)}</td></tr>`;
       return;
     }
     const rows = data || [];
     $('staffCount').textContent = rows.length;
     if (!rows.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No staff accounts yet.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No staff accounts yet.</td></tr>';
       return;
     }
     tbody.innerHTML = rows.map((p) => `
       <tr data-uid="${escapeHtml(p.id)}">
+        <td>${staffAvatarHTML(p)}</td>
         <td>
           <div style="font-weight: 500;">${escapeHtml(p.full_name || '(no name)')}</div>
           <div class="meta">${escapeHtml(p.email || '')}</div>
@@ -1966,10 +2001,36 @@
     }
   }
 
+  function initialsOf(name) {
+    if (!name) return '?';
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  function hueOf(id) {
+    if (!id) return 200;
+    let h = 0;
+    const s = String(id).replace(/-/g, '');
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return h % 360;
+  }
+  function staffAvatarHTML(p) {
+    if (p && p.avatar_url) {
+      return '<span style="display:inline-flex; width:32px; height:32px; border-radius:50%; overflow:hidden; background:var(--bg-3);">' +
+             '<img alt="" src="' + escapeHtml(p.avatar_url) + '" style="width:100%; height:100%; object-fit:cover;"></span>';
+    }
+    const hue = hueOf(p && p.id);
+    return '<span style="display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; background:hsl(' + hue + ' 55% 38%); color:#fff; font-weight:700; font-size:12px;">' +
+           escapeHtml(initialsOf(p && p.full_name)) + '</span>';
+  }
+
   // ----- Boot -----
   boot();
 </script>
 <script src="topbar.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
 <script src="bubbles.js" defer></script>
 </body>
 </html>

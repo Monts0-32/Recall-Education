@@ -253,6 +253,42 @@
     .pending-review .body .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
     .pending-review[hidden] { display: none; }
 
+    .staff-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    @media (max-width: 720px) { .staff-grid { grid-template-columns: repeat(2, 1fr); } }
+    .staff-tile {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 12px 10px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      cursor: pointer;
+      text-align: center;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .staff-tile:hover { border-color: var(--blue); background: var(--bg-2); }
+    .staff-tile .staff-avatar-circle {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--bg-3);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 700; color: #fff;
+      overflow: hidden;
+    }
+    .staff-tile .staff-avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+    .staff-tile .staff-name {
+      font-size: 13px; font-weight: 600;
+      color: var(--text);
+      max-width: 100%;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .staff-tile .role-pill {
+      font-size: 10.5px;
+    }
+
     .cta-row { display: flex; gap: 10px; margin-top: 4px; }
     .btn-primary {
       background: var(--blue); color: #fff;
@@ -327,6 +363,7 @@
     <div class="right">
       <span id="rankPill" class="rank-pill" hidden></span>
       <span id="userName">…</span>
+      <div id="avatarSlot" style="display: inline-flex;"></div>
       <div id="bellSlot"></div>
       <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
     </div>
@@ -477,6 +514,16 @@
     <div class="card">
       <h2>Recent activity <span class="meta" id="activityMeta"></span></h2>
       <div class="activity" id="activityBody">
+        <div class="card-empty">Loading…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Staff directory <span class="meta" id="staffDirMeta"></span></h2>
+      <p style="color:var(--text-3); font-size:13px; margin: 0 0 14px;">
+        Everyone on the Recall team. Click a tile to start a direct message.
+      </p>
+      <div class="staff-grid" id="staffDirBody">
         <div class="card-empty">Loading…</div>
       </div>
     </div>
@@ -651,6 +698,93 @@
     // / admins → lesson-creator.html (edit). Initialised after role
     // is set.
     loadAllLessons(role);
+    loadStaffDirectory();
+  }
+
+  // ---- Staff directory ----------------------------------------------------
+  // Pulls every staff_author / staff_reviewer / admin and renders a grid
+  // of clickable tiles. Clicking a tile opens a 1:1 DM via chat.js.
+  function el(tag, attrs, children) {
+    const e = document.createElement(tag);
+    if (attrs) {
+      for (const k in attrs) {
+        if (k === 'class') e.className = attrs[k];
+        else if (k === 'text') e.textContent = attrs[k];
+        else if (k === 'style' && typeof attrs[k] === 'object') Object.assign(e.style, attrs[k]);
+        else e.setAttribute(k, attrs[k]);
+      }
+    }
+    if (children) {
+      for (const c of (Array.isArray(children) ? children : [children])) {
+        if (c == null) continue;
+        if (typeof c === 'string') e.appendChild(document.createTextNode(c));
+        else e.appendChild(c);
+      }
+    }
+    return e;
+  }
+  function initialsOf(name) {
+    if (!name) return '?';
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  function hueOf(id) {
+    if (!id) return 200;
+    let h = 0;
+    const s = String(id).replace(/-/g, '');
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return h % 360;
+  }
+  async function loadStaffDirectory() {
+    const body = $('staffDirBody');
+    const meta = $('staffDirMeta');
+    if (!body) return;
+    try {
+      const { data, error } = await supabaseClient.rpc('list_staff');
+      if (error) throw error;
+      const staff = (data || []).filter((s) => s.id !== state.user.id);
+      body.innerHTML = '';
+      if (!staff.length) {
+        body.appendChild(el('div', { class: 'card-empty', text: 'No other staff yet.' }));
+        if (meta) meta.textContent = '';
+        return;
+      }
+      if (meta) meta.textContent = staff.length + (staff.length === 1 ? ' person' : ' people');
+      for (const s of staff) {
+        const tile = el('div', { class: 'staff-tile' });
+        const av = el('div', { class: 'staff-avatar-circle' });
+        if (s.avatar_url) {
+          av.innerHTML = '<img alt="" src="' + s.avatar_url.replace(/"/g, '&quot;') + '">';
+        } else {
+          av.style.background = 'hsl(' + hueOf(s.id) + ' 55% 38%)';
+          av.textContent = initialsOf(s.full_name);
+        }
+        tile.appendChild(av);
+        tile.appendChild(el('div', {
+          class: 'staff-name',
+          text: s.full_name || 'Unnamed'
+        }));
+        const rolePill = el('span', { class: 'role-pill ' + (s.role || '') });
+        rolePill.textContent = s.role === 'staff_author' ? 'Author'
+          : s.role === 'staff_reviewer' ? 'Reviewer'
+          : s.role === 'admin' ? 'Admin' : (s.role || '');
+        tile.appendChild(rolePill);
+        tile.addEventListener('click', () => {
+          if (window.recallChat && typeof window.recallChat.openWithUser === 'function') {
+            window.recallChat.openWithUser(s.id);
+          } else if (window.recallChat && typeof window.recallChat.toggle === 'function') {
+            window.recallChat.toggle();
+          }
+        });
+        body.appendChild(tile);
+      }
+    } catch (e) {
+      console.error('loadStaffDirectory failed:', e);
+      body.innerHTML = '';
+      body.appendChild(el('div', { class: 'card-empty', text: 'Could not load staff.' }));
+    }
   }
 
   // ---------- stats ----------
@@ -1061,7 +1195,7 @@
 
     const { data: profile } = await supabaseClient
       .from('profiles')
-      .select('id, full_name, role')
+      .select('id, full_name, role, avatar_url')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -1071,6 +1205,30 @@
     // hub as the rest of the staff/admin pages.
     if (window.recallTopbar) {
       window.recallTopbar.mount('bellSlot', { supabaseClient, user });
+    }
+    // Header avatar chip + dropdown.
+    if (window.recallHeaderAvatar) {
+      const avatarProfile = {
+        id: user.id,
+        full_name: state.profile ? state.profile.full_name : '',
+        role: role || (state.profile ? state.profile.role : ''),
+        avatar_url: state.profile ? state.profile.avatar_url : null
+      };
+      window.recallHeaderAvatar.mount('avatarSlot', {
+        supabaseClient, user, profile: avatarProfile
+      });
+    }
+    // Floating chat FAB.
+    if (window.recallChat) {
+      const chatProfile = {
+        id: user.id,
+        full_name: state.profile ? state.profile.full_name : '',
+        role: role || (state.profile ? state.profile.role : ''),
+        avatar_url: state.profile ? state.profile.avatar_url : null
+      };
+      window.recallChat.mount({
+        supabaseClient, user, profile: chatProfile
+      });
     }
   }
 
@@ -1203,6 +1361,8 @@
   boot();
 </script>
 <script src="topbar.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
 <script src="bubbles.js" defer></script>
 </body>
 </html>
