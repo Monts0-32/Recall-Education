@@ -1345,6 +1345,84 @@
     }
     body.review-mode .block-comments.show { display: block; }
     body.review-mode.lbc-show .block-comments { display: block; }
+    /* Frame-level affordances added by the reviewer-tools work:
+       a hover button to jump straight into commenting, and a count
+       badge for blocks that already have feedback. Visible only in
+       review mode — students / authors / admins never see these. */
+    body.review-mode .block-frame-comment-hover {
+      position: absolute; top: 6px; right: 6px;
+      background: var(--bg-3); color: var(--text-3);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 3px 9px; font-size: 11.5px;
+      cursor: pointer;
+      opacity: 0; transition: opacity 0.12s ease;
+      font-family: inherit;
+    }
+    body.review-mode .block-frame:hover .block-frame-comment-hover { opacity: 1; }
+    body.review-mode .block-frame-comment-hover:hover {
+      background: var(--bg-4); color: var(--text);
+      border-color: var(--line-3);
+    }
+    body.review-mode .block-frame-comment-badge {
+      position: absolute; top: 6px; right: 110px;
+      background: rgba(210,153,34,0.18); color: #e3b341;
+      border-radius: 999px;
+      padding: 2px 8px; font-size: 10.5px; font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    /* Evaluation form lives at the bottom of the review drawer.
+       Same dark-card style as the rest of the drawer; chips are
+       filled when active. */
+    .review-evaluation {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line-2);
+    }
+    .review-evaluation-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .review-evaluation-title {
+      font-size: 12.5px; font-weight: 600;
+      color: var(--text-2);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .review-evaluation-state {
+      font-size: 11.5px; color: var(--green);
+    }
+    .review-stars { display: flex; gap: 2px; margin-bottom: 8px; }
+    .review-star {
+      background: transparent; border: 0; padding: 0 2px;
+      font-size: 22px; line-height: 1; color: var(--text-4);
+      cursor: pointer; font-family: inherit;
+    }
+    .review-star.active { color: var(--yellow); }
+    .review-star:hover { color: var(--yellow); }
+    .review-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .review-tag {
+      background: var(--bg-3); color: var(--text-3);
+      border: 1px solid var(--line-2);
+      border-radius: 999px;
+      padding: 3px 10px; font-size: 11.5px;
+      cursor: pointer; font-family: inherit;
+    }
+    .review-tag.active {
+      background: var(--blue-dim); color: var(--blue);
+      border-color: var(--blue);
+    }
+    .review-evaluation-actions {
+      display: flex; align-items: center; gap: 10px; margin-top: 10px;
+    }
+    .review-evaluation-error {
+      font-size: 12px; color: var(--red);
+    }
+    .review-evaluation[data-state="submitted"] #reviewStars,
+    .review-evaluation[data-state="submitted"] #reviewTags,
+    .review-evaluation[data-state="submitted"] #reviewNote,
+    .review-evaluation[data-state="submitted"] #submitEvaluationBtn {
+      display: none;
+    }
     .block-comments-empty {
       color: var(--text-3);
       font-style: italic;
@@ -1491,6 +1569,39 @@
         Review mode lets you leave per-block comments visible only to staff.
         Uncheck “Show reviewer comments” to read the lesson without seeing feedback.
       </p>
+
+      <!-- Reviewer evaluation: star rating + tag chips + note.
+           When submitted, the form collapses into a "Submitted ✓" line
+           so the drawer stays compact for the rest of the visit. -->
+      <div class="review-evaluation" id="reviewEvaluation" hidden>
+        <div class="review-evaluation-head">
+          <span class="review-evaluation-title">Your evaluation</span>
+          <span class="review-evaluation-state" id="reviewEvaluationState"></span>
+        </div>
+        <div class="review-stars" id="reviewStars" role="radiogroup" aria-label="Rating">
+          <button type="button" class="review-star" data-rating="1" aria-label="1 star">★</button>
+          <button type="button" class="review-star" data-rating="2" aria-label="2 stars">★</button>
+          <button type="button" class="review-star" data-rating="3" aria-label="3 stars">★</button>
+          <button type="button" class="review-star" data-rating="4" aria-label="4 stars">★</button>
+          <button type="button" class="review-star" data-rating="5" aria-label="5 stars">★</button>
+        </div>
+        <div class="review-tags" id="reviewTags" role="group" aria-label="Tags">
+          <button type="button" class="review-tag" data-tag="needs-work">Needs work</button>
+          <button type="button" class="review-tag" data-tag="ready-to-publish">Ready to publish</button>
+          <button type="button" class="review-tag" data-tag="unclear">Unclear</button>
+          <button type="button" class="review-tag" data-tag="factual-error">Factual error</button>
+          <button type="button" class="review-tag" data-tag="excellent">Excellent</button>
+        </div>
+        <textarea id="reviewNote" rows="3"
+                  placeholder="Notes for the author (and admin) — what works, what doesn't, what's missing."
+                  maxlength="4000"
+                  style="width: 100%; background: var(--bg-2); color: var(--text); border: 1px solid var(--line-2); border-radius: var(--r-sm); padding: 8px 10px; font-family: inherit; font-size: 13px; resize: vertical;"></textarea>
+        <div class="review-evaluation-actions">
+          <button type="button" class="btn btn-primary" id="submitEvaluationBtn">Submit evaluation</button>
+          <button type="button" class="btn btn-ghost" id="editEvaluationBtn" hidden>Edit</button>
+          <span class="review-evaluation-error" id="reviewEvaluationError" hidden></span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1749,9 +1860,21 @@
 
     render();
     startHeartbeat();
+    // Defence in depth: remove the Review tools drawer from the DOM
+    // for anyone who isn't a reviewer. Authors and admins have their
+    // own editor preview; students must never see review controls.
+    // `applyReviewToolsUI()` below is the primary gate, but a future
+    // regression in that function should not silently expose the
+    // drawer — pulling the element out of the DOM closes the hole.
+    if (session.role !== 'staff_reviewer') {
+      const drawer = $('reviewTools');
+      if (drawer && drawer.parentNode) drawer.parentNode.removeChild(drawer);
+      const pill = $('reviewModePill');
+      if (pill && pill.parentNode) pill.parentNode.removeChild(pill);
+    }
     // Wire the review-tools drawer + per-block comment panels for
-    // staff users. No-op for students. Best-effort — failure to load
-    // comments doesn't block the lesson itself.
+    // reviewers only. No-op for everyone else. Best-effort —
+    // failure to load comments doesn't block the lesson itself.
     applyReviewToolsUI();
   }
 
@@ -2248,10 +2371,15 @@
   const LBC_KEY_SHOW    = 'recall.lbc.comments';
 
   function applyReviewToolsUI() {
-    if (!session.isStaff) return; // students never see any of this
+    // Only `staff_reviewer` gets the drawer. Authors and admins have
+    // their own editor preview; they don't author per-block comments
+    // here. Students must never see this — the prior `isStaff` gate
+    // let authors / admins see it too, which surfaced a confusing
+    // "Enter review mode" button to roles that can't actually review.
+    if (session.role !== 'staff_reviewer') return;
 
     // Reveal the drawer. It was created in the markup with `hidden`;
-    // for staff users we un-hide it and wire the toggle.
+    // for reviewers we un-hide it and wire the toggle.
     const drawer = $('reviewTools');
     if (!drawer) return;
     drawer.hidden = false;
@@ -2307,6 +2435,158 @@
     // the user lands here, we don't auto-enter review mode — they
     // have to click the button. The drawer is just open by default
     // when they reopen.
+
+    // Evaluation form (stars + tags + note → submit). Reviewers
+    // submit one evaluation per lesson; re-submitting supersedes the
+    // prior row and returns the new one. Authors and admins read
+    // these via the admin lessons list (list_lessons_for_admin RPC).
+    applyEvaluationUI();
+  }
+
+  // Local cache of the evaluation draft as the reviewer fills the
+  // form. Persisted in memory only; submitting moves it to the
+  // lesson_reviews table via submit_lesson_review.
+  const evalDraft = { rating: 0, tags: [], note: '' };
+
+  function applyEvaluationUI() {
+    const root  = $('reviewEvaluation');
+    const stars = $('reviewStars');
+    const tags  = $('reviewTags');
+    const note  = $('reviewNote');
+    const state = $('reviewEvaluationState');
+    const err   = $('reviewEvaluationError');
+    const submitBtn = $('submitEvaluationBtn');
+    const editBtn   = $('editEvaluationBtn');
+    if (!root || !stars || !tags || !note || !submitBtn || !editBtn) return;
+
+    root.hidden = false;
+
+    // Star buttons: highlight up to the chosen rating, dim beyond.
+    function paintStars() {
+      stars.querySelectorAll('.review-star').forEach((b) => {
+        const r = Number(b.dataset.rating);
+        b.classList.toggle('active', r <= evalDraft.rating);
+      });
+    }
+    stars.querySelectorAll('.review-star').forEach((b) => {
+      b.addEventListener('click', () => {
+        const r = Number(b.dataset.rating);
+        evalDraft.rating = (evalDraft.rating === r) ? 0 : r; // click same star to clear
+        paintStars();
+        hideError();
+      });
+    });
+    paintStars();
+
+    // Tag chips: multi-select.
+    function paintTags() {
+      tags.querySelectorAll('.review-tag').forEach((b) => {
+        b.classList.toggle('active', evalDraft.tags.includes(b.dataset.tag));
+      });
+    }
+    tags.querySelectorAll('.review-tag').forEach((b) => {
+      b.addEventListener('click', () => {
+        const t = b.dataset.tag;
+        const i = evalDraft.tags.indexOf(t);
+        if (i >= 0) evalDraft.tags.splice(i, 1);
+        else evalDraft.tags.push(t);
+        paintTags();
+        hideError();
+      });
+    });
+
+    // Note textarea — bound to draft. Persisted as the user types so
+    // a navigation doesn't lose work.
+    note.addEventListener('input', () => {
+      evalDraft.note = note.value;
+      hideError();
+    });
+
+    function hideError() {
+      if (!err) return;
+      err.hidden = true;
+      err.textContent = '';
+    }
+    function showError(msg) {
+      if (!err) return;
+      err.textContent = msg;
+      err.hidden = false;
+    }
+
+    // Submitted-state UI: collapse the form, show a summary line,
+    // expose "Edit" to re-open it. We fetch the reviewer's most
+    // recent submitted row on mount so the form opens pre-filled.
+    async function loadExisting() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('lesson_reviews')
+          .select('id, rating, note, tags, created_at')
+          .eq('lesson_id', session.lesson.id)
+          .eq('reviewer_id', session.user.id)
+          .eq('status', 'submitted')
+          .maybeSingle();
+        if (error) throw error;
+        if (!data) return; // no prior evaluation
+        evalDraft.rating = data.rating || 0;
+        evalDraft.tags   = Array.isArray(data.tags) ? data.tags.slice() : [];
+        evalDraft.note   = data.note || '';
+        paintStars();
+        paintTags();
+        note.value = evalDraft.note;
+        enterSubmittedState(data);
+      } catch (e) {
+        console.warn('[evaluation] load failed:', e);
+      }
+    }
+    function enterSubmittedState(row) {
+      root.dataset.state = 'submitted';
+      const when = row.created_at ? new Date(row.created_at).toLocaleString(
+        'en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }
+      ) : '';
+      const tagStr = (row.tags || []).length ? ' · ' + row.tags.join(', ') : '';
+      if (state) state.textContent = `Submitted ✓ ${when} · ${row.rating}★${tagStr}`;
+      editBtn.hidden = false;
+      submitBtn.textContent = 'Update evaluation';
+    }
+    function enterDraftState() {
+      root.dataset.state = 'draft';
+      if (state) state.textContent = '';
+      editBtn.hidden = true;
+      submitBtn.textContent = 'Submit evaluation';
+    }
+    editBtn.addEventListener('click', enterDraftState);
+
+    submitBtn.addEventListener('click', async () => {
+      hideError();
+      if (!evalDraft.rating) {
+        showError('Pick a star rating first.');
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting…';
+      try {
+        const { data, error } = await supabaseClient.rpc('submit_lesson_review', {
+          p_lesson_id: session.lesson.id,
+          p_rating:    evalDraft.rating,
+          p_note:      evalDraft.note || null,
+          p_tags:      evalDraft.tags || [],
+        });
+        if (error) throw error;
+        if (!data) throw new Error('Empty response from submit_lesson_review');
+        toast('Evaluation submitted.', 'success');
+        enterSubmittedState(data);
+      } catch (e) {
+        console.error('[evaluation] submit failed:', e);
+        const msg = (e && (e.message || e.details || e.hint)) || 'Could not submit evaluation';
+        showError(msg);
+        submitBtn.disabled = false;
+        submitBtn.textContent = root.dataset.state === 'submitted' ? 'Update evaluation' : 'Submit evaluation';
+      }
+    });
+
+    // Pre-fill from any prior submitted evaluation. Don't block the
+    // drawer if it fails.
+    loadExisting();
   }
 
   function toggleReviewDrawer(open) {
@@ -2401,6 +2681,51 @@
       // untouched.
       frame.parentNode.insertBefore(container, frame.nextSibling);
       session.blockPanels.set(block.id, { container, list });
+
+      // Frame-level affordances: a "💬 Comment" hover button (top-right)
+      // and, if this block has any existing comments, a count badge.
+      // The hover button reveals the comments panel (if hidden) and
+      // focuses its textarea — so every block is one click away from
+      // being commented on. The badge gives the reviewer a glanceable
+      // "which blocks have I touched" view while scrolling through
+      // the lesson.
+      if (!frame.classList.contains('block-frame')) {
+        frame.classList.add('block-frame');
+      }
+      // Anchor children to the frame's top-right corner.
+      const cs = window.getComputedStyle(frame);
+      if (cs.position === 'static') frame.style.position = 'relative';
+
+      const hover = document.createElement('button');
+      hover.type = 'button';
+      hover.className = 'block-frame-comment-hover';
+      hover.textContent = '💬 Comment';
+      hover.title = 'Add a comment to this block';
+      hover.addEventListener('click', () => {
+        // If comments are currently hidden, force the show flag and
+        // sync the checkbox so the reviewer isn't fighting the UI.
+        if (!session.showComments) {
+          session.showComments = true;
+          try { localStorage.setItem(LBC_KEY_SHOW, '1'); } catch (_) {}
+          document.body.classList.toggle('lbc-show', !!session.reviewMode);
+          const toggle = $('showCommentsToggle');
+          if (toggle) toggle.checked = true;
+        }
+        const ta = container.querySelector('textarea');
+        if (ta) {
+          container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(() => ta.focus(), 200);
+        }
+      });
+      frame.appendChild(hover);
+
+      if (comments.length > 0) {
+        const badge = document.createElement('span');
+        badge.className = 'block-frame-comment-badge';
+        badge.textContent = `${comments.length} 💬`;
+        badge.title = `${comments.length} comment${comments.length === 1 ? '' : 's'} on this block`;
+        frame.appendChild(badge);
+      }
     }
 
     // Block-frame stays visible regardless of "Show comments" — the

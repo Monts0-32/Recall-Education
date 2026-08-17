@@ -2105,6 +2105,41 @@
     a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
       outline: 2px solid var(--blue); outline-offset: 1px;
     }
+    /* Reviewer-comments preview. Read-only panels the author / admin
+       can toggle on to see what the reviewer left on each block. Sits
+       below the block frame, between the frame and the next block. */
+    .reviewer-comments-preview {
+      margin: 6px 0 16px;
+      padding: 10px 14px;
+      background: rgba(210,153,34,0.06);
+      border: 1px solid rgba(210,153,34,0.25);
+      border-left: 3px solid var(--yellow);
+      border-radius: var(--r-md);
+      font-size: 12.5px;
+      color: var(--text-2);
+    }
+    .reviewer-comments-preview-head {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--yellow);
+      margin-bottom: 8px;
+    }
+    .reviewer-comment {
+      padding: 6px 0;
+      border-top: 1px solid rgba(210,153,34,0.18);
+    }
+    .reviewer-comment:first-of-type { border-top: 0; }
+    .reviewer-comment.resolved .reviewer-comment-body {
+      text-decoration: line-through;
+      color: var(--text-4);
+    }
+    .reviewer-comment-meta {
+      display: flex; gap: 8px;
+      font-size: 11px; color: var(--text-3);
+      margin-bottom: 2px;
+    }
+    .reviewer-comment-author { font-weight: 600; color: var(--text-2); }
+    .reviewer-comment-body { color: var(--text); line-height: 1.45; }
   </style>
 </head>
 <body>
@@ -2307,6 +2342,7 @@
     canPublish: false,
     subjects: [],          // [{ id, name, exam_board, level, color_key, topics: [{ id, name, unit_id, lessons: [{ id, title, duration_min }] }] }]
     generalLessons: [],    // [{ id, title, duration_min, code, tags, status, ... }] — lessons with is_general=true, not in any subject
+    reviewerComments: null,// cached result of list_lesson_block_comments for the current lesson; only loaded when "Show reviewer comments" is on
     boards: [],            // [{ id, name }] from exam_boards
     years: [],             // [{ id, label, sort_order }] from year_levels
     units: [],             // [{ id, subject_id, exam_board_id, year_id, name, description, sort_order }] from units
@@ -3942,6 +3978,10 @@
               ${L.status === 'published' ? 'Unpublish' : 'Publish'}
             </button>
           ` : ''}
+          <label class="row-btn" id="showReviewerCommentsWrap" style="cursor: pointer;">
+            <input type="checkbox" id="showReviewerCommentsToggle" style="margin-right: 6px; vertical-align: middle;" />
+            Show reviewer comments
+          </label>
           <button class="btn-ghost" id="saveMetaBtn">Save lesson details</button>
         </div>
         ${isActivity
@@ -3985,6 +4025,22 @@
     // the element is optional. Wire it up if present.
     const publishBtn = document.getElementById('publishBtn');
     if (publishBtn) publishBtn.addEventListener('click', togglePublish);
+
+    // Reviewer-comments preview: authors and admins can toggle this to
+    // see what reviewers left on each block. Reviewers themselves
+    // don't author in this editor; the toggle is hidden for them
+    // (they have their own per-block comment surface on lesson.html).
+    const reviewToggleWrap = document.getElementById('showReviewerCommentsWrap');
+    if (reviewToggleWrap && (state.role === 'staff_author' || state.role === 'admin')) {
+      const cb = document.getElementById('showReviewerCommentsToggle');
+      cb.addEventListener('change', () => {
+        if (cb.checked) loadReviewerComments();
+        else clearReviewerComments();
+      });
+    } else if (reviewToggleWrap) {
+      // Hide for reviewers — they don't author here.
+      reviewToggleWrap.style.display = 'none';
+    }
     // Wire the three header inputs (title / duration / order) so they
     // write straight to the lesson object and trigger an autosave
     // (debounced). Previously these only flipped state.dirty without
@@ -4295,6 +4351,11 @@
     });
     // Wire drag-to-reorder
     wireDragReorder(list);
+    // If "Show reviewer comments" is on, repaint the read-only panels
+    // against the freshly rendered block frames.
+    if (state.reviewerComments && state.reviewerComments.length) {
+      paintReviewerComments();
+    }
   }
 
   // ---------- block picker (grouped) ----------
@@ -4319,6 +4380,77 @@
   function canUseKind(kind) {
     const allow = RESTRICTED_KINDS[kind];
     return !allow || allow.includes(state.role);
+  }
+
+  // ---------- reviewer comments preview (author / admin) ----------
+  // When the author or admin ticks "Show reviewer comments" in the
+  // editor header, fetch all per-block comments for the current lesson
+  // and render a read-only panel under each block. We reuse the same
+  // RPC the reviewer-side drawer uses (list_lesson_block_comments)
+  // so the data shape is identical to what reviewers see.
+  //
+  // We cache the result on state.reviewerComments and only re-fetch
+  // if it's missing. The toggle is wired once per openLesson(); we
+  // re-render when the underlying block list changes (after save).
+  async function loadReviewerComments() {
+    const wrap = document.getElementById('blocksList');
+    if (!wrap) return;
+    if (!state.reviewerComments) {
+      const { data, error } = await supabaseClient.rpc('list_lesson_block_comments', {
+        p_lesson_id: state.currentLesson.id,
+      });
+      if (error) {
+        toast('Could not load reviewer comments', 'error');
+        console.warn('[author] list_lesson_block_comments failed:', error);
+        return;
+      }
+      state.reviewerComments = data || [];
+    }
+    paintReviewerComments();
+  }
+
+  function paintReviewerComments() {
+    const wrap = document.getElementById('blocksList');
+    if (!wrap) return;
+    const byBlock = new Map();
+    for (const c of (state.reviewerComments || [])) {
+      if (!c.block_id) continue;
+      byBlock.set(c.block_id, (byBlock.get(c.block_id) || []).concat([c]));
+    }
+    // Tear down any prior panels — re-render fresh each time.
+    wrap.querySelectorAll('.reviewer-comments-preview').forEach(n => n.remove());
+    wrap.querySelectorAll('.block-frame').forEach(frame => {
+      const blockId = frame.dataset.blockId;
+      if (!blockId) return;
+      const comments = byBlock.get(blockId) || [];
+      if (!comments.length) return;
+      const panel = document.createElement('div');
+      panel.className = 'reviewer-comments-preview';
+      panel.innerHTML = `
+        <div class="reviewer-comments-preview-head">Reviewer feedback (${comments.length})</div>
+        ${comments.map(c => `
+          <div class="reviewer-comment${c.resolved ? ' resolved' : ''}">
+            <div class="reviewer-comment-meta">
+              <span class="reviewer-comment-author">${escapeHtml(c.author_name || c.author_email || 'Reviewer')}</span>
+              <span class="reviewer-comment-time">${escapeHtml(formatReviewerTime(c.created_at))}</span>
+            </div>
+            <div class="reviewer-comment-body">${escapeHtml(c.body)}</div>
+          </div>
+        `).join('')}
+      `;
+      frame.parentNode.insertBefore(panel, frame.nextSibling);
+    });
+  }
+
+  function clearReviewerComments() {
+    document.querySelectorAll('.reviewer-comments-preview').forEach(n => n.remove());
+  }
+
+  function formatReviewerTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
   }
 
   function renderBlockPicker() {
