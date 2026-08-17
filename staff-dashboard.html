@@ -348,7 +348,7 @@
   <aside class="rail">
     <h3>Tools</h3>
     <nav>
-      <a href="lesson-creator.html" class="primary">
+      <a href="lesson-creator.html" class="primary" data-requires-role="staff_author,admin" data-hide-if-denied="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         Lesson creator
       </a>
@@ -394,7 +394,7 @@
         <div class="title">Drafts awaiting review</div>
         <div class="sub" id="pendingReviewSub">No drafts at the moment.</div>
       </div>
-      <a class="btn-secondary" href="lesson-creator.html">Open lesson creator</a>
+      <a class="btn-secondary" href="lesson-creator.html" data-requires-role="staff_author,admin" data-hide-if-denied="true">Open lesson creator</a>
     </div>
 
     <div class="stats">
@@ -486,7 +486,7 @@
         Jump straight into the parts of the site you use most.
       </p>
       <div class="cta-row">
-        <a class="btn-primary" href="lesson-creator.html">
+        <a class="btn-primary" href="lesson-creator.html" data-requires-role="staff_author,admin" data-hide-if-denied="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           Open the lesson creator
         </a>
@@ -568,16 +568,36 @@
       $('rankPill').classList.add(r.cls);
       $('rankPill').hidden = false;
     }
-    // Permission-aware links
+    // Permission-aware links. `data-requires-role` accepts a comma-
+    // separated list, e.g. "admin" or "staff_author,admin". Default
+    // behavior is "show but disable" with a 🔒 lock and a toast on
+    // click — used for admin-only nav links so non-admins see the
+    // surface exists but can't reach it. Add `data-hide-if-denied`
+    // to HIDE the link entirely when the role doesn't match — used
+    // for surfaces that would bounce the user with a confusing
+    // "Reviewers don't edit here" wall if clicked. Reviewers never
+    // see the lesson-creator links, but authors and admins still do.
     document.querySelectorAll('[data-requires-role]').forEach(a => {
-      const need = a.getAttribute('data-requires-role');
-      if (need === 'admin' && role !== 'admin') {
-        a.setAttribute('aria-disabled', 'true');
-        a.setAttribute('title', 'Admin only');
-        a.addEventListener('click', (e) => { e.preventDefault(); toast('Admin only', 'error'); }, { once: true });
-      } else {
+      const need = a.getAttribute('data-requires-role') || '';
+      const allowed = need.split(',').map(s => s.trim()).filter(Boolean);
+      const ok = allowed.includes(role);
+      const hide = (a.getAttribute('data-hide-if-denied') === 'true');
+      if (ok) {
+        a.hidden = false;
         a.removeAttribute('aria-disabled');
         a.removeAttribute('title');
+        // Make sure any toast-on-click guard from a prior render is
+        // cleared so authors/admins can actually use the link.
+        a.onclick = null;
+      } else if (hide) {
+        a.hidden = true;
+        a.setAttribute('aria-disabled', 'true');
+        a.setAttribute('title', 'Requires ' + allowed.join(' or '));
+      } else {
+        a.hidden = false;
+        a.setAttribute('aria-disabled', 'true');
+        a.setAttribute('title', 'Requires ' + allowed.join(' or '));
+        a.onclick = (e) => { e.preventDefault(); toast('Admin only', 'error'); };
       }
     });
   }
@@ -1051,8 +1071,10 @@
   // LESSON SEARCH (staff)
   // ============================================================
   // Same shape as the student search but the "All" toggle lets staff
-  // see drafts too, and the click target is lesson-creator.html for
-  // editing (lesson.html for student preview).
+  // see drafts too. Click target depends on role: reviewers open the
+  // lesson viewer (read-only), authors + admins open the editor. This
+  // keeps reviewers from clicking a search row and getting bounced
+  // by the editor's role gate.
   (function setupStaffLessonSearch() {
     const input = $('lessonSearch');
     const out   = $('lessonSearchResults');
@@ -1078,9 +1100,22 @@
         const status = l.status === 'published'
           ? `<span style="color: var(--green); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em;">Published</span>`
           : `<span style="color: var(--text-4); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em;">Draft</span>`;
+        // Pick the click target by role. Reviewers go to the lesson
+        // viewer (read-only); authors + admins go to the editor.
+        // Without this branch, a reviewer clicking a row here would
+        // hit lesson-creator.html and see "Reviewers don't edit here".
+        const isReviewer = (state.role === 'staff_reviewer');
+        const viewerUrl = l.code
+          ? `lesson.html?code=${encodeURIComponent(l.code)}`
+          : `lesson.html?lesson=${encodeURIComponent(l.id)}`;
+        const editorUrl = `lesson-creator.html?lessonId=${encodeURIComponent(l.id)}`;
+        const href = isReviewer ? viewerUrl : editorUrl;
+        const onClick = isReviewer
+          ? ''
+          : `event.preventDefault(); localStorage.setItem('recall.openLesson', '${l.id}'); window.location.href='${editorUrl}';`;
         return `
-          <a href="lesson-creator.html"
-             onclick="event.preventDefault(); localStorage.setItem('recall.openLesson', '${l.id}'); window.location.href='lesson-creator.html';"
+          <a href="${href}"
+             onclick="${onClick}"
              style="display: block; padding: 10px 12px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--text);"
              onmouseover="this.style.background='var(--bg-3)'"
              onmouseout="this.style.background='transparent'">
