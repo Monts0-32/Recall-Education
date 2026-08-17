@@ -174,12 +174,8 @@
     const me = state.me;
     const isSelf = state.isSelf;
 
-    // Welcome + identity.
+    // Identity.
     const name = (p.full_name || '').trim() || 'Unnamed';
-    $('welcomeTitle').textContent = isSelf ? 'Your profile' : name + '’s profile';
-    $('welcomeSub').textContent = isSelf
-      ? 'Edit your bio, see who follows you, and find people on Recall.'
-      : 'Bio, stats, and mutual friends.';
 
     $('displayName').textContent = name;
     paintAvatar($('avatarBig'), p, 64);

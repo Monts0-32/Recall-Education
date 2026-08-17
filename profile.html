@@ -128,15 +128,6 @@
       padding: 32px 24px 80px;
     }
 
-    /* ---------- WELCOME (mirrors .welcome on staff-dashboard line 167-176) ---------- */
-    .welcome { margin-bottom: 22px; }
-    .welcome h1 {
-      margin: 0 0 4px;
-      font-size: 24px; font-weight: 700;
-      letter-spacing: -0.015em;
-    }
-    .welcome p { margin: 0; color: var(--text-3); font-size: 14px; }
-
     /* ---------- CARD (mirrors .card on staff-dashboard line 202-218) ---------- */
     .card {
       background: var(--bg-2);
@@ -449,6 +440,11 @@
       outline: 2px solid var(--blue); outline-offset: 2px;
     }
 
+    /* On the profile page the user's name already shows in the identity
+       card; the avatar button + dropdown would just duplicate it. */
+    body:has(.profile-main) .recall-avatar-name,
+    body:has(.profile-main) #userName { display: none; }
+
     @media (max-width: 720px) {
       .stats { grid-template-columns: repeat(2, 1fr); }
       .identity .avatar { width: 56px; height: 56px; }
@@ -479,11 +475,6 @@
 </div>
 
 <main class="profile-main" id="profileMain" hidden>
-
-  <div class="welcome">
-    <h1 id="welcomeTitle">Profile</h1>
-    <p id="welcomeSub">Loading…</p>
-  </div>
 
   <!-- IDENTITY CARD -->
   <div class="card" id="identityCard" hidden>
