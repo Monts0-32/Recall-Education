@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Terms of Service — Recall</title>
+  <meta name="description" content="The terms and conditions governing your use of Recall Education's online learning platform." />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ---------- THEME — matches the homepage bubble palette ---------- */
+    :root {
+      --bg:        #1A1D22;
+      --bg-2:      #232629;
+      --bg-3:      #2B2F33;
+      --bg-4:      #353A3F;
+      --line:      #2A2E33;
+      --line-2:    #3A3F45;
+      --line-3:    #4D535A;
+      --text:      #F5F7FA;
+      --text-2:    #C9D1D9;
+      --text-3:    #9098A4;
+      --text-4:    #6B7280;
+      --teal:      #56D4DD;
+      --teal-2:    #3FB8C4;
+      --teal-soft: #7CE0E8;
+      --teal-dim:  rgba(86, 212, 221, 0.18);
+      --teal-pale: rgba(86, 212, 221, 0.10);
+      --teal-glow: rgba(86, 212, 221, 0.30);
+      --green:     #4FBE6A;
+      --yellow:    #D8B14A;
+      --red:       #F26B62;
+      --r-xs: 8px;
+      --r-sm: 12px;
+      --r-md: 18px;
+      --r-lg: 24px;
+      --r-pill: 999px;
+      --maxw: 1240px;
+      --shadow-sm: 0 2px 6px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.10);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.12);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      background-image:
+        radial-gradient(ellipse 1400px 700px at 0% -10%,
+          rgba(86, 212, 221, 0.07), transparent 60%),
+        radial-gradient(ellipse 900px 500px at 100% 20%,
+          rgba(86, 212, 221, 0.04), transparent 70%);
+      background-attachment: fixed;
+      min-height: 100vh;
+    }
+    ::selection { background: var(--teal); color: #0B0D0F; }
+    a { color: var(--teal-soft); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---------- TOP NAV (marketing-style frosted bar) ---------- */
+    nav.top {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(26, 29, 34, 0.78);
+      backdrop-filter: saturate(140%) blur(12px);
+      -webkit-backdrop-filter: saturate(140%) blur(12px);
+      border-bottom: 1px solid var(--line);
+    }
+    nav.top .row {
+      max-width: var(--maxw); margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px; gap: 18px;
+    }
+    nav.top .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px;
+      color: var(--text);
+      text-decoration: none;
+    }
+    nav.top .brand-mark {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.04),
+                  0 0 16px rgba(86,212,221,0.18);
+      flex-shrink: 0;
+    }
+    nav.top ul {
+      display: flex; align-items: center; gap: 4px;
+      list-style: none; padding: 0; margin: 0;
+    }
+    nav.top a.nav-link {
+      color: var(--text-2); font-size: 14px; font-weight: 500;
+      padding: 7px 12px; border-radius: var(--r-pill);
+      text-decoration: none;
+    }
+    nav.top a.nav-link:hover {
+      color: var(--text); background: var(--bg-3);
+      text-decoration: none;
+    }
+    nav.top .nav-right { display: flex; align-items: center; gap: 8px; }
+    nav.top .nav-cta {
+      background: #FFFFFF; color: #0B0D0F !important;
+      padding: 7px 16px; border-radius: var(--r-pill);
+      font-size: 14px; font-weight: 600;
+      display: inline-flex; align-items: center;
+      box-shadow: 0 2px 10px rgba(255,255,255,0.10), 0 0 24px rgba(86,212,221,0.18);
+      transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+      text-decoration: none;
+    }
+    nav.top .nav-cta:hover {
+      background: #F0F2F5;
+      box-shadow: 0 4px 16px rgba(255,255,255,0.16), 0 0 32px rgba(86,212,221,0.28);
+      transform: translateY(-1px);
+      text-decoration: none;
+    }
+
+    /* ---------- LEGAL PAGE LAYOUT ---------- */
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+    .page { padding: 56px 0 80px; }
+    .legal {
+      max-width: 760px; margin: 0 auto;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 40px 48px;
+      box-shadow: var(--shadow-sm);
+    }
+    @media (max-width: 700px) {
+      .legal { padding: 28px 22px; }
+      .page { padding: 32px 0 64px; }
+    }
+    .legal h1 {
+      font-size: 30px; font-weight: 700; letter-spacing: -0.01em;
+      margin: 0 0 6px;
+    }
+    .legal .meta {
+      font-size: 13px; color: var(--text-3);
+      margin-bottom: 28px;
+    }
+    .legal h2 {
+      font-size: 17px; font-weight: 600;
+      margin: 32px 0 8px; color: var(--text);
+    }
+    .legal h3 {
+      font-size: 14.5px; font-weight: 600;
+      margin: 18px 0 4px; color: var(--text-2);
+    }
+    .legal p {
+      margin: 0 0 12px;
+      color: var(--text-2); font-size: 14px; line-height: 1.7;
+    }
+    .legal ul {
+      margin: 0 0 12px; padding-left: 22px;
+      color: var(--text-2); font-size: 14px; line-height: 1.7;
+    }
+    .legal li { margin-bottom: 4px; }
+    .legal strong { color: var(--text); font-weight: 600; }
+    .legal a { color: var(--teal-soft); }
+    .legal hr {
+      border: 0; border-top: 1px solid var(--line-2);
+      margin: 28px 0;
+    }
+
+    /* ---------- FOOTER ---------- */
+    footer { padding: 48px 0 32px; border-top: 1px solid var(--line); }
+    footer .top {
+      display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 32px;
+      margin-bottom: 36px;
+    }
+    footer h5 { margin: 0 0 12px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+    footer ul { list-style: none; padding: 0; margin: 0; }
+    footer li { margin-bottom: 8px; }
+    footer a { color: var(--text-3); font-size: 13px; }
+    footer a:hover { color: var(--teal-soft); text-decoration: none; }
+    footer .bottom {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-top: 20px; border-top: 1px solid var(--line);
+      font-size: 12px; color: var(--text-4);
+    }
+    footer .brand-block { max-width: 320px; }
+    footer .brand-block p { font-size: 13px; color: var(--text-2); margin: 12px 0 0; line-height: 1.5; }
+    footer .brand {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px; color: var(--text);
+      text-decoration: none;
+    }
+    footer .brand-mark {
+      width: 30px; height: 30px; border-radius: 50%;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.04),
+                  0 0 16px rgba(86,212,221,0.18);
+    }
+
+    @media (max-width: 900px) {
+      nav.top ul { display: none; }
+      nav.top .row { height: 56px; }
+      footer .top { grid-template-columns: 1fr; }
+      footer .bottom { flex-direction: column; gap: 8px; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
+    <ul>
+      <li><a class="nav-link" href="index.html#subjects">Subjects</a></li>
+      <li><a class="nav-link" href="index.html#how">How it works</a></li>
+      <li><a class="nav-link" href="index.html#pricing">Pricing</a></li>
+      <li><a class="nav-link" href="index.html#faq">FAQ</a></li>
+    </ul>
+    <div class="nav-right">
+      <a class="nav-link" href="login.html">Sign in</a>
+      <a class="nav-cta" href="login.html#signup">Start free</a>
+    </div>
+  </div>
+</nav>
+
+<!-- CONTENT -->
+<main class="page">
+  <div class="wrap">
+    <article class="legal">
+      <h1>Terms of Service</h1>
+      <p class="meta">Last updated: 18 August 2026</p>
+
+      <p>These Terms of Service ("Terms") govern your access to and use of the Recall Education platform ("Recall", "we", "us", "our"), including our website at <a href="https://recalleducation.co.uk">recalleducation.co.uk</a> and any related applications, content, and services (together, the "Service"). By creating an account, accessing, or otherwise using the Service, you agree to be bound by these Terms.</p>
+
+      <p>If you do not agree to these Terms, you must not use the Service.</p>
+
+      <h2>1. Who we are</h2>
+      <p>Recall Education Ltd is a company registered in England and Wales (company number 14882047). Our registered office is in Sheffield, United Kingdom. You can contact us at <a href="mailto:hello@recalleducation.co.uk">hello@recalleducation.co.uk</a>.</p>
+
+      <h2>2. Eligibility</h2>
+      <p>You must be at least 13 years old to use Recall. If you are under 16, you must have the consent of a parent or legal guardian before creating an account. If you are a school, teacher, or parent setting up an account on behalf of a student, you confirm that you have the legal authority to do so and to accept these Terms on their behalf.</p>
+
+      <h2>3. Your account</h2>
+      <ul>
+        <li>You are responsible for keeping your login details secure and for all activity that happens under your account.</li>
+        <li>You must provide accurate information when signing up and keep it up to date.</li>
+        <li>Let us know straight away if you suspect any unauthorised access to your account.</li>
+        <li>We may suspend or close accounts that breach these Terms or that are used to abuse the Service.</li>
+      </ul>
+
+      <h2>4. Subscriptions and payment</h2>
+      <p>Some features of Recall are provided on a paid subscription basis. By subscribing you agree to pay the fees shown at checkout.</p>
+      <ul>
+        <li><strong>Billing.</strong> Subscriptions are billed in advance for the period you select (monthly or annually) and renew automatically unless cancelled.</li>
+        <li><strong>14-day trial.</strong> New subscribers get a 14-day free trial. We will not charge you until the trial ends. You may cancel at any point during the trial and will not be billed.</li>
+        <li><strong>Cancelling.</strong> You can cancel your subscription at any time from your account settings. Cancellation takes effect at the end of your current billing period — we do not offer partial refunds for unused time, except where required by law.</li>
+        <li><strong>Price changes.</strong> If we change subscription prices, we will give you at least 30 days' notice by email. Continued use after the change takes effect counts as acceptance.</li>
+      </ul>
+
+      <h2>5. Acceptable use</h2>
+      <p>You agree not to:</p>
+      <ul>
+        <li>Use Recall to harass, threaten, or harm other users, or to send any content that is unlawful, abusive, defamatory, discriminatory, or sexually explicit.</li>
+        <li>Upload content that infringes someone else's intellectual property or privacy rights.</li>
+        <li>Attempt to disrupt the Service, probe it for vulnerabilities, or access data you are not authorised to access.</li>
+        <li>Scrape, copy, or resell Recall content or learning materials without our written permission.</li>
+        <li>Use Recall for any commercial purpose other than what the Service is designed for (teaching and learning) without our agreement.</li>
+        <li>Impersonate another person or misrepresent your affiliation with them.</li>
+      </ul>
+      <p>We use automated moderation (a curated blocklist and a review queue) on free-text fields such as bios, profile names, and direct messages. Content that breaches these rules will be rejected; repeated or serious breaches may lead to account suspension.</p>
+
+      <h2>6. Your content</h2>
+      <p>You retain ownership of anything you upload or post to Recall (your "User Content"). You grant us a worldwide, non-exclusive, royalty-free licence to host, store, reproduce, and display your User Content solely for the purpose of operating and improving the Service. This licence ends when you delete your User Content or close your account, except where retention is required by law.</p>
+
+      <h2>7. Our content</h2>
+      <p>All lessons, questions, mark schemes, explanations, designs, branding, and software on Recall belong to Recall Education Ltd or our licensors and are protected by UK and international intellectual property laws. We give you a personal, non-exclusive, non-transferable licence to access and use the Service for your own learning or teaching. You may not copy, redistribute, or create derivative works of our content except as allowed by these Terms or by law (for example, fair dealing for the purposes of criticism or review).</p>
+
+      <h2>8. AI features</h2>
+      <p>Recall includes AI-assisted features (for example, explanations and stuck-question help). These are provided for educational support and may sometimes be inaccurate. Always double-check important answers against your syllabus and exam board specification. AI output does not constitute professional advice.</p>
+
+      <h2>9. Third-party services</h2>
+      <p>Recall relies on third-party providers for hosting, authentication, payments, and communications. We choose providers carefully, but we are not responsible for outages or issues caused by those providers that are outside our reasonable control.</p>
+
+      <h2>10. Suspension and termination</h2>
+      <p>We may suspend or terminate your access to the Service at any time if we reasonably believe you have breached these Terms, if continuing to provide the Service to you would put other users or the Service at risk, or if we are required to do so by law. If your account is closed, you must stop using the Service. Provisions of these Terms that by their nature should survive termination will do so (including ownership, disclaimers, indemnity, and limitations of liability).</p>
+
+      <h2>11. Changes to these Terms</h2>
+      <p>We may update these Terms from time to time. If a change is material, we will give you reasonable notice by email or by a prominent notice in the Service. The "Last updated" date at the top will reflect when the changes were made. Continued use of the Service after the effective date of the updated Terms counts as acceptance.</p>
+
+      <h2>12. Disclaimers</h2>
+      <p>The Service is provided on an "as is" and "as available" basis. To the maximum extent permitted by law, we disclaim all warranties, conditions, and representations, whether express or implied, including any warranty of merchantability, fitness for a particular purpose, and non-infringement. We do not guarantee that the Service will be uninterrupted, secure, or error-free, or that it will meet your particular learning goals or exam outcomes.</p>
+
+      <h2>13. Limitation of liability</h2>
+      <p>To the maximum extent permitted by law, Recall Education Ltd will not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits, revenues, data, or goodwill, arising out of or related to your use of (or inability to use) the Service.</p>
+      <p>Nothing in these Terms excludes or limits our liability for (a) death or personal injury caused by negligence, (b) fraud or fraudulent misrepresentation, or (c) any other liability that cannot be excluded or limited by English law.</p>
+
+      <h2>14. Indemnity</h2>
+      <p>You agree to indemnify and hold Recall Education Ltd, its directors, employees, and partners harmless from any claim or demand (including reasonable legal fees) arising out of your breach of these Terms or your misuse of the Service.</p>
+
+      <h2>15. Governing law and disputes</h2>
+      <p>These Terms are governed by the laws of England and Wales. If we cannot resolve a dispute informally, the courts of England and Wales will have exclusive jurisdiction, except that consumers may also bring proceedings in the courts of their country of residence.</p>
+      <p>If you are a consumer, you may also use the European Commission's online platform for alternative dispute resolution: <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener">ec.europa.eu/consumers/odr</a>.</p>
+
+      <h2>16. Contact</h2>
+      <p>Questions about these Terms? Email <a href="mailto:hello@recalleducation.co.uk">hello@recalleducation.co.uk</a> or write to us at Recall Education Ltd, Sheffield, United Kingdom.</p>
+
+      <hr>
+      <p style="font-size: 12.5px; color: var(--text-3); margin: 0;">By using Recall, you confirm that you have read, understood, and agreed to these Terms of Service and our <a href="privacy-policy.html">Privacy Policy</a>.</p>
+    </article>
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand-block">
+        <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
+        <p>An online learning platform for UK secondary students. 30+ GCSE and A-level subjects, taught the way your exam board wants.</p>
+      </div>
+      <div>
+        <h5>Subjects</h5>
+        <ul>
+          <li><a href="index.html#subjects">Maths</a></li>
+          <li><a href="index.html#subjects">English</a></li>
+          <li><a href="index.html#subjects">Sciences</a></li>
+          <li><a href="index.html#subjects">Humanities</a></li>
+          <li><a href="index.html#subjects">Languages</a></li>
+          <li><a href="index.html#subjects">All subjects</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Product</h5>
+        <ul>
+          <li><a href="index.html#pricing">Pricing</a></li>
+          <li><a href="index.html#">iOS app</a></li>
+          <li><a href="index.html#">Android app</a></li>
+          <li><a href="index.html#">For schools</a></li>
+          <li><a href="index.html#">Changelog</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <ul>
+          <li><a href="index.html#">About</a></li>
+          <li><a href="index.html#">The science</a></li>
+          <li><a href="privacy-policy.html">Privacy</a></li>
+          <li><a href="terms-of-service.html">Terms</a></li>
+          <li><a href="mailto:hello@recalleducation.co.uk">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="bottom">
+      <span>© 2026 Recall Education Ltd · 14882047</span>
+      <span>Made in Sheffield, UK</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
