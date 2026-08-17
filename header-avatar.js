@@ -138,9 +138,12 @@
   margin-bottom: 4px;
 }
 .recall-avatar-menu-head .meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.recall-avatar-menu-head .name {
+  font-weight: 600; font-size: 13px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .recall-avatar-menu-head .role {
   font-size: 11px; color: var(--text-3);
-  font-weight: 600;
 }
 .recall-avatar-menu-item {
   display: flex; align-items: center; gap: 10px;
@@ -231,9 +234,13 @@
     paintAvatar(headCircle, profile);
     const meta = document.createElement('div');
     meta.className = 'meta';
+    const headName = document.createElement('div');
+    headName.className = 'name';
+    headName.textContent = profile.full_name || 'Signed in';
     const headRole = document.createElement('div');
     headRole.className = 'role';
     headRole.textContent = roleLabel(profile.role);
+    meta.appendChild(headName);
     meta.appendChild(headRole);
     head.appendChild(headCircle);
     head.appendChild(meta);
