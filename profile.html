@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Profile · Recall Education</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* Token palette mirrors every other authenticated page. No new globals. */
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --red:       #F85149;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---------- TOP NAV ---------- */
+    nav.top {
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+      position: sticky; top: 0; z-index: 50;
+    }
+    nav.top .row {
+      max-width: 1280px; margin: 0 auto;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px;
+      color: var(--text);
+    }
+    .brand:hover { text-decoration: none; }
+    .brand-mark {
+      width: 28px; height: 28px;
+      display: block;
+      object-fit: cover;
+      border-radius: var(--r-sm);
+    }
+    nav.top .right { display: flex; align-items: center; gap: 14px; font-size: 13px; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 7px 14px;
+      border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-ghost:hover { background: var(--bg-2); }
+
+    /* ---------- LAYOUT ---------- */
+    main.profile-page {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 32px 24px 60px;
+    }
+    .profile-search {
+      position: relative;
+      margin: 0 0 24px;
+    }
+    .profile-search input {
+      width: 100%;
+      background: var(--bg-2);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 11px 14px;
+      font-family: inherit; font-size: 14px;
+    }
+    .profile-search input:focus {
+      outline: none; border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-dim);
+    }
+    .profile-search-results {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+      max-height: 360px; overflow-y: auto;
+      z-index: 5;
+    }
+    .search-hit {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      color: var(--text);
+      text-decoration: none;
+    }
+    .search-hit:last-child { border-bottom: 0; }
+    .search-hit:hover { background: var(--bg-3); text-decoration: none; }
+    .search-hit-name { font-weight: 600; font-size: 13.5px; }
+    .search-hit-role { color: var(--text-3); font-size: 12px; margin-left: auto; }
+
+    /* ---------- PROFILE CARD ---------- */
+    .profile-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 28px;
+    }
+    .profile-head {
+      display: flex; gap: 24px; align-items: center;
+      margin-bottom: 22px;
+    }
+    .profile-avatar {
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      overflow: hidden; flex-shrink: 0;
+      background: var(--bg-3);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 30px;
+    }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .profile-head-meta h1 {
+      margin: 0 0 6px;
+      font-size: 22px; font-weight: 700;
+    }
+    .role-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      background: var(--bg-3);
+      color: var(--text-2);
+      border: 1px solid var(--line-2);
+    }
+    .role-pill.role-staff_author,
+    .role-pill.role-staff_reviewer,
+    .role-pill.role-admin { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
+    .role-pill.role-teacher,
+    .role-pill.role-school_organiser { background: var(--bg-3); color: var(--green); border-color: var(--green); }
+    .role-pill.role-student { background: var(--bg-3); color: var(--text-3); }
+    .profile-school {
+      color: var(--text-3); font-size: 13px; margin-top: 6px;
+    }
+
+    /* ---------- BIO ---------- */
+    .profile-bio {
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 16px 18px;
+      margin-bottom: 18px;
+    }
+    .profile-bio-text {
+      margin: 0;
+      color: var(--text-2);
+      font-size: 14px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .profile-bio-text.empty {
+      color: var(--text-4);
+      font-style: italic;
+    }
+    .profile-bio-actions {
+      margin-top: 8px;
+      display: flex; justify-content: flex-end;
+    }
+    .link-btn {
+      background: none; border: 0;
+      color: var(--blue); cursor: pointer;
+      font-family: inherit; font-size: 12.5px;
+      padding: 0;
+    }
+    .link-btn:hover { text-decoration: underline; }
+
+    .profile-bio-form textarea {
+      width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 10px 12px;
+      font-family: inherit; font-size: 14px;
+      resize: vertical;
+      min-height: 80px;
+    }
+    .profile-bio-form textarea:focus {
+      outline: none; border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-dim);
+    }
+    .profile-bio-foot {
+      display: flex; align-items: center; gap: 12px;
+      margin-top: 10px;
+    }
+    .profile-bio-foot .counter {
+      color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums;
+    }
+    .profile-bio-foot .spacer { flex: 1; }
+    .profile-bio-foot .btn-primary {
+      background: var(--blue); color: #fff;
+      border: 1px solid var(--blue);
+      padding: 7px 16px;
+      border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer;
+    }
+    .profile-bio-foot .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
+
+    /* ---------- ACTION ROW ---------- */
+    .profile-actions {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+    .profile-actions .btn-primary {
+      background: var(--blue); color: #fff;
+      border: 1px solid var(--blue);
+      padding: 8px 18px;
+      border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13.5px; font-weight: 600;
+      cursor: pointer;
+    }
+    .profile-actions .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .profile-actions .btn-primary.is-following {
+      background: var(--bg-3); color: var(--text);
+      border-color: var(--line-2);
+    }
+    .profile-actions .btn-primary.is-following:hover {
+      background: var(--bg-4);
+    }
+    .like-btn {
+      background: transparent;
+      color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 8px 16px;
+      border-radius: var(--r-sm);
+      font-family: inherit; font-size: 13.5px; font-weight: 600;
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .like-btn:hover { background: var(--bg-3); }
+    .like-btn .heart { font-size: 14px; }
+    .like-btn.is-liked {
+      color: var(--red);
+      border-color: var(--red);
+      background: rgba(248,81,73,0.08);
+    }
+    .like-btn.is-liked .heart::before { content: '♥'; }
+    .like-btn .heart::before { content: '♡'; }
+    .like-btn.is-liked .heart::before { content: '♥'; }
+
+    /* ---------- STATS ROW ---------- */
+    .profile-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat {
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 14px 16px;
+      text-align: center;
+      cursor: pointer;
+      color: var(--text);
+      font-family: inherit; font-size: 12px;
+    }
+    .stat:hover { background: var(--bg-4); }
+    .stat[data-open]:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .stat b {
+      display: block;
+      font-size: 20px; font-weight: 700;
+      color: var(--text); margin-bottom: 2px;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat.readonly { cursor: default; }
+    .stat.readonly:hover { background: var(--bg-3); }
+
+    /* ---------- MUTUALS GRID ---------- */
+    .profile-recent-mutuals { margin-top: 8px; }
+    .profile-recent-mutuals h2 {
+      margin: 0 0 12px;
+      font-size: 13px; font-weight: 600;
+      color: var(--text-3); text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .mutuals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+    }
+    .mutual-card {
+      background: var(--bg-3);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      color: var(--text); text-decoration: none;
+    }
+    .mutual-card:hover { background: var(--bg-4); text-decoration: none; }
+    .mutual-avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 600; font-size: 14px;
+      overflow: hidden;
+      background: var(--bg-4);
+    }
+    .mutual-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .mutual-name {
+      font-size: 12.5px; font-weight: 600; color: var(--text);
+      text-align: center;
+      overflow: hidden; text-overflow: ellipsis;
+      max-width: 100%; white-space: nowrap;
+    }
+    .mutual-role { font-size: 11px; color: var(--text-3); text-align: center; }
+
+    /* ---------- LIST MODAL ---------- */
+    .profile-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 60;
+      padding: 24px;
+    }
+    .profile-modal-card {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      width: 100%; max-width: 480px; max-height: 80vh;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .profile-modal-card header {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .profile-modal-card h3 { margin: 0; font-size: 16px; font-weight: 600; }
+    .profile-modal-card .modal-list {
+      flex: 1; overflow-y: auto;
+      padding: 8px 0;
+    }
+    .modal-list-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 18px;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .modal-list-item:hover { background: var(--bg-3); text-decoration: none; }
+    .modal-list-empty {
+      padding: 32px 18px; text-align: center;
+      color: var(--text-3); font-size: 13px;
+    }
+
+    /* ---------- ERROR / GATE ---------- */
+    .error-line {
+      background: rgba(248,81,73,0.08);
+      border: 1px solid var(--red);
+      color: var(--text);
+      padding: 14px 18px;
+      border-radius: var(--r-sm);
+      margin: 24px 0;
+      font-size: 13.5px;
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="row">
+    <a class="brand" href="index.html">
+      <img class="brand-mark" src="logo.png" alt="Recall" /> Recall
+    </a>
+    <div class="right">
+      <div id="bellSlot"></div>
+      <div id="avatarSlot" style="display: inline-flex;"></div>
+      <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<main class="profile-page">
+  <section class="profile-search">
+    <input id="searchInput" type="text" placeholder="Find people to follow…"
+           autocomplete="off" />
+    <div id="searchResults" class="profile-search-results" hidden></div>
+  </section>
+
+  <section id="profileCard" class="profile-card" hidden>
+    <header class="profile-head">
+      <div id="avatarBig" class="profile-avatar"></div>
+      <div class="profile-head-meta">
+        <h1 id="displayName"></h1>
+        <span id="rolePill" class="role-pill"></span>
+        <div id="schoolLine" class="profile-school"></div>
+      </div>
+    </header>
+
+    <section class="profile-bio">
+      <p id="bioText" class="profile-bio-text"></p>
+      <div class="profile-bio-actions">
+        <button id="editBioBtn" class="link-btn" type="button" hidden>Edit bio</button>
+      </div>
+      <form id="bioForm" class="profile-bio-form" hidden>
+        <textarea id="bioInput" maxlength="500" rows="4"
+                  placeholder="Tell people about yourself…"></textarea>
+        <div class="profile-bio-foot">
+          <span id="bioCounter" class="counter">0 / 500</span>
+          <span class="spacer"></span>
+          <button id="bioCancel" class="btn-ghost" type="button">Cancel</button>
+          <button id="bioSave" class="btn-primary" type="submit">Save</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="profile-actions">
+      <button id="followBtn" class="btn-primary" type="button" hidden>Follow</button>
+      <button id="messageBtn" class="btn-ghost" type="button" hidden>Message</button>
+      <button id="likeBtn" class="like-btn" type="button" hidden>
+        <span class="heart"></span>
+        <span>Like</span>
+        <span id="likeCount">0</span>
+      </button>
+    </section>
+
+    <section class="profile-stats">
+      <button class="stat" type="button" data-open="followers">
+        <b id="statFollowers">0</b> Followers
+      </button>
+      <button class="stat" type="button" data-open="following">
+        <b id="statFollowing">0</b> Following
+      </button>
+      <button class="stat" type="button" data-open="mutuals">
+        <b id="statMutuals">0</b> Mutual friends
+      </button>
+      <div class="stat readonly">
+        <b id="statLikedBy">0</b> Liked by
+      </div>
+    </section>
+
+    <section class="profile-recent-mutuals">
+      <h2>Mutual friends</h2>
+      <div id="mutualsGrid" class="mutuals-grid"></div>
+    </section>
+  </section>
+
+  <div id="listModal" class="profile-modal" hidden>
+    <div class="profile-modal-card">
+      <header>
+        <h3 id="listModalTitle">List</h3>
+        <button id="listClose" class="link-btn" type="button">Close</button>
+      </header>
+      <div id="listModalBody" class="modal-list"></div>
+    </div>
+  </div>
+
+  <p id="errorLine" class="error-line" hidden></p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Mirrors the boot snippet from index.html / lesson-creator.html etc.
+  // Mirrors KEEP_KEY behaviour from login.html.
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const KEEP_KEY = 'recall.keepSignedIn';
+  let keepSignedIn = true;
+  try {
+    const raw = localStorage.getItem(KEEP_KEY);
+    if (raw === '0') keepSignedIn = false;
+    else if (raw === '1') keepSignedIn = true;
+    else localStorage.setItem(KEEP_KEY, '1');
+  } catch (_) {}
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    persistSession: keepSignedIn,
+    autoRefreshToken: keepSignedIn,
+    detectSessionInUrl: true,
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) {
+          return fetch(url, options);
+        }
+      }
+    }
+  });
+  window.supabaseClient = supabaseClient;
+</script>
+<script src="topbar.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="profile.js" defer></script>
+</body>
+</html>

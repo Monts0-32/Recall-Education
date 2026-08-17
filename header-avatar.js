@@ -252,6 +252,12 @@
     dashLink.textContent = 'My dashboard';
     menu.appendChild(dashLink);
 
+    const profileLink = document.createElement('a');
+    profileLink.className = 'recall-avatar-menu-item';
+    profileLink.href = 'profile.html?id=' + encodeURIComponent(user.id);
+    profileLink.textContent = 'My profile';
+    menu.appendChild(profileLink);
+
     const uploadLabel = document.createElement('label');
     uploadLabel.className = 'recall-avatar-menu-item';
     uploadLabel.textContent = 'Upload avatar';

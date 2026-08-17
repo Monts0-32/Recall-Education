@@ -108,6 +108,13 @@
   function injectStyle() {
     if (document.getElementById(STYLE_ID)) return;
     const css = `
+.recall-chat-avatar-link {
+  display: inline-flex;
+  border-radius: 50%;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.recall-chat-avatar-link:hover { opacity: 0.85; }
 .recall-chat-fab {
   position: fixed;
   right: 24px; bottom: 24px;
@@ -669,7 +676,9 @@
         const row = el('div', { class: 'recall-chat-thread' });
         if (t.id === activeThreadId) row.classList.add('active');
 
-        // Avatar: stack for group, single for direct
+        // Avatar: stack for group, single for direct. Single-avatar branch wraps
+        // the avatar in an anchor to profile.html so clicking it opens the
+        // profile in a new tab; the row click handler still opens the thread.
         const av = el('div', { style: { position: 'relative', width: '32px', height: '32px', flexShrink: '0' } });
         if (t.kind === 'staff_group' && t.other_members && t.other_members.length > 1) {
           const a1 = avatarEl(t.other_members[0], 22);
@@ -682,7 +691,18 @@
         } else {
           const a = avatarEl((t.other_members && t.other_members[0]) || {}, 32);
           a.style.width = '32px'; a.style.height = '32px';
-          av.appendChild(a);
+          const other = (t.other_members && t.other_members[0]) || {};
+          if (other && other.id) {
+            const link = el('a', {
+              class: 'recall-chat-avatar-link',
+              href: 'profile.html?id=' + encodeURIComponent(other.id),
+              target: '_blank', rel: 'noopener'
+            });
+            link.appendChild(a);
+            av.appendChild(link);
+          } else {
+            av.appendChild(a);
+          }
         }
         row.appendChild(av);
 
@@ -878,9 +898,21 @@
       }
       for (const r of rows) {
         const row = el('div', { class: 'recall-chat-result' });
+        // Avatar wrapped in anchor to profile.html — opens in a new tab
+        // so the row's own click handler (startDirectDM) still runs.
         const av = avatarEl(r, 28);
         av.style.width = '28px'; av.style.height = '28px';
-        row.appendChild(av);
+        if (r && r.id) {
+          const link = el('a', {
+            class: 'recall-chat-avatar-link',
+            href: 'profile.html?id=' + encodeURIComponent(r.id),
+            target: '_blank', rel: 'noopener'
+          });
+          link.appendChild(av);
+          row.appendChild(link);
+        } else {
+          row.appendChild(av);
+        }
         const info = el('div', { class: 'recall-chat-result-info' });
         info.appendChild(el('div', { class: 'recall-chat-result-name', text: r.full_name || 'Unknown' }));
         info.appendChild(el('div', { class: 'recall-chat-result-role', text: roleLabel(r.role) }));
