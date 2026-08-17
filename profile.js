@@ -436,9 +436,14 @@
     });
 
     document.querySelectorAll('[data-open]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const kind = btn.getAttribute('data-open');
-        await openList(kind);
+      const open = () => openList(btn.getAttribute('data-open'));
+      btn.addEventListener('click', open);
+      btn.addEventListener('keydown', (e) => {
+        // Native buttons fire click on Enter/Space; our divs need this wired.
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          open();
+        }
       });
     });
 
@@ -600,7 +605,8 @@
     state.isSelf = (state.targetId === user.id);
 
     // Top nav.
-    $('userName').textContent = (me && me.full_name) || user.email || 'You';
+    // (userName is hidden by CSS — the avatar button + identity card are the
+    // canonical display-name surfaces on the profile page.)
     $('signOutBtn').hidden = false;
     $('signOutBtn').addEventListener('click', async () => {
       await supabaseClient.auth.signOut();

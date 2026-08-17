@@ -278,18 +278,18 @@
       margin-bottom: 18px;
     }
     .stat,
-    button.stat,
     .stat[data-open] {
-      background: var(--bg-2) !important;
-      border: 1px solid var(--line) !important;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
       border-radius: var(--r-md);
       padding: 16px 18px;
       cursor: pointer;
       color: var(--text);
       font-family: inherit;
       text-align: left;
+      user-select: none;
     }
-    .stat:hover { background: var(--bg-3); }
+    .stat[role="button"]:hover { background: var(--bg-3); }
     .stat:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
     .stat .label {
       font-size: 11.5px; color: var(--text-3);
@@ -464,6 +464,11 @@
       border: 1px solid var(--line-2) !important;
     }
 
+    /* The avatar button's own name label is the canonical display name on
+       the profile page (the identity card repeats it once, so the standalone
+       userName span in the top nav would just be a third copy). */
+    #userName { display: none; }
+
     @media (max-width: 720px) {
       .stats { grid-template-columns: repeat(2, 1fr); }
       .identity .avatar { width: 56px; height: 56px; }
@@ -544,18 +549,18 @@
   <div class="card" id="statsCard" hidden>
     <h2>Activity</h2>
     <div class="stats">
-      <button class="stat" type="button" data-open="followers">
+      <div class="stat" role="button" tabindex="0" data-open="followers">
         <div class="label">Followers</div>
         <span class="value" id="statFollowers">0</span>
-      </button>
-      <button class="stat" type="button" data-open="following">
+      </div>
+      <div class="stat" role="button" tabindex="0" data-open="following">
         <div class="label">Following</div>
         <span class="value" id="statFollowing">0</span>
-      </button>
-      <button class="stat" type="button" data-open="mutuals">
+      </div>
+      <div class="stat" role="button" tabindex="0" data-open="mutuals">
         <div class="label">Mutual friends</div>
         <span class="value" id="statMutuals">0</span>
-      </button>
+      </div>
       <div class="stat readonly">
         <div class="label">Liked by</div>
         <span class="value" id="statLikedBy">0</span>
