@@ -223,7 +223,10 @@
     nav.parentNode.insertBefore(bar, nav);
 
     // Mount bell inside the bar.
-    if (typeof window.recallTopbar === 'object' && typeof window.recallTopbar.mount === 'function') {
+    function mountBell() {
+      if (typeof window.recallTopbar !== 'object' || typeof window.recallTopbar.mount !== 'function') {
+        setTimeout(mountBell, 50); return;
+      }
       try {
         window.recallTopbar.mount('welcomeBellSlot', {
           supabaseClient: sb,
@@ -231,6 +234,7 @@
         });
       } catch (_) { /* ignore */ }
     }
+    mountBell();
   }
 
   window.recallIndexWelcome = { mount: mount };

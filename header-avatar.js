@@ -387,4 +387,33 @@
   }
 
   window.recallHeaderAvatar = { mount: mount };
+
+  // Auto-mount: if the page rendered an #avatarSlot and a supabaseClient is
+  // available, mount ourselves once we have a user. Avoids races where the
+  // page's `getSession().then(mountHeaderAvatar)` fires before this deferred
+  // script has loaded — previously the avatar pill would never appear.
+  function tryAutoMount() {
+    const slot = document.getElementById('avatarSlot');
+    if (!slot) return;
+    if (slot.firstChild) return; // already mounted
+    const sb = (typeof window !== 'undefined') ? window.supabaseClient : null;
+    if (!sb || !sb.auth || typeof sb.auth.getSession !== 'function') return;
+    sb.auth.getSession().then(function (res) {
+      // Re-check inside the callback — the page's own mount may have raced
+      // ahead and already populated the slot.
+      if (!slot.firstChild && res && res.data && res.data.session && res.data.session.user) {
+        mount('avatarSlot', { supabaseClient: sb, user: res.data.session.user });
+      }
+    }).catch(function () { /* swallow */ });
+    sb.auth.onAuthStateChange(function (_event, session) {
+      if (session && session.user && !slot.firstChild) {
+        mount('avatarSlot', { supabaseClient: sb, user: session.user });
+      }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryAutoMount);
+  } else {
+    tryAutoMount();
+  }
 })();

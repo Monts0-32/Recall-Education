@@ -1741,13 +1741,25 @@
 
   // Mount the notification bell once we have a session.
   function mountBell(user) {
-    if (!user || !window.recallTopbar) return;
+    if (!user) return;
+    const slot = document.getElementById('bellSlot');
+    if (slot && slot.firstChild) return; // already mounted
+    if (!window.recallTopbar) {
+      // The deferred script hasn't loaded yet — retry shortly.
+      setTimeout(() => mountBell(user), 50);
+      return;
+    }
     window.recallTopbar.mount('bellSlot', { supabaseClient, user });
   }
   // Mount the header avatar chip once we have a user + profile.
   let headerAvatarHandle = null;
   async function mountHeaderAvatar(user) {
-    if (!user || !window.recallHeaderAvatar) return;
+    if (!user) return;
+    if (!window.recallHeaderAvatar) {
+      // The deferred script hasn't loaded yet — retry shortly.
+      setTimeout(() => mountHeaderAvatar(user), 50);
+      return;
+    }
     if (headerAvatarHandle) return;
     let profile = state && state.profile ? state.profile : null;
     if (!profile) {

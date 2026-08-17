@@ -1979,7 +1979,8 @@
     }
 
     // Mount the header avatar chip.
-    if (window.recallHeaderAvatar) {
+    async function mountAvatar() {
+      if (!window.recallHeaderAvatar) { setTimeout(mountAvatar, 50); return; }
       let avatarProfile = {
         id: session.user.id,
         full_name: profile ? profile.full_name : '',
@@ -1995,6 +1996,7 @@
         supabaseClient, user: session.user, profile: avatarProfile
       });
     }
+    mountAvatar();
 
     // Detect staff role. Same pattern as lesson-creator.html: read
     // app_metadata.role from the JWT first, then fall back to the

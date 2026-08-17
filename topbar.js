@@ -402,4 +402,33 @@
 
   // Expose.
   window.recallTopbar = { mount: mount };
+
+  // Auto-mount: if the page rendered a #bellSlot and a supabaseClient with a
+  // session becomes available, mount ourselves. This avoids race conditions
+  // where the page's `getSession().then(mountBell)` fires before this deferred
+  // script has loaded — previously the bell would never appear.
+  function tryAutoMount() {
+    const slot = document.getElementById('bellSlot');
+    if (!slot) return;
+    if (slot.firstChild) return; // already mounted
+    const sb = (typeof window !== 'undefined') ? window.supabaseClient : null;
+    if (!sb || !sb.auth || typeof sb.auth.getSession !== 'function') return;
+    sb.auth.getSession().then(function (res) {
+      // Re-check inside the callback — the page's own mount may have raced
+      // ahead and already populated the slot.
+      if (!slot.firstChild && res && res.data && res.data.session && res.data.session.user) {
+        mount('bellSlot', { supabaseClient: sb, user: res.data.session.user });
+      }
+    }).catch(function () { /* swallow */ });
+    sb.auth.onAuthStateChange(function (_event, session) {
+      if (session && session.user && !slot.firstChild) {
+        mount('bellSlot', { supabaseClient: sb, user: session.user });
+      }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryAutoMount);
+  } else {
+    tryAutoMount();
+  }
 })();

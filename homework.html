@@ -589,7 +589,8 @@
     $('signOutBtn').hidden = false;
 
     // Mount the header avatar chip.
-    if (window.recallHeaderAvatar) {
+    async function mountAvatar() {
+      if (!window.recallHeaderAvatar) { setTimeout(mountAvatar, 50); return; }
       let avatarProfile = { id: user.id, full_name: '', role: '', avatar_url: null };
       try {
         const { data: p } = await supabaseClient
@@ -600,6 +601,7 @@
         supabaseClient, user, profile: avatarProfile
       });
     }
+    mountAvatar();
 
     const { data: rows, error } = await supabaseClient.rpc('list_my_assignments');
     if (error) {

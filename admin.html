@@ -965,11 +965,14 @@
 
     // Mount the notification bell — admins get the same hub as the
     // rest of the staff/admin pages.
-    if (window.recallTopbar) {
+    function mountBell() {
+      if (!window.recallTopbar) { setTimeout(mountBell, 50); return; }
       window.recallTopbar.mount('bellSlot', { supabaseClient, user: data.user });
     }
+    mountBell();
     // Header avatar chip + dropdown.
-    if (window.recallHeaderAvatar) {
+    async function mountAvatar() {
+      if (!window.recallHeaderAvatar) { setTimeout(mountAvatar, 50); return; }
       let avatarProfile = { id: data.user.id, full_name: '', role: role, avatar_url: null };
       try {
         const { data: p } = await supabaseClient
@@ -984,6 +987,7 @@
         supabaseClient, user: data.user, profile: avatarProfile
       });
     }
+    mountAvatar();
     // Floating chat FAB for admins.
     if (window.recallChat) {
       let chatProfile = { id: data.user.id, full_name: '', role: role, avatar_url: null };

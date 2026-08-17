@@ -455,7 +455,10 @@
       role: role,
       avatar_url: null
     };
-    if (window.recallHeaderAvatar && typeof window.recallHeaderAvatar.mount === 'function') {
+    function mountAvatar() {
+      if (!window.recallHeaderAvatar || typeof window.recallHeaderAvatar.mount !== 'function') {
+        setTimeout(mountAvatar, 50); return;
+      }
       try {
         window.recallHeaderAvatar.mount('avatarSlot', {
           supabaseClient,
@@ -464,6 +467,7 @@
         });
       } catch (e) { console.error('headerAvatar mount failed:', e); }
     }
+    mountAvatar();
     if (window.recallChat && typeof window.recallChat.mount === 'function') {
       try {
         window.recallChat.mount({

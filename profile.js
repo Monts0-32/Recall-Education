@@ -614,14 +614,22 @@
     });
 
     // Mount notification bell + header avatar dropdown.
-    if (window.recallTopbar) {
+    function mountBell() {
+      const slot = document.getElementById('bellSlot');
+      if (slot && slot.firstChild) return; // already mounted (auto-mount won the race)
+      if (!window.recallTopbar) { setTimeout(mountBell, 50); return; }
       window.recallTopbar.mount('bellSlot', { supabaseClient, user });
     }
-    if (window.recallHeaderAvatar) {
+    mountBell();
+    function mountAvatar() {
+      const slot = document.getElementById('avatarSlot');
+      if (slot && slot.firstChild) return; // already mounted (auto-mount won the race)
+      if (!window.recallHeaderAvatar) { setTimeout(mountAvatar, 50); return; }
       window.recallHeaderAvatar.mount('avatarSlot', {
         supabaseClient, user, profile: state.me,
       });
     }
+    mountAvatar();
     if (window.recallChat) {
       window.recallChat.mount({
         supabaseClient, user, profile: state.me,

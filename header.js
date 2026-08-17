@@ -207,9 +207,6 @@
     const slot = document.querySelector('[data-mount="recall-header"]') || document.getElementById('headerSlot');
     if (!slot) return;
     const mode = slot.getAttribute('data-mode') || 'auth';
-    // If a sibling .recall-header-extra element exists, lift it into the
-    // minimal-mode right cluster so individual pages can keep their own
-    // right-side prompts without forking the header.
     let extraRightEl = null;
     if (mode === 'minimal') {
       const extra = slot.parentNode && slot.parentNode.querySelector('.recall-header-extra');
@@ -221,9 +218,58 @@
     mount(slot, { mode, extraRightEl });
   }
 
-  if (document.readyState === 'loading') {
+  // Mount synchronously if the slot exists in the parsed HTML. This is the
+  // common case when header.js is loaded with `defer` after the body is
+  // parsed. If the slot doesn't exist yet (rare), wait for DOMContentLoaded.
+  if (document.getElementById('headerSlot') || document.querySelector('[data-mount="recall-header"]')) {
+    autoMount();
+  } else if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', autoMount);
   } else {
     autoMount();
+  }
+
+  // Once the header is mounted, look for a Supabase session and unhide the
+  // sign-out button when a user is signed in. This means every page gets a
+  // working sign-out button without each page having to remember to unhide
+  // it. Re-checks on auth state changes so sign-in/sign-out from another tab
+  // keeps the button in sync.
+  function tryUnhideSignOut() {
+    const btn = document.getElementById('signOutBtn');
+    if (!btn) return; // minimal / marketing modes don't have one
+    const sb = (typeof window !== 'undefined') ? window.supabaseClient : null;
+    if (!sb || !sb.auth) return;
+    if (typeof sb.auth.getSession === 'function') {
+      sb.auth.getSession().then(function (res) {
+        const u = res && res.data && res.data.session && res.data.session.user;
+        btn.hidden = !u;
+      }).catch(function () { /* swallow */ });
+    }
+    if (typeof sb.auth.onAuthStateChange === 'function') {
+      sb.auth.onAuthStateChange(function (_event, session) {
+        btn.hidden = !(session && session.user);
+      });
+    }
+  }
+  function wireSignOut() {
+    const btn = document.getElementById('signOutBtn');
+    if (!btn) return;
+    // Skip the click handler if a page already wired one up. Existing pages
+    // like dashboard.html attach their own listener before this deferred
+    // script runs; double-firing would race the two redirects.
+    if (!btn.dataset.recallSignOutWired) {
+      btn.dataset.recallSignOutWired = '1';
+      btn.addEventListener('click', async function () {
+        const sb = window.supabaseClient;
+        try { if (sb && sb.auth && sb.auth.signOut) await sb.auth.signOut(); } catch (_) {}
+        window.location.href = 'login.html';
+      });
+    }
+    tryUnhideSignOut();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wireSignOut);
+  } else {
+    wireSignOut();
   }
 })();
