@@ -121,21 +121,31 @@
 }
 .recall-header .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
 
-/* ---------- Avatar pill (lives inside header.js now) ---------- */
+/* ---------- Avatar pill (specific to header.js — NOT btn-primary) ----------
+   These styles are intentionally distinct from .btn-primary / .btn-ghost so
+   the pill never inherits a solid-white primary look. The trigger is a
+   translucent dark pill with a thin border; menu items are transparent with
+   a darker hover. */
 .recall-header .avatar-slot { display: inline-flex; align-items: center; }
 .recall-header .recall-avatar-wrap { position: relative; display: inline-flex; align-items: center; }
 .recall-header .recall-avatar-btn {
-  background: transparent;
-  border: 1px solid var(--line-2);
-  color: var(--text);
+  background: rgba(0, 0, 0, 0.28) !important;
+  background-color: rgba(0, 0, 0, 0.28) !important;
+  border: 1px solid var(--line-2) !important;
+  color: var(--text-2) !important;
   cursor: pointer;
   font-family: inherit;
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 4px 10px 4px 4px;
+  padding: 4px 10px 4px 4px !important;
   border-radius: var(--r-pill, 999px);
   transition: background 0.12s ease, border-color 0.12s ease;
 }
-.recall-header .recall-avatar-btn:hover { background: var(--bg-2); border-color: var(--line-3); }
+.recall-header .recall-avatar-btn:hover {
+  background: rgba(0, 0, 0, 0.45) !important;
+  background-color: rgba(0, 0, 0, 0.45) !important;
+  border-color: var(--line-3) !important;
+  color: var(--text) !important;
+}
 .recall-header .recall-avatar-circle {
   width: 30px; height: 30px;
   border-radius: 50%;
@@ -197,14 +207,22 @@
 .recall-header .recall-avatar-menu-item {
   display: flex; align-items: center; gap: 10px;
   padding: 8px 14px;
-  background: transparent; border: 0;
-  color: var(--text); font-size: 13px;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0;
+  color: var(--text) !important;
+  font-size: 13px;
   text-align: left; width: 100%;
   cursor: pointer; font-family: inherit;
   text-decoration: none;
 }
-.recall-header .recall-avatar-menu-item:hover { background: var(--bg-3); text-decoration: none; }
-.recall-header .recall-avatar-menu-item.danger { color: var(--red, #F26B62); }
+.recall-header .recall-avatar-menu-item:hover {
+  background: var(--bg-3) !important;
+  background-color: var(--bg-3) !important;
+  color: var(--text) !important;
+  text-decoration: none;
+}
+.recall-header .recall-avatar-menu-item.danger { color: var(--red, #F26B62) !important; }
 .recall-header .recall-avatar-menu-sep {
   height: 1px;
   background: var(--line-2);
@@ -334,7 +352,12 @@
     const slot = document.getElementById('avatarSlot');
     if (!slot || slot.firstChild) return; // already mounted, or no slot
     const sb = (typeof window !== 'undefined') ? window.supabaseClient : null;
-    if (!sb || !sb.auth || typeof sb.auth.getSession !== 'function') return;
+    if (!sb || !sb.auth || typeof sb.auth.getSession !== 'function') {
+      // Supabase isn't ready yet — try again next tick. Pages that initialise
+      // the client after header.js has loaded will get the pill shortly after.
+      setTimeout(mountAvatarPill, 50);
+      return;
+    }
 
     sb.auth.getSession().then(async function (res) {
       const session = res && res.data && res.data.session;
