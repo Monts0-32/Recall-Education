@@ -8,37 +8,53 @@
   <meta name="description" content="Review flagged bios, names, and DM messages, and manage the moderation blocklist." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    /* ----------------------------------------------------------------------
+       Theme: Recall "bubble" surface. Same palette as the homepage /
+       marketing site. Teal primary, lifted greys, generous radii, soft
+       atmospheric gradients on the body, pill-shaped primaries.
+       ---------------------------------------------------------------------- */
     :root {
-      --bg:        #0D1117;
-      --bg-2:      #161B22;
-      --bg-3:      #1C2128;
-      --bg-4:      #21262D;
-      --line:      #21262D;
-      --line-2:    #30363D;
-      --line-3:    #484F58;
-      --text:      #F0F6FC;
+      --bg:        #1A1D22;
+      --bg-2:      #232629;
+      --bg-3:      #2B2F33;
+      --bg-4:      #353A3F;
+      --line:      #2A2E33;
+      --line-2:    #3A3F45;
+      --line-3:    #4D535A;
+      --text:      #F5F7FA;
       --text-2:    #C9D1D9;
-      --text-3:    #8B949E;
-      --text-4:    #6E7681;
-      --blue:      #58A6FF;
-      --blue-2:    #1F6FEB;
-      --blue-dim:  rgba(56,139,253,0.15);
-      --blue-pale: rgba(56,139,253,0.08);
-      --green:     #3FB950;
-      --green-dim: rgba(63,185,80,0.12);
-      --yellow:    #D29922;
-      --yellow-dim:rgba(210,153,34,0.12);
-      --red:       #F85149;
-      --red-dim:   rgba(248,81,73,0.12);
-      --purple:    #A371F7;
+      --text-3:    #9098A4;
+      --text-4:    #6B7280;
       --teal:      #56D4DD;
-      --r-sm: 6px;
-      --r-md: 8px;
+      --teal-2:    #3FB8C4;
+      --teal-soft: #7CE0E8;
+      --teal-dim:  rgba(86, 212, 221, 0.18);
+      --teal-pale: rgba(86, 212, 221, 0.10);
+      --teal-glow: rgba(86, 212, 221, 0.30);
+      --blue:      #56D4DD;
+      --blue-2:    #3FB8C4;
+      --blue-dim:  rgba(86, 212, 221, 0.18);
+      --blue-pale: rgba(86, 212, 221, 0.10);
+      --green:     #4FBE6A;
+      --green-dim: rgba(79, 190, 106, 0.14);
+      --yellow:    #D8B14A;
+      --yellow-dim:rgba(216, 177, 74, 0.14);
+      --purple:    #B388F8;
+      --red:       #F26B62;
+      --red-dim:   rgba(242, 107, 98, 0.14);
+      --r-xs: 8px;
+      --r-sm: 12px;
+      --r-md: 18px;
+      --r-lg: 24px;
+      --r-pill: 999px;
+      --maxw: 1240px;
+      --shadow-sm: 0 2px 6px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.10);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.12);
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; min-height: 100%; }
+    html, body { margin: 0; padding: 0; }
     body {
       background: var(--bg);
       color: var(--text);
@@ -46,196 +62,153 @@
       font-size: 14px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      background-image:
+        radial-gradient(ellipse 1400px 700px at 0% -10%,
+          rgba(86, 212, 221, 0.07), transparent 60%),
+        radial-gradient(ellipse 900px 500px at 100% 20%,
+          rgba(86, 212, 221, 0.04), transparent 70%);
+      background-attachment: fixed;
+      min-height: 100vh;
     }
-    a { color: var(--blue); text-decoration: none; }
+    ::selection { background: var(--teal); color: #0B0D0F; }
+    a { color: var(--teal-soft); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    /* ---------- TOP NAV ---------- */
+    /* ---------- NAV (mirrors index.html) ---------- */
     nav.top {
-      border-bottom: 1px solid var(--line);
-      background: var(--bg);
       position: sticky; top: 0; z-index: 50;
+      background: rgba(26, 29, 34, 0.78);
+      backdrop-filter: saturate(140%) blur(12px);
+      -webkit-backdrop-filter: saturate(140%) blur(12px);
+      border-bottom: 1px solid var(--line);
     }
     nav.top .row {
-      max-width: 100%; margin: 0 auto;
+      max-width: var(--maxw); margin: 0 auto;
       padding: 0 24px;
       display: flex; align-items: center; justify-content: space-between;
-      height: 56px;
+      height: 64px;
     }
     .brand {
       display: flex; align-items: center; gap: 10px;
-      font-weight: 700; font-size: 15px;
+      font-weight: 700; font-size: 16px;
       color: var(--text);
+      text-decoration: none;
     }
+    .brand:hover { text-decoration: none; }
     .brand-mark {
-      width: 26px; height: 26px;
+      width: 30px; height: 30px;
       display: block;
       object-fit: cover;
-      border-radius: var(--r-sm);
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.04),
+                  0 0 16px rgba(86,212,221,0.18);
     }
     .brand .tag {
       font-size: 11px; font-weight: 600;
-      background: var(--blue-dim); color: var(--blue);
-      padding: 2px 8px; border-radius: 999px;
+      background: var(--teal-pale); color: var(--teal);
+      padding: 3px 10px; border-radius: var(--r-pill);
       margin-left: 6px;
       letter-spacing: 0.02em;
     }
-    nav.top .right { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-3); }
-    .rank-pill {
-      display: inline-block;
-      padding: 2px 9px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
+    nav.top ul { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; }
+    nav.top a.nav-link {
+      color: var(--text-2); font-size: 14px; font-weight: 500;
+      padding: 7px 12px; border-radius: var(--r-pill);
+      text-decoration: none;
     }
-    .rank-pill.author   { background: rgba(63,185,80,0.15);  color: #56d364; }
-    .rank-pill.reviewer { background: rgba(210,153,34,0.15); color: #e3b341; }
-    .rank-pill.admin    { background: rgba(248,81,73,0.15);  color: #ff7b72; }
-    .btn-ghost {
-      background: transparent;
-      color: var(--text-2);
-      border: 1px solid var(--line-2);
-      padding: 6px 12px;
-      border-radius: var(--r-sm);
-      font-family: inherit; font-size: 12.5px; font-weight: 500;
-      cursor: pointer;
-    }
-    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+    nav.top a.nav-link:hover { color: var(--text); background: var(--bg-3); text-decoration: none; }
+    .nav-right { display: flex; align-items: center; gap: 8px; }
 
     /* ---------- LAYOUT ---------- */
-    .layout {
-      display: grid;
-      grid-template-columns: 280px 1fr;
-      gap: 0;
-      min-height: calc(100vh - 56px);
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+    .page { padding: 48px 0 80px; }
+    .page-head {
+      margin-bottom: 28px;
     }
-
-    /* ---------- LEFT RAIL ---------- */
-    .rail {
-      background: var(--bg-2);
-      border-right: 1px solid var(--line);
-      padding: 24px 16px;
-    }
-    .rail h3 {
-      margin: 0 0 8px;
-      padding: 0 8px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-4);
-    }
-    .rail nav { display: flex; flex-direction: column; gap: 2px; margin-bottom: 22px; }
-    .rail nav a {
-      display: flex; align-items: center; gap: 10px;
-      padding: 8px 10px;
-      border-radius: var(--r-sm);
-      color: var(--text-2);
-      font-size: 13px;
-      font-weight: 500;
-      transition: background 0.1s ease, color 0.1s ease;
-    }
-    .rail nav a:hover { background: var(--bg-3); color: var(--text); text-decoration: none; }
-    .rail nav a.primary { background: var(--blue-dim); color: var(--blue); }
-    .rail nav a.primary:hover { background: var(--blue-dim); color: var(--blue); }
-    .rail nav a .lock {
-      margin-left: auto;
-      color: var(--text-4);
-      font-size: 11px;
-    }
-    .rail nav a .lock[hidden] { display: none; }
-    .rail nav a[aria-disabled="true"] { color: var(--text-4); cursor: not-allowed; }
-    .rail nav a[aria-disabled="true"]:hover { background: transparent; color: var(--text-4); }
-    .rail nav svg { width: 16px; height: 16px; flex-shrink: 0; }
-    .rail .profile-card {
-      margin-top: 28px;
-      padding: 12px 10px;
-      background: var(--bg-3);
-      border: 1px solid var(--line);
-      border-radius: var(--r-md);
-    }
-    .rail .profile-card .name { font-weight: 600; font-size: 13px; color: var(--text); }
-    .rail .profile-card .role { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
-
-    /* ---------- MAIN ---------- */
-    .main {
-      padding: 32px 36px 80px;
-      max-width: 1000px;
-    }
-    .welcome {
-      margin-bottom: 24px;
-    }
-    .welcome h1 {
+    .page-head h1 {
       margin: 0 0 6px;
-      font-size: 24px;
+      font-size: 32px;
       font-weight: 700;
-      letter-spacing: -0.015em;
+      letter-spacing: -0.025em;
     }
-    .welcome p { margin: 0; color: var(--text-3); font-size: 14px; }
+    .page-head p {
+      margin: 0;
+      color: var(--text-3);
+      font-size: 15px;
+      max-width: 60ch;
+    }
 
-    /* ---------- TABS ---------- */
+    /* ---------- TABS (pill row, matches homepage tag pattern) ---------- */
     .tabs {
-      display: flex; gap: 0;
-      border-bottom: 1px solid var(--line);
-      margin-bottom: 24px;
+      display: flex; gap: 6px;
+      padding: 6px;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-pill);
+      margin-bottom: 28px;
+      width: fit-content;
     }
     .tab {
+      display: inline-flex; align-items: center; gap: 8px;
       background: transparent;
       border: 0;
-      border-bottom: 2px solid transparent;
-      color: var(--text-3);
+      color: var(--text-2);
       font-family: inherit;
       font-size: 13.5px;
       font-weight: 500;
-      padding: 10px 16px;
+      padding: 8px 16px;
+      border-radius: var(--r-pill);
       cursor: pointer;
-      margin-bottom: -1px;
-      transition: color 0.1s ease, border-color 0.1s ease;
+      transition: background 0.12s ease, color 0.12s ease;
     }
     .tab:hover { color: var(--text); }
     .tab.active {
-      color: var(--text);
-      border-bottom-color: var(--blue);
+      background: var(--teal);
+      color: #0B0D0F;
+      box-shadow: 0 0 0 1px var(--teal-dim), 0 4px 12px rgba(86,212,221,0.30);
     }
     .tab .count {
-      display: inline-block;
-      margin-left: 6px;
-      padding: 1px 7px;
-      border-radius: 999px;
-      background: var(--bg-3);
-      color: var(--text-3);
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 22px;
+      padding: 0 7px;
+      height: 20px;
+      border-radius: var(--r-pill);
+      background: var(--bg-4);
+      color: var(--text-2);
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
     }
-    .tab.active .count { background: var(--blue-dim); color: var(--blue); }
+    .tab.active .count { background: rgba(11, 13, 15, 0.18); color: #0B0D0F; }
 
     /* ---------- STATS ---------- */
     .stats {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
+      gap: 14px;
       margin-bottom: 28px;
     }
     .stat {
-      background: var(--bg-2);
+      background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
       border: 1px solid var(--line);
       border-radius: var(--r-md);
-      padding: 16px 18px;
+      padding: 20px 22px;
+      box-shadow: var(--shadow-sm);
     }
     .stat .label {
       font-size: 11.5px; color: var(--text-3);
       text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
     }
     .stat .value {
-      font-size: 28px; font-weight: 700;
-      letter-spacing: -0.015em;
-      margin-top: 4px;
+      font-size: 32px; font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-top: 6px;
+      line-height: 1;
     }
-    .stat .sub { font-size: 11.5px; color: var(--text-4); margin-top: 2px; }
+    .stat .sub { font-size: 12px; color: var(--text-4); margin-top: 6px; }
+    .stat .value.accent { color: var(--teal); }
 
-    /* ---------- FILTER PILLS ---------- */
+    /* ---------- FILTER PILLS (inline) ---------- */
     .filters {
       display: flex; gap: 6px;
       margin-bottom: 18px;
@@ -243,95 +216,96 @@
     }
     .filter-pill {
       display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 13px;
-      border-radius: var(--r-sm);
-      background: var(--bg-2);
-      border: 1px solid var(--line);
+      padding: 6px 14px;
+      border-radius: var(--r-pill);
+      background: transparent;
+      border: 1px solid var(--line-2);
       color: var(--text-2);
       font-family: inherit; font-size: 12.5px;
+      font-weight: 500;
       cursor: pointer;
       transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
     }
-    .filter-pill:hover { background: var(--bg-3); color: var(--text); }
+    .filter-pill:hover { background: var(--bg-2); color: var(--text); border-color: var(--line-3); }
     .filter-pill.active {
-      background: var(--blue-dim);
-      color: var(--blue);
-      border-color: rgba(56, 139, 253, 0.4);
+      background: var(--teal-pale);
+      color: var(--teal);
+      border-color: var(--teal-dim);
     }
     .filter-pill .count {
       font-size: 11px;
       background: var(--bg-3);
       color: var(--text-3);
-      padding: 1px 6px;
-      border-radius: 999px;
+      padding: 1px 7px;
+      border-radius: var(--r-pill);
       min-width: 18px;
       text-align: center;
+      font-weight: 600;
     }
-    .filter-pill.active .count { background: var(--blue); color: #fff; }
+    .filter-pill.active .count { background: var(--teal-dim); color: var(--teal); }
 
-    /* ---------- FLAG CARDS ---------- */
-    .flags-list {
-      display: flex; flex-direction: column; gap: 12px;
-    }
+    /* ---------- FLAG CARDS (bubble surface) ---------- */
+    .flags-list { display: flex; flex-direction: column; gap: 14px; }
     .flag-card {
-      background: var(--bg-2);
+      background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
       border: 1px solid var(--line);
       border-radius: var(--r-md);
-      padding: 16px 18px;
+      padding: 20px 22px;
       display: grid;
       grid-template-columns: 1fr auto;
-      gap: 14px;
+      gap: 18px;
+      align-items: start;
+      box-shadow: var(--shadow-sm);
     }
     .flag-main { min-width: 0; }
     .flag-meta {
       display: flex; align-items: center; gap: 10px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       flex-wrap: wrap;
     }
     .kind-pill {
       display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
+      padding: 3px 10px;
+      border-radius: var(--r-pill);
       font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.02em;
       text-transform: uppercase;
     }
-    .kind-pill.bio { background: var(--blue-dim); color: #79b8ff; }
-    .kind-pill.name { background: var(--green-dim); color: #56d364; }
-    .kind-pill.dm { background: var(--red-dim); color: #ff9a93; }
+    .kind-pill.bio { background: var(--teal-pale); color: var(--teal); }
+    .kind-pill.name { background: var(--green-dim); color: var(--green); }
+    .kind-pill.dm { background: var(--red-dim); color: #ff8b82; }
     .flag-time { font-size: 12px; color: var(--text-4); }
-    .flag-submitter { font-size: 12.5px; color: var(--text-3); }
+    .flag-submitter { font-size: 13px; color: var(--text-3); }
     .flag-submitter strong { color: var(--text-2); font-weight: 600; }
     .flag-text {
       font-size: 13.5px;
       color: var(--text);
-      line-height: 1.5;
+      line-height: 1.55;
       background: var(--bg);
       border: 1px solid var(--line);
       border-radius: var(--r-sm);
-      padding: 10px 12px;
-      margin: 0 0 10px 0;
+      padding: 12px 14px;
+      margin: 0 0 12px 0;
       white-space: pre-wrap;
       word-wrap: break-word;
-      max-height: 180px;
+      max-height: 200px;
       overflow: auto;
       font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
       font-size: 12.5px;
     }
     .flag-terms {
       display: flex; flex-wrap: wrap; gap: 6px;
-      margin-bottom: 4px;
     }
     .term-chip {
       display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
+      padding: 3px 10px;
+      border-radius: var(--r-pill);
       font-size: 11px;
       font-weight: 600;
       background: var(--red-dim);
-      color: #ff9a93;
-      border: 1px solid rgba(248, 81, 73, 0.4);
+      color: #ff8b82;
+      border: 1px solid rgba(242, 107, 98, 0.3);
     }
 
     .flag-actions {
@@ -339,110 +313,125 @@
       align-items: flex-end;
     }
     .flag-actions button {
-      padding: 6px 12px;
-      border-radius: var(--r-sm);
+      padding: 8px 16px;
+      border-radius: var(--r-pill);
       font-family: inherit; font-size: 12.5px;
       font-weight: 600;
       cursor: pointer;
       border: 1px solid transparent;
-      min-width: 96px;
+      min-width: 110px;
+      transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
     }
     .btn-approve {
       background: var(--green-dim);
-      color: #56d364;
-      border-color: rgba(63, 185, 80, 0.4);
+      color: var(--green);
+      border-color: rgba(79, 190, 106, 0.3);
     }
-    .btn-approve:hover { background: rgba(63, 185, 80, 0.2); }
+    .btn-approve:hover { background: rgba(79, 190, 106, 0.22); }
     .btn-reject {
       background: var(--red-dim);
-      color: #ff9a93;
-      border-color: rgba(248, 81, 73, 0.4);
+      color: #ff8b82;
+      border-color: rgba(242, 107, 98, 0.3);
     }
-    .btn-reject:hover { background: rgba(248, 81, 73, 0.2); }
+    .btn-reject:hover { background: rgba(242, 107, 98, 0.22); }
     .btn-approve:disabled, .btn-reject:disabled { opacity: 0.5; cursor: default; }
 
     /* ---------- EMPTY ---------- */
     .empty {
-      padding: 48px 24px;
+      padding: 56px 24px;
       text-align: center;
       color: var(--text-4);
-      background: var(--bg-2);
+      background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
       border: 1px dashed var(--line-2);
       border-radius: var(--r-md);
     }
-    .empty .title { color: var(--text-2); font-size: 14px; margin-bottom: 4px; }
+    .empty .title { color: var(--text-2); font-size: 15px; margin-bottom: 4px; font-weight: 600; }
+    .empty .sub { font-size: 13px; }
 
     /* ---------- BLOCKLIST ---------- */
+    .blocklist-note {
+      font-size: 13.5px;
+      color: var(--text-2);
+      background: var(--teal-pale);
+      border: 1px solid var(--teal-dim);
+      border-radius: var(--r-sm);
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+    .blocklist-note strong { color: var(--teal); font-weight: 600; }
     .blocklist-toolbar {
       display: flex; gap: 8px;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
       align-items: stretch;
     }
     .blocklist-toolbar input[type="text"] {
       flex: 1;
       background: var(--bg);
       border: 1px solid var(--line-2);
-      border-radius: var(--r-sm);
+      border-radius: var(--r-pill);
       color: var(--text);
       font-family: inherit;
-      font-size: 13px;
-      padding: 8px 12px;
+      font-size: 13.5px;
+      padding: 10px 16px;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease;
     }
     .blocklist-toolbar input[type="text"]:focus {
       outline: none;
-      border-color: var(--blue);
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px var(--teal-dim);
     }
     .blocklist-toolbar select {
       background: var(--bg);
       border: 1px solid var(--line-2);
-      border-radius: var(--r-sm);
+      border-radius: var(--r-pill);
       color: var(--text);
       font-family: inherit;
-      font-size: 13px;
-      padding: 8px 10px;
+      font-size: 13.5px;
+      padding: 0 16px;
       cursor: pointer;
     }
     .btn-primary {
-      background: var(--blue);
-      color: #fff;
-      border: 1px solid var(--blue);
-      padding: 8px 16px;
-      border-radius: var(--r-sm);
+      background: #FFFFFF;
+      color: #0B0D0F;
+      padding: 10px 18px;
+      border-radius: var(--r-pill);
       font-family: inherit;
-      font-size: 13px;
+      font-size: 13.5px;
       font-weight: 600;
+      border: 1px solid #FFFFFF;
       cursor: pointer;
+      box-shadow: 0 2px 10px rgba(255,255,255,0.10), 0 0 24px rgba(86,212,221,0.18);
+      transition: background 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
     }
-    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
-    .btn-primary:disabled { opacity: 0.5; cursor: default; }
-    .blocklist-note {
-      font-size: 12.5px;
-      color: var(--text-3);
-      background: var(--blue-pale);
-      border: 1px solid rgba(56, 139, 253, 0.2);
-      border-radius: var(--r-sm);
-      padding: 10px 12px;
-      margin-bottom: 16px;
+    .btn-primary:hover {
+      background: #F0F2F5;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(255,255,255,0.16), 0 0 32px rgba(86,212,221,0.28);
     }
+    .btn-primary:disabled { opacity: 0.5; cursor: default; transform: none; }
+
     .blocklist-table {
       width: 100%;
-      border-collapse: collapse;
-      background: var(--bg-2);
+      border-collapse: separate;
+      border-spacing: 0;
+      background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
       border: 1px solid var(--line);
       border-radius: var(--r-md);
       overflow: hidden;
+      box-shadow: var(--shadow-sm);
     }
     .blocklist-table thead th {
       text-align: left;
       font-size: 11px; font-weight: 600;
       text-transform: uppercase; letter-spacing: 0.04em;
       color: var(--text-3);
-      padding: 10px 14px;
+      padding: 12px 18px;
       border-bottom: 1px solid var(--line);
       background: var(--bg-3);
     }
     .blocklist-table tbody td {
-      padding: 10px 14px;
+      padding: 12px 18px;
       border-bottom: 1px solid var(--line);
       font-size: 13.5px;
       vertical-align: middle;
@@ -456,143 +445,165 @@
     }
     .severity-pill {
       display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
+      padding: 3px 10px;
+      border-radius: var(--r-pill);
       font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
     }
-    .severity-pill.block { background: var(--red-dim); color: #ff9a93; }
-    .severity-pill.review { background: var(--yellow-dim); color: #e3b341; }
+    .severity-pill.block { background: var(--red-dim); color: #ff8b82; }
+    .severity-pill.review { background: var(--yellow-dim); color: var(--yellow); }
     .row-remove {
       background: transparent;
       color: var(--text-3);
       border: 1px solid var(--line-2);
-      padding: 4px 10px;
-      border-radius: var(--r-sm);
+      padding: 5px 12px;
+      border-radius: var(--r-pill);
       font-family: inherit;
       font-size: 11.5px;
+      font-weight: 500;
       cursor: pointer;
+      transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
     }
-    .row-remove:hover { background: var(--red-dim); color: #ff9a93; border-color: rgba(248, 81, 73, 0.4); }
+    .row-remove:hover {
+      background: var(--red-dim);
+      color: #ff8b82;
+      border-color: rgba(242, 107, 98, 0.3);
+    }
 
     /* ---------- GATE ---------- */
     .gate {
       max-width: 460px;
-      margin: 80px auto;
-      background: var(--bg-2);
-      border: 1px solid var(--line);
-      border-radius: var(--r-md);
-      padding: 30px 28px;
+      margin: 100px auto;
+      background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-lg);
+      padding: 36px 32px;
       text-align: center;
+      box-shadow: var(--shadow-md);
     }
-    .gate h1 { font-size: 18px; margin: 0 0 8px; font-weight: 700; }
-    .gate p { color: var(--text-3); margin: 0 0 16px; font-size: 13.5px; }
+    .gate h1 { font-size: 22px; margin: 0 0 8px; font-weight: 700; letter-spacing: -0.015em; }
+    .gate p { color: var(--text-3); margin: 0 0 20px; font-size: 14px; }
     .gate a {
       display: inline-block;
-      padding: 8px 16px;
-      background: var(--blue);
-      color: #fff;
-      border-radius: var(--r-sm);
+      padding: 10px 20px;
+      background: #FFFFFF;
+      color: #0B0D0F;
+      border-radius: var(--r-pill);
       font-weight: 600;
+      font-size: 13.5px;
+      box-shadow: 0 2px 10px rgba(255,255,255,0.10), 0 0 24px rgba(86,212,221,0.18);
     }
-    .gate a:hover { background: var(--blue-2); text-decoration: none; }
+    .gate a:hover {
+      background: #F0F2F5;
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgba(255,255,255,0.16), 0 0 32px rgba(86,212,221,0.28);
+    }
 
     /* ---------- MODAL ---------- */
     .modal-bg {
       position: fixed; inset: 0;
       background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       display: flex; align-items: center; justify-content: center;
       z-index: 100;
       padding: 20px;
     }
     .modal-card {
-      background: var(--bg-2);
+      background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
       border: 1px solid var(--line-2);
-      border-radius: var(--r-md);
+      border-radius: var(--r-lg);
       max-width: 460px;
       width: 100%;
-      padding: 22px 22px 18px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      padding: 26px 26px 22px;
+      box-shadow: var(--shadow-md);
     }
-    .modal-card h2 { font-size: 16px; margin: 0 0 8px; font-weight: 700; }
+    .modal-card h2 { font-size: 18px; margin: 0 0 8px; font-weight: 700; letter-spacing: -0.015em; }
     .modal-card .warning {
-      font-size: 13px;
+      font-size: 13.5px;
       color: var(--text-2);
       background: var(--red-dim);
-      border: 1px solid rgba(248, 81, 73, 0.3);
+      border: 1px solid rgba(242, 107, 98, 0.3);
       border-radius: var(--r-sm);
-      padding: 10px 12px;
-      margin: 0 0 14px;
+      padding: 12px 14px;
+      margin: 0 0 16px;
     }
     .modal-card label {
       display: block;
       font-size: 12px;
       color: var(--text-3);
-      margin-bottom: 4px;
+      margin-bottom: 6px;
       font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
     .modal-card textarea {
       width: 100%;
-      min-height: 70px;
+      min-height: 80px;
       background: var(--bg);
       border: 1px solid var(--line-2);
       border-radius: var(--r-sm);
       color: var(--text);
       font-family: inherit;
-      font-size: 13px;
-      padding: 8px 10px;
+      font-size: 13.5px;
+      padding: 10px 14px;
       resize: vertical;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease;
     }
     .modal-card textarea:focus {
       outline: none;
-      border-color: var(--blue);
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px var(--teal-dim);
     }
     .modal-actions {
       display: flex; justify-content: flex-end; gap: 8px;
-      margin-top: 14px;
+      margin-top: 16px;
     }
     .modal-actions button {
-      padding: 7px 14px;
-      border-radius: var(--r-sm);
+      padding: 9px 18px;
+      border-radius: var(--r-pill);
       font-family: inherit;
-      font-size: 13px;
+      font-size: 13.5px;
       font-weight: 600;
       cursor: pointer;
       border: 1px solid transparent;
+      transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
     }
     .btn-cancel {
-      background: var(--bg-3);
+      background: transparent;
       color: var(--text-2);
       border-color: var(--line-2);
     }
-    .btn-cancel:hover { background: var(--bg-4); color: var(--text); }
+    .btn-cancel:hover { background: var(--bg-2); color: var(--text); border-color: var(--line-3); }
     .btn-danger {
       background: var(--red);
       color: #fff;
+      border-color: var(--red);
     }
-    .btn-danger:hover { background: #d83a32; }
+    .btn-danger:hover { background: #d8564d; border-color: #d8564d; }
     .btn-danger:disabled, .btn-cancel:disabled { opacity: 0.5; cursor: default; }
 
     /* ---------- TOAST ---------- */
     #toast {
-      position: fixed; bottom: 20px; left: 50%;
+      position: fixed; bottom: 24px; left: 50%;
       transform: translateX(-50%);
       background: var(--bg-3);
       border: 1px solid var(--line-2);
-      border-radius: var(--r-sm);
-      padding: 10px 16px;
-      font-size: 13px;
+      border-radius: var(--r-pill);
+      padding: 11px 20px;
+      font-size: 13.5px;
       color: var(--text);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      box-shadow: var(--shadow-md);
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.18s ease;
+      transition: opacity 0.18s ease, transform 0.18s ease;
       z-index: 200;
     }
-    #toast.show { opacity: 1; }
-    #toast.error { border-color: var(--red); color: #ff9a93; }
-    #toast.success { border-color: var(--green); color: #56d364; }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(-2px); }
+    #toast.error { border-color: var(--red); color: #ff8b82; }
+    #toast.success { border-color: var(--green); color: var(--green); }
 
     .hidden { display: none !important; }
   </style>
@@ -614,131 +625,100 @@
           Recall
           <span class="tag">Moderation</span>
         </a>
-        <div class="right">
-          <span id="rankPill"></span>
+        <div class="nav-right">
           <span id="bellSlot"></span>
           <span id="avatarSlot"></span>
         </div>
       </div>
     </nav>
 
-    <div class="layout">
-      <aside class="rail">
-        <h3>Workspace</h3>
-        <nav id="railNav">
-          <a href="staff-dashboard.html">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
-            Dashboard
-          </a>
-          <a href="lesson-creator.html">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Lesson creator
-          </a>
-          <a href="moderation.html" class="primary" id="railMod">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            Moderation
-            <span class="lock" id="railModCount" hidden>0</span>
-          </a>
-          <a href="admin.html" id="railAdmin">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            Admin console
-          </a>
-        </nav>
+    <div class="wrap page">
+      <div class="page-head">
+        <h1>Moderation</h1>
+        <p>Review flagged bios, names, and DM messages. Admins can also edit the term blocklist.</p>
+      </div>
 
-        <div class="profile-card">
-          <div class="name" id="profileCardName">—</div>
-          <div class="role" id="profileCardRole">—</div>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="queue" type="button" role="tab">
+          Pending flags <span class="count" id="tabQueueCount">0</span>
+        </button>
+        <button class="tab" data-tab="blocklist" type="button" role="tab" id="tabBlocklist">
+          Blocklist <span class="count" id="tabBlocklistCount">0</span>
+        </button>
+      </div>
+
+      <!-- QUEUE PANEL -->
+      <section id="panel-queue">
+        <div class="stats">
+          <div class="stat">
+            <div class="label">Pending</div>
+            <div class="value accent" id="statTotal">0</div>
+            <div class="sub">Awaiting review</div>
+          </div>
+          <div class="stat">
+            <div class="label">Bios</div>
+            <div class="value" id="statBio">0</div>
+            <div class="sub">Profile bios</div>
+          </div>
+          <div class="stat">
+            <div class="label">Names</div>
+            <div class="value" id="statName">0</div>
+            <div class="sub">Display names</div>
+          </div>
+          <div class="stat">
+            <div class="label">DM messages</div>
+            <div class="value" id="statDm">0</div>
+            <div class="sub">Direct messages</div>
+          </div>
         </div>
-      </aside>
 
-      <main class="main">
-        <div class="welcome">
-          <h1>Moderation</h1>
-          <p>Review flagged bios, names, and DM messages. Admins can also edit the term blocklist.</p>
-        </div>
-
-        <div class="tabs">
-          <button class="tab active" data-tab="queue" type="button">
-            Pending flags <span class="count" id="tabQueueCount">0</span>
+        <div class="filters" id="filters">
+          <button class="filter-pill active" data-kind="all" type="button">
+            All <span class="count" id="countAll">0</span>
           </button>
-          <button class="tab" data-tab="blocklist" type="button" id="tabBlocklist">
-            Blocklist <span class="count" id="tabBlocklistCount">0</span>
+          <button class="filter-pill" data-kind="bio" type="button">
+            Bio <span class="count" id="countBio">0</span>
+          </button>
+          <button class="filter-pill" data-kind="name" type="button">
+            Name <span class="count" id="countName">0</span>
+          </button>
+          <button class="filter-pill" data-kind="dm" type="button">
+            DM <span class="count" id="countDm">0</span>
           </button>
         </div>
 
-        <!-- QUEUE PANEL -->
-        <section id="panel-queue">
-          <div class="stats">
-            <div class="stat">
-              <div class="label">Pending</div>
-              <div class="value" id="statTotal">0</div>
-              <div class="sub">Awaiting review</div>
-            </div>
-            <div class="stat">
-              <div class="label">Bios</div>
-              <div class="value" id="statBio">0</div>
-              <div class="sub">Profile bios</div>
-            </div>
-            <div class="stat">
-              <div class="label">Names</div>
-              <div class="value" id="statName">0</div>
-              <div class="sub">Display names</div>
-            </div>
-            <div class="stat">
-              <div class="label">DM messages</div>
-              <div class="value" id="statDm">0</div>
-              <div class="sub">Direct messages</div>
-            </div>
-          </div>
+        <div id="flagsList" class="flags-list"></div>
+      </section>
 
-          <div class="filters" id="filters">
-            <button class="filter-pill active" data-kind="all" type="button">
-              All <span class="count" id="countAll">0</span>
-            </button>
-            <button class="filter-pill" data-kind="bio" type="button">
-              Bio <span class="count" id="countBio">0</span>
-            </button>
-            <button class="filter-pill" data-kind="name" type="button">
-              Name <span class="count" id="countName">0</span>
-            </button>
-            <button class="filter-pill" data-kind="dm" type="button">
-              DM <span class="count" id="countDm">0</span>
-            </button>
-          </div>
+      <!-- BLOCKLIST PANEL -->
+      <section id="panel-blocklist" class="hidden">
+        <div class="blocklist-note" id="blocklistNote">
+          Every term on this list <strong>blocks</strong> the write AND <strong>flags</strong> it for staff review.
+          Severity "block" rejects the message; "review" is reserved for softer enforcement.
+        </div>
 
-          <div id="flagsList" class="flags-list"></div>
-        </section>
+        <div class="blocklist-toolbar" id="blocklistToolbar">
+          <input type="text" id="blocklistInput" placeholder="Add a banned term (e.g. slur, threat)…"
+                 autocomplete="off" spellcheck="false" maxlength="100" />
+          <select id="blocklistSeverity">
+            <option value="block">Block</option>
+            <option value="review">Review</option>
+          </select>
+          <button class="btn-primary" id="blocklistAddBtn" type="button">Add term</button>
+        </div>
 
-        <!-- BLOCKLIST PANEL -->
-        <section id="panel-blocklist" class="hidden">
-          <div class="blocklist-note" id="blocklistNote">
-            Every term on this list <strong>blocks</strong> the write AND <strong>flags</strong> it for staff review.
-            Severity "block" rejects the message; "review" is reserved for softer enforcement.
-          </div>
-
-          <div class="blocklist-toolbar" id="blocklistToolbar">
-            <input type="text" id="blocklistInput" placeholder="Add a banned term (e.g. slur, threat)…"
-                   autocomplete="off" spellcheck="false" maxlength="100" />
-            <select id="blocklistSeverity">
-              <option value="block">Block</option>
-              <option value="review">Review</option>
-            </select>
-            <button class="btn-primary" id="blocklistAddBtn" type="button">Add term</button>
-          </div>
-
-          <table class="blocklist-table">
-            <thead>
-              <tr>
-                <th>Term</th>
-                <th>Severity</th>
-                <th>Added</th>
-                <th style="width: 100px;"></th>
-              </tr>
-            </thead>
-            <tbody id="blocklistBody"></tbody>
-          </table>
-        </section>
-      </main>
+        <table class="blocklist-table">
+          <thead>
+            <tr>
+              <th>Term</th>
+              <th>Severity</th>
+              <th>Added</th>
+              <th style="width: 120px;"></th>
+            </tr>
+          </thead>
+          <tbody id="blocklistBody"></tbody>
+        </table>
+      </section>
     </div>
   </div>
 
@@ -804,17 +784,6 @@
       $('app').classList.add('hidden');
     }
 
-    function rankPillClass(role) {
-      if (role === 'admin') return 'admin';
-      if (role === 'staff_reviewer') return 'reviewer';
-      return 'author';
-    }
-    function rankLabel(role) {
-      if (role === 'admin') return 'Admin';
-      if (role === 'staff_reviewer') return 'Reviewer';
-      return 'Author';
-    }
-
     // ---------- state ----------
     let state = {
       user: null,
@@ -862,13 +831,6 @@
       $('countName').textContent = state.counts.name;
       $('countDm').textContent = state.counts.dm;
       $('tabQueueCount').textContent = state.counts.all;
-      const railCount = $('railModCount');
-      if (state.counts.all > 0) {
-        railCount.textContent = state.counts.all;
-        railCount.hidden = false;
-      } else {
-        railCount.hidden = true;
-      }
     }
 
     async function refreshQueue() {
@@ -888,7 +850,7 @@
       if (!state.flags.length) {
         const empty = document.createElement('div');
         empty.className = 'empty';
-        empty.innerHTML = '<div class="title">No pending flags</div><div>Nothing to review right now.</div>';
+        empty.innerHTML = '<div class="title">No pending flags</div><div class="sub">Nothing to review right now.</div>';
         list.appendChild(empty);
         return;
       }
@@ -1056,10 +1018,7 @@
     // ---------- blocklist ----------
     async function refreshBlocklist() {
       const { data, error } = await supabaseClient.rpc('list_blocklist_terms');
-      if (error) {
-        showToast('Could not load blocklist', 'error');
-        return;
-      }
+      if (error) { showToast('Could not load blocklist', 'error'); return; }
       state.blocklist = data || [];
       renderBlocklist();
     }
@@ -1193,18 +1152,6 @@
         return;
       }
       state.role = role;
-
-      // Rank pill + profile card.
-      const pill = $('rankPill');
-      pill.className = 'rank-pill ' + rankPillClass(role);
-      pill.textContent = rankLabel(role);
-      $('profileCardName').textContent = data.user.user_metadata?.full_name || data.user.email || 'Signed in';
-      $('profileCardRole').textContent = rankLabel(role);
-
-      // Admin console link visible only to admins.
-      const adminLink = $('railAdmin');
-      if (role === 'admin') adminLink.classList.remove('hidden');
-      else adminLink.classList.add('hidden');
 
       // Blocklist tab gated to admins only.
       if (role !== 'admin') {
