@@ -662,3 +662,104 @@ drop trigger if exists dm_messages_moderate_body on public.dm_messages;
 create trigger dm_messages_moderate_body
   before insert on public.dm_messages
   for each row execute function public.dm_messages_moderate_body();
+
+-- ---------------------------------------------------------------------------
+-- 15. Blocklist admin RPCs (admin-only)
+-- ---------------------------------------------------------------------------
+-- Admins (not staff_reviewer) can add, remove, and list terms on the
+-- moderation_blocklist table. SECURITY DEFINER bypasses the deny-all
+-- RLS policy on the table so callers don't need direct access.
+
+-- 15a. list_blocklist_terms — returns all terms, sorted.
+create or replace function public.list_blocklist_terms()
+returns table (
+  term      text,
+  severity  text,
+  created_at timestamptz
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select term, severity, created_at
+    from public.moderation_blocklist
+   order by severity asc, term asc;
+$$;
+
+-- 15b. add_blocklist_term — admin only.
+create or replace function public.add_blocklist_term(
+  p_term     text,
+  p_severity text default 'block'
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_caller uuid := auth.uid();
+  v_clean  text;
+begin
+  if v_caller is null then
+    raise exception 'not authenticated' using errcode = '42501';
+  end if;
+  if not exists (
+    select 1 from public.profiles
+     where id = v_caller
+       and role = 'admin'
+       and deleted_at is null
+  ) then
+    raise exception 'admin only' using errcode = '42501';
+  end if;
+
+  v_clean := lower(trim(coalesce(p_term, '')));
+  if v_clean is null or length(v_clean) = 0 then
+    raise exception 'term is required' using errcode = '22023';
+  end if;
+  if length(v_clean) > 100 then
+    raise exception 'term too long (max 100 chars)' using errcode = '22023';
+  end if;
+  if p_severity not in ('block','review') then
+    raise exception 'severity must be block or review' using errcode = '22023';
+  end if;
+
+  insert into public.moderation_blocklist (term, severity)
+  values (v_clean, p_severity)
+  on conflict (term) do update set severity = excluded.severity;
+end$$;
+
+-- 15c. remove_blocklist_term — admin only.
+create or replace function public.remove_blocklist_term(p_term text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_caller uuid := auth.uid();
+  v_clean  text;
+begin
+  if v_caller is null then
+    raise exception 'not authenticated' using errcode = '42501';
+  end if;
+  if not exists (
+    select 1 from public.profiles
+     where id = v_caller
+       and role = 'admin'
+       and deleted_at is null
+  ) then
+    raise exception 'admin only' using errcode = '42501';
+  end if;
+
+  v_clean := lower(trim(coalesce(p_term, '')));
+  if v_clean is null then
+    raise exception 'term is required' using errcode = '22023';
+  end if;
+
+  delete from public.moderation_blocklist where term = v_clean;
+end$$;
+
+grant execute on function public.list_blocklist_terms() to authenticated;
+grant execute on function public.add_blocklist_term(text, text) to authenticated;
+grant execute on function public.remove_blocklist_term(text) to authenticated;
