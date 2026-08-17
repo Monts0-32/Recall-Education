@@ -674,6 +674,11 @@
       display: block;
       animation: blockFadeIn 0.35s ease;
     }
+    /* Review mode: reviewers need to see the whole lesson at once.
+       Overrides the one-at-a-time reveal so every block shows up
+       immediately when "Enter review mode" is clicked. */
+    body.review-mode .block-pending { display: block; }
+    body.review-mode .block-revealed { animation: none; }
     @keyframes blockFadeIn {
       from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: none; }
@@ -1282,17 +1287,17 @@
       grid-template-rows: 0fr;
       transition: grid-template-rows 0.2s ease;
     }
-    .review-drawer > .review-drawer-inner {
+    .review-drawer > .review-drawer-frame {
       overflow: hidden;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-top: 0;
+      border-radius: 0 0 var(--r-md) var(--r-md);
     }
     .review-drawer.open {
       grid-template-rows: 1fr;
     }
     .review-drawer-inner {
-      background: var(--bg-2);
-      border: 1px solid var(--line-2);
-      border-top: 0;
-      border-radius: 0 0 var(--r-md) var(--r-md);
       padding: 14px 16px;
     }
     .review-actions {
@@ -1357,7 +1362,10 @@
       color: var(--text-2);
     }
     body.review-mode .block-comments.show { display: block; }
-    body.review-mode.lbc-show .block-comments { display: block; }
+    /* Old rule kept commented for reference — panels now live in the
+       side rail and their visibility is set inline per openRailFor().
+       We don't want this CSS to override the inline display toggles.
+       body.review-mode.lbc-show .block-comments { display: block; } */
     /* Frame-level affordances added by the reviewer-tools work:
        a hover button to jump straight into commenting, and a count
        badge for blocks that already have feedback. Visible only in
@@ -1383,6 +1391,72 @@
       border-radius: 999px;
       padding: 2px 8px; font-size: 10.5px; font-weight: 600;
       letter-spacing: 0.02em;
+    }
+    /* Click-to-open count badge — the primary affordance for
+       jumping into comments. Hidden when there are zero comments,
+       but always clickable when visible. */
+    body.review-mode .block-frame-comment-count {
+      position: absolute; top: 6px; right: 6px;
+      background: rgba(210,153,34,0.18); color: #e3b341;
+      border: 0; cursor: pointer; font-family: inherit;
+      border-radius: 999px;
+      padding: 3px 9px; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    body.review-mode .block-frame-comment-count:hover {
+      background: rgba(210,153,34,0.28);
+    }
+    body.review-mode .block-frame.is-rail-open {
+      outline: 2px solid rgba(227,179,65,0.55);
+      outline-offset: 2px;
+      border-radius: var(--r-md);
+      transition: outline-color 0.15s ease;
+    }
+    /* Side rail — fixed to right edge, slides in. Holds the comment
+       thread for the currently open block. */
+    .comment-rail {
+      position: fixed;
+      top: 80px; right: 0;
+      width: 360px; max-width: calc(100vw - 32px);
+      height: calc(100vh - 96px);
+      background: var(--bg-2);
+      border-left: 1px solid var(--line-2);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.35);
+      transform: translateX(100%);
+      transition: transform 0.22s ease;
+      z-index: 60;
+      display: flex; flex-direction: column;
+      pointer-events: none;
+    }
+    .comment-rail.open {
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+    .comment-rail-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line-2);
+    }
+    .comment-rail-title { font-weight: 700; font-size: 13px; color: var(--text); }
+    .comment-rail-sub  { font-size: 11px; color: var(--text-3); flex: 1; }
+    .comment-rail-close {
+      background: transparent; border: 0;
+      color: var(--text-3); cursor: pointer; font-family: inherit;
+      font-size: 22px; line-height: 1; padding: 0 6px;
+      border-radius: var(--r-sm);
+    }
+    .comment-rail-close:hover { background: var(--bg-3); color: var(--text); }
+    .comment-rail-list {
+      flex: 1; overflow-y: auto; padding: 12px 14px;
+    }
+    /* When the rail is open, the block-comments container lives
+       inside the rail list rather than below the block frame. */
+    .comment-rail-list .block-comments {
+      display: block;
+      margin: 0 0 12px;
+      padding: 0;
+      background: transparent;
+      border: 0;
     }
     /* Evaluation form lives at the bottom of the review drawer.
        Same dark-card style as the rest of the drawer; chips are
@@ -1416,7 +1490,10 @@
       transition: transform 0.12s ease, color 0.12s ease;
     }
     .review-star:hover { color: var(--yellow); transform: scale(1.08); }
-    .review-star.active { color: var(--yellow); }
+    .review-star.active {
+      color: #e3b341; /* gold */
+      text-shadow: 0 0 6px rgba(227,179,65,0.45);
+    }
     /* Tiny bounce when a star becomes active. */
     .review-star.just-rated { animation: star-bounce 0.22s ease-out; }
     @keyframes star-bounce {
@@ -1425,12 +1502,14 @@
       100% { transform: scale(1); }
     }
     .review-stars-count {
-      font-size: 12.5px; font-weight: 600;
-      color: var(--text-3);
+      font-size: 11.5px;
+      color: var(--text-4);
       min-width: 78px;
       transition: color 0.12s ease;
+      /* Live region for screen readers; intentionally muted — the
+         star glyphs themselves carry the visual signal. */
     }
-    .review-stars-count.has-rating { color: var(--yellow); }
+    .review-stars-count.has-rating { color: var(--text-3); }
     .review-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
     .review-tag {
       background: var(--bg-3); color: var(--text-3);
@@ -1512,6 +1591,29 @@
       text-decoration: line-through;
     }
     .block-comment.resolved { opacity: 0.7; }
+    .block-comment.pending-resolve {
+      border-left: 2px solid #e3b341;
+      padding-left: 8px;
+    }
+    .block-comment-pending {
+      margin-top: 6px;
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      color: #e3b341;
+    }
+    .block-comment-request-resolve {
+      background: rgba(227,179,65,0.12) !important;
+      color: #e3b341 !important;
+      border-color: rgba(227,179,65,0.35) !important;
+    }
+    .block-comment-request-resolve:hover {
+      background: rgba(227,179,65,0.22) !important;
+    }
+    .block-comment-confirm {
+      background: rgba(63,185,80,0.14) !important;
+      color: #56d364 !important;
+      border-color: rgba(63,185,80,0.35) !important;
+    }
     .block-comment-actions {
       display: flex; gap: 8px;
       margin-top: 6px;
@@ -1621,6 +1723,7 @@
     <span class="caret" aria-hidden="true">▼</span>
   </button>
   <div class="review-drawer" id="reviewDrawer" role="region" aria-label="Review tools">
+    <div class="review-drawer-frame">
     <div class="review-drawer-inner">
       <div class="review-actions">
         <button class="btn btn-primary" id="enterReviewBtn" type="button">Enter review mode</button>
@@ -1674,7 +1777,21 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
+</div>
+
+<!-- Comment side rail. Hidden by default; slides in from the right
+     when a reviewer clicks a block-frame badge or the existing
+     hover button. The rail is appended here once at boot and its
+     children are re-rendered every time a different block is opened. -->
+<div class="comment-rail" id="commentRail" aria-hidden="true">
+  <div class="comment-rail-head">
+    <span class="comment-rail-title" id="commentRailTitle">Comments</span>
+    <span class="comment-rail-sub" id="commentRailSub"></span>
+    <button type="button" class="comment-rail-close" id="commentRailClose" aria-label="Close comments">×</button>
+  </div>
+  <div class="comment-rail-list" id="commentRailList"></div>
 </div>
 
 <div class="loading-bar" id="loadingBar">Loading lesson…</div>
@@ -2739,6 +2856,20 @@
     $('reviewModePill').hidden = false;
     $('enterReviewBtn').textContent = 'Exit review mode';
 
+    // Reveal every block instantly — the reviewer needs the whole
+    // lesson visible without pressing Continue. The body.review-mode
+    // class also forces .block-pending to display via CSS so any
+    // blocks JS hasn't touched yet still appear.
+    if (session && Array.isArray(session.blocks)) {
+      session.blocks.forEach((b) => {
+        const frame = session.blockFrames.get(b.id);
+        if (frame) {
+          frame.classList.remove('block-pending');
+          frame.classList.add('block-revealed');
+        }
+      });
+    }
+
     // Load all comments for this lesson in one RPC, then build a
     // per-block panel under each block frame. We build all panels
     // up-front rather than lazy-loading on reveal, because the
@@ -2781,6 +2912,51 @@
       byBlock.get(c.block_id).push(c);
     }
 
+    const rail       = $('commentRail');
+    const railList   = $('commentRailList');
+    const railTitle  = $('commentRailTitle');
+    const railSub    = $('commentRailSub');
+
+    function openRailFor(block, frame, container, count) {
+      // Move this block's comments container to the rail (if not
+      // already there) and slide the rail in.
+      railList.querySelectorAll('.block-comments').forEach((n) => {
+        if (n !== container) n.style.display = 'none';
+      });
+      container.style.display = '';
+      railTitle.textContent = `Comments · block ${block.index != null ? (block.index + 1) : ''}`;
+      railSub.textContent = count === 0
+        ? 'No comments yet — add the first one below.'
+        : `${count} comment${count === 1 ? '' : 's'}.`;
+      rail.classList.add('open');
+      rail.setAttribute('aria-hidden', 'false');
+      // Outline the matching block frame so the reviewer sees which
+      // block they're commenting on.
+      session.blocks.forEach((b) => {
+        const f = session.blockFrames.get(b.id);
+        if (f) f.classList.toggle('is-rail-open', f === frame);
+      });
+      // Focus the textarea after the slide-in.
+      setTimeout(() => {
+        const ta = container.querySelector('textarea');
+        if (ta) ta.focus();
+      }, 220);
+    }
+    function closeRail() {
+      rail.classList.remove('open');
+      rail.setAttribute('aria-hidden', 'true');
+      session.blocks.forEach((b) => {
+        const f = session.blockFrames.get(b.id);
+        if (f) f.classList.remove('is-rail-open');
+      });
+    }
+    // Wire the rail close button (once).
+    const closeBtn = $('commentRailClose');
+    if (closeBtn && !closeBtn.dataset.wired) {
+      closeBtn.addEventListener('click', closeRail);
+      closeBtn.dataset.wired = '1';
+    }
+
     for (const block of session.blocks) {
       const frame = session.blockFrames.get(block.id);
       if (!frame) continue;
@@ -2811,10 +2987,11 @@
       const addBox = renderAddForm(block.id, list);
       container.appendChild(addBox);
 
-      // Insert immediately AFTER the frame, not inside, so the
-      // existing block-level layout (CSS in lesson-render.js) is
-      // untouched.
-      frame.parentNode.insertBefore(container, frame.nextSibling);
+      // Comments live in the side rail, NOT below the block frame
+      // (saves vertical space — painful for authors who scan many
+      // blocks). The container is hidden until its block is opened.
+      container.style.display = 'none';
+      railList.appendChild(container);
       session.blockPanels.set(block.id, { container, list });
 
       // Frame-level affordances: a "💬 Comment" hover button (top-right)
@@ -2837,30 +3014,25 @@
       hover.textContent = '💬 Comment';
       hover.title = 'Add a comment to this block';
       hover.addEventListener('click', () => {
-        // If comments are currently hidden, force the show flag and
-        // sync the checkbox so the reviewer isn't fighting the UI.
-        if (!session.showComments) {
-          session.showComments = true;
-          try { localStorage.setItem(LBC_KEY_SHOW, '1'); } catch (_) {}
-          document.body.classList.toggle('lbc-show', !!session.reviewMode);
-          const toggle = $('showCommentsToggle');
-          if (toggle) toggle.checked = true;
-        }
-        const ta = container.querySelector('textarea');
-        if (ta) {
-          container.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          setTimeout(() => ta.focus(), 200);
-        }
+        openRailFor(block, frame, container, comments.length);
       });
       frame.appendChild(hover);
 
-      if (comments.length > 0) {
-        const badge = document.createElement('span');
-        badge.className = 'block-frame-comment-badge';
-        badge.textContent = `${comments.length} 💬`;
-        badge.title = `${comments.length} comment${comments.length === 1 ? '' : 's'} on this block`;
-        frame.appendChild(badge);
-      }
+      // Count badge — primary affordance. Always shown (even at 0)
+      // in review mode so the reviewer knows the rail is reachable.
+      const badge = document.createElement('button');
+      badge.type = 'button';
+      badge.className = 'block-frame-comment-count';
+      badge.textContent = comments.length > 0
+        ? `${comments.length} 💬`
+        : '+ 💬';
+      badge.title = comments.length === 0
+        ? 'Open comments for this block'
+        : `Open ${comments.length} comment${comments.length === 1 ? '' : 's'} on this block`;
+      badge.addEventListener('click', () => {
+        openRailFor(block, frame, container, comments.length);
+      });
+      frame.appendChild(badge);
     }
 
     // Block-frame stays visible regardless of "Show comments" — the
@@ -2873,6 +3045,7 @@
   function renderComment(blockId, c) {
     const wrap = document.createElement('div');
     wrap.className = 'block-comment' + (c.resolved ? ' resolved' : '');
+    if (c.pending_resolve) wrap.classList.add('pending-resolve');
     wrap.dataset.commentId = c.id;
 
     const head = document.createElement('div');
@@ -2887,9 +3060,19 @@
     body.textContent = c.body;
     wrap.appendChild(body);
 
-    // Show Edit/Delete/Resolved only on the user's own comments.
-    // Admins see them on everyone's comments by convention, but the
-    // JS doesn't surface that override — admins can edit in SQL for v1.
+    // Pending-resolve badge: the author has asked the reviewer to
+    // confirm. Visible to both parties; the reviewer gets the actual
+    // "Confirm resolved" button further down.
+    if (c.pending_resolve && !c.resolved) {
+      const pending = document.createElement('div');
+      pending.className = 'block-comment-pending';
+      pending.textContent = 'Waiting for reviewer confirmation';
+      wrap.appendChild(pending);
+    }
+
+    // Show Edit/Delete only on the user's own comments. Admins see
+    // them on everyone's comments by convention, but the JS doesn't
+    // surface that override — admins can edit in SQL for v1.
     const isMine = c.author_id === session.user.id;
     if (isMine) {
       const actions = document.createElement('div');
@@ -2901,23 +3084,37 @@
       editBtn.addEventListener('click', () => startEditComment(wrap, blockId, c));
       actions.appendChild(editBtn);
 
-      const resolveBtn = document.createElement('button');
-      resolveBtn.type = 'button';
-      resolveBtn.textContent = c.resolved ? 'Unresolve' : '✓ Resolved';
-      resolveBtn.addEventListener('click', async () => {
-        const { data, error } = await supabaseClient.rpc('update_lesson_block_comment', {
-          p_comment_id: c.id,
-          p_resolved: !c.resolved,
+      // Confirm-resolved: only the original reviewer can confirm, and
+      // only while the comment is in pending_resolve state. After
+      // confirm, the row flips to resolved=true and the reviewer is
+      // notified that their fix was accepted.
+      if (c.pending_resolve && !c.resolved) {
+        const confirmBtn = document.createElement('button');
+        confirmBtn.type = 'button';
+        confirmBtn.className = 'block-comment-confirm';
+        confirmBtn.textContent = '✓ Confirm resolved';
+        confirmBtn.addEventListener('click', async () => {
+          confirmBtn.disabled = true;
+          confirmBtn.textContent = 'Confirming…';
+          try {
+            const { data, error } = await supabaseClient.rpc(
+              'confirm_resolve_comment', { p_comment_id: c.id }
+            );
+            if (error) throw error;
+            c.resolved = true;
+            c.pending_resolve = false;
+            wrap.classList.add('resolved');
+            wrap.classList.remove('pending-resolve');
+            toast('Comment resolved.', 'success');
+          } catch (e) {
+            console.warn('[review] confirm_resolve failed:', e);
+            toast('Could not confirm resolve', 'error');
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '✓ Confirm resolved';
+          }
         });
-        if (error || !data || data.ok !== true) {
-          toast('Could not update comment', 'error');
-          return;
-        }
-        c.resolved = !c.resolved;
-        resolveBtn.textContent = c.resolved ? 'Unresolve' : '✓ Resolved';
-        wrap.classList.toggle('resolved', c.resolved);
-      });
-      actions.appendChild(resolveBtn);
+        actions.appendChild(confirmBtn);
+      }
 
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
@@ -2936,6 +3133,60 @@
       actions.appendChild(delBtn);
 
       wrap.appendChild(actions);
+    }
+
+    // Author can request resolve on any comment on their own lesson;
+    // admins can resolve any comment directly (no pending step).
+    const lessonAuthorId = session.lesson && session.lesson.author_id;
+    const isLessonAuthor = lessonAuthorId && lessonAuthorId === session.user.id;
+    const isAdmin = session.role === 'admin';
+    const canRequestResolve = (isLessonAuthor || isAdmin) && !c.resolved && !c.pending_resolve;
+    const canAdminResolve    = isAdmin && !c.resolved;
+    if (canRequestResolve || canAdminResolve) {
+      const resolve = document.createElement('div');
+      resolve.className = 'block-comment-actions block-comment-resolve-actions';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'block-comment-request-resolve';
+      btn.textContent = isAdmin && canAdminResolve
+        ? '✓ Mark resolved (admin)'
+        : '✓ Mark resolved';
+      btn.title = isAdmin
+        ? 'Resolve this comment as admin (notifies both parties).'
+        : 'Ask the reviewer to confirm this comment is resolved.';
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = isAdmin ? 'Resolving…' : 'Requesting…';
+        try {
+          const rpc = isAdmin ? 'admin_resolve_comment' : 'request_resolve_comment';
+          const { data, error } = await supabaseClient.rpc(rpc, { p_comment_id: c.id });
+          if (error) throw error;
+          if (isAdmin) {
+            c.resolved = true;
+            c.pending_resolve = false;
+            wrap.classList.add('resolved');
+            wrap.classList.remove('pending-resolve');
+            toast('Comment resolved by admin.', 'success');
+            btn.remove();
+          } else {
+            c.pending_resolve = true;
+            wrap.classList.add('pending-resolve');
+            const pending = document.createElement('div');
+            pending.className = 'block-comment-pending';
+            pending.textContent = 'Waiting for reviewer confirmation';
+            wrap.appendChild(pending);
+            btn.remove();
+            toast('Resolve requested. Reviewer will be notified.', 'success');
+          }
+        } catch (e) {
+          console.warn('[review] resolve failed:', e);
+          toast('Could not ' + (isAdmin ? 'resolve' : 'request resolve'), 'error');
+          btn.disabled = false;
+          btn.textContent = isAdmin ? '✓ Mark resolved (admin)' : '✓ Mark resolved';
+        }
+      });
+      resolve.appendChild(btn);
+      wrap.appendChild(resolve);
     }
     return wrap;
   }

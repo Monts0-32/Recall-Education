@@ -327,6 +327,7 @@
     <div class="right">
       <span id="rankPill" class="rank-pill" hidden></span>
       <span id="userName">…</span>
+      <div id="bellSlot"></div>
       <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
     </div>
   </div>
@@ -1065,6 +1066,12 @@
       .maybeSingle();
 
     showDashboard(user, role, profile);
+
+    // Mount the notification bell — staff gets the same notification
+    // hub as the rest of the staff/admin pages.
+    if (window.recallTopbar) {
+      window.recallTopbar.mount('bellSlot', { supabaseClient, user });
+    }
   }
 
   // ============================================================
@@ -1195,6 +1202,7 @@
 
   boot();
 </script>
+<script src="topbar.js" defer></script>
 <script src="bubbles.js" defer></script>
 </body>
 </html>

@@ -648,6 +648,7 @@
     <a class="brand" href="index.html"><img class="brand-mark" src="logo.png" alt="Recall" /> Recall</a>
     <div class="right">
       <span id="navName" style="color: var(--text-3);"></span>
+      <div id="bellSlot"></div>
       <button class="btn-ghost" id="signOutBtn" hidden>Sign out</button>
     </div>
   </div>
@@ -1742,7 +1743,20 @@
     await supabaseClient.auth.signOut();
     window.location.href = 'index.html';
   });
+
+  // Mount the notification bell once we have a session.
+  function mountBell(user) {
+    if (!user || !window.recallTopbar) return;
+    window.recallTopbar.mount('bellSlot', { supabaseClient, user });
+  }
+  supabaseClient.auth.getSession().then(({ data }) => {
+    if (data && data.session && data.session.user) mountBell(data.session.user);
+  });
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
+    if (session && session.user) mountBell(session.user);
+  });
 </script>
+<script src="topbar.js" defer></script>
 <script src="bubbles.js" defer></script>
 </body>
 </html>

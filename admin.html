@@ -520,6 +520,14 @@
     .review-preview-note {
       color: var(--text-3);
     }
+    .review-preview-time {
+      color: var(--text-3);
+      font-variant-numeric: tabular-nums;
+    }
+    .review-preview-author {
+      color: var(--text-2);
+      font-weight: 500;
+    }
     .review-detail {
       margin-top: 6px;
       font-size: 12px;
@@ -561,6 +569,7 @@
   <span class="admin-pill">Admin</span>
   <div class="right">
     <span class="me" id="userName">—</span>
+    <div id="bellSlot"></div>
     <a href="dashboard.html">Dashboard</a>
     <a href="#" id="signOutBtn">Sign out</a>
   </div>
@@ -951,6 +960,12 @@
     $('gate').classList.add('hidden');
     $('app').classList.remove('hidden');
     showSection('dashboard');
+
+    // Mount the notification bell — admins get the same hub as the
+    // rest of the staff/admin pages.
+    if (window.recallTopbar) {
+      window.recallTopbar.mount('bellSlot', { supabaseClient, user: data.user });
+    }
   }
 
   function showGate(title, body, kind) {
@@ -1418,7 +1433,7 @@
         </details>
       ` : '';
       const preview = hasReview
-        ? `<div class="review-preview">${stars} <span class="review-pill">${r.review_rating}/5</span>${noteShort ? ` <span class="review-preview-note">${escapeHtml(noteShort)}${noteEllipsis}</span>` : ''}</div>`
+        ? `<div class="review-preview">${stars} <span class="review-pill">${r.review_rating}/5</span> <span class="review-preview-time">${escapeHtml(fmtDate(r.review_submitted_at))}</span> by <span class="review-preview-author">${escapeHtml(r.reviewer_name || 'Reviewer')}</span>${noteShort ? ` — <span class="review-preview-note">${escapeHtml(noteShort)}${noteEllipsis}</span>` : ''}</div>`
         : '';
       return `
         <tr data-lesson="${escapeHtml(r.lesson_id)}" class="${hasReview ? 'has-review' : ''}">
@@ -1954,6 +1969,7 @@
   // ----- Boot -----
   boot();
 </script>
+<script src="topbar.js" defer></script>
 <script src="bubbles.js" defer></script>
 </body>
 </html>
