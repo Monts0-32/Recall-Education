@@ -445,7 +445,7 @@
 
         <div class="row-between">
           <label class="check">
-            <input type="checkbox" name="remember" />
+            <input type="checkbox" name="remember" id="rememberChk" />
             <span>Keep me signed in</span>
           </label>
           <button type="button" class="forgot" id="forgotBtn">Forgot password?</button>
@@ -547,7 +547,33 @@
   // a fallback so users with Shields / ad-blockers can still sign up and
   // sign in. The anon key is public by design; embedding it in URLs is
   // no worse than embedding it in the bundled JS.
+  // localStorage key for the "Keep me signed in" preference. We read it
+  // on every page that calls into Supabase so a user who ticked the box
+  // yesterday is still signed in today, and a user who unticked it gets
+  // an in-memory-only session that vanishes on tab close.
+  const KEEP_KEY = 'recall.keepSignedIn';
+
+  // Read prior preference (default ON — most users want to stay signed
+  // in, and Supabase's defaults already persist the session to
+  // localStorage. We only switch to in-memory if the user unticks).
+  let keepSignedIn = true;
+  try {
+    const raw = localStorage.getItem(KEEP_KEY);
+    if (raw === '0') keepSignedIn = false;
+    else if (raw === '1') keepSignedIn = true;
+    // Missing key → default ON; persist the default so subsequent pages
+    // see a consistent value.
+    else localStorage.setItem(KEEP_KEY, '1');
+  } catch (_) { /* localStorage unavailable — fall back to defaults */ }
+
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    // Make persistence explicit rather than relying on SDK defaults —
+    // when the user has ticked "Keep me signed in" the access token
+    // (1h) gets refreshed against the long-lived refresh token, so
+    // they stay signed in across browser restarts and tab closes.
+    persistSession: keepSignedIn,
+    autoRefreshToken: keepSignedIn,
+    detectSessionInUrl: true,
     global: {
       fetch: (url, options = {}) => {
         try {
@@ -562,6 +588,23 @@
       }
     }
   });
+
+  // If the user previously unticked "Keep me signed in" but a session
+  // somehow still sits in localStorage (e.g. they unticked it after
+  // signing in), clear it on next login page load so they aren't
+  // silently signed in across browser restarts.
+  if (!keepSignedIn) {
+    try {
+      // removeItem is safe — it's only the storage key the SDK uses.
+      // Calling signOut on the client also fires onAuthStateChange
+      // listeners, which we don't want on the login page.
+      for (const k of Object.keys(localStorage)) {
+        if (k.startsWith('sb-') && k.endsWith('-auth-token')) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch (_) { /* ignore */ }
+  }
 
   // ---------- OAuth (Google / Microsoft / Apple) ----------
   // The three .oauth-btn buttons carry a data-provider attr. We kick off
@@ -633,6 +676,18 @@
   const errMsg = errBanner.querySelector('span');
   const submitBtn = form.querySelector('button[type="submit"]');
   const emailInput = document.getElementById('email');
+  const rememberChk = document.getElementById('rememberChk');
+
+  // Reflect the prior preference in the checkbox, and persist any
+  // change immediately so the next page-load sees the new value.
+  if (rememberChk) {
+    rememberChk.checked = keepSignedIn;
+    rememberChk.addEventListener('change', () => {
+      try {
+        localStorage.setItem(KEEP_KEY, rememberChk.checked ? '1' : '0');
+      } catch (_) { /* ignore */ }
+    });
+  }
 
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
