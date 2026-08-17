@@ -2550,10 +2550,11 @@
       admin:          { label: 'Admin',    cls: 'admin'    },
     };
     const r = ROLE_PILL[state.role];
-    if (r) {
-      $('rankPill').textContent = r.label;
-      $('rankPill').classList.add(r.cls);
-      $('rankPill').hidden = false;
+    const rankPill = $('rankPill');
+    if (r && rankPill) {
+      rankPill.textContent = r.label;
+      rankPill.classList.add(r.cls);
+      rankPill.hidden = false;
     }
 
     // Authors cannot publish. Reviewers don't reach this branch at all

@@ -597,10 +597,11 @@
   function applyRole(role) {
     // Rank pill
     const r = ROLE_PILL[role];
-    if (r) {
-      $('rankPill').textContent = r.label;
-      $('rankPill').classList.add(r.cls);
-      $('rankPill').hidden = false;
+    const rankPill = $('rankPill');
+    if (r && rankPill) {
+      rankPill.textContent = r.label;
+      rankPill.classList.add(r.cls);
+      rankPill.hidden = false;
     }
     // Permission-aware links. `data-requires-role` accepts a comma-
     // separated list, e.g. "admin" or "staff_author,admin". Default

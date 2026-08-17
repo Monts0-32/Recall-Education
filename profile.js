@@ -153,7 +153,7 @@
   // Gate / show main.
   // ---------------------------------------------------------------------------
   function showGate(title, msg) {
-    $('profileNav').hidden = true;
+    const profileNav = $('profileNav'); if (profileNav) profileNav.hidden = true;
     $('profileMain').hidden = true;
     $('gate').hidden = false;
     $('gateTitle').textContent = title;
@@ -162,7 +162,7 @@
 
   function showMain() {
     $('gate').hidden = true;
-    $('profileNav').hidden = false;
+    const profileNav = $('profileNav'); if (profileNav) profileNav.hidden = false;
     $('profileMain').hidden = false;
   }
 
