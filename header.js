@@ -121,6 +121,96 @@
 }
 .recall-header .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
 
+/* ---------- Avatar pill (lives inside header.js now) ---------- */
+.recall-header .avatar-slot { display: inline-flex; align-items: center; }
+.recall-header .recall-avatar-wrap { position: relative; display: inline-flex; align-items: center; }
+.recall-header .recall-avatar-btn {
+  background: transparent;
+  border: 1px solid var(--line-2);
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 10px 4px 4px;
+  border-radius: var(--r-pill, 999px);
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.recall-header .recall-avatar-btn:hover { background: var(--bg-2); border-color: var(--line-3); }
+.recall-header .recall-avatar-circle {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+  color: #fff;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.recall-header .recall-avatar-circle img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.recall-header .recall-avatar-name {
+  font-size: 13px;
+  color: var(--text-2);
+  max-width: 140px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: 500;
+}
+.recall-header .recall-avatar-caret {
+  width: 8px; height: 8px;
+  border-right: 2px solid var(--text-3);
+  border-bottom: 2px solid var(--text-3);
+  transform: rotate(45deg);
+  margin-top: -3px;
+  display: none;
+}
+@media (min-width: 720px) {
+  .recall-header .recall-avatar-caret { display: inline-block; }
+}
+.recall-header .recall-avatar-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 240px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md, 18px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  padding: 6px 0;
+  z-index: 90;
+  display: none;
+}
+.recall-header .recall-avatar-menu.open { display: block; }
+.recall-header .recall-avatar-menu-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--line-2);
+  margin-bottom: 4px;
+}
+.recall-header .recall-avatar-menu-head .meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.recall-header .recall-avatar-menu-head .name {
+  font-weight: 600; font-size: 13px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text);
+}
+.recall-header .recall-avatar-menu-head .role {
+  font-size: 11px; color: var(--text-3);
+}
+.recall-header .recall-avatar-menu-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px;
+  background: transparent; border: 0;
+  color: var(--text); font-size: 13px;
+  text-align: left; width: 100%;
+  cursor: pointer; font-family: inherit;
+  text-decoration: none;
+}
+.recall-header .recall-avatar-menu-item:hover { background: var(--bg-3); text-decoration: none; }
+.recall-header .recall-avatar-menu-item.danger { color: var(--red, #F26B62); }
+.recall-header .recall-avatar-menu-sep {
+  height: 1px;
+  background: var(--line-2);
+  margin: 4px 0;
+}
+
 @media (max-width: 720px) {
   .recall-header .nav-links { display: none; }
   .recall-header .row { height: 56px; }
@@ -154,13 +244,13 @@
   }
 
   // Auth mode: homepage-style sticky frosted nav. Brand on the left,
-  // bell + avatar slots on the right. Optional `tag` pill next to the brand.
-  // Pages that need a sign-out button still get one (hidden until authed)
-  // for backwards compatibility with dashboard.html and friends.
+  // bell + avatar pill on the right. Optional `tag` pill next to the brand.
+  // The avatar pill is rendered directly here (was previously a separate
+  // header-avatar.js module) so the entire signed-in header is self-contained.
   function buildAuth(opts) {
     const right = el('div', { class: 'right' });
     right.appendChild(el('span', { id: 'bellSlot' }));
-    right.appendChild(el('span', { id: 'avatarSlot' }));
+    right.appendChild(buildAvatarPill());
     if (opts.showSignOut !== false) {
       const btn = el('button', {
         class: 'btn-ghost', id: 'signOutBtn', type: 'button', hidden: '',
@@ -169,6 +259,218 @@
       right.appendChild(btn);
     }
     return right;
+  }
+
+  // ---------- Avatar pill (was header-avatar.js) ----------
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function initialsOf(name) {
+    if (!name) return '?';
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '?';
+    if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  function hueFromId(id) {
+    if (!id) return 200;
+    let h = 0;
+    const s = String(id).replace(/-/g, '');
+    for (let i = 0; i < s.length; i++) {
+      h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    }
+    return h % 360;
+  }
+  function roleLabelOf(role) {
+    switch (role) {
+      case 'staff_author':     return 'Author';
+      case 'staff_reviewer':   return 'Reviewer';
+      case 'admin':            return 'Admin';
+      case 'school_organiser': return 'School';
+      case 'teacher':          return 'Teacher';
+      case 'student':          return 'Student';
+      default:                 return role || 'Member';
+    }
+  }
+  function dashboardUrlFor(role) {
+    switch (role) {
+      case 'staff_author':
+      case 'staff_reviewer':
+      case 'admin':
+        return 'staff-dashboard.html';
+      case 'school_organiser':
+        return 'school-organiser-dashboard.html';
+      case 'teacher':
+        return 'teacher-dashboard.html';
+      default:
+        return 'dashboard.html';
+    }
+  }
+
+  function paintAvatarAvatar(elt, profile) {
+    const id = profile && profile.id ? profile.id : null;
+    const url = profile && profile.avatar_url ? profile.avatar_url : null;
+    const name = (profile && profile.full_name) || 'You';
+    if (url) {
+      elt.innerHTML = '<img alt="" src="' + escapeHtml(url) + '">';
+    } else {
+      const hue = hueFromId(id);
+      elt.style.background = 'hsl(' + hue + ' 55% 38%)';
+      elt.textContent = initialsOf(name);
+    }
+  }
+
+  function buildAvatarPill() {
+    // Wrap in a span so it slots into the right cluster; the actual pill
+    // gets rendered once we know the user/profile. Until then, place a
+    // placeholder slot so the layout doesn't shift.
+    const wrap = el('span', { id: 'avatarSlot', class: 'avatar-slot' });
+    return wrap;
+  }
+
+  function mountAvatarPill() {
+    const slot = document.getElementById('avatarSlot');
+    if (!slot || slot.firstChild) return; // already mounted, or no slot
+    const sb = (typeof window !== 'undefined') ? window.supabaseClient : null;
+    if (!sb || !sb.auth || typeof sb.auth.getSession !== 'function') return;
+
+    sb.auth.getSession().then(async function (res) {
+      const session = res && res.data && res.data.session;
+      const user = session && session.user;
+      if (!user) return;
+      // Fetch the profile row so we can render the name + role + avatar.
+      let profile = { id: user.id, full_name: '', role: 'student', avatar_url: null };
+      try {
+        const { data: p } = await sb
+          .from('profiles').select('id, full_name, avatar_url, role').eq('id', user.id).maybeSingle();
+        if (p) {
+          profile = Object.assign({}, profile, p);
+        }
+      } catch (_) { /* fall through with defaults */ }
+      if (slot.firstChild) return; // re-check after async fetch
+      renderAvatarPillInto(slot, user, profile);
+    }).catch(function () { /* swallow */ });
+
+    if (typeof sb.auth.onAuthStateChange === 'function') {
+      sb.auth.onAuthStateChange(async function (_event, session) {
+        if (session && session.user && !slot.firstChild) {
+          let profile = { id: session.user.id, full_name: '', role: 'student', avatar_url: null };
+          try {
+            const { data: p } = await sb
+              .from('profiles').select('id, full_name, avatar_url, role').eq('id', session.user.id).maybeSingle();
+            if (p) profile = Object.assign({}, profile, p);
+          } catch (_) {}
+          if (slot.firstChild) return;
+          renderAvatarPillInto(slot, session.user, profile);
+        }
+      });
+    }
+  }
+
+  function renderAvatarPillInto(slot, user, profile) {
+    const wrap = document.createElement('div');
+    wrap.className = 'recall-avatar-wrap';
+
+    const btn = document.createElement('button');
+    btn.className = 'recall-avatar-btn';
+    btn.setAttribute('aria-haspopup', 'menu');
+    btn.setAttribute('aria-expanded', 'false');
+
+    const circle = document.createElement('span');
+    circle.className = 'recall-avatar-circle';
+    paintAvatarAvatar(circle, profile);
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'recall-avatar-name';
+    nameEl.textContent = profile.full_name || '';
+
+    const caret = document.createElement('span');
+    caret.className = 'recall-avatar-caret';
+
+    btn.appendChild(circle);
+    btn.appendChild(nameEl);
+    btn.appendChild(caret);
+
+    const menu = document.createElement('div');
+    menu.className = 'recall-avatar-menu';
+    menu.setAttribute('role', 'menu');
+
+    const head = document.createElement('div');
+    head.className = 'recall-avatar-menu-head';
+    const headCircle = document.createElement('span');
+    headCircle.className = 'recall-avatar-circle';
+    headCircle.style.width = '36px';
+    headCircle.style.height = '36px';
+    paintAvatarAvatar(headCircle, profile);
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const headName = document.createElement('div');
+    headName.className = 'name';
+    headName.textContent = profile.full_name || 'Signed in';
+    const headRole = document.createElement('div');
+    headRole.className = 'role';
+    headRole.textContent = roleLabelOf(profile.role);
+    meta.appendChild(headName);
+    meta.appendChild(headRole);
+    head.appendChild(headCircle);
+    head.appendChild(meta);
+    menu.appendChild(head);
+
+    const dashLink = document.createElement('a');
+    dashLink.className = 'recall-avatar-menu-item';
+    dashLink.href = dashboardUrlFor(profile.role);
+    dashLink.textContent = 'My dashboard';
+    menu.appendChild(dashLink);
+
+    const profileLink = document.createElement('a');
+    profileLink.className = 'recall-avatar-menu-item';
+    profileLink.href = 'profile.html?id=' + encodeURIComponent(user.id);
+    profileLink.textContent = 'My profile';
+    menu.appendChild(profileLink);
+
+    const sep1 = document.createElement('div');
+    sep1.className = 'recall-avatar-menu-sep';
+    menu.appendChild(sep1);
+
+    const signOutBtn = document.createElement('button');
+    signOutBtn.className = 'recall-avatar-menu-item danger';
+    signOutBtn.type = 'button';
+    signOutBtn.textContent = 'Sign out';
+    signOutBtn.addEventListener('click', async function () {
+      const client = window.supabaseClient;
+      try {
+        if (client && client.auth && client.auth.signOut) await client.auth.signOut();
+      } catch (_) { /* ignore */ }
+      window.location.href = 'login.html';
+    });
+    menu.appendChild(signOutBtn);
+
+    wrap.appendChild(btn);
+    wrap.appendChild(menu);
+    slot.appendChild(wrap);
+
+    function openMenu() {
+      menu.classList.add('open');
+      btn.setAttribute('aria-expanded', 'true');
+      paintAvatarAvatar(headCircle, profile);
+    }
+    function closeMenu() {
+      menu.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (menu.classList.contains('open')) closeMenu();
+      else openMenu();
+    });
+    document.addEventListener('click', function (e) {
+      if (!wrap.contains(e.target)) closeMenu();
+    });
+    btn.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeMenu();
+    });
   }
 
   function buildMarketing(opts) {
@@ -252,6 +554,14 @@
       }
     }
     mount(slot, { mode, tag, brandHref, extraRightEl });
+    // In auth mode, render the avatar pill (fetches profile then paints).
+    // Only attempt once Supabase has had a chance to initialize — pages that
+    // create the client later will see the pill appear via onAuthStateChange.
+    if ((slot.getAttribute('data-mode') || 'auth') === 'auth') {
+      // Defer one tick so any page that initialises Supabase during its own
+      // script execution finishes first.
+      setTimeout(mountAvatarPill, 0);
+    }
   }
 
   // Mount synchronously if the slot exists in the parsed HTML. This is the
