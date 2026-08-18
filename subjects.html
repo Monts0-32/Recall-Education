@@ -482,14 +482,12 @@
     <div id="content"></div>
   </main>
 
-  <script type="module">
-    import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
     const SUPABASE_URL = "https://hkjiyibpeqdoqzlyqzwz.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3Fkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU";
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
-      // Same apikey-fallback pattern used in accept-invite.html so
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      // Same apikey-fallback pattern used in dashboard.html so
       // privacy extensions that strip the apikey header still hit
       // the gateway.
       global: {
@@ -506,6 +504,10 @@
         }
       }
     });
+
+    // ---- main (top-level await needs an async wrapper) -------------------
+
+    ;(async () => {
 
     const params = new URLSearchParams(window.location.search);
     const step = params.get("step") || "subjects";
@@ -1033,6 +1035,14 @@
     } else {
       showState("error", "Unknown step. <a href='subjects.html'>Go back to subjects</a>.");
     }
+
+    })().catch((e) => {
+      console.error("subjects page boot failed:", e);
+      const contentEl = document.getElementById("content");
+      if (contentEl) {
+        contentEl.innerHTML = `<div class="state error show">Page failed to load: ${e && e.message ? e.message : e}</div>`;
+      }
+    });
   </script>
   <script src="bubbles.js" defer></script>
 </body>
