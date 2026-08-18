@@ -209,6 +209,15 @@
           <span id="termsText">I'm 16 or older, or my parent or guardian has agreed to these terms.</span>
         </label>
 
+        <!-- ToS / Privacy agreement. Separate from the parental-consent
+             checkbox above: parental consent is only needed for
+             under-16s, but every account holder must accept the legal
+             terms. The two checkboxes are independent. -->
+        <label class="check" id="legalLabel">
+          <input type="checkbox" id="legal" name="legal" required />
+          <span>I agree to the Recall <a href="terms-of-service.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+        </label>
+
         <button type="submit" class="btn-primary" id="submitBtn">Continue</button>
       </form>
     </div>
@@ -299,6 +308,13 @@
   const parentHint = $('parentHint');
   const terms = $('terms');
   const termsText = $('termsText');
+  const legal = $('legal');
+  // Bump these constants when terms-of-service.html or
+  // privacy-policy.html are updated. The values are written into
+  // profiles.terms_version / privacy_version at sign-up via the
+  // complete_student_profile RPC.
+  const TERMS_VERSION   = '2026-08-18';
+  const PRIVACY_VERSION = '2026-08-18';
   const err = $('err');
   const errMsg = $('errMsg');
   const submitBtn = $('submitBtn');
@@ -389,6 +405,10 @@
       }
     }
     if (!terms.checked) return showError('Please confirm the consent statement to continue.');
+    // Legal ToS / Privacy agreement. Separate from parental consent:
+    // every account holder must accept the legal terms regardless of
+    // age. Block completion if not ticked.
+    if (!legal.checked) return showError('Please agree to the Terms of Service and Privacy Policy to continue.');
 
     submitBtn.disabled = true;
     const originalText = submitBtn.textContent;
@@ -396,10 +416,17 @@
 
     try {
       const { data: rpcData, error: rpcErr } = await supabaseClient.rpc('complete_student_profile', {
-        p_full_name:    name.value.trim(),
-        p_year_group:  year.value,
-        p_dob:         dob.value,
-        p_parent_email: needsConsent ? parentEmail.value.trim() : null
+        p_full_name:       name.value.trim(),
+        p_year_group:      year.value,
+        p_dob:             dob.value,
+        p_parent_email:    needsConsent ? parentEmail.value.trim() : null,
+        // ToS / Privacy acceptance — the RPC stamps these on
+        // profiles.terms_version / privacy_version atomically with
+        // completing the profile. The legal checkbox above is the
+        // explicit consent.
+        p_terms_version:   TERMS_VERSION,
+        p_privacy_version: PRIVACY_VERSION,
+        p_terms_accepted:  true,
       });
 
       if (rpcErr) {

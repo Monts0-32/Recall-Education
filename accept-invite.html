@@ -332,6 +332,12 @@
           const callerEmail = me.data?.user?.email?.toLowerCase();
           if (callerEmail && callerEmail === data.email.toLowerCase()) {
             const info = ROLE_LABEL[data.role] || { label: "Staff", pillClass: "", verb: "use the staff tools" };
+            // ToS / Privacy agreement versions. Bump these when
+            // terms-of-service.html / privacy-policy.html change so
+            // profiles.terms_version / privacy_version reflect the
+            // latest copy the user agreed to.
+            const TERMS_VERSION   = "2026-08-18";
+            const PRIVACY_VERSION = "2026-08-18";
             card.innerHTML = `
               <span class="pill ${escapeHtml(info.pillClass)}">${escapeHtml(info.label)}</span>
               <h1>Accept your invitation</h1>
@@ -339,16 +345,34 @@
                 You're signed in as <span class="email">${escapeHtml(callerEmail)}</span>.
                 Accepting will give your account the <b>${escapeHtml(info.label)}</b> role.
               </p>
+              <label class="btns" style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--text); margin: 12px 0 0;">
+                <input type="checkbox" id="legal" required style="accent-color:#1f6feb; margin-top:2px;" />
+                <span>I agree to the Recall <a href="terms-of-service.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+              </label>
               <div class="btns">
                 <button class="btn primary" id="accept-btn">Accept invitation</button>
                 <a class="btn" href="dashboard.html">Not now, go to dashboard</a>
               </div>`;
             document.getElementById("accept-btn").addEventListener("click", async () => {
               const btn = document.getElementById("accept-btn");
+              // The legal checkbox is required — refuse to accept
+              // without explicit consent to the Terms and Privacy.
+              const legalEl = document.getElementById("legal");
+              if (legalEl && !legalEl.checked) {
+                card.querySelector(".err")?.remove();
+                const err = document.createElement("div");
+                err.className = "err";
+                err.textContent = "Please agree to the Terms of Service and Privacy Policy to accept.";
+                card.appendChild(err);
+                return;
+              }
               btn.disabled = true;
               btn.textContent = "Accepting…";
               const { data: r, error: e } = await supabase.rpc("accept_staff_invite", {
-                p_token: token, p_decision: "accepted",
+                p_token: token,
+                p_decision: "accepted",
+                p_terms_version:   TERMS_VERSION,
+                p_privacy_version: PRIVACY_VERSION,
               });
               if (e) {
                 btn.disabled = false;

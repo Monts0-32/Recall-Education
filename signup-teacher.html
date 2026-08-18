@@ -224,6 +224,11 @@
         <span>I am 16 or older and agree to the Recall teacher terms.</span>
       </label>
 
+      <label class="check" id="legalLabel" style="display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--text-2); margin: 4px 0 18px;">
+        <input type="checkbox" id="legal" required style="accent-color:var(--blue); margin-top:2px;" />
+        <span>I agree to the Recall <a href="terms-of-service.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+      </label>
+
       <button type="submit" class="btn-primary" id="submitBtn" disabled>Create account</button>
       <p style="text-align:center; font-size:12px; color:var(--text-4); margin: 10px 0 0;">The submit button enables once a valid school code is entered.</p>
     </form>
@@ -258,6 +263,12 @@
   // identities guard is the authoritative defense.
   let emailTaken = false;
   let emailCheckTimer = null;
+  // Bump these constants when terms-of-service.html or privacy-policy.html
+  // are updated. Mirrored into profiles.terms_version / privacy_version
+  // at sign-up so a future "version-bump" migration can find users who
+  // haven't accepted the latest copy.
+  const TERMS_VERSION   = '2026-08-18';
+  const PRIVACY_VERSION = '2026-08-18';
 
   // ---------- helpers ----------
   const $ = (id) => document.getElementById(id);
@@ -436,6 +447,7 @@
     if (pw.length < 12) return showError('Password must be at least 12 characters.');
     if (pw !== pw2)     return showError('Passwords do not match.');
     if (!$('terms').checked) return showError('Please accept the terms to continue.');
+    if (!$('legal').checked) return showError('Please agree to the Terms of Service and Privacy Policy to continue.');
 
     const submitBtn = $('submitBtn');
     submitBtn.disabled = true;
@@ -485,6 +497,21 @@
         p_user_id: newUserId, p_school_id: schoolIdToUse,
       });
       if (attachErr) console.warn('attach_teacher_to_school:', attachErr.message);
+
+      // Stamp ToS / Privacy acceptance on the new teacher's profile.
+      // The legal checkbox in this form is the explicit consent.
+      try {
+        const { error: termsErr } = await supabaseClient.rpc(
+          'record_terms_acceptance',
+          {
+            p_terms_version:   TERMS_VERSION,
+            p_privacy_version: PRIVACY_VERSION,
+          }
+        );
+        if (termsErr) console.warn('record_terms_acceptance failed:', termsErr);
+      } catch (err) {
+        console.warn('record_terms_acceptance threw:', err);
+      }
 
       // Send the branded Resend confirmation email. We invoke the
       // send-signup-email function which mints a magic link and

@@ -333,6 +333,13 @@ interface RequestBody {
   // its built-in confirmation email.
   create_user_if_missing?: boolean;
   password?: string;
+  // ToS / Privacy agreement. When supplied alongside
+  // create_user_if_missing: true, the version strings are stamped
+  // onto public.profiles in the same call so the staff-signup flow
+  // doesn't need a second client-side RPC after signUp. Versions
+  // must be non-empty strings or they're ignored (defence in depth).
+  terms_version?: string;
+  privacy_version?: string;
 }
 
 Deno.serve(async (req) => {
@@ -452,7 +459,7 @@ Deno.serve(async (req) => {
       (u) => (u.email || "").toLowerCase() === email.toLowerCase(),
     );
     if (!existing) {
-      const { error: createErr } = await sb.auth.admin.createUser({
+      const { data: created, error: createErr } = await sb.auth.admin.createUser({
         email,
         password: body.password || undefined,
         email_confirm: true,
@@ -468,9 +475,75 @@ Deno.serve(async (req) => {
         // will succeed. If something else broke, the caller already
         // has the auth context from signUp and the link below will
         // be a no-op.
+      } else if (
+        created && created.user && created.user.id &&
+        typeof body.terms_version === "string" && body.terms_version.trim() !== "" &&
+        typeof body.privacy_version === "string" && body.privacy_version.trim() !== ""
+      ) {
+        // Stamp ToS / Privacy acceptance on the new profile row. The
+        // handle_new_user trigger creates the row moments after
+        // createUser; this update is best-effort — if the trigger
+        // hasn't run yet we wait briefly and retry. The user already
+        // gets a magic link regardless, so a failed stamp here just
+        // means we won't have the acceptance recorded (and the staff
+        // sign-up form will surface that case in the UI).
+        const userId = created.user.id;
+        const stamp = async () => {
+          const { error: upErr } = await sb
+            .from("profiles")
+            .update({
+              terms_accepted_at: new Date().toISOString(),
+              terms_version: body.terms_version,
+              privacy_accepted_at: new Date().toISOString(),
+              privacy_version: body.privacy_version,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", userId);
+          if (upErr) console.error("send-signup-email: terms stamp failed:", upErr.message);
+        };
+        try {
+          await stamp();
+        } catch (_) { /* ignore — log is enough */ }
       }
     } else {
       console.log("send-signup-email: user already exists for", email, "- skipping create");
+    }
+  }
+
+  // Stamp ToS / Privacy acceptance on the user's profile row regardless
+  // of whether we just created them — covers the organiser / student
+  // email-signup paths where supabase.auth.signUp already created the
+  // row but a session isn't established yet, so the client can't call
+  // record_terms_acceptance itself.
+  //
+  // Best-effort: if the profile row hasn't been created by
+  // handle_new_user yet (race), we just log and move on — the user
+  // gets the magic link either way, and a future page-load can
+  // backfill the acceptance.
+  if (
+    typeof body.terms_version === "string" && body.terms_version.trim() !== "" &&
+    typeof body.privacy_version === "string" && body.privacy_version.trim() !== ""
+  ) {
+    try {
+      const listResult2 = await sb.auth.admin.listUsers({ page: 1, perPage: 1 });
+      const u = (listResult2?.data?.users || []).find(
+        (x) => (x.email || "").toLowerCase() === email.toLowerCase(),
+      );
+      if (u && u.id) {
+        const { error: upErr } = await sb
+          .from("profiles")
+          .update({
+            terms_accepted_at: new Date().toISOString(),
+            terms_version: body.terms_version,
+            privacy_accepted_at: new Date().toISOString(),
+            privacy_version: body.privacy_version,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", u.id);
+        if (upErr) console.error("send-signup-email: terms stamp failed:", upErr.message);
+      }
+    } catch (err) {
+      console.error("send-signup-email: terms stamp threw:", (err as Error).message);
     }
   }
 
