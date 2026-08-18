@@ -3444,7 +3444,14 @@
       // completion event land, then the redirect fires.
       fx.glow(btn);
       toast('Lesson marked as complete. Nice work!', 'success');
-      setTimeout(() => { location.href = 'dashboard.html'; }, 800);
+      // Honour a `next=` query param so the Duolingo-style path on
+      // /subjects.html can send the student back to the next lesson.
+      // Only follow it if it's a same-origin /subjects.html? link —
+      // any other shape (or no param at all) falls back to the
+      // dashboard. This prevents open-redirect via a hostile link.
+      const next = new URLSearchParams(window.location.search).get('next');
+      const safeNext = (next && /^subjects\.html\?/i.test(next)) ? next : 'dashboard.html';
+      setTimeout(() => { location.href = safeNext; }, 800);
     } catch (e) {
       session.completed = false;
       btn.disabled = false;
