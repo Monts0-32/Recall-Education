@@ -482,21 +482,27 @@
     <div id="content"></div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2?v=2026-08-18-2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    console.log("[subjects.html] v=2026-08-18.4 loaded");
     const SUPABASE_URL = "https://hkjiyibpeqdoqzlyqzwz.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3Fkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU";
-    // The CDN registers `supabase` as a global on `window`. Using a
-    // different local name (`supabaseClient`) avoids the redeclaration
-    // error and matches the convention used in dashboard.html.
-    // No global.fetch wrapper here — the dashboard wrapper mutates
-    // the request URL but the postgrest-js client in the latest
-    // @supabase/supabase-js@2 build interprets the URL as having an
-    // apikey already and strips its own auth header, which the
-    // Supabase gateway reads as "Invalid API key". Letting the client
-    // send the apikey the way it normally does fixes the 401.
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Use a local name; `const supabase` would collide with the `var supabase`
+    // the @supabase UMD bundle declares at top level.
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: {
+        fetch: (url, options = {}) => {
+          try {
+            const u = new URL(url, window.location.href);
+            if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+              u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+            }
+            return fetch(u.toString(), options);
+          } catch (_) {
+            return fetch(url, options);
+          }
+        }
+      }
+    });
 
     // ---- main (top-level await needs an async wrapper) -------------------
 
