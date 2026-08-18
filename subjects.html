@@ -486,7 +486,10 @@
   <script>
     const SUPABASE_URL = "https://hkjiyibpeqdoqzlyqzwz.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3Fkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    // The CDN registers `supabase` as a global on `window`. Using a
+    // different local name (`supabaseClient`) avoids the redeclaration
+    // error and matches the convention used in dashboard.html.
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       // Same apikey-fallback pattern used in dashboard.html so
       // privacy extensions that strip the apikey header still hit
       // the gateway.
@@ -565,7 +568,7 @@
 
     // ---- session + profile -------------------------------------------------
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) {
       const next = encodeURIComponent(window.location.pathname + window.location.search);
       window.location.href = `login.html?next=${next}`;
@@ -813,8 +816,8 @@
 
       // Load subject + board names for the breadcrumb.
       const [{ data: subjectRow }, { data: boardRow }] = await Promise.all([
-        supabase.from("subjects").select("name, level, color_key").eq("id", subjectParam).maybeSingle(),
-        supabase.from("exam_boards").select("name").eq("id", boardParam).maybeSingle(),
+        supabaseClient.from("subjects").select("name, level, color_key").eq("id", subjectParam).maybeSingle(),
+        supabaseClient.from("exam_boards").select("name").eq("id", boardParam).maybeSingle(),
       ]);
       crumbsEl.innerHTML = `
         <a href="subjects.html">Subjects</a>
@@ -946,7 +949,7 @@
       const lockMap = new Map();
       const results = await Promise.all(allLessonIds.map(async (id) => {
         try {
-          const { data } = await supabase.rpc("is_lesson_unlocked", { p_lesson: id });
+          const { data } = await supabaseClient.rpc("is_lesson_unlocked", { p_lesson: id });
           return [id, !!data];
         } catch (_) {
           return [id, false];
