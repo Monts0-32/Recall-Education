@@ -354,6 +354,7 @@
 
       if (step === 'subjects')      await renderSubjects();
       else if (step === 'board')    await renderBoard();
+      else if (step === 'year')     await renderYear();
       else if (step === 'tree')     await renderTree();
       else {
         $('content').innerHTML = '';
@@ -414,131 +415,219 @@
       `).join('')}</div>`;
     }
 
-    // ---- step 2: exam-board picker ------------------------------------
+    // ---- step 2: board picker -------------------------------------------
     async function renderBoard() {
       const subjectId = params.get('subject');
       if (!subjectId) { showErr('Missing subject.'); return; }
 
-      $('pageTitle').textContent = 'Pick an exam board';
-      $('pageSub').textContent = 'We\'ll auto-pick your year next.';
+      $('pageTitle').textContent = 'Pick a board';
+      $('pageSub').textContent = 'Every subject starts with a Curriculum base. Pick which one to study.';
       setCrumbs([
         { label: 'Subjects', href: 'subjects.html' },
         { label: 'Board' },
       ]);
-      $('content').innerHTML = '<div class="skel">Loading exam boards…</div>';
+      $('content').innerHTML = '<div class="skel">Loading boards…</div>';
 
-      const { data, error } = await supabaseClient.rpc('list_subjects_published');
+      const { data, error } = await supabaseClient.rpc('list_boards_for_subject', {
+        p_subject: subjectId,
+      });
       if (error) {
         $('content').innerHTML = '';
         showErr('Couldn\'t load: ' + error.message);
         return;
       }
 
-      // Find all rows for this subject, dedup by exam_board.
-      const boards = new Map();
-      let subjectName = '';
-      for (const row of data || []) {
-        if (row.subject_id === subjectId) {
-          subjectName = row.name;
-          const k = row.exam_board || 'Default';
-          boards.set(k, (boards.get(k) || 0) + Number(row.published_count || 0));
-        }
+      const rows = data || [];
+      if (rows.length === 0) {
+        $('content').innerHTML = '<div class="skel">No boards set up for this subject yet.</div>';
+        return;
       }
 
-      if (subjectName) {
+      // Surface the subject name in the breadcrumb. We don't have it from
+      // list_boards_for_subject, so peek the catalogue row for context.
+      const { data: subjRows } = await supabaseClient
+        .from('subjects').select('name').eq('id', subjectId).maybeSingle();
+      if (subjRows && subjRows.name) {
         $('crumbs').innerHTML = `
           <a href="subjects.html">Subjects</a>
           <span class="sep">/</span>
-          <span class="current">${esc(subjectName)}</span>`;
+          <span class="current">${esc(subjRows.name)}</span>`;
       }
 
-      const list = [...boards.entries()];
-      if (list.length === 0) {
-        $('content').innerHTML = '<div class="skel">No exam boards set up for this subject yet.</div>';
-        return;
-      }
-      if (list.length === 1) {
-        // 1 board → look up the corresponding subject_id that has this
-        // board, and forward to the tree step. We need the actual
-        // subject_id for the board (since list_subjects_published
-        // returns one row per board). The first_id in the catalogue is
-        // good enough since we filter by exam_board below.
-        const [boardName, _count] = list[0];
-        const match = (data || []).find(r => r.subject_id === subjectId && (r.exam_board || 'Default') === boardName);
-        const sid = match ? match.subject_id : subjectId;
-        window.location.replace(`subjects.html?step=tree&subject=${encodeURIComponent(sid)}&boardName=${encodeURIComponent(boardName)}`);
-        return;
+      // If exactly one board AND it has exactly one year, fast-forward to
+      // the tree. This preserves the "single board, single year" UX.
+      let fastForward = false;
+      if (rows.length === 1) {
+        const only = rows[0];
+        const { data: years } = await supabaseClient.rpc('list_years_for_subject_board', {
+          p_subject: subjectId, p_board: only.board_id,
+        });
+        if ((years || []).length === 1) {
+          const y = years[0];
+          fastForward = true;
+          window.location.replace(
+            `subjects.html?step=tree&subject=${encodeURIComponent(subjectId)}` +
+            `&boardName=${encodeURIComponent(only.name)}` +
+            `&yearId=${encodeURIComponent(y.year_id)}` +
+            `&yearLabel=${encodeURIComponent(y.label)}`
+          );
+          return;
+        }
       }
 
-      $('content').innerHTML = `<div class="grid">${list.map(([board, count]) => `
-        <a class="tile" href="subjects.html?step=tree&subject=${encodeURIComponent(subjectId)}&boardName=${encodeURIComponent(board)}">
-          <div class="head"><h3 class="name">${esc(board)}</h3></div>
-          <span class="meta">${count} published lesson${count === 1 ? '' : 's'}</span>
-        </a>
-      `).join('')}</div>`;
+      if (!fastForward) {
+        $('content').innerHTML = `<div class="grid">${rows.map(b => {
+          const badge = b.kind === 'curriculum' ? 'Base · Years 7–9'
+                      : b.kind === 'exam_board'  ? 'Exam board'
+                      : 'Course';
+          const count = Number(b.lesson_count || 0);
+          return `
+            <a class="tile" href="subjects.html?step=year&subject=${encodeURIComponent(subjectId)}&boardName=${encodeURIComponent(b.name)}">
+              <div class="head"><h3 class="name">${esc(b.name)}</h3></div>
+              <span class="meta">${esc(badge)}</span>
+              <span class="meta">${count} published lesson${count === 1 ? '' : 's'}</span>
+            </a>`;
+        }).join('')}</div>`;
+      }
     }
 
-    // ---- step 3: duolingo-style tree ----------------------------------
-    async function renderTree() {
+    // ---- step 3: year picker -------------------------------------------
+    async function renderYear() {
       const subjectId = params.get('subject');
       const boardName = params.get('boardName');
+      if (!subjectId || !boardName) { showErr('Missing subject or board.'); return; }
+
+      $('pageTitle').textContent = 'Pick a year';
+      $('pageSub').textContent = 'Each board has its own year set. Pick one to start your path.';
+      $('content').innerHTML = '<div class="skel">Loading years…</div>';
+
+      // Resolve board name → board_id via list_boards_for_subject.
+      const { data: boards, error: bErr } = await supabaseClient.rpc('list_boards_for_subject', {
+        p_subject: subjectId,
+      });
+      if (bErr) {
+        $('content').innerHTML = '';
+        showErr('Couldn\'t look up board: ' + bErr.message);
+        return;
+      }
+      const board = (boards || []).find(b => b.name === boardName);
+      if (!board) {
+        $('content').innerHTML = '';
+        showErr('Board "' + boardName + '" not found for this subject.');
+        return;
+      }
+
+      const { data: years, error: yErr } = await supabaseClient.rpc('list_years_for_subject_board', {
+        p_subject: subjectId, p_board: board.board_id,
+      });
+      if (yErr) {
+        $('content').innerHTML = '';
+        showErr('Couldn\'t load years: ' + yErr.message);
+        return;
+      }
+
+      // Peek subject name for breadcrumb.
+      const { data: subjRow } = await supabaseClient
+        .from('subjects').select('name').eq('id', subjectId).maybeSingle();
+      $('crumbs').innerHTML = `
+        <a href="subjects.html">Subjects</a>
+        <span class="sep">/</span>
+        <a href="subjects.html?step=board&subject=${encodeURIComponent(subjectId)}">${esc(subjRow ? subjRow.name : 'Subject')}</a>
+        <span class="sep">/</span>
+        <span class="current">${esc(boardName)}</span>`;
+
+      const rows = years || [];
+      if (rows.length === 0) {
+        $('content').innerHTML = '<div class="skel">No years set up for this board yet.</div>';
+        return;
+      }
+      if (rows.length === 1) {
+        // Single year → straight to tree.
+        const y = rows[0];
+        window.location.replace(
+          `subjects.html?step=tree&subject=${encodeURIComponent(subjectId)}` +
+          `&boardName=${encodeURIComponent(boardName)}` +
+          `&yearId=${encodeURIComponent(y.year_id)}` +
+          `&yearLabel=${encodeURIComponent(y.label)}`
+        );
+        return;
+      }
+
+      $('content').innerHTML = `<div class="grid">${rows.map(y => {
+        const count = Number(y.unit_count || 0);
+        return `
+          <a class="tile" href="subjects.html?step=tree&subject=${encodeURIComponent(subjectId)}&boardName=${encodeURIComponent(boardName)}&yearId=${encodeURIComponent(y.year_id)}&yearLabel=${encodeURIComponent(y.label)}">
+            <div class="head"><h3 class="name">${esc(y.label)}</h3></div>
+            <span class="meta">${count} unit${count === 1 ? '' : 's'}</span>
+          </a>`;
+      }).join('')}</div>`;
+    }
+
+    // ---- step 4: duolingo-style tree ----------------------------------
+    async function renderTree() {
+      const subjectId  = params.get('subject');
+      const boardName  = params.get('boardName');
+      const yearIdArg  = params.get('yearId');
+      const yearLabel  = params.get('yearLabel') || '';
       if (!subjectId || !boardName) { showErr('Missing subject or board.'); return; }
 
       $('pageTitle').textContent = 'Your lesson path';
       $('pageSub').textContent = 'Complete a lesson to unlock the next one.';
       $('content').innerHTML = '<div class="skel">Loading your path…</div>';
 
-      // The tree RPC requires exam_board_id (uuid) and year_id (uuid).
-      // We have board name from the URL; we need to look up the matching
-      // units by subject_id + name. Easiest path is to call
-      // get_unit_tree once per (boardName, year) candidate and pick
-      // the first that returns rows. Simpler: query units directly.
-      //
-      // To stay RPC-only, we add the necessary lookups here. If
-      // get_unit_tree returns 0 rows, we fall back to "no content".
-
-      // Look up a sensible default year: prefer Year 10, else Year 11,
-      // else any year that has units for (subject, board).
-      // For simplicity in this rewrite: try the units table directly
-      // through supabase.from — but only if RLS allows read.
-      // If RLS blocks, surface a clear error.
       let boardId = null;
       let yearId  = null;
+      let resolvedYearLabel = yearLabel;
 
+      // Resolve board name → board_id via list_boards_for_subject.
       try {
-        const { data: boards, error: bErr } = await supabaseClient
-          .from('exam_boards')
-          .select('id, name')
-          .eq('name', boardName)
-          .maybeSingle();
+        const { data: boards, error: bErr } = await supabaseClient.rpc('list_boards_for_subject', {
+          p_subject: subjectId,
+        });
         if (bErr) throw bErr;
-        boardId = boards && boards.id;
+        const board = (boards || []).find(b => b.name === boardName);
+        if (!board) throw new Error('Board "' + boardName + '" not found.');
+        boardId = board.board_id;
       } catch (e) {
         $('content').innerHTML = '';
-        showErr('Couldn\'t look up exam board: ' + e.message);
-        return;
-      }
-      if (!boardId) {
-        $('content').innerHTML = '';
-        showErr('Exam board "' + boardName + '" not found.');
+        showErr('Couldn\'t look up board: ' + (e.message || e));
         return;
       }
 
-      // Find a year that has units for this (subject, board).
-      try {
-        const { data: unitRows, error: uErr } = await supabaseClient
-          .from('units')
-          .select('year_id')
-          .eq('subject_id', subjectId)
-          .eq('exam_board_id', boardId)
-          .limit(50);
-        if (uErr) throw uErr;
-        const yearIds = (unitRows || []).map(r => r.year_id).filter(Boolean);
-        yearId = yearIds[0] || null;
-      } catch (e) {
-        $('content').innerHTML = '';
-        showErr('Couldn\'t look up years: ' + e.message);
-        return;
+      // Year resolution:
+      //   - If yearId was passed in URL, use it directly (the picker step
+      //     put it there). This is the happy path.
+      //   - Otherwise (deep-link from elsewhere), pick the first year that
+      //     has units for (subject, board).
+      if (yearIdArg) {
+        yearId = yearIdArg;
+        if (!resolvedYearLabel) {
+          const { data: years } = await supabaseClient.rpc('list_years_for_subject_board', {
+            p_subject: subjectId, p_board: boardId,
+          });
+          const y = (years || []).find(r => r.year_id === yearId);
+          if (y) resolvedYearLabel = y.label;
+        }
+      } else {
+        try {
+          const { data: years, error: yErr } = await supabaseClient.rpc('list_years_for_subject_board', {
+            p_subject: subjectId, p_board: boardId,
+          });
+          if (yErr) throw yErr;
+          const rows = years || [];
+          if (rows.length === 0) throw new Error('No years for this board.');
+          // Prefer Year 10 → Year 11 → first available.
+          const pick =
+            rows.find(r => r.label === 'Year 10') ||
+            rows.find(r => r.label === 'Year 11') ||
+            rows[0];
+          yearId = pick.year_id;
+          resolvedYearLabel = pick.label;
+        } catch (e) {
+          $('content').innerHTML = '';
+          showErr('Couldn\'t pick a year: ' + (e.message || e));
+          return;
+        }
       }
 
       if (!yearId) {
@@ -548,7 +637,8 @@
 
       setCrumbs([
         { label: 'Subjects', href: 'subjects.html' },
-        { label: boardName },
+        { label: boardName, href: `subjects.html?step=board&subject=${encodeURIComponent(subjectId)}` },
+        ...(resolvedYearLabel ? [{ label: resolvedYearLabel }] : []),
       ]);
 
       const { data: rows, error: treeErr } = await supabaseClient.rpc('get_unit_tree', {
@@ -607,7 +697,10 @@
       }
 
       const nextHref = encodeURIComponent(
-        `subjects.html?step=tree&subject=${subjectId}&boardName=${encodeURIComponent(boardName)}`
+        `subjects.html?step=tree&subject=${subjectId}` +
+        `&boardName=${encodeURIComponent(boardName)}` +
+        `&yearId=${encodeURIComponent(yearId)}` +
+        `&yearLabel=${encodeURIComponent(resolvedYearLabel)}`
       );
 
       const html = units.map((u, i) => {

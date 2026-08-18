@@ -213,3 +213,233 @@ grant execute on function public.is_lesson_unlocked(uuid) to authenticated;
 
 comment on function public.is_lesson_unlocked(uuid) is
   'Strict linear gate. True iff the caller completed the prior lesson in the topic.';
+
+-- ============================================================================
+-- 4) list_boards_for_subject(subject)
+-- ----------------------------------------------------------------------------
+-- Returns every board attached to a subject (Curriculum base + any custom
+-- exam boards + any non-exam-board courses), regardless of whether they
+-- have published lessons yet. The student page uses this for the board
+-- picker so they always see Curriculum alongside AQA/OCR/etc.
+--
+-- Sorted: Curriculum first, then exam boards, then courses, then by name.
+-- ============================================================================
+
+create or replace function public.list_boards_for_subject(p_subject uuid)
+returns table (
+  board_id     uuid,
+  name         text,
+  kind         text,
+  lesson_count bigint
+)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select
+    b.id  as board_id,
+    b.name as name,
+    b.kind as kind,
+    (
+      select count(distinct l.id)
+        from public.units u
+        join public.topics t on t.unit_id = u.id
+        join public.lessons l on l.topic_id = t.id
+       where u.subject_id    = p_subject
+         and u.exam_board_id = b.id
+         and l.status        = 'published'
+         and l.is_general    is false
+    ) as lesson_count
+  from public.exam_boards b
+  join public.subject_boards sb on sb.exam_board_id = b.id
+  where sb.subject_id = p_subject
+  order by
+    case b.kind when 'curriculum' then 0 when 'exam_board' then 1 else 2 end,
+    b.name;
+$$;
+
+grant execute on function public.list_boards_for_subject(uuid) to authenticated;
+
+comment on function public.list_boards_for_subject(uuid) is
+  'All boards attached to a subject, with kind and lesson_count. Used by /subjects.html board picker.';
+
+-- ============================================================================
+-- 5) list_years_for_subject_board(subject, board)
+-- ----------------------------------------------------------------------------
+-- Returns the years that have units for the (subject, board) pair, sorted
+-- by year_levels.sort_order. The Curriculum board returns Year 7/8/9; a
+-- GCSE exam board returns Year 10/11; etc. The student page uses this for
+-- the year picker after a board is chosen.
+-- ============================================================================
+
+create or replace function public.list_years_for_subject_board(
+  p_subject uuid,
+  p_board   uuid
+)
+returns table (
+  year_id    uuid,
+  label      text,
+  sort_order int,
+  unit_count bigint
+)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select
+    y.id       as year_id,
+    y.label    as label,
+    y.sort_order as sort_order,
+    (
+      select count(*) from public.units u
+       where u.subject_id    = p_subject
+         and u.exam_board_id = p_board
+         and u.year_id       = y.id
+    ) as unit_count
+  from public.year_levels y
+  where exists (
+    select 1 from public.units u
+     where u.subject_id    = p_subject
+       and u.exam_board_id = p_board
+       and u.year_id       = y.id
+  )
+  order by y.sort_order;
+$$;
+
+grant execute on function public.list_years_for_subject_board(uuid, uuid) to authenticated;
+
+comment on function public.list_years_for_subject_board(uuid, uuid) is
+  'Years that have units for (subject, board). Used by /subjects.html year picker.';
+
+-- ============================================================================
+-- 6) create_board_for_subject(subject, name, kind, years[])
+-- ----------------------------------------------------------------------------
+-- Author/admin RPC used by lesson-creator.html's "+ Board" modal.
+-- Atomically:
+--   1. upserts the exam_boards row (kind set on conflict);
+--   2. links it to the subject via subject_boards;
+--   3. computes the year list:
+--        - 'curriculum'  → ['Year 7','Year 8','Year 9']
+--        - 'exam_board'  → GCSE → ['Year 10','Year 11']; A-level → ['Year 12','Year 13']
+--        - 'course'      → uses the caller-supplied p_years (Year 7..13)
+--   4. for each year, ensures a year_levels row and a 'Curriculum' anchoring
+--      unit for the (subject, board, year) triple.
+-- Returns the exam_board.id of the (possibly new) board.
+--
+-- SECURITY DEFINER so the board/board-link/year writes bypass RLS, but the
+-- function still checks the caller is an admin via public.profiles.role.
+-- ============================================================================
+
+drop function if exists public.create_board_for_subject(uuid, text, text, text[]);
+
+create or replace function public.create_board_for_subject(
+  p_subject uuid,
+  p_name    text,
+  p_kind    text,
+  p_years   text[] default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid       uuid := auth.uid();
+  v_is_admin  boolean;
+  v_board_id  uuid;
+  v_subject_level text;
+  v_year_label text;
+  v_year_id   uuid;
+  v_year_sort int;
+begin
+  -- Admin gate. Non-admins get a clean 42501.
+  select (role = 'admin') into v_is_admin
+    from public.profiles
+   where id = v_uid;
+  if v_uid is null or v_is_admin is null or v_is_admin = false then
+    raise exception 'admin only' using errcode = '42501';
+  end if;
+
+  if p_kind not in ('exam_board', 'course', 'curriculum') then
+    raise exception 'invalid kind: %', p_kind
+      using errcode = '22023';
+  end if;
+
+  if p_name is null or length(trim(p_name)) = 0 then
+    raise exception 'board name is required' using errcode = '22023';
+  end if;
+
+  -- 1) Upsert the board row. On conflict, also update kind so an existing
+  --    global board (e.g. AQA) can be re-categorised if needed.
+  insert into public.exam_boards (name, country, kind)
+    values (trim(p_name), 'UK', p_kind)
+  on conflict (name) do update set kind = excluded.kind
+  returning id into v_board_id;
+
+  -- 2) Link subject <-> board.
+  insert into public.subject_boards (subject_id, exam_board_id)
+    values (p_subject, v_board_id)
+  on conflict do nothing;
+
+  -- 3) Compute year list.
+  if p_kind = 'curriculum' then
+    p_years := array['Year 7', 'Year 8', 'Year 9'];
+  elsif p_kind = 'exam_board' then
+    select level into v_subject_level from public.subjects where id = p_subject;
+    if v_subject_level = 'gcse' then
+      p_years := array['Year 10', 'Year 11'];
+    elsif v_subject_level = 'a-level' then
+      p_years := array['Year 12', 'Year 13'];
+    else
+      -- Unknown subject level — fall back to GCSE years; the author can
+      -- still create a 'course' if they want a different range.
+      p_years := array['Year 10', 'Year 11'];
+    end if;
+  end if;
+  -- 'course' keeps p_years as the caller passed them.
+
+  if p_years is null or array_length(p_years, 1) is null then
+    raise exception 'no years resolved for board kind %', p_kind
+      using errcode = '22023';
+  end if;
+
+  -- 4) For each year: ensure year_levels row + anchoring 'Curriculum' unit.
+  foreach v_year_label in array p_years loop
+    select id into v_year_id
+      from public.year_levels
+     where label = v_year_label;
+
+    if v_year_id is null then
+      v_year_sort := case v_year_label
+        when 'Year 7'  then 7
+        when 'Year 8'  then 8
+        when 'Year 9'  then 9
+        when 'Year 10' then 10
+        when 'Year 11' then 11
+        when 'Year 12' then 12
+        when 'Year 13' then 13
+        else 99
+      end;
+      insert into public.year_levels (label, sort_order)
+        values (v_year_label, v_year_sort)
+      returning id into v_year_id;
+    end if;
+
+    insert into public.units (subject_id, exam_board_id, year_id, name, sort_order)
+      values (p_subject, v_board_id, v_year_id, 'Curriculum', 0)
+    on conflict (subject_id, exam_board_id, year_id, name) do nothing;
+  end loop;
+
+  return v_board_id;
+end;
+$$;
+
+grant execute on function public.create_board_for_subject(uuid, text, text, text[])
+  to authenticated;
+
+comment on function public.create_board_for_subject(uuid, text, text, text[]) is
+  'Create a board for a subject with auto-generated years. '
+  'kind=curriculum -> Years 7,8,9; kind=exam_board -> GCSE Years 10+11 / A-level Years 12+13; '
+  'kind=course -> caller-supplied years (7-13). Admin only.';

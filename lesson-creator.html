@@ -470,6 +470,41 @@
     .form-row.inline > label { margin: 0; }
     .form-row.inline input, .form-row.inline select { flex: 1; }
 
+    /* New-board modal: kind picker (radio cards) + year chip grid. */
+    .kind-row { display: flex; flex-direction: column; gap: 8px; }
+    .kind-chip {
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 10px 12px;
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      background: var(--bg-3);
+      cursor: pointer;
+      transition: border-color 0.12s ease, background 0.12s ease;
+    }
+    .kind-chip:hover { border-color: var(--line-3); }
+    .kind-chip:has(input[type="radio"]:checked) {
+      border-color: var(--blue);
+      background: var(--blue-pale);
+    }
+    .kind-chip strong { font-size: 13px; color: var(--text); }
+    .kind-chip .hint { font-size: 11.5px; color: var(--text-3); }
+    .kind-chip input[type="radio"] { margin-right: 8px; }
+
+    .year-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .year-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 10px;
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      background: var(--bg-3);
+      font-size: 12.5px;
+      cursor: pointer;
+    }
+    .year-chip:has(input[type="checkbox"]:checked) {
+      border-color: var(--blue);
+      background: var(--blue-pale);
+    }
+
     /* ---------- EDITOR HEADER ---------- */
     .editor-meta {
       display: grid; grid-template-columns: 1fr 100px 80px;
@@ -2792,8 +2827,10 @@
       addBtn = `<button class="add-btn" ${isAdmin ? '' : 'disabled title="Only admins can add exam boards"'}
                        onclick="${isAdmin ? 'openAddBoardModal()' : 'return false'}">+ Board</button>`;
     } else if (!year) {
-      addBtn = `<button class="add-btn" ${isAdmin ? '' : 'disabled title="Only admins can add year levels"'}
-                       onclick="${isAdmin ? 'openAddYearModal()' : 'return false'}">+ Year</button>`;
+      // Year level: no manual "Add year" button. Years are auto-generated
+      // when a board is created (see openAddBoardModal). Existing years
+      // can still be renamed/deleted via the kebab menu.
+      addBtn = '';
     } else if (!unit) {
       // Year level: any staff role can add a unit.
       addBtn = '<button class="add-btn" onclick="openAddUnitModal()">+ Unit</button>';
@@ -3056,41 +3093,84 @@
     const subject = state.browsePath.subject;
     if (!subject) { toast('Pick a subject first', 'error'); return; }
     const subjectId = subject.id;
+    // Subject level drives the auto-generated year range for exam boards:
+    //   gcse    → Year 10 + Year 11
+    //   a-level → Year 12 + Year 13
+    // Non-exam-board ("course") authors pick from Year 7..13 themselves.
+    const levelLabel = subject.level === 'gcse' ? 'GCSE (Year 10 + Year 11)'
+                     : subject.level === 'a-level' ? 'A-level (Year 12 + Year 13)'
+                     : 'this subject';
+    const yearCheckboxes = [7, 8, 9, 10, 11, 12, 13].map(n => `
+      <label class="year-chip">
+        <input type="checkbox" name="years" value="Year ${n}" /> Year ${n}
+      </label>`).join('');
 
-    const yearOptions = state.years
-      .map(y => `<option value="${y.id}">${escapeHtml(y.label)}</option>`)
-      .join('');
-
-    openModal('New exam board', `
+    openModal('New board', `
       <form id="boardForm" class="editor" style="padding:0;">
         <div class="form-row">
           <label>Board name</label>
-          <input name="name" required placeholder="e.g. AQA" autofocus />
+          <input name="name" required placeholder="e.g. AQA / KS3" autofocus />
         </div>
         <div class="form-row">
-          <label>For year</label>
-          <select name="year_id" required>
-            ${yearOptions}
-          </select>
-          <span class="hint">The board will be added to ${escapeHtml(subject.name)} for this year. Staff can rename the auto-created Curriculum unit later.</span>
+          <label>Type</label>
+          <div class="kind-row">
+            <label class="kind-chip">
+              <input type="radio" name="kind" value="exam_board" checked />
+              <strong>Exam board</strong>
+              <span class="hint">Auto-generates ${esc(levelLabel)} for ${esc(subject.name)}.</span>
+            </label>
+            <label class="kind-chip">
+              <input type="radio" name="kind" value="course" />
+              <strong>Non-exam-board course</strong>
+              <span class="hint">Pick which years to include (Year 7 – Year 13).</span>
+            </label>
+          </div>
+        </div>
+        <div id="courseYears" class="form-row" hidden>
+          <label>Years to include</label>
+          <div class="year-grid">${yearCheckboxes}</div>
+          <span class="hint">At least one year is required.</span>
         </div>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
           <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
           <button type="submit" class="btn-primary">Create</button>
         </div>
       </form>`);
-    $('boardForm').addEventListener('submit', async (e) => {
+
+    // Toggle the year checkbox grid based on the selected kind.
+    const form = $('boardForm');
+    const courseBlock = $('courseYears');
+    const sync = () => {
+      const kind = form.querySelector('input[name="kind"]:checked').value;
+      courseBlock.hidden = kind !== 'course';
+    };
+    form.querySelectorAll('input[name="kind"]').forEach(r => r.addEventListener('change', sync));
+    sync();
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = e.target.name.value.trim();
-      const yearId = e.target.year_id.value;
-      if (!name || !yearId) return;
-      const { data, error } = await supabaseClient.rpc('create_board_for_subject_year', {
-        p_subject_id: subjectId,
-        p_year_id:    yearId,
-        p_name:       name,
+      const fd = new FormData(e.target);
+      const name = (fd.get('name') || '').toString().trim();
+      const kind = fd.get('kind');
+      const years = fd.getAll('years');
+      if (!name) return;
+      if (kind === 'course' && years.length === 0) {
+        toast('Pick at least one year', 'error');
+        return;
+      }
+      const { data, error } = await supabaseClient.rpc('create_board_for_subject', {
+        p_subject: subjectId,
+        p_name:    name,
+        p_kind:    kind,
+        p_years:   kind === 'course' ? years : null,
       });
       if (error) { toast('Create failed: ' + error.message, 'error'); return; }
-      toast('Exam board added to ' + subject.name, 'success');
+      const yearWord = kind === 'course'
+        ? (years.length + ' year' + (years.length === 1 ? '' : 's'))
+        : (subject.level === 'gcse' ? 'Year 10 + Year 11'
+        : subject.level === 'a-level' ? 'Year 12 + Year 13'
+        : 'auto-generated years');
+      toast(`Board "${name}" added to ${subject.name} (${yearWord})`, 'success');
       closeModal();
       await loadTree();
     });
@@ -3139,63 +3219,13 @@
   };
 
   // ---- years ----
-  // "+ Add year" at the board level creates the year AND an anchoring
-  // Curriculum unit for (current subject, current board, that year).
-  // Without that anchor, the year would exist as a global reference
-  // row but the catalog card grid would never show it for this board.
-  window.openAddYearModal = () => {
-    const { subject, board } = state.browsePath;
-    if (!subject || !board) { toast('Pick a subject and board first', 'error'); return; }
-    const subjectId = subject.id, boardId = board.id;
-
-    openModal('New year level', `
-      <form id="yearForm" class="editor" style="padding:0;">
-        <div class="form-row">
-          <label>Label</label>
-          <input name="label" required placeholder="e.g. Year 10, GCSE, A-level" autofocus />
-          <span class="hint">The year will be added globally and anchored to ${escapeHtml(subject.name)} / ${escapeHtml(board.name)} with a default "Curriculum" unit. Staff can rename the unit later.</span>
-        </div>
-        <div style="display:flex; gap:8px; justify-content:flex-end;">
-          <button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button>
-          <button type="submit" class="btn-primary">Create</button>
-        </div>
-      </form>`);
-    $('yearForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const label = e.target.label.value.trim();
-      if (!label) return;
-      // 1) Create the year_levels row (or fetch existing).
-      const { data: created, error: yrErr } = await supabaseClient.rpc('create_year', { p_label: label });
-      if (yrErr) { toast('Create failed: ' + yrErr.message, 'error'); return; }
-      // create_year returns the year id when it creates a new one; for
-      // an existing label it returns the existing id.
-      const yearId = created;
-      // 2) Anchor: a Curriculum unit for (subject, board, year). We
-      // use upsert via the units unique constraint, so this is
-      // idempotent. Direct insert (no RPC) is fine — the catalog
-      // render reads from public.units, no audit needed for an
-      // anchoring placeholder.
-      if (yearId) {
-        const { error: unitErr } = await supabaseClient.from('units').insert({
-          subject_id: subjectId,
-          exam_board_id: boardId,
-          year_id: yearId,
-          name: 'Curriculum',
-          sort_order: 0,
-        });
-        // 23505 = unique_violation — already anchored, that's fine.
-        if (unitErr && unitErr.code !== '23505') {
-          toast('Year created but anchor failed: ' + unitErr.message, 'error');
-          closeModal();
-          await loadTree();
-          return;
-        }
-      }
-      toast('Year added to ' + subject.name + ' / ' + board.name, 'success');
-      closeModal();
-      await loadTree();
-    });
-  };
+  // Authors can no longer add years to a board manually. Years are now
+  // auto-generated when a board is created (see openAddBoardModal above
+  // and the create_board_for_subject RPC in supabase_subjects_page.sql):
+  //   exam_board  → GCSE = Year 10+11, A-level = Year 12+13
+  //   course      → years the author ticks (7..13)
+  // The Curriculum base board (Years 7-9) is auto-attached for every
+  // subject by supabase_boards_redesign.sql + openSubjectModal below.
 
   window.openRenameYearModal = (id) => {
     const y = state.yearMap[id];
@@ -3433,6 +3463,20 @@
       } else {
         const { data, error } = await supabaseClient.from('subjects').insert(payload).select().single();
         if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+        // Auto-create the Curriculum base board (Years 7-9) for every new
+        // subject. create_board_for_subject is idempotent — re-running it
+        // for an existing Curriculum row is a no-op.
+        if (data && data.id) {
+          const { error: brdErr } = await supabaseClient.rpc('create_board_for_subject', {
+            p_subject: data.id,
+            p_name:    'Curriculum',
+            p_kind:    'curriculum',
+            p_years:   null,
+          });
+          if (brdErr) {
+            toast('Subject created, but Curriculum base failed: ' + brdErr.message, 'error');
+          }
+        }
         toast('Subject created', 'success');
       }
       closeModal();
