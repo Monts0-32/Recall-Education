@@ -578,7 +578,7 @@
     // Profile chip + role guard. The page is for students only.
     let profile = null;
     {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from("profiles")
         .select("full_name, year_group, role, avatar_url")
         .eq("id", session.user.id)
@@ -611,7 +611,7 @@
       setCrumbs([{ label: "Subjects" }]);
       contentEl.innerHTML = `<div class="skel">Loading subjects…</div>`;
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from("subject_catalog")
         .select("subject_id, name, level, color_key, sort_order, published_unit_count")
         .order("sort_order", { ascending: true })
@@ -662,7 +662,7 @@
       // Progress per (subject.name, subject.level) — read from the
       // existing subject_progress view, which already does the per-student
       // join server-side.
-      const { data: progress } = await supabase
+      const { data: progress } = await supabaseClient
         .from("subject_progress")
         .select("subject_id, subject_name, exam_board, level, total_lessons, completed_lessons, pct")
         .eq("user_id", session.user.id);
@@ -718,7 +718,7 @@
       contentEl.innerHTML = `<div class="skel">Loading exam boards…</div>`;
 
       // Load the subject name for the breadcrumb.
-      const { data: subjectRow } = await supabase
+      const { data: subjectRow } = await supabaseClient
         .from("subjects")
         .select("name, level, color_key")
         .eq("id", subjectParam)
@@ -731,7 +731,7 @@
           <span class="current">${escapeHtml(subjectRow.name)}</span>`;
       }
 
-      const { data: boards, error } = await supabase
+      const { data: boards, error } = await supabaseClient
         .rpc("boards_for_subject", { p_subject: subjectParam });
 
       if (error) {
@@ -828,7 +828,7 @@
         <span class="current">${escapeHtml(boardRow?.name || "Board")}</span>`;
 
       // Years available for this (subject, board).
-      const { data: years, error: yearsErr } = await supabase
+      const { data: years, error: yearsErr } = await supabaseClient
         .rpc("years_for_subject_board", { p_subject: subjectParam, p_board: boardParam });
 
       if (yearsErr) {
@@ -886,7 +886,7 @@
       });
 
       const treeBody = document.getElementById("treeBody");
-      const { data: rows, error: treeErr } = await supabase
+      const { data: rows, error: treeErr } = await supabaseClient
         .rpc("get_unit_tree", {
           p_subject: subjectParam,
           p_board:   boardParam,
