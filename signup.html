@@ -1253,13 +1253,6 @@
           } catch (err) {
             console.warn('record_terms_acceptance threw:', err);
           }
-          } catch (err) {
-            console.error('accept_staff_invite threw:', err);
-            showOk(
-              'Account created. There was a problem applying the invitation — '
-              + 'sign in and try the invite link again.'
-            );
-          }
           // Lock the form.
           Array.from(form.elements).forEach(el => { el.disabled = true; });
           submitBtn.textContent = 'Account created';
