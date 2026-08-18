@@ -2,13 +2,13 @@
 <html><head><meta charset="utf-8"><title>diag</title></head>
 <body>
 <pre id="out" style="font-family:monospace;font-size:14px;white-space:pre-wrap"></pre>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
 <script>
 const out = document.getElementById('out');
 const log = (...a) => { out.textContent += a.join(' ') + '\n'; console.log(...a); };
 
 const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 (async () => {

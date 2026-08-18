@@ -1,0 +1,15 @@
+const crypto = require('crypto');
+const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3Fkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+const jwks = {"keys":[{"alg":"ES256","crv":"P-256","ext":true,"key_ops":["verify"],"kid":"45d56e14-4c05-4b83-a54d-baad6d045176","kty":"EC","use":"sig","x":"_2bNLfxaCPz0mls27GQgjlAbZrKFsTzWssEh8PAFlsg","y":"9WUPAkMowD7gpeemmrklzQCe1fuD1bm51LJqfHcWGEA"}]};
+const [h, p, s] = token.split('.');
+const signingInput = h+'.'+p;
+const sig = Buffer.from(s.replace(/-/g,'+').replace(/_/g,'/'),'base64');
+const key = jwks.keys[0];
+const x = Buffer.from(key.x,'base64url');
+const y = Buffer.from(key.y,'base64url');
+const pubKey = Buffer.concat([Buffer.from([0x04]), x, y]);
+const v = crypto.createVerify('SHA256');
+v.update(signingInput); v.end();
+const ok = v.verify({key: pubKey, dsaEncoding:'der'}, sig);
+console.log('Valid against this project?', ok);
+console.log('Payload:', JSON.parse(Buffer.from(p,'base64').toString()));
