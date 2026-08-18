@@ -30,8 +30,6 @@
       --green:     #3FB950;
       --yellow:    #D29922;
       --red:       #F85149;
-      --purple:    #A371F7;
-      --teal:      #56D4DD;
       --r-sm: 6px;
       --r-md: 8px;
     }
@@ -48,7 +46,6 @@
     a { color: var(--blue); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    /* ---------- TOP NAV ---------- */
     nav.top {
       border-bottom: 1px solid var(--line);
       background: var(--bg);
@@ -65,32 +62,6 @@
       font-weight: 700; color: var(--text);
     }
     .brand .logo { width: 24px; height: 24px; border-radius: 5px; }
-    .profile-chip {
-      display: inline-flex; align-items: center; gap: 10px;
-      background: var(--bg-2);
-      border: 1px solid var(--line-2);
-      padding: 5px 12px 5px 5px;
-      border-radius: 999px;
-      color: var(--text-2);
-      font-size: 13px;
-    }
-    .profile-chip .avatar {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      background: var(--bg-4);
-      color: var(--text);
-      display: inline-flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 12px;
-    }
-    .profile-chip .pill {
-      font-size: 11px;
-      padding: 2px 8px;
-      background: var(--bg-3);
-      border-radius: 999px;
-      color: var(--text-3);
-    }
-
-    /* ---------- LAYOUT ---------- */
     main {
       max-width: 1100px;
       margin: 0 auto;
@@ -107,7 +78,6 @@
     .crumbs a:hover { color: var(--blue); text-decoration: none; }
     .crumbs .sep { color: var(--text-4); }
     .crumbs .current { color: var(--text); font-weight: 600; }
-
     h1 {
       font-size: 28px;
       margin: 0 0 6px;
@@ -119,7 +89,6 @@
       font-size: 14px;
     }
 
-    /* ---------- STATE / BANNERS ---------- */
     .state {
       padding: 14px 18px;
       border-radius: var(--r-md);
@@ -130,8 +99,6 @@
     }
     .state.show { display: block; }
     .state.error { border-color: rgba(248,81,73,0.4); background: rgba(248,81,73,0.08); color: #ff9a93; }
-    .state.info  { border-color: var(--line-2); color: var(--text-2); }
-
     .skel {
       color: var(--text-3);
       font-style: italic;
@@ -142,7 +109,7 @@
       border-radius: var(--r-md);
     }
 
-    /* ---------- SUBJECT CATALOGUE GRID ---------- */
+    /* Catalogue grid */
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -154,13 +121,13 @@
       border-radius: var(--r-md);
       padding: 18px;
       cursor: pointer;
-      transition: transform 0.06s ease, border-color 0.12s ease, background 0.12s ease;
+      transition: border-color 0.12s ease, background 0.12s ease;
       color: var(--text);
       text-decoration: none;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      min-height: 120px;
+      gap: 8px;
+      min-height: 100px;
     }
     .tile:hover {
       border-color: var(--line-3);
@@ -176,128 +143,17 @@
       flex: 0 0 auto;
       background: var(--blue);
     }
-    .tile .dot.maths { background: #58A6FF; }
-    .tile .dot.eng   { background: #A371F7; }
-    .tile .dot.bio   { background: #3FB950; }
-    .tile .dot.chem  { background: #D29922; }
-    .tile .dot.phys  { background: #F85149; }
-    .tile .dot.hist  { background: #FF7B72; }
-    .tile .dot.geog  { background: #56D4DD; }
-    .tile .dot.psych { background: #BC8CFF; }
     .tile .name {
       font-weight: 700;
       font-size: 16px;
       margin: 0;
     }
-    .tile .level {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-3);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
     .tile .meta {
       font-size: 12px;
       color: var(--text-3);
-      margin-top: auto;
-    }
-    .tile .progress {
-      height: 4px;
-      background: var(--bg-4);
-      border-radius: 999px;
-      overflow: hidden;
-    }
-    .tile .progress > span {
-      display: block;
-      height: 100%;
-      background: var(--blue);
-      transition: width 0.2s ease;
     }
 
-    /* ---------- BOARD PICKER ---------- */
-    .board-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 14px;
-    }
-    .board-card {
-      background: var(--bg-2);
-      border: 1px solid var(--line-2);
-      border-radius: var(--r-md);
-      padding: 18px;
-      cursor: pointer;
-      transition: transform 0.06s ease, border-color 0.12s ease, background 0.12s ease;
-      color: var(--text);
-      text-decoration: none;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .board-card:hover {
-      border-color: var(--line-3);
-      background: var(--bg-3);
-      text-decoration: none;
-    }
-    .board-card .badge {
-      align-self: flex-start;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: var(--blue-dim);
-      color: var(--blue);
-    }
-    .board-card.curriculum .badge {
-      background: rgba(63, 185, 80, 0.12);
-      color: var(--green);
-    }
-    .board-card .name {
-      font-weight: 700;
-      font-size: 16px;
-      margin: 4px 0 0;
-    }
-    .board-card .meta {
-      font-size: 12px;
-      color: var(--text-3);
-    }
-
-    /* ---------- DUOLINGO-STYLE TREE ---------- */
-    .year-bar {
-      display: flex; align-items: center; gap: 12px;
-      margin-bottom: 22px;
-      padding: 12px 16px;
-      background: var(--bg-2);
-      border: 1px solid var(--line-2);
-      border-radius: var(--r-md);
-    }
-    .year-bar label {
-      font-size: 12px;
-      color: var(--text-3);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      font-weight: 600;
-    }
-    .year-bar select {
-      background: var(--bg-3);
-      color: var(--text);
-      border: 1px solid var(--line-2);
-      border-radius: var(--r-sm);
-      padding: 6px 10px;
-      font-size: 13px;
-      font-family: inherit;
-      cursor: pointer;
-    }
-    .year-bar .auto {
-      font-size: 11px;
-      color: var(--green);
-      background: rgba(63, 185, 80, 0.1);
-      border: 1px solid rgba(63, 185, 80, 0.3);
-      padding: 2px 8px;
-      border-radius: 999px;
-    }
-
+    /* Tree */
     .unit {
       background: var(--bg-2);
       border: 1px solid var(--line-2);
@@ -329,7 +185,6 @@
       font-size: 13px;
       margin: 0 0 18px 42px;
     }
-
     .topic {
       margin-left: 42px;
       padding: 12px 0;
@@ -372,12 +227,11 @@
       font-weight: 500;
       cursor: pointer;
       text-decoration: none;
-      transition: transform 0.06s ease, border-color 0.12s ease, background 0.12s ease;
+      transition: transform 0.06s ease, border-color 0.12s ease;
       max-width: 280px;
     }
     .lesson-chip:hover {
       border-color: var(--blue);
-      background: var(--bg-4);
       text-decoration: none;
       transform: translateY(-1px);
     }
@@ -395,66 +249,23 @@
       border-color: rgba(63, 185, 80, 0.4);
       background: rgba(63, 185, 80, 0.08);
     }
-    .lesson-chip.completed .icon {
-      background: var(--green);
-      color: #fff;
-    }
-    .lesson-chip.locked {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-    .lesson-chip.locked:hover {
-      transform: none;
-      border-color: var(--line-2);
-      background: var(--bg-3);
-    }
-    .lesson-chip.locked .icon {
-      background: var(--bg-4);
-      color: var(--text-4);
-    }
-    .lesson-chip.available {
-      border-color: rgba(56, 139, 253, 0.4);
-      background: var(--blue-pale);
-    }
-    .lesson-chip.available .icon {
-      background: var(--blue);
-      color: #fff;
-    }
+    .lesson-chip.completed .icon { background: var(--green); color: #fff; }
+    .lesson-chip.locked { opacity: 0.45; cursor: not-allowed; }
+    .lesson-chip.locked:hover { transform: none; border-color: var(--line-2); }
+    .lesson-chip.locked .icon { background: var(--bg-4); color: var(--text-4); }
+    .lesson-chip.available { border-color: rgba(56, 139, 253, 0.4); }
+    .lesson-chip.available .icon { background: var(--blue); color: #fff; }
     .lesson-chip .title {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .lesson-chip .dur {
-      font-size: 11px;
-      color: var(--text-4);
-      font-weight: 500;
-    }
-    .lesson-chip .code {
-      font-size: 10px;
-      color: var(--text-4);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      background: var(--bg);
-      border: 1px solid var(--line-2);
-      padding: 1px 5px;
-      border-radius: 3px;
-    }
-
-    /* ---------- BACK LINK ---------- */
-    .back-link {
-      display: inline-flex; align-items: center; gap: 6px;
-      color: var(--text-3);
-      font-size: 13px;
-      margin-bottom: 12px;
-    }
-    .back-link:hover { color: var(--blue); text-decoration: none; }
 
     @media (max-width: 600px) {
       main { padding: 20px 16px 60px; }
       h1 { font-size: 22px; }
       .unit { padding: 16px; }
       .topic { margin-left: 0; padding-left: 14px; }
-      .unit-head .num { width: 26px; height: 26px; font-size: 12px; }
     }
   </style>
 </head>
@@ -465,11 +276,6 @@
         <img class="logo" src="logo.png" alt="Recall" />
         Recall
       </a>
-      <div class="profile-chip" id="profileChip">
-        <span class="avatar" id="profileAvatar">—</span>
-        <span id="profileName">Loading…</span>
-        <span class="pill" id="profileYear" hidden></span>
-      </div>
     </div>
   </nav>
 
@@ -479,16 +285,17 @@
     <p class="sub" id="pageSub">Loading…</p>
 
     <div class="state" id="state"></div>
-    <div id="content"></div>
+    <div id="content"><div class="skel">Loading…</div></div>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const SUPABASE_URL = "https://hkjiyibpeqdoqzlyqzwz.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3Fkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU";
-    // Use a local name; `const supabase` would collide with the `var supabase`
-    // the @supabase UMD bundle declares at top level.
+    const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3Fkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+    // Use a local name; `const supabase` would collide with the
+    // `var supabase` the @supabase UMD bundle declares at top level.
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      // apikey fallback for browsers that strip the apikey header.
       global: {
         fetch: (url, options = {}) => {
           try {
@@ -504,544 +311,343 @@
       }
     });
 
-    // ---- main (top-level await needs an async wrapper) -------------------
-
-    ;(async () => {
+    const $ = (id) => document.getElementById(id);
+    function esc(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function showErr(msg) {
+      const el = $('state');
+      el.className = 'state show error';
+      el.textContent = msg;
+    }
+    function clearErr() {
+      const el = $('state');
+      el.className = 'state';
+      el.textContent = '';
+    }
 
     const params = new URLSearchParams(window.location.search);
-    const step = params.get("step") || "subjects";
-    const subjectParam = params.get("subject");
-    const boardParam = params.get("board");
-    const yearParam = params.get("year");
-
-    const contentEl = document.getElementById("content");
-    const titleEl = document.getElementById("pageTitle");
-    const subEl = document.getElementById("pageSub");
-    const stateEl = document.getElementById("state");
-    const crumbsEl = document.getElementById("crumbs");
-
-    // ---- helpers -----------------------------------------------------------
-
-    function escapeHtml(s) {
-      return String(s ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
-
-    function showState(kind, html) {
-      stateEl.className = "state show " + (kind || "info");
-      stateEl.innerHTML = html;
-    }
-    function hideState() {
-      stateEl.className = "state";
-      stateEl.innerHTML = "";
-    }
+    const step = params.get('step') || 'subjects';
 
     function setCrumbs(parts) {
-      // parts: [{label, href?}]
-      crumbsEl.innerHTML = parts.map((p, i) => {
-        const isLast = i === parts.length - 1;
-        if (isLast) return `<span class="current">${escapeHtml(p.label)}</span>`;
-        return `<a href="${escapeHtml(p.href)}">${escapeHtml(p.label)}</a><span class="sep">/</span>`;
-      }).join(" ");
+      $('crumbs').innerHTML = parts.map((p, i) => {
+        const last = i === parts.length - 1;
+        return (last
+          ? `<span class="current">${esc(p.label)}</span>`
+          : `<a href="${esc(p.href)}">${esc(p.label)}</a><span class="sep">/</span>`);
+      }).join(' ');
     }
 
-    function colorKeyClass(key) {
-      const k = String(key || "").toLowerCase();
-      const allowed = new Set(["maths","eng","bio","chem","phys","hist","geog","psych"]);
-      // Only return a known class. Unknown keys fall through to a blue
-      // dot (the default `.dot` style). Avoid hashing to a number — that
-      // would render `<span class="dot 5">` and break styling.
-      return allowed.has(k) ? k : "";
-    }
+    async function init() {
+      clearErr();
 
-    function isUuid(s) {
-      return typeof s === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
-    }
-
-    // ---- session + profile -------------------------------------------------
-
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session) {
-      const next = encodeURIComponent(window.location.pathname + window.location.search);
-      window.location.href = `login.html?next=${next}`;
-    }
-
-    // Profile chip + role guard. The page is for students only.
-    let profile = null;
-    {
-      const { data, error } = await supabaseClient
-        .from("profiles")
-        .select("full_name, year_group, role, avatar_url")
-        .eq("id", session.user.id)
-        .maybeSingle();
-      if (error) {
-        console.error("profile load failed:", error.message);
-      } else if (data) {
-        profile = data;
-        const name = data.full_name || session.user.email || "Student";
-        document.getElementById("profileName").textContent = name;
-        const initials = name.split(/\s+/).map(w => w[0]).filter(Boolean).slice(0,2).join("").toUpperCase() || "S";
-        document.getElementById("profileAvatar").textContent = initials;
-        if (data.year_group) {
-          const yp = document.getElementById("profileYear");
-          yp.textContent = data.year_group;
-          yp.hidden = false;
-        }
-        if (data.role && data.role !== "student") {
-          // Non-students don't belong on this page.
-          window.location.href = "dashboard.html";
-        }
-      }
-    }
-
-    // ---- STEP 1: subject catalogue ----------------------------------------
-
-    async function renderSubjects() {
-      titleEl.textContent = "Choose a subject";
-      subEl.textContent = "Pick a subject to start your learning path. We'll suggest the exam board and year based on your profile.";
-      setCrumbs([{ label: "Subjects" }]);
-      contentEl.innerHTML = `<div class="skel">Loading subjects…</div>`;
-
-      const { data, error } = await supabaseClient
-        .from("subject_catalog")
-        .select("subject_id, name, level, color_key, sort_order, published_unit_count")
-        .order("sort_order", { ascending: true })
-        .order("name", { ascending: true });
-
-      if (error) {
-        contentEl.innerHTML = "";
-        showState("error", `Couldn't load subjects: ${escapeHtml(error.message)}`);
+      // Auth gate.
+      const { data: sessData } = await supabaseClient.auth.getSession();
+      const session = sessData && sessData.session;
+      if (!session) {
+        const next = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `login.html?next=${next}`;
         return;
       }
 
-      // Group by (name, level) so the same subject appearing under
-      // multiple boards collapses to one tile. Click takes the first
-      // representative subject_id; the board picker does the per-board
-      // split.
-      const grouped = new Map();
+      if (step === 'subjects')      await renderSubjects();
+      else if (step === 'board')    await renderBoard();
+      else if (step === 'tree')     await renderTree();
+      else {
+        $('content').innerHTML = '';
+        showErr('Unknown step. Use the link in the sidebar.');
+      }
+    }
+
+    // ---- step 1: catalogue ---------------------------------------------
+    async function renderSubjects() {
+      $('pageTitle').textContent = 'Choose a subject';
+      $('pageSub').textContent = 'Pick a subject to start your learning path.';
+      setCrumbs([{ label: 'Subjects' }]);
+      $('content').innerHTML = '<div class="skel">Loading subjects…</div>';
+
+      const { data, error } = await supabaseClient.rpc('list_subjects_published');
+      if (error) {
+        $('content').innerHTML = '';
+        showErr('Couldn\'t load subjects: ' + error.message);
+        return;
+      }
+
+      // Group by (name, level) — same subject can appear under multiple
+      // exam boards; collapse them into one tile.
+      const groups = new Map();
       for (const row of data || []) {
         const key = `${row.name}__${row.level}`;
-        if (!grouped.has(key)) {
-          grouped.set(key, {
-            subject_id: row.subject_id,
-            name: row.name,
-            level: row.level,
-            color_key: row.color_key,
-            sort_order: row.sort_order,
-            published_unit_count: row.published_unit_count,
+        if (!groups.has(key)) {
+          groups.set(key, {
+            name: row.name, level: row.level, color_key: row.color_key,
+            count: 0, first_id: row.subject_id,
           });
-        } else {
-          const existing = grouped.get(key);
-          existing.published_unit_count += Number(row.published_unit_count || 0);
+        }
+        const g = groups.get(key);
+        g.count += Number(row.published_count || 0);
+      }
+
+      const rows = [...groups.values()].sort((a, b) => a.name.localeCompare(b.name));
+      if (rows.length === 0) {
+        $('content').innerHTML = '<div class="skel">No subjects are published yet. Check back soon.</div>';
+        return;
+      }
+
+      // Dot color: keep it simple — map the colour key directly.
+      const dotStyle = (key) => {
+        const allowed = ['maths','eng','bio','chem','phys','hist','geog','psych'];
+        return allowed.includes(String(key || '').toLowerCase()) ? key : '';
+      }
+
+      $('content').innerHTML = `<div class="grid">${rows.map(r => `
+        <a class="tile" href="subjects.html?step=board&subject=${encodeURIComponent(r.first_id)}">
+          <div class="head">
+            <span class="dot ${esc(dotStyle(r.color_key))}"></span>
+            <h3 class="name">${esc(r.name)}</h3>
+          </div>
+          <span class="meta">${esc(r.level)}</span>
+          <span class="meta">${r.count} published lesson${r.count === 1 ? '' : 's'}</span>
+        </a>
+      `).join('')}</div>`;
+    }
+
+    // ---- step 2: exam-board picker ------------------------------------
+    async function renderBoard() {
+      const subjectId = params.get('subject');
+      if (!subjectId) { showErr('Missing subject.'); return; }
+
+      $('pageTitle').textContent = 'Pick an exam board';
+      $('pageSub').textContent = 'We\'ll auto-pick your year next.';
+      setCrumbs([
+        { label: 'Subjects', href: 'subjects.html' },
+        { label: 'Board' },
+      ]);
+      $('content').innerHTML = '<div class="skel">Loading exam boards…</div>';
+
+      const { data, error } = await supabaseClient.rpc('list_subjects_published');
+      if (error) {
+        $('content').innerHTML = '';
+        showErr('Couldn\'t load: ' + error.message);
+        return;
+      }
+
+      // Find all rows for this subject, dedup by exam_board.
+      const boards = new Map();
+      let subjectName = '';
+      for (const row of data || []) {
+        if (row.subject_id === subjectId) {
+          subjectName = row.name;
+          const k = row.exam_board || 'Default';
+          boards.set(k, (boards.get(k) || 0) + Number(row.published_count || 0));
         }
       }
 
-      const rows = [...grouped.values()].sort((a, b) => {
-        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
-        return a.name.localeCompare(b.name);
-      });
-
-      if (rows.length === 0) {
-        contentEl.innerHTML = `
-          <div class="skel">
-            No subjects are published yet. Check back soon, or browse lessons from the
-            <a href="dashboard.html">dashboard</a>.
-          </div>`;
-        return;
-      }
-
-      // Progress per (subject.name, subject.level) — read from the
-      // existing subject_progress view, which already does the per-student
-      // join server-side.
-      const { data: progress } = await supabaseClient
-        .from("subject_progress")
-        .select("subject_id, subject_name, exam_board, level, total_lessons, completed_lessons, pct")
-        .eq("user_id", session.user.id);
-      const progressMap = new Map();
-      for (const p of progress || []) {
-        const k = `${p.subject_name}__${p.level}`;
-        const existing = progressMap.get(k);
-        if (!existing || p.pct > existing.pct) progressMap.set(k, p);
-      }
-
-      contentEl.innerHTML = `
-        <div class="grid">
-          ${rows.map(r => {
-            const prog = progressMap.get(`${r.name}__${r.level}`);
-            const pct = prog ? Math.round(prog.pct || 0) : 0;
-            const total = prog ? prog.total_lessons : 0;
-            const done  = prog ? prog.completed_lessons : 0;
-            const hasContent = (r.published_unit_count || 0) > 0;
-            const isAvailable = hasContent;
-            const dotClass = colorKeyClass(r.color_key);
-            return `
-              <a class="tile" href="subjects.html?step=board&subject=${encodeURIComponent(r.subject_id)}"
-                 style="${isAvailable ? "" : "opacity:0.5;cursor:not-allowed;pointer-events:none;"}">
-                <div class="head">
-                  <span class="dot ${escapeHtml(dotClass)}"></span>
-                  <h3 class="name">${escapeHtml(r.name)}</h3>
-                </div>
-                <span class="level">${escapeHtml(r.level)}</span>
-                ${prog ? `
-                  <div class="progress"><span style="width:${pct}%"></span></div>
-                  <div class="meta">${done} / ${total} lessons · ${pct}%</div>
-                ` : `
-                  <div class="meta">${hasContent ? "Tap to start" : "No content yet"}</div>
-                `}
-              </a>`;
-          }).join("")}
-        </div>`;
-    }
-
-    // ---- STEP 2: exam-board picker ----------------------------------------
-
-    async function renderBoardPicker() {
-      if (!isUuid(subjectParam)) {
-        showState("error", "Invalid subject.");
-        return;
-      }
-      titleEl.textContent = "Pick an exam board";
-      subEl.textContent = "Tap a board to see your lessons. We'll auto-pick your year next.";
-      setCrumbs([
-        { label: "Subjects", href: "subjects.html" },
-        { label: "Board" },
-      ]);
-      contentEl.innerHTML = `<div class="skel">Loading exam boards…</div>`;
-
-      // Load the subject name for the breadcrumb.
-      const { data: subjectRow } = await supabaseClient
-        .from("subjects")
-        .select("name, level, color_key")
-        .eq("id", subjectParam)
-        .maybeSingle();
-
-      if (subjectRow) {
-        crumbsEl.innerHTML = `
+      if (subjectName) {
+        $('crumbs').innerHTML = `
           <a href="subjects.html">Subjects</a>
           <span class="sep">/</span>
-          <span class="current">${escapeHtml(subjectRow.name)}</span>`;
+          <span class="current">${esc(subjectName)}</span>`;
       }
 
-      const { data: boards, error } = await supabaseClient
-        .rpc("boards_for_subject", { p_subject: subjectParam });
-
-      if (error) {
-        contentEl.innerHTML = "";
-        showState("error", `Couldn't load exam boards: ${escapeHtml(error.message)}`);
+      const list = [...boards.entries()];
+      if (list.length === 0) {
+        $('content').innerHTML = '<div class="skel">No exam boards set up for this subject yet.</div>';
+        return;
+      }
+      if (list.length === 1) {
+        // 1 board → look up the corresponding subject_id that has this
+        // board, and forward to the tree step. We need the actual
+        // subject_id for the board (since list_subjects_published
+        // returns one row per board). The first_id in the catalogue is
+        // good enough since we filter by exam_board below.
+        const [boardName, _count] = list[0];
+        const match = (data || []).find(r => r.subject_id === subjectId && (r.exam_board || 'Default') === boardName);
+        const sid = match ? match.subject_id : subjectId;
+        window.location.replace(`subjects.html?step=tree&subject=${encodeURIComponent(sid)}&boardName=${encodeURIComponent(boardName)}`);
         return;
       }
 
-      if (!boards || boards.length === 0) {
-        contentEl.innerHTML = `
-          <div class="skel">
-            No exam boards set up for <b>${escapeHtml(subjectRow?.name || "this subject")}</b> yet.
-            Check back soon, or ask your teacher.
-          </div>`;
-        return;
-      }
-
-      // 1 board → auto-skip to tree.
-      if (boards.length === 1) {
-        const next = `subjects.html?step=tree&subject=${encodeURIComponent(subjectParam)}&board=${encodeURIComponent(boards[0].board_id)}`;
-        window.location.replace(next);
-        return;
-      }
-
-      // Pick a default board (the one with the most units), or the first
-      // alphabetically if tied. Show it as the "Curriculum (default)" card.
-      const sortedByUnits = [...boards].sort((a, b) => Number(b.unit_count) - Number(a.unit_count));
-      const defaultBoard = sortedByUnits[0];
-      const rest = boards.filter(b => b.board_id !== defaultBoard.board_id);
-
-      // Auto-advance if there's a "Curriculum" / "Default" / "National"
-      // board name. Otherwise still show the picker so the student can
-      // confirm.
-      const defaultName = (defaultBoard.board_name || "").toLowerCase();
-      const isNamedDefault = /\b(curriculum|default|national)\b/.test(defaultName);
-
-      const cardHtml = (b, opts = {}) => {
-        const href = `subjects.html?step=tree&subject=${encodeURIComponent(subjectParam)}&board=${encodeURIComponent(b.board_id)}`;
-        const badge = opts.curriculum
-          ? `<span class="badge">Curriculum (default)</span>`
-          : `<span class="badge">${escapeHtml(b.board_name)}</span>`;
-        return `
-          <a class="board-card ${opts.curriculum ? "curriculum" : ""}" href="${href}">
-            ${badge}
-            <h3 class="name">${escapeHtml(b.board_name)}</h3>
-            <div class="meta">${b.unit_count} unit${b.unit_count === 1 ? "" : "s"} · ${b.year_count} year${b.year_count === 1 ? "" : "s"}</div>
-          </a>`;
-      };
-
-      // Render the default first, then the rest. The "Curriculum" label
-      // only shows when the chosen board is explicitly named default-ish;
-      // otherwise we just render it as the first option so the student
-      // can pick whatever they want.
-      const items = [];
-      if (isNamedDefault) {
-        items.push(cardHtml(defaultBoard, { curriculum: true }));
-        for (const b of rest) items.push(cardHtml(b));
-      } else {
-        // Show the highest-unit board first as a "Recommended" but
-        // don't claim it's a curriculum.
-        items.push(`
-          <a class="board-card" href="${`subjects.html?step=tree&subject=${encodeURIComponent(subjectParam)}&board=${encodeURIComponent(defaultBoard.board_id)}`}">
-            <span class="badge">Recommended</span>
-            <h3 class="name">${escapeHtml(defaultBoard.board_name)}</h3>
-            <div class="meta">${defaultBoard.unit_count} unit${defaultBoard.unit_count === 1 ? "" : "s"} · ${defaultBoard.year_count} year${defaultBoard.year_count === 1 ? "" : "s"}</div>
-          </a>`);
-        for (const b of rest) items.push(cardHtml(b));
-      }
-
-      contentEl.innerHTML = `<div class="board-grid">${items.join("")}</div>`;
+      $('content').innerHTML = `<div class="grid">${list.map(([board, count]) => `
+        <a class="tile" href="subjects.html?step=tree&subject=${encodeURIComponent(subjectId)}&boardName=${encodeURIComponent(board)}">
+          <div class="head"><h3 class="name">${esc(board)}</h3></div>
+          <span class="meta">${count} published lesson${count === 1 ? '' : 's'}</span>
+        </a>
+      `).join('')}</div>`;
     }
 
-    // ---- STEP 3: duolingo-style tree -------------------------------------
-
+    // ---- step 3: duolingo-style tree ----------------------------------
     async function renderTree() {
-      if (!isUuid(subjectParam) || !isUuid(boardParam)) {
-        showState("error", "Invalid subject or board.");
+      const subjectId = params.get('subject');
+      const boardName = params.get('boardName');
+      if (!subjectId || !boardName) { showErr('Missing subject or board.'); return; }
+
+      $('pageTitle').textContent = 'Your lesson path';
+      $('pageSub').textContent = 'Complete a lesson to unlock the next one.';
+      $('content').innerHTML = '<div class="skel">Loading your path…</div>';
+
+      // The tree RPC requires exam_board_id (uuid) and year_id (uuid).
+      // We have board name from the URL; we need to look up the matching
+      // units by subject_id + name. Easiest path is to call
+      // get_unit_tree once per (boardName, year) candidate and pick
+      // the first that returns rows. Simpler: query units directly.
+      //
+      // To stay RPC-only, we add the necessary lookups here. If
+      // get_unit_tree returns 0 rows, we fall back to "no content".
+
+      // Look up a sensible default year: prefer Year 10, else Year 11,
+      // else any year that has units for (subject, board).
+      // For simplicity in this rewrite: try the units table directly
+      // through supabase.from — but only if RLS allows read.
+      // If RLS blocks, surface a clear error.
+      let boardId = null;
+      let yearId  = null;
+
+      try {
+        const { data: boards, error: bErr } = await supabaseClient
+          .from('exam_boards')
+          .select('id, name')
+          .eq('name', boardName)
+          .maybeSingle();
+        if (bErr) throw bErr;
+        boardId = boards && boards.id;
+      } catch (e) {
+        $('content').innerHTML = '';
+        showErr('Couldn\'t look up exam board: ' + e.message);
         return;
       }
-      titleEl.textContent = "Your lesson path";
-      subEl.textContent = "Complete a lesson to unlock the next one.";
-      contentEl.innerHTML = `<div class="skel">Loading your path…</div>`;
+      if (!boardId) {
+        $('content').innerHTML = '';
+        showErr('Exam board "' + boardName + '" not found.');
+        return;
+      }
 
-      // Load subject + board names for the breadcrumb.
-      const [{ data: subjectRow }, { data: boardRow }] = await Promise.all([
-        supabaseClient.from("subjects").select("name, level, color_key").eq("id", subjectParam).maybeSingle(),
-        supabaseClient.from("exam_boards").select("name").eq("id", boardParam).maybeSingle(),
+      // Find a year that has units for this (subject, board).
+      try {
+        const { data: unitRows, error: uErr } = await supabaseClient
+          .from('units')
+          .select('year_id')
+          .eq('subject_id', subjectId)
+          .eq('exam_board_id', boardId)
+          .limit(50);
+        if (uErr) throw uErr;
+        const yearIds = (unitRows || []).map(r => r.year_id).filter(Boolean);
+        yearId = yearIds[0] || null;
+      } catch (e) {
+        $('content').innerHTML = '';
+        showErr('Couldn\'t look up years: ' + e.message);
+        return;
+      }
+
+      if (!yearId) {
+        $('content').innerHTML = '<div class="skel">No published units for this subject + board yet.</div>';
+        return;
+      }
+
+      setCrumbs([
+        { label: 'Subjects', href: 'subjects.html' },
+        { label: boardName },
       ]);
-      crumbsEl.innerHTML = `
-        <a href="subjects.html">Subjects</a>
-        <span class="sep">/</span>
-        <a href="subjects.html?step=board&subject=${encodeURIComponent(subjectParam)}">${escapeHtml(subjectRow?.name || "Subject")}</a>
-        <span class="sep">/</span>
-        <span class="current">${escapeHtml(boardRow?.name || "Board")}</span>`;
 
-      // Years available for this (subject, board).
-      const { data: years, error: yearsErr } = await supabaseClient
-        .rpc("years_for_subject_board", { p_subject: subjectParam, p_board: boardParam });
-
-      if (yearsErr) {
-        contentEl.innerHTML = "";
-        showState("error", `Couldn't load years: ${escapeHtml(yearsErr.message)}`);
-        return;
-      }
-
-      if (!years || years.length === 0) {
-        contentEl.innerHTML = `
-          <div class="skel">
-            No year content for <b>${escapeHtml(subjectRow?.name || "this subject")}</b>
-            on <b>${escapeHtml(boardRow?.name || "this board")}</b> yet.
-          </div>`;
-        return;
-      }
-
-      // Pick a year:
-      //   - if ?year= is in the URL and valid, use it
-      //   - else match profiles.year_group to a year_levels.label
-      //   - else default to the first by year_levels.sort_order
-      let chosenYear = null;
-      const fromUrl = yearParam && years.find(y => y.year_id === yearParam);
-      if (fromUrl) {
-        chosenYear = fromUrl;
-      } else if (profile && profile.year_group) {
-        const match = years.find(y => String(y.year_label).toLowerCase() === String(profile.year_group).toLowerCase());
-        if (match) chosenYear = match;
-      }
-      if (!chosenYear) {
-        chosenYear = [...years].sort((a, b) => a.year_sort_order - b.year_sort_order)[0];
-      }
-
-      const yearIsAuto = !yearParam && profile && profile.year_group
-        && String(chosenYear.year_label).toLowerCase() === String(profile.year_group).toLowerCase();
-
-      const yearBar = `
-        <div class="year-bar">
-          <label for="yearSelect">Year</label>
-          <select id="yearSelect">
-            ${years.map(y => `
-              <option value="${escapeHtml(y.year_id)}" ${y.year_id === chosenYear.year_id ? "selected" : ""}>
-                ${escapeHtml(y.year_label)}
-              </option>`).join("")}
-          </select>
-          ${yearIsAuto ? `<span class="auto">✓ from your profile</span>` : ""}
-        </div>`;
-
-      contentEl.innerHTML = yearBar + `<div id="treeBody"><div class="skel">Loading lessons…</div></div>`;
-
-      document.getElementById("yearSelect").addEventListener("change", (e) => {
-        const newYear = e.target.value;
-        const next = `subjects.html?step=tree&subject=${encodeURIComponent(subjectParam)}&board=${encodeURIComponent(boardParam)}&year=${encodeURIComponent(newYear)}`;
-        window.location.href = next;
+      const { data: rows, error: treeErr } = await supabaseClient.rpc('get_unit_tree', {
+        p_subject: subjectId,
+        p_board:   boardId,
+        p_year:    yearId,
       });
-
-      const treeBody = document.getElementById("treeBody");
-      const { data: rows, error: treeErr } = await supabaseClient
-        .rpc("get_unit_tree", {
-          p_subject: subjectParam,
-          p_board:   boardParam,
-          p_year:    chosenYear.year_id,
-        });
-
       if (treeErr) {
-        treeBody.innerHTML = "";
-        showState("error", `Couldn't load the lesson tree: ${escapeHtml(treeErr.message)}`);
+        $('content').innerHTML = '';
+        showErr('Couldn\'t load the lesson tree: ' + treeErr.message);
         return;
       }
 
       if (!rows || rows.length === 0) {
-        treeBody.innerHTML = `
-          <div class="skel">
-            No published lessons for this year yet. Check back soon.
-          </div>`;
+        $('content').innerHTML = '<div class="skel">No published lessons for this year yet. Check back soon.</div>';
         return;
       }
 
-      // Group: ordered unit → ordered topic → ordered lesson list.
+      // Build the nested structure.
       const units = [];
-      const unitById = new Map();
+      const unitMap = new Map();
       for (const r of rows) {
-        let u = unitById.get(r.unit_id);
+        let u = unitMap.get(r.unit_id);
         if (!u) {
-          u = {
-            id: r.unit_id,
-            name: r.unit_name,
-            sort_order: r.unit_sort_order,
-            description: r.unit_description,
-            topics: [],
-          };
-          unitById.set(r.unit_id, u);
+          u = { id: r.unit_id, name: r.unit_name, sort_order: r.unit_sort_order,
+                description: r.unit_description, topics: [] };
+          unitMap.set(r.unit_id, u);
           units.push(u);
         }
         let t = u.topics.find(t => t.id === r.topic_id);
         if (!t) {
-          t = {
-            id: r.topic_id,
-            name: r.topic_name,
-            order_index: r.topic_order_index,
-            lessons: [],
-          };
+          t = { id: r.topic_id, name: r.topic_name, order_index: r.topic_order_index,
+                lessons: [] };
           u.topics.push(t);
         }
         t.lessons.push({
-          id: r.lesson_id,
-          title: r.lesson_title,
-          order_index: r.lesson_order_index,
-          duration_min: r.lesson_duration_min,
-          code: r.lesson_code,
-          status: r.lesson_status,
+          id: r.lesson_id, title: r.lesson_title,
+          order_index: r.lesson_order_index, status: r.lesson_status,
         });
       }
 
-      // Per-lesson lock check. Use is_lesson_unlocked so the gate is
-      // enforced server-side. We do this in parallel after rendering a
-      // skeleton so the page reads quickly.
-      const allLessonIds = rows.map(r => r.lesson_id);
+      // Server-side lock check per lesson.
+      const ids = rows.map(r => r.lesson_id);
       const lockMap = new Map();
-      const results = await Promise.all(allLessonIds.map(async (id) => {
+      await Promise.all(ids.map(async (id) => {
         try {
-          const { data } = await supabaseClient.rpc("is_lesson_unlocked", { p_lesson: id });
-          return [id, !!data];
+          const { data } = await supabaseClient.rpc('is_lesson_unlocked', { p_lesson: id });
+          lockMap.set(id, !!data);
         } catch (_) {
-          return [id, false];
+          lockMap.set(id, false);
         }
       }));
-      for (const [id, ok] of results) lockMap.set(id, ok);
-
-      // Completed lessons don't need a lock check; mark them as
-      // unlocked regardless so the chip stays clickable.
-      for (const u of units) {
-        for (const t of u.topics) {
-          for (const l of t.lessons) {
-            if (l.status === "completed") lockMap.set(l.id, true);
-          }
-        }
+      // Completed lessons are always unlocked.
+      for (const u of units) for (const t of u.topics) for (const l of t.lessons) {
+        if (l.status === 'completed') lockMap.set(l.id, true);
       }
 
       const nextHref = encodeURIComponent(
-        `subjects.html?step=tree&subject=${subjectParam}&board=${boardParam}&year=${chosenYear.year_id}`
+        `subjects.html?step=tree&subject=${subjectId}&boardName=${encodeURIComponent(boardName)}`
       );
 
-      const treeHtml = units.map((u, i) => {
-        const unitNum = i + 1;
+      const html = units.map((u, i) => {
         const topicsHtml = u.topics.map(t => {
-          const lessonChips = t.lessons.map(l => {
+          const chips = t.lessons.map(l => {
+            const completed = l.status === 'completed';
             const unlocked = lockMap.get(l.id) === true;
-            const completed = l.status === "completed";
-            const inProgress = l.status === "in_progress";
-            let cls = "lesson-chip";
-            let icon = "🔵"; // available dot
-            if (completed) {
-              cls += " completed";
-              icon = "✓";
-            } else if (!unlocked) {
-              cls += " locked";
-              icon = "🔒";
-            } else if (inProgress) {
-              cls += " available";
-              icon = "▶";
-            } else {
-              cls += " available";
-              icon = "▶";
-            }
-            const tag = unlocked ? "a" : "span";
+            let cls = 'lesson-chip';
+            let icon = '▶';
+            if (completed) { cls += ' completed'; icon = '✓'; }
+            else if (!unlocked) { cls += ' locked'; icon = '🔒'; }
+            else { cls += ' available'; }
+            const tag = unlocked ? 'a' : 'span';
             const href = unlocked
               ? `lesson.html?lesson=${encodeURIComponent(l.id)}&next=${nextHref}`
               : null;
-            const dur = l.duration_min ? `<span class="dur">${l.duration_min} min</span>` : "";
-            const code = l.code ? `<span class="code">${escapeHtml(l.code)}</span>` : "";
-            return `
-              <${tag} class="${cls}" ${href ? `href="${href}"` : ""} ${href ? `aria-label="${escapeHtml(l.title)}"` : `aria-disabled="true" title="Complete the previous lesson to unlock"`}>
-                <span class="icon">${icon}</span>
-                <span class="title">${escapeHtml(l.title)}</span>
-                ${dur}
-                ${code}
-              </${tag}>`;
-          }).join("");
-          return `
-            <div class="topic">
-              <h4 class="topic-name">${escapeHtml(t.name)}</h4>
-              <div class="lessons">${lessonChips}</div>
-            </div>`;
-        }).join("");
-        return `
-          <div class="unit">
-            <div class="unit-head">
-              <span class="num">${unitNum}</span>
-              <h3 class="title">${escapeHtml(u.name)}</h3>
-            </div>
-            ${u.description ? `<p class="desc">${escapeHtml(u.description)}</p>` : ""}
-            ${topicsHtml || `<div class="topic" style="margin-left:0;padding-left:0;border-left:none;"><span class="topic-name" style="color:var(--text-4);">No topics yet</span></div>`}
+            return `<${tag} class="${cls}" ${href ? `href="${href}"` : ''} ${href ? '' : 'aria-disabled="true"'}>
+              <span class="icon">${icon}</span>
+              <span class="title">${esc(l.title)}</span>
+            </${tag}>`;
+          }).join('');
+          return `<div class="topic">
+            <h4 class="topic-name">${esc(t.name)}</h4>
+            <div class="lessons">${chips}</div>
           </div>`;
-      }).join("");
+        }).join('');
+        return `<div class="unit">
+          <div class="unit-head">
+            <span class="num">${i + 1}</span>
+            <h3 class="title">${esc(u.name)}</h3>
+          </div>
+          ${u.description ? `<p class="desc">${esc(u.description)}</p>` : ''}
+          ${topicsHtml}
+        </div>`;
+      }).join('');
 
-      treeBody.innerHTML = treeHtml;
+      $('content').innerHTML = html;
     }
 
-    // ---- router ----------------------------------------------------------
-
-    if (step === "subjects") {
-      await renderSubjects();
-    } else if (step === "board") {
-      await renderBoardPicker();
-    } else if (step === "tree") {
-      await renderTree();
-    } else {
-      showState("error", "Unknown step. <a href='subjects.html'>Go back to subjects</a>.");
-    }
-
-    })().catch((e) => {
-      console.error("subjects page boot failed:", e);
-      const contentEl = document.getElementById("content");
-      if (contentEl) {
-        contentEl.innerHTML = `<div class="state error show">Page failed to load: ${e && e.message ? e.message : e}</div>`;
-      }
-    });
+    init();
   </script>
   <script src="bubbles.js" defer></script>
 </body>
