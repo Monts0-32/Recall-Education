@@ -263,6 +263,12 @@
     profileLink.textContent = 'My profile';
     menu.appendChild(profileLink);
 
+    const settingsLink = document.createElement('a');
+    settingsLink.className = 'recall-avatar-menu-item';
+    settingsLink.href = 'profile.html?id=' + encodeURIComponent(user.id) + '#settings';
+    settingsLink.textContent = 'Profile settings';
+    menu.appendChild(settingsLink);
+
     const uploadLabel = document.createElement('label');
     uploadLabel.className = 'recall-avatar-menu-item';
     uploadLabel.textContent = 'Upload avatar';

@@ -8,10 +8,13 @@
 //
 // All profile data is loaded via SECURITY DEFINER RPCs:
 //   * get_profile_for_view(p_target_id)  -> one JSONB
-//   * set_my_bio(p_bio)                   -> void
-//   * toggle_follow(p_target_id)          -> JSONB
-//   * toggle_profile_like(p_target_id)    -> JSONB
-//   * search_profiles_for_follow(q, lim)  -> setof
+//   * get_profile_learning_state(p_target_id) -> { currently_learning, recent_subjects }
+//   * set_my_bio(p_bio, p_format)        -> void
+//   * set_my_account_visibility(p_visibility) -> void
+//   * toggle_follow(p_target_id)         -> JSONB
+//   * toggle_profile_like(p_target_id)   -> JSONB
+//   * heartbeat()                         -> void
+//   * search_profiles_for_follow(q, lim) -> setof
 //   * list_profile_followers / _following / _mutuals_with_me -> setof
 // ============================================================================
 
@@ -137,6 +140,88 @@
     return e;
   }
 
+  // Mirrors dashboard.html: "Just now" / "5 mins ago" / "2 days ago".
+  function timeAgo(iso) {
+    if (!iso) return '';
+    const then = new Date(iso);
+    if (isNaN(then.getTime())) return '';
+    const diffMs = Date.now() - then.getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1)    return 'Just now';
+    if (mins < 60)   return mins + ' min' + (mins === 1 ? '' : 's') + ' ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24)    return hrs + ' hour' + (hrs === 1 ? '' : 's') + ' ago';
+    const days = Math.floor(hrs / 24);
+    if (days === 1)  return 'Yesterday';
+    if (days < 7)    return days + ' days ago';
+    if (days < 14)   return '1 week ago';
+    if (days < 30)   return Math.floor(days / 7) + ' weeks ago';
+    return then.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  }
+
+  // ---------------------------------------------------------------------------
+  // HTML sanitiser for rich bios. Runs on save AND render (defence in depth).
+  // Allowlist: b, i, u, strong, em, br, span (with safe color), a (https only),
+  // img (https only), p, div. Strips everything else, all attributes except
+  // the safe ones, all event handlers, all non-https URIs.
+  // ---------------------------------------------------------------------------
+  function sanitizeBioHtml(input) {
+    if (!input) return '';
+    const allowed = /^(?:https:\/\/[^\s"]+)$/i;
+    const tpl = document.createElement('template');
+    tpl.innerHTML = String(input);
+    const walk = (node) => {
+      const kids = Array.from(node.childNodes);
+      for (const child of kids) {
+        if (child.nodeType === 1) {
+          const tag = child.tagName.toLowerCase();
+          if (!['b','i','u','strong','em','br','span','a','img','p','div'].includes(tag)) {
+            // Replace disallowed element with its text content.
+            const text = document.createTextNode(child.textContent || '');
+            child.parentNode.replaceChild(text, child);
+            continue;
+          }
+          // Strip ALL attributes first; re-add the safe ones below.
+          const attrs = Array.from(child.attributes);
+          for (const a of attrs) child.removeAttribute(a.name);
+          if (tag === 'span') {
+            const color = (child.style && child.style.color) ? child.style.color : '';
+            if (/^#[0-9a-f]{6}$/i.test(color)) {
+              child.setAttribute('style', 'color:' + color.toLowerCase());
+            } else {
+              child.removeAttribute('style');
+            }
+          }
+          if (tag === 'a') {
+            const href = child.getAttribute('href') || '';
+            if (!child.textContent.trim() || !allowed.test(href)) {
+              child.replaceWith(document.createTextNode(child.textContent || ''));
+              continue;
+            }
+            child.setAttribute('href', href);
+            child.setAttribute('target', '_blank');
+            child.setAttribute('rel', 'noopener noreferrer');
+          }
+          if (tag === 'img') {
+            const src = child.getAttribute('src') || '';
+            if (!allowed.test(src)) {
+              child.remove();
+              continue;
+            }
+            child.setAttribute('src', src);
+            child.setAttribute('alt', child.getAttribute('alt') || '');
+          }
+          walk(child);
+        } else if (child.nodeType !== 3 && child.nodeType !== 8) {
+          child.remove();
+        }
+      }
+    };
+    walk(tpl.content);
+    // Drop empty paragraphs left behind by Quill.
+    return tpl.innerHTML.replace(/<p>\s*<\/p>/g, '').trim();
+  }
+
   // ---------------------------------------------------------------------------
   // Page state.
   // ---------------------------------------------------------------------------
@@ -145,15 +230,17 @@
     me: null,        // caller's profile row
     targetId: null,
     target: null,    // get_profile_for_view JSON
+    learning: null,  // get_profile_learning_state JSON
     isSelf: false,
     channel: null,
+    heartbeatTimer: null,
+    quill: null,
   };
 
   // ---------------------------------------------------------------------------
   // Gate / show main.
   // ---------------------------------------------------------------------------
   function showGate(title, msg) {
-    const profileNav = $('profileNav'); if (profileNav) profileNav.hidden = true;
     $('profileMain').hidden = true;
     $('gate').hidden = false;
     $('gateTitle').textContent = title;
@@ -162,17 +249,29 @@
 
   function showMain() {
     $('gate').hidden = true;
-    const profileNav = $('profileNav'); if (profileNav) profileNav.hidden = false;
     $('profileMain').hidden = false;
   }
 
   // ---------------------------------------------------------------------------
-  // Render — paints every card from state.target.
+  // Privacy gate helper.
+  // Returns true when the caller has full visibility of the target's content.
+  // ---------------------------------------------------------------------------
+  function canSeeFull() {
+    if (!state.target) return false;
+    if (state.isSelf) return true;
+    const vis = state.target.account_visibility || 'public';
+    if (vis === 'public') return true;
+    if (vis === 'friends_only') return !!state.target.is_friend_with_caller;
+    return false; // private
+  }
+
+  // ---------------------------------------------------------------------------
+  // Render — paints every card from state.target / state.learning.
   // ---------------------------------------------------------------------------
   function render() {
     const p = state.target;
-    const me = state.me;
     const isSelf = state.isSelf;
+    const gated = !canSeeFull();
 
     // Identity.
     const name = (p.full_name || '').trim() || 'Unnamed';
@@ -185,20 +284,36 @@
     pill.textContent = roleLabel(p.role);
 
     const school = $('schoolLine');
-    if (p.school_name) {
+    if (!gated && p.school_name) {
       school.textContent = p.school_name;
       school.hidden = false;
     } else {
+      school.textContent = '';
       school.hidden = true;
     }
 
-    // Identity card is always visible while we have a target.
+    // Presence dot. Hidden on self; reflects is_online for others.
+    const dot = $('presenceDot');
+    if (isSelf) {
+      dot.hidden = true;
+    } else {
+      dot.hidden = false;
+      dot.dataset.self = isSelf ? '1' : '0';
+      dot.dataset.offline = p.is_online ? '0' : '1';
+    }
+
     $('identityCard').hidden = false;
+    $('settingsRow').hidden = !isSelf;
 
     // Bio.
     const bioText = $('bioText');
-    if (p.bio && p.bio.trim()) {
-      bioText.textContent = p.bio;
+    if (gated) {
+      bioText.textContent = p.account_visibility === 'private'
+        ? 'This profile is private.'
+        : 'This profile is set to friends only.';
+      bioText.classList.add('empty');
+    } else if (p.bio && String(p.bio).trim()) {
+      bioText.innerHTML = sanitizeBioHtml(p.bio);
       bioText.classList.remove('empty');
     } else {
       bioText.textContent = isSelf
@@ -207,21 +322,14 @@
       bioText.classList.add('empty');
     }
     $('bioCard').hidden = false;
-    if (isSelf) {
-      $('bioActions').hidden = false;
-      $('editBioBtn').hidden = false;
-    } else {
-      $('bioActions').hidden = true;
-      $('editBioBtn').hidden = true;
-    }
+    $('bioActions').hidden = !isSelf || gated;
+    $('editBioBtn').hidden = !isSelf || gated;
 
     // Actions.
-    $('actionsCard').hidden = false;
-    if (isSelf) {
-      $('followBtn').hidden = true;
-      $('messageBtn').hidden = true;
-      $('likeBtn').hidden = true;
+    if (isSelf || gated) {
+      $('actionsCard').hidden = true;
     } else {
+      $('actionsCard').hidden = false;
       $('followBtn').hidden = false;
       const isFollowing = !!p.caller_follows_target;
       $('followBtn').textContent = isFollowing ? 'Unfollow' : 'Follow';
@@ -233,44 +341,123 @@
     }
 
     // Stats.
-    $('statsCard').hidden = false;
-    $('statFollowers').textContent = String(p.follower_count || 0);
-    $('statFollowing').textContent = String(p.following_count || 0);
-    $('statMutuals').textContent = String(p.mutual_friend_count_with_caller || 0);
-    $('statLikedBy').textContent = String(p.likes_count || 0);
+    if (gated || isSelf) {
+      // isSelf still sees their own stats (it's their data).
+      $('statsCard').hidden = false;
+      $('statFollowers').textContent = String(p.follower_count || 0);
+      $('statFollowing').textContent = String(p.following_count || 0);
+      $('statMutuals').textContent = String(p.mutual_friend_count_with_caller || 0);
+      $('statLikedBy').textContent = String(p.likes_count || 0);
+    } else {
+      $('statsCard').hidden = true;
+    }
+
+    // Currently learning + recent subjects.
+    renderLearning();
+    renderRecentSubjects();
 
     // Mutuals grid.
-    const mutuals = Array.isArray(p.recent_mutuals) ? p.recent_mutuals : [];
-    const grid = $('mutualsGrid');
-    grid.innerHTML = '';
-    if (isSelf) {
-      $('mutualsCard').hidden = true;
-    } else if (mutuals.length === 0) {
-      $('mutualsCard').hidden = false;
-      $('mutualsMeta').textContent = '';
-      grid.appendChild(el('div', { class: 'card-empty', text:
-        'When you and ' + (p.full_name || 'this person') + ' follow each other, you’ll see them here.'
-      }));
-    } else {
-      $('mutualsCard').hidden = false;
-      $('mutualsMeta').textContent = mutuals.length + (mutuals.length === 1 ? ' friend' : ' friends');
-      for (const m of mutuals) {
-        const tile = el('a', {
-          class: 'mutual-tile',
-          href: 'profile.html?id=' + encodeURIComponent(m.id),
-          target: '_blank', rel: 'noopener',
-        });
-        const av = el('div', { class: 'av' });
-        paintAvatar(av, m);
-        tile.appendChild(av);
-        tile.appendChild(el('div', { class: 'name', text: m.full_name || 'Unnamed' }));
-        tile.appendChild(el('span', { class: 'role-pill ' + (m.role || ''), text: roleLabel(m.role) }));
-        grid.appendChild(tile);
-      }
-    }
+    renderMutuals(gated);
 
     // Search card is for everyone; the RPC excludes the caller anyway.
     $('searchCard').hidden = false;
+  }
+
+  function renderLearning() {
+    const card = $('learningCard');
+    const wrap = $('learningList');
+    wrap.innerHTML = '';
+    if (!canSeeFull() || state.isSelf === false && !state.learning) {
+      // gated profiles never get learning data.
+      card.hidden = true;
+      return;
+    }
+    const items = (state.learning && state.learning.currently_learning) || [];
+    if (!items.length) {
+      card.hidden = false;
+      wrap.appendChild(el('div', { class: 'card-empty', text: 'No lessons in progress right now.' }));
+      return;
+    }
+    card.hidden = false;
+    for (const it of items) {
+      const a = el('a', {
+        class: 'learning-row',
+        href: 'lesson.html?lesson=' + encodeURIComponent(it.lesson_id),
+        target: '_self',
+      });
+      a.appendChild(el('span', { class: 'subject-dot ' + (it.subject_color || '') }));
+      const body = el('div', { class: 'learning-body' });
+      body.appendChild(el('div', { class: 'learning-title', text: it.lesson_title || 'Untitled lesson' }));
+      body.appendChild(el('div', { class: 'learning-sub', text:
+        [it.subject_name, it.topic_name].filter(Boolean).join(' · ')
+      }));
+      a.appendChild(body);
+      a.appendChild(el('div', { class: 'learning-when', text: timeAgo(it.updated_at) }));
+      wrap.appendChild(a);
+    }
+  }
+
+  function renderRecentSubjects() {
+    const card = $('subjectsCard');
+    const wrap = $('subjectsList');
+    wrap.innerHTML = '';
+    if (!canSeeFull()) {
+      card.hidden = true;
+      return;
+    }
+    const items = (state.learning && state.learning.recent_subjects) || [];
+    if (!items.length) {
+      card.hidden = false;
+      wrap.appendChild(el('div', { class: 'card-empty', text: 'No subjects yet.' }));
+      return;
+    }
+    card.hidden = false;
+    for (const s of items) {
+      const tile = el('div', { class: 'subject-tile' });
+      const top = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } });
+      top.appendChild(el('span', { class: 'subject-dot ' + (s.subject_color || '') }));
+      top.appendChild(el('div', { class: 'subject-name', text: s.subject_name || 'Subject' }));
+      tile.appendChild(top);
+      tile.appendChild(el('div', { class: 'subject-meta', text: 'touched ' + timeAgo(s.last_touched_at) }));
+      if (s.lessons_touched) {
+        tile.appendChild(el('div', { class: 'subject-meta', text:
+          s.lessons_touched + ' lesson' + (s.lessons_touched === 1 ? '' : 's')
+        }));
+      }
+      wrap.appendChild(tile);
+    }
+  }
+
+  function renderMutuals(gated) {
+    const grid = $('mutualsGrid');
+    grid.innerHTML = '';
+    if (state.isSelf || gated) {
+      $('mutualsCard').hidden = true;
+      return;
+    }
+    const mutuals = Array.isArray(state.target.recent_mutuals) ? state.target.recent_mutuals : [];
+    $('mutualsCard').hidden = false;
+    if (mutuals.length === 0) {
+      $('mutualsMeta').textContent = '';
+      grid.appendChild(el('div', { class: 'card-empty', text:
+        'When you and ' + (state.target.full_name || 'this person') + ' follow each other, you’ll see them here.'
+      }));
+      return;
+    }
+    $('mutualsMeta').textContent = mutuals.length + (mutuals.length === 1 ? ' friend' : ' friends');
+    for (const m of mutuals) {
+      const tile = el('a', {
+        class: 'mutual-tile',
+        href: 'profile.html?id=' + encodeURIComponent(m.id),
+        target: '_blank', rel: 'noopener',
+      });
+      const av = el('div', { class: 'av' });
+      paintAvatar(av, m);
+      tile.appendChild(av);
+      tile.appendChild(el('div', { class: 'name', text: m.full_name || 'Unnamed' }));
+      tile.appendChild(el('span', { class: 'role-pill ' + (m.role || ''), text: roleLabel(m.role) }));
+      grid.appendChild(tile);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -278,15 +465,24 @@
   // ---------------------------------------------------------------------------
   async function refresh() {
     try {
-      const { data, error } = await supabaseClient.rpc('get_profile_for_view', {
+      const mainP = supabaseClient.rpc('get_profile_for_view', {
         p_target_id: state.targetId,
       });
-      if (error) throw error;
-      if (!data || data.found === false) {
+      // Only request learning state when we'd render it. For private profiles
+      // the server returns empty arrays anyway; friends_only non-friends get
+      // empty. We save a round-trip when we know we'll gate it out.
+      const learningP = state.isSelf || !state.target
+        ? supabaseClient.rpc('get_profile_learning_state', { p_target_id: state.targetId })
+        : Promise.resolve({ data: { currently_learning: [], recent_subjects: [] } });
+
+      const [main, learning] = await Promise.all([mainP, learningP]);
+      if (main.error) throw main.error;
+      if (!main.data || main.data.found === false) {
         showGate('Profile not found', 'No profile matches that id.');
         return;
       }
-      state.target = data;
+      state.target = main.data;
+      state.learning = (learning && learning.data) || { currently_learning: [], recent_subjects: [] };
       render();
     } catch (e) {
       console.error('get_profile_for_view failed:', e);
@@ -294,70 +490,201 @@
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Bio editor.
-  // ---------------------------------------------------------------------------
-  function wireBio() {
-    const bioBtn   = $('editBioBtn');
-    const bioForm  = $('bioForm');
-    const bioInput = $('bioInput');
-    const bioCount = $('bioCounter');
-    const bioSave  = $('bioSave');
-    const bioCancel= $('bioCancel');
-    const bioText  = $('bioText');
+  async function refreshLearning() {
+    if (state.isSelf) return; // self already keeps its own state fresh via dashboard
+    if (!canSeeFull()) return;
+    try {
+      const { data, error } = await supabaseClient.rpc('get_profile_learning_state', {
+        p_target_id: state.targetId,
+      });
+      if (error) throw error;
+      state.learning = data || { currently_learning: [], recent_subjects: [] };
+      renderLearning();
+      renderRecentSubjects();
+    } catch (_) { /* swallow; next refresh() will recover */ }
+  }
 
-    function openForm() {
+  // ---------------------------------------------------------------------------
+  // Bio rich-text editor (Quill).
+  // ---------------------------------------------------------------------------
+  function updateBioCounter() {
+    if (!state.quill) return;
+    const text = state.quill.getText().trim();
+    $('bioCounter').textContent = text.length + ' / 8000';
+  }
+
+  function wireBioEditor() {
+    const editBtn = $('editBioBtn');
+    const bioForm = $('bioForm');
+    const bioCancel = $('bioCancel');
+    const bioSave = $('bioSave');
+    const bioText = $('bioText');
+    const fileInput = $('bioImageInput');
+
+    editBtn.addEventListener('click', () => {
       const current = (state.target && state.target.bio) || '';
-      bioInput.value = current;
-      bioCount.textContent = bioInput.value.length + ' / 500';
       bioForm.hidden = false;
-      bioBtn.hidden = true;
       bioText.hidden = true;
-      bioInput.focus();
-      // Caret to end.
-      const v = bioInput.value;
-      bioInput.setSelectionRange(v.length, v.length);
-    }
-    function closeForm() {
-      bioForm.hidden = true;
-      bioBtn.hidden = false;
-      bioText.hidden = false;
-    }
-
-    bioBtn.addEventListener('click', openForm);
-    bioCancel.addEventListener('click', closeForm);
-    bioInput.addEventListener('input', () => {
-      bioCount.textContent = bioInput.value.length + ' / 500';
+      editBtn.hidden = true;
+      if (!state.quill) {
+        if (!window.Quill) {
+          toast('Editor is still loading…', 'error');
+          return;
+        }
+        state.quill = new window.Quill('#bioEditor', {
+          theme: 'snow',
+          modules: {
+            toolbar: [
+              ['bold', 'italic', 'underline'],
+              [{ color: ['#F0F6FC','#58A6FF','#3FB950','#D29922','#F85149','#56D4DD','#A371F7','#FF7B72'] }],
+              ['link', 'image'],
+              ['clean']
+            ]
+          },
+          bounds: '#bioForm',
+          placeholder: 'Tell people about yourself…',
+        });
+        // Override Quill's default image handler (which prompts for a URL)
+        // with our own file picker that uploads to the avatars bucket.
+        state.quill.getModule('toolbar').addHandler('image', () => {
+          const input = $('bioImageInput');
+          if (input) input.click();
+        });
+        state.quill.on('text-change', () => updateBioCounter());
+      }
+      const clean = sanitizeBioHtml(current);
+      state.quill.clipboard.dangerouslyPasteHTML(clean || '');
+      updateBioCounter();
+      setTimeout(() => state.quill && state.quill.focus(), 0);
     });
+
+    bioCancel.addEventListener('click', () => {
+      bioForm.hidden = true;
+      bioText.hidden = false;
+      editBtn.hidden = false;
+    });
+
+    // Image upload — reuses the avatars bucket with a bio/ sub-prefix.
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files && fileInput.files[0];
+      fileInput.value = '';
+      if (!file || !state.quill) return;
+      const okTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (okTypes.indexOf(file.type) === -1) {
+        toast('Image must be JPG, PNG, or WebP', 'error');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        toast('Image must be under 2 MB', 'error');
+        return;
+      }
+      const ext = (file.name.match(/\.(jpe?g|png|webp)$/i) || ['.jpg'])[0].toLowerCase();
+      const objectPath = state.user.id + '/bio/' + crypto.randomUUID() + ext;
+      try {
+        const { error } = await supabaseClient.storage.from('avatars')
+          .upload(objectPath, file, { upsert: false, contentType: file.type });
+        if (error) throw error;
+        const { data: pub } = supabaseClient.storage.from('avatars').getPublicUrl(objectPath);
+        const url = pub && pub.publicUrl;
+        if (!url) throw new Error('no public url');
+        const range = state.quill.getSelection(true);
+        state.quill.insertEmbed(range ? range.index : state.quill.getLength(), 'image', url, 'user');
+      } catch (e) {
+        console.error(e);
+        toast('Image upload failed', 'error');
+      }
+    });
+
     bioForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const value = bioInput.value;
+      if (!state.quill) return;
+      const html = state.quill.root.innerHTML;
+      const clean = sanitizeBioHtml(html);
       bioSave.disabled = true;
       try {
-        const { error } = await supabaseClient.rpc('set_my_bio', { p_bio: value });
+        const { error } = await supabaseClient.rpc('set_my_bio', {
+          p_bio: clean, p_format: 'html',
+        });
         if (error) throw error;
-        state.target.bio = value.trim() || null;
-        if (state.target.bio) {
-          bioText.textContent = state.target.bio;
-          bioText.classList.remove('empty');
-        } else {
-          bioText.textContent = "You haven't written a bio yet.";
-          bioText.classList.add('empty');
-        }
+        state.target.bio = clean || null;
+        state.target.bio_format = 'html';
+        bioForm.hidden = true;
+        bioText.hidden = false;
+        editBtn.hidden = false;
+        render();
         toast('Bio saved', 'success');
-        closeForm();
       } catch (err) {
         console.error(err);
         if (err && err.message && err.message.startsWith('moderation:')) {
           toast("Bio contains content that isn't allowed. Please edit and try again.", 'error');
         } else if (err && err.message && err.message.includes('too long')) {
-          toast('Bio is too long (max 500 characters).', 'error');
+          toast('Bio is too long.', 'error');
         } else {
           toast('Could not save bio. Please try again.', 'error');
         }
       } finally {
         bioSave.disabled = false;
       }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Settings modal — account visibility (Public / Friends only / Private).
+  // ---------------------------------------------------------------------------
+  function wireSettings() {
+    const btn = $('openSettingsBtn');
+    const modal = $('settingsModal');
+    const saveBtn = $('settingsSave');
+    if (!btn || !modal || !saveBtn) return;
+
+    btn.addEventListener('click', () => {
+      const cur = (state.target && state.target.account_visibility) || 'public';
+      const radio = modal.querySelector('input[name="vis"][value="' + cur + '"]');
+      if (radio) radio.checked = true;
+      modal.hidden = false;
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal || (e.target && e.target.dataset && e.target.dataset.closeModal === 'settingsModal')) {
+        modal.hidden = true;
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.hidden) modal.hidden = true;
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      const v = (modal.querySelector('input[name="vis"]:checked') || {}).value || 'public';
+      saveBtn.disabled = true;
+      try {
+        const { error } = await supabaseClient.rpc('set_my_account_visibility', { p_visibility: v });
+        if (error) throw error;
+        state.target.account_visibility = v;
+        modal.hidden = true;
+        render();
+        toast('Profile visibility updated', 'success');
+      } catch (err) {
+        console.error(err);
+        toast(err && err.message ? err.message : 'Could not update settings', 'error');
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Online presence — heartbeat fires every 60s on the caller's own session
+  // so other viewers can see the green dot.
+  // ---------------------------------------------------------------------------
+  function wirePresence() {
+    if (!state.isSelf) return;
+    const beat = async () => {
+      try { await supabaseClient.rpc('heartbeat'); } catch (_) { /* ignore */ }
+    };
+    beat();
+    state.heartbeatTimer = setInterval(beat, 60_000);
+    window.addEventListener('beforeunload', () => {
+      if (state.heartbeatTimer) clearInterval(state.heartbeatTimer);
     });
   }
 
@@ -380,7 +707,6 @@
             state.target.is_friend_with_caller = data.is_mutual_now;
           }
         }
-        // Refresh numbers from the canonical RPC.
         await refresh();
         toast(state.target.caller_follows_target ? 'Following' : 'Unfollowed', 'success');
       } catch (err) {
@@ -445,7 +771,6 @@
       const open = () => openList(btn.getAttribute('data-open'));
       btn.addEventListener('click', open);
       btn.addEventListener('keydown', (e) => {
-        // Native buttons fire click on Enter/Space; our divs need this wired.
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           open();
@@ -560,7 +885,8 @@
   // ---------------------------------------------------------------------------
   // Realtime: when this is the caller's own profile, repaint on any follow /
   // like change. Other tabs on the same profile also update via the broadcast
-  // below.
+  // below. We also subscribe to profiles (for visibility + presence flips)
+  // and lesson_progress (so currently-learning updates live).
   // ---------------------------------------------------------------------------
   function wireRealtime() {
     if (state.channel) {
@@ -577,6 +903,12 @@
     ).on('postgres_changes',
       { event: '*', schema: 'public', table: 'profile_likes', filter: 'profile_id=eq.' + state.targetId },
       () => refresh()
+    ).on('postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'profiles', filter: 'id=eq.' + state.targetId },
+      () => refresh()
+    ).on('postgres_changes',
+      { event: '*', schema: 'public', table: 'lesson_progress', filter: 'user_id=eq.' + state.targetId },
+      () => refreshLearning()
     ).subscribe();
     state.channel = ch;
     window.addEventListener('beforeunload', () => {
@@ -611,8 +943,6 @@
     state.isSelf = (state.targetId === user.id);
 
     // Top nav.
-    // (userName is hidden by CSS — the avatar button + identity card are the
-    // canonical display-name surfaces on the profile page.)
     function unhideSignOut() {
       const btn = $('signOutBtn');
       if (!btn) { setTimeout(unhideSignOut, 30); return; }
@@ -655,12 +985,21 @@
     }
 
     showMain();
-    wireBio();
+    wireBioEditor();
     wireActions();
+    wireSettings();
     wireStats();
     wireSearch();
     wireRealtime();
+    wirePresence();
     await refresh();
+
+    // If the URL hash is #settings, open the modal after load (used by the
+    // "Profile settings" link in the avatar dropdown).
+    if (location.hash === '#settings' && state.isSelf) {
+      const btn = $('openSettingsBtn');
+      if (btn) btn.click();
+    }
   }
 
   if (document.readyState === 'loading') {

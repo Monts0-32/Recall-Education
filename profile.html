@@ -8,7 +8,52 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css">
   <style>
+    /* Quill dark-mode tweaks so the snow theme matches the rest of the UI. */
+    .ql-toolbar.ql-snow {
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      border-bottom: 0;
+      border-radius: var(--r-sm) var(--r-sm) 0 0;
+    }
+    .ql-container.ql-snow {
+      background: var(--bg);
+      border: 1px solid var(--line-2);
+      border-radius: 0 0 var(--r-sm) var(--r-sm);
+      min-height: 140px;
+      font-family: inherit; font-size: 14px;
+    }
+    .ql-container.ql-snow .ql-editor {
+      color: var(--text);
+      min-height: 140px;
+    }
+    .ql-container.ql-snow .ql-editor.ql-blank::before {
+      color: var(--text-4); font-style: normal;
+    }
+    .ql-snow .ql-stroke { stroke: var(--text-3); }
+    .ql-snow .ql-fill   { fill: var(--text-3); }
+    .ql-snow .ql-picker-label { color: var(--text-3); }
+    .ql-snow .ql-picker-options {
+      background: var(--bg-2); border: 1px solid var(--line-2);
+    }
+    .ql-snow .ql-picker-item:hover { color: var(--text); }
+    .ql-snow .ql-active .ql-stroke,
+    .ql-snow button:hover .ql-stroke,
+    .ql-snow.ql-snow .ql-toolbar button:hover .ql-stroke { stroke: var(--blue); }
+    .ql-snow .ql-active .ql-fill,
+    .ql-snow button:hover .ql-fill { fill: var(--blue); }
+    .ql-snow .ql-tooltip {
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      color: var(--text);
+    }
+    .ql-snow .ql-tooltip input[type=text] {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+    }
+    /* hide quill's hidden file input container for our image upload (we use ours) */
+    .ql-snow .ql-hidden { display: none; }
     /* ---------- shared token palette (every page uses this) ---------- */
     :root {
       --bg:        #0D1117;
@@ -121,11 +166,36 @@
     .gate p { color: var(--text-2); margin: 0 0 18px; }
     .gate .muted { color: var(--text-4); font-size: 12px; }
 
-    /* ---------- MAIN (mirrors staff-dashboard line 162-176) ---------- */
+    /* ---------- MAIN (was 720px single column — redesigned to 1100px 2-col) ---------- */
     main.profile-main {
-      max-width: 720px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 32px 24px 80px;
+    }
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    .profile-side > *,
+    .profile-main-col > * {
+      margin-bottom: 0;
+    }
+    .profile-side > * + *,
+    .profile-main-col > * + * {
+      margin-top: 18px;
+    }
+    @media (min-width: 861px) {
+      .profile-side {
+        position: sticky;
+        top: 80px;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+      }
+    }
+    @media (max-width: 860px) {
+      .profile-grid { grid-template-columns: 1fr; }
     }
 
     /* ---------- CARD (mirrors .card on staff-dashboard line 202-218) ---------- */
@@ -164,6 +234,7 @@
       display: inline-flex; align-items: center; justify-content: center;
       color: #fff; font-weight: 700; font-size: 22px;
       overflow: hidden; flex-shrink: 0;
+      position: relative;
     }
     .identity .avatar img { width: 100%; height: 100%; object-fit: cover; }
     .identity .meta { flex: 1; min-width: 0; }
@@ -172,7 +243,20 @@
       letter-spacing: -0.015em; margin: 0 0 4px;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .identity .school { color: var(--text-3); font-size: 13px; }
+    .identity .school { color: var(--text-3); font-size: 13px; margin-top: 2px; }
+    .identity .school-name-row {
+      display: flex; align-items: center; gap: 10px; margin-top: 2px;
+    }
+    .presence-dot {
+      position: absolute; right: -2px; bottom: -2px;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--green);
+      border: 3px solid var(--bg-2);
+      box-sizing: content-box;
+    }
+    .presence-dot[data-offline="1"] { background: var(--text-4); }
+    .presence-dot[data-self="1"] { display: none; }
 
     /* ---------- ROLE PILL (mirrors staff-dashboard line 84-95) ---------- */
     .role-pill {
@@ -193,7 +277,7 @@
     .role-pill.school_organiser { background: var(--green-dim); color: var(--green); border-color: var(--green); }
     .role-pill.student     { background: var(--bg-3); color: var(--text-3); border-color: var(--line-2); }
 
-    /* ---------- BIO ---------- */
+    /* ---------- BIO (supports sanitised rich HTML from Quill) ---------- */
     .bio p,
     #bioText {
       margin: 0;
@@ -201,11 +285,14 @@
       color: var(--text-2);
       font-size: 14px;
       line-height: 1.55;
-      white-space: pre-wrap;
+      white-space: normal;
       word-break: break-word;
     }
     .bio p.empty,
     #bioText.empty { color: var(--text-4); font-style: italic; }
+    #bioText img { max-width: 100%; height: auto; border-radius: var(--r-sm); margin: 6px 0; display: block; }
+    #bioText a { color: var(--blue); text-decoration: underline; }
+    #bioText a:hover { color: var(--blue-2); }
     .bio .actions {
       margin-top: 10px;
       display: flex; gap: 8px; justify-content: flex-end; align-items: center;
@@ -239,6 +326,12 @@
     .bio .counter { color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums; }
     .bio .spacer { flex: 1; }
 
+    /* ---------- SETTINGS BUTTON (in identity card, self only) ---------- */
+    .identity .settings-row {
+      margin-top: 10px;
+      display: flex; gap: 8px;
+    }
+
     /* ---------- ACTIONS ROW ---------- */
     .cta-row { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
     /* Unfollow = same shape as primary but de-emphasised (secondary tone). */
@@ -270,12 +363,12 @@
     .like-btn.is-liked .heart::before { content: '♥'; }
     .like-btn.is-liked:hover { background: var(--red-dim); color: var(--red); }
 
-    /* ---------- STATS (mirrors staff-dashboard line 178-200) ---------- */
+    /* ---------- STATS (sidebar 2x2 grid) ---------- */
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 12px;
-      margin-bottom: 18px;
+      margin-bottom: 0;
     }
     .stat,
     .stat[data-open] {
@@ -304,6 +397,118 @@
     }
     .stat.readonly { cursor: default; }
     .stat.readonly:hover { background: var(--bg-2); }
+
+    /* ---------- LEARNING CARD (currently learning rows) ---------- */
+    .learning-list {
+      display: flex; flex-direction: column;
+      gap: 8px;
+    }
+    .learning-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      color: var(--text);
+      text-decoration: none;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .learning-row:hover { border-color: var(--blue); background: var(--bg-2); text-decoration: none; color: var(--text); }
+    .learning-row .learning-body { flex: 1; min-width: 0; }
+    .learning-row .learning-title {
+      font-size: 14px; font-weight: 600;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .learning-row .learning-sub {
+      font-size: 12px; color: var(--text-3); margin-top: 2px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .learning-row .learning-when {
+      font-size: 11.5px; color: var(--text-4); flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ---------- SUBJECTS CARD (recent subjects tiles) ---------- */
+    .subjects-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .subject-tile {
+      display: flex; flex-direction: column; gap: 6px;
+      padding: 14px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+    }
+    .subject-tile .subject-name {
+      font-size: 13.5px; font-weight: 600;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .subject-tile .subject-meta {
+      font-size: 11.5px; color: var(--text-4);
+    }
+
+    /* ---------- SUBJECT DOT (used in learning rows + subject tiles) ---------- */
+    .subject-dot {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: var(--text-3);
+    }
+    .subject-dot.maths { background: #58A6FF; }
+    .subject-dot.eng   { background: #A371F7; }
+    .subject-dot.bio   { background: #3FB950; }
+    .subject-dot.chem  { background: #D29922; }
+    .subject-dot.phys  { background: #F85149; }
+    .subject-dot.hist  { background: #FF7B72; }
+    .subject-dot.geog  { background: #56D4DD; }
+    .subject-dot.psych { background: #BC8CFF; }
+
+    /* ---------- SETTINGS MODAL ---------- */
+    .vis-options {
+      border: 0; padding: 0; margin: 0;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .vis-opt {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .vis-opt:hover { border-color: var(--blue); background: var(--bg-2); }
+    .vis-opt input[type=radio] {
+      margin-top: 3px;
+      accent-color: var(--blue);
+      cursor: pointer;
+    }
+    .vis-opt input[type=radio]:checked + div b { color: var(--blue); }
+    .vis-opt b {
+      display: block; font-size: 14px; font-weight: 600; margin-bottom: 3px;
+      color: var(--text);
+    }
+    .vis-opt span {
+      display: block; font-size: 12.5px; color: var(--text-3); line-height: 1.45;
+    }
+    .settings-foot {
+      margin-top: 18px;
+      display: flex; justify-content: flex-end; gap: 10px;
+    }
+
+    /* ---------- PRIVACY GATE (empty state) ---------- */
+    .privacy-empty {
+      padding: 14px 16px;
+      background: var(--bg);
+      border: 1px dashed var(--line-2);
+      border-radius: var(--r-sm);
+      color: var(--text-3);
+      font-size: 13px;
+      font-style: italic;
+    }
 
     /* ---------- MUTUALS GRID (mirrors .staff-grid on staff-dashboard line 256-290) ---------- */
     .mutuals-grid {
@@ -470,9 +675,9 @@
     #userName { display: none; }
 
     @media (max-width: 720px) {
-      .stats { grid-template-columns: repeat(2, 1fr); }
       .identity .avatar { width: 56px; height: 56px; }
       .identity .name { font-size: 18px; }
+      .subjects-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -488,88 +693,121 @@
 
 <main class="profile-main" id="profileMain" hidden>
 
-  <!-- IDENTITY CARD -->
-  <div class="card" id="identityCard" hidden>
-    <div class="identity">
-      <div class="avatar" id="avatarBig"></div>
-      <div class="meta">
-        <div class="name" id="displayName">…</div>
-        <span class="role-pill" id="rolePill"></span>
-        <div class="school" id="schoolLine"></div>
-      </div>
-    </div>
-  </div>
+  <div class="profile-grid">
 
-  <!-- BIO CARD -->
-  <div class="card bio" id="bioCard" hidden>
-    <h2>About</h2>
-    <p id="bioText" class="empty">You haven't written a bio yet.</p>
-    <div class="actions" id="bioActions" hidden>
-      <button class="link-btn" type="button" id="editBioBtn">Edit bio</button>
-    </div>
-    <form id="bioForm" hidden>
-      <textarea id="bioInput" maxlength="500" rows="4"
-                placeholder="Tell people about yourself…"></textarea>
-      <div class="foot">
-        <span class="counter" id="bioCounter">0 / 500</span>
-        <span class="spacer"></span>
-        <button class="btn-ghost" type="button" id="bioCancel">Cancel</button>
-        <button class="btn-primary" type="submit" id="bioSave">Save</button>
-      </div>
-    </form>
-  </div>
+    <!-- ============================ LEFT SIDEBAR ============================ -->
+    <aside class="profile-side">
 
-  <!-- ACTIONS CARD (follow / message / like) -->
-  <div class="card" id="actionsCard" hidden>
-    <h2>Connect</h2>
-    <div class="cta-row">
-      <button class="btn-primary" type="button" id="followBtn" hidden>Follow</button>
-      <button class="btn-ghost"  type="button" id="messageBtn" hidden>Message</button>
-      <button class="like-btn"   type="button" id="likeBtn" hidden>
-        <span class="heart"></span>
-        <span>Like</span>
-        <span id="likeCount">0</span>
-      </button>
-    </div>
-  </div>
+      <!-- IDENTITY CARD -->
+      <div class="card" id="identityCard" hidden>
+        <div class="identity">
+          <div class="avatar" id="avatarBig">
+            <span class="presence-dot" id="presenceDot" hidden></span>
+          </div>
+          <div class="meta">
+            <div class="name" id="displayName">…</div>
+            <span class="role-pill" id="rolePill"></span>
+            <div class="school-name-row">
+              <span class="school" id="schoolLine"></span>
+            </div>
+            <div class="settings-row" id="settingsRow" hidden>
+              <button class="link-btn" type="button" id="openSettingsBtn">⚙ Settings</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-  <!-- STATS CARD -->
-  <div class="card" id="statsCard" hidden>
-    <h2>Activity</h2>
-    <div class="stats">
-      <div class="stat" role="button" tabindex="0" data-open="followers">
-        <div class="label">Followers</div>
-        <span class="value" id="statFollowers">0</span>
+      <!-- ACTIONS CARD (follow / message / like) -->
+      <div class="card" id="actionsCard" hidden>
+        <h2>Connect</h2>
+        <div class="cta-row">
+          <button class="btn-primary" type="button" id="followBtn" hidden>Follow</button>
+          <button class="btn-ghost"  type="button" id="messageBtn" hidden>Message</button>
+          <button class="like-btn"   type="button" id="likeBtn" hidden>
+            <span class="heart"></span>
+            <span>Like</span>
+            <span id="likeCount">0</span>
+          </button>
+        </div>
       </div>
-      <div class="stat" role="button" tabindex="0" data-open="following">
-        <div class="label">Following</div>
-        <span class="value" id="statFollowing">0</span>
-      </div>
-      <div class="stat" role="button" tabindex="0" data-open="mutuals">
-        <div class="label">Mutual friends</div>
-        <span class="value" id="statMutuals">0</span>
-      </div>
-      <div class="stat readonly">
-        <div class="label">Liked by</div>
-        <span class="value" id="statLikedBy">0</span>
-      </div>
-    </div>
-  </div>
 
-  <!-- MUTUAL FRIENDS CARD -->
-  <div class="card" id="mutualsCard" hidden>
-    <h2>Mutual friends <span class="meta" id="mutualsMeta"></span></h2>
-    <div id="mutualsGrid" class="mutuals-grid"></div>
-  </div>
+      <!-- STATS CARD -->
+      <div class="card" id="statsCard" hidden>
+        <h2>Activity</h2>
+        <div class="stats">
+          <div class="stat" role="button" tabindex="0" data-open="followers">
+            <div class="label">Followers</div>
+            <span class="value" id="statFollowers">0</span>
+          </div>
+          <div class="stat" role="button" tabindex="0" data-open="following">
+            <div class="label">Following</div>
+            <span class="value" id="statFollowing">0</span>
+          </div>
+          <div class="stat" role="button" tabindex="0" data-open="mutuals">
+            <div class="label">Mutual friends</div>
+            <span class="value" id="statMutuals">0</span>
+          </div>
+          <div class="stat readonly">
+            <div class="label">Liked by</div>
+            <span class="value" id="statLikedBy">0</span>
+          </div>
+        </div>
+      </div>
 
-  <!-- FIND PEOPLE CARD -->
-  <div class="card search-card" id="searchCard" hidden>
-    <h2>Find people to follow</h2>
-    <p class="hint">Type a name. Results open in a new tab.</p>
-    <div class="field">
-      <input id="searchInput" type="search" placeholder="Search by name…" autocomplete="off" />
-      <div id="searchResults" class="search-results" hidden></div>
-    </div>
+    </aside>
+
+    <!-- ============================ RIGHT MAIN COLUMN ============================ -->
+    <section class="profile-main-col">
+
+      <!-- BIO CARD -->
+      <div class="card bio" id="bioCard" hidden>
+        <h2>About</h2>
+        <div id="bioText" class="empty">You haven't written a bio yet.</div>
+        <div class="actions" id="bioActions" hidden>
+          <button class="link-btn" type="button" id="editBioBtn">Edit bio</button>
+        </div>
+        <form id="bioForm" hidden>
+          <div id="bioEditor" class="bio-editor"></div>
+          <input type="file" id="bioImageInput" accept="image/jpeg,image/png,image/webp" hidden />
+          <div class="foot">
+            <span class="counter" id="bioCounter">0 / 8000</span>
+            <span class="spacer"></span>
+            <button class="btn-ghost" type="button" id="bioCancel">Cancel</button>
+            <button class="btn-primary" type="submit" id="bioSave">Save</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- CURRENTLY LEARNING CARD -->
+      <div class="card" id="learningCard" hidden>
+        <h2>Currently learning</h2>
+        <div id="learningList" class="learning-list"></div>
+      </div>
+
+      <!-- RECENT SUBJECTS CARD -->
+      <div class="card" id="subjectsCard" hidden>
+        <h2>Recent subjects</h2>
+        <div id="subjectsList" class="subjects-grid"></div>
+      </div>
+
+      <!-- MUTUAL FRIENDS CARD -->
+      <div class="card" id="mutualsCard" hidden>
+        <h2>Mutual friends <span class="meta" id="mutualsMeta"></span></h2>
+        <div id="mutualsGrid" class="mutuals-grid"></div>
+      </div>
+
+      <!-- FIND PEOPLE CARD -->
+      <div class="card search-card" id="searchCard" hidden>
+        <h2>Find people to follow</h2>
+        <p class="hint">Type a name. Results open in a new tab.</p>
+        <div class="field">
+          <input id="searchInput" type="search" placeholder="Search by name…" autocomplete="off" />
+          <div id="searchResults" class="search-results" hidden></div>
+        </div>
+      </div>
+
+    </section>
+
   </div>
 
 </main>
@@ -585,9 +823,49 @@
   </div>
 </div>
 
+<!-- Settings modal -->
+<div id="settingsModal" class="modal-back" hidden>
+  <div class="modal-card">
+    <header>
+      <h3>Profile settings</h3>
+      <button class="link-btn" type="button" data-close-modal="settingsModal">Close</button>
+    </header>
+    <div class="settings-body" style="padding: 18px 20px;">
+      <fieldset class="vis-options">
+        <legend style="font-size: 12px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 10px; padding: 0;">Who can see your profile?</legend>
+        <label class="vis-opt">
+          <input type="radio" name="vis" value="public" />
+          <div>
+            <b>Public</b>
+            <span>Anyone signed in can see your bio, learning, and mutuals.</span>
+          </div>
+        </label>
+        <label class="vis-opt">
+          <input type="radio" name="vis" value="friends_only" />
+          <div>
+            <b>Friends only</b>
+            <span>Only people who follow you and whom you follow back.</span>
+          </div>
+        </label>
+        <label class="vis-opt">
+          <input type="radio" name="vis" value="private" />
+          <div>
+            <b>Private</b>
+            <span>Only you. Others see your name and avatar only.</span>
+          </div>
+        </label>
+      </fieldset>
+      <div class="settings-foot">
+        <button class="btn-primary" id="settingsSave" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast-wrap" id="toastWrap"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js" defer></script>
 <script src="header.js" defer></script>
 <script src="topbar.js" defer></script>
 <script src="header-avatar.js" defer></script>
