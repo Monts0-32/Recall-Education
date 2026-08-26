@@ -10,50 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css">
   <style>
-    /* Quill dark-mode tweaks so the snow theme matches the rest of the UI. */
-    .ql-toolbar.ql-snow {
-      background: var(--bg-3);
-      border: 1px solid var(--line-2);
-      border-bottom: 0;
-      border-radius: var(--r-sm) var(--r-sm) 0 0;
-    }
-    .ql-container.ql-snow {
-      background: var(--bg);
-      border: 1px solid var(--line-2);
-      border-radius: 0 0 var(--r-sm) var(--r-sm);
-      min-height: 140px;
-      font-family: inherit; font-size: 14px;
-    }
-    .ql-container.ql-snow .ql-editor {
-      color: var(--text);
-      min-height: 140px;
-    }
-    .ql-container.ql-snow .ql-editor.ql-blank::before {
-      color: var(--text-4); font-style: normal;
-    }
-    .ql-snow .ql-stroke { stroke: var(--text-3); }
-    .ql-snow .ql-fill   { fill: var(--text-3); }
-    .ql-snow .ql-picker-label { color: var(--text-3); }
-    .ql-snow .ql-picker-options {
-      background: var(--bg-2); border: 1px solid var(--line-2);
-    }
-    .ql-snow .ql-picker-item:hover { color: var(--text); }
-    .ql-snow .ql-active .ql-stroke,
-    .ql-snow button:hover .ql-stroke,
-    .ql-snow.ql-snow .ql-toolbar button:hover .ql-stroke { stroke: var(--blue); }
-    .ql-snow .ql-active .ql-fill,
-    .ql-snow button:hover .ql-fill { fill: var(--blue); }
-    .ql-snow .ql-tooltip {
-      background: var(--bg-2); border: 1px solid var(--line-2);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-      color: var(--text);
-    }
-    .ql-snow .ql-tooltip input[type=text] {
-      background: var(--bg); color: var(--text);
-      border: 1px solid var(--line-2);
-    }
-    /* hide quill's hidden file input container for our image upload (we use ours) */
-    .ql-snow .ql-hidden { display: none; }
     /* ---------- shared token palette (every page uses this) ---------- */
     :root {
       --bg:        #0D1117;
@@ -79,6 +35,67 @@
       --red-dim:   rgba(248,81,73,0.12);
       --r-sm: 6px;
       --r-md: 8px;
+    }
+
+    /* ---------- Quill dark-mode tweaks (must come after :root) ---------- */
+    .ql-toolbar.ql-snow {
+      background: var(--bg-3);
+      border: 1px solid var(--line-2);
+      border-bottom: 0;
+      border-radius: var(--r-sm) var(--r-sm) 0 0;
+      padding: 6px 8px;
+    }
+    .ql-toolbar.ql-snow .ql-formats { margin-right: 12px; }
+    .ql-toolbar.ql-snow button {
+      width: 32px; height: 30px;
+      padding: 4px 5px;
+    }
+    .ql-toolbar.ql-snow button svg { width: 22px; height: 22px; }
+    .ql-snow .ql-stroke { stroke: #C9D1D9; }
+    .ql-snow .ql-fill   { fill: #C9D1D9; }
+    .ql-snow .ql-picker-label { color: #C9D1D9; }
+    .ql-snow .ql-picker-label svg .ql-stroke { stroke: #C9D1D9; }
+    .ql-snow .ql-picker-options {
+      background: var(--bg-2); border: 1px solid var(--line-2);
+    }
+    .ql-snow .ql-picker-item { color: var(--text-2); }
+    .ql-snow .ql-picker-item:hover { color: var(--text); }
+    .ql-snow .ql-active .ql-stroke,
+    .ql-snow button:hover .ql-stroke,
+    .ql-snow .ql-picker-label.ql-active .ql-stroke { stroke: var(--blue); }
+    .ql-snow .ql-active .ql-fill,
+    .ql-snow button:hover .ql-fill,
+    .ql-snow .ql-picker-label.ql-active .ql-fill { fill: var(--blue); }
+    .ql-snow .ql-active .ql-picker-label,
+    .ql-snow button:hover,
+    .ql-snow .ql-picker-label:hover { color: var(--blue); }
+    .ql-container.ql-snow {
+      background: var(--bg);
+      border: 1px solid var(--line-2);
+      border-radius: 0 0 var(--r-sm) var(--r-sm);
+      min-height: 220px;
+      font-family: inherit; font-size: 14px;
+    }
+    .ql-container.ql-snow .ql-editor {
+      color: var(--text);
+      min-height: 220px;
+      padding: 14px 16px;
+    }
+    .ql-container.ql-snow .ql-editor.ql-blank::before {
+      color: var(--text-4); font-style: normal;
+    }
+    .ql-snow .ql-tooltip {
+      background: var(--bg-2); border: 1px solid var(--line-2);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      color: var(--text);
+    }
+    .ql-snow .ql-tooltip input[type=text] {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2);
+    }
+    .ql-snow .ql-tooltip a { color: var(--blue); }
+    .ql-snow .ql-color-picker .ql-picker-options {
+      padding: 4px 6px; width: 168px;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; min-height: 100%; }
@@ -209,7 +226,7 @@
       background: var(--bg-2) !important;
       border: 1px solid var(--line) !important;
       border-radius: var(--r-md);
-      padding: 20px 22px;
+      padding: 22px 24px;
       margin-bottom: 18px;
     }
     .card h2 {
@@ -230,14 +247,14 @@
     .identity .avatar-wrap {
       position: relative;
       flex-shrink: 0;
-      width: 64px; height: 64px;
+      width: 96px; height: 96px;
     }
     .identity .avatar {
-      width: 64px; height: 64px;
+      width: 96px; height: 96px;
       border-radius: 50%;
       background: var(--bg-3);
       display: inline-flex; align-items: center; justify-content: center;
-      color: #fff; font-weight: 700; font-size: 22px;
+      color: #fff; font-weight: 700; font-size: 30px;
       overflow: hidden;
     }
     .identity .avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -287,10 +304,12 @@
       margin: 0;
       background: transparent !important;
       color: var(--text-2);
-      font-size: 14px;
-      line-height: 1.55;
+      font-size: 15px;
+      line-height: 1.65;
       white-space: normal;
       word-break: break-word;
+      min-height: 80px;
+      padding: 4px 2px;
     }
     .bio p.empty,
     #bioText.empty { color: var(--text-4); font-style: italic; }
@@ -680,7 +699,7 @@
 
     @media (max-width: 720px) {
       .identity .avatar-wrap,
-      .identity .avatar { width: 56px; height: 56px; }
+      .identity .avatar { width: 72px; height: 72px; font-size: 24px; }
       .identity .name { font-size: 18px; }
       .subjects-grid { grid-template-columns: 1fr; }
     }

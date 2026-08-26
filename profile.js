@@ -277,7 +277,7 @@
     const name = (p.full_name || '').trim() || 'Unnamed';
 
     $('displayName').textContent = name;
-    paintAvatar($('avatarBig'), p, 64);
+    paintAvatar($('avatarBig'), p, 96);
 
     const pill = $('rolePill');
     pill.className = 'role-pill ' + (p.role || '');
