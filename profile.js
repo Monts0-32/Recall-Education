@@ -505,12 +505,155 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Bio rich-text editor (Quill).
+  // Bio rich-text editor (Quill + custom HTML toolbar).
+  //   The toolbar in profile.html carries data-cmd="<action>" on each button
+  //   plus a row of color swatches with data-color="<#hex>". We translate
+  //   clicks into Quill API calls: format() for inline formats, insertEmbed()
+  //   for images, removeFormat() for clear. A small floating popup gives the
+  //   inserted image resize + delete controls.
   // ---------------------------------------------------------------------------
   function updateBioCounter() {
     if (!state.quill) return;
     const text = state.quill.getText().trim();
     $('bioCounter').textContent = text.length + ' / 8000';
+  }
+
+  // Floating image popup — built once, shown on image selection inside the
+  // editor. Lets the user resize (Small / Medium / Large / Original) and
+  // delete the selected <img>.
+  let bioImgPopup = null;     // the popup element
+  let bioImgSelected = null;  // the <img> currently being edited
+
+  function buildBioImagePopup() {
+    if (bioImgPopup) return bioImgPopup;
+    const pop = document.createElement('div');
+    pop.className = 'bio-image-popup';
+    pop.hidden = true;
+
+    const label = document.createElement('label');
+    label.appendChild(document.createTextNode('Size'));
+    const range = document.createElement('input');
+    range.type = 'range';
+    range.min = '15';
+    range.max = '100';
+    range.value = '100';
+    range.step = '5';
+    const pct = document.createElement('span');
+    pct.className = 'pct';
+    pct.textContent = '100%';
+    label.appendChild(range);
+    label.appendChild(pct);
+    pop.appendChild(label);
+
+    function sizeBtn(text, pctVal) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = text;
+      b.addEventListener('click', () => applyImgSize(pctVal));
+      return b;
+    }
+    pop.appendChild(sizeBtn('Small', 25));
+    pop.appendChild(sizeBtn('Medium', 50));
+    pop.appendChild(sizeBtn('Large', 75));
+    pop.appendChild(sizeBtn('Fit', 100));
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'danger';
+    del.textContent = 'Delete';
+    del.addEventListener('click', deleteSelectedImage);
+    pop.appendChild(del);
+
+    range.addEventListener('input', () => {
+      pct.textContent = range.value + '%';
+      applyImgSize(parseInt(range.value, 10));
+    });
+
+    document.body.appendChild(pop);
+    bioImgPopup = pop;
+    return pop;
+  }
+
+  function applyImgSize(pctVal) {
+    if (!bioImgSelected || !state.quill) return;
+    const v = Math.max(15, Math.min(100, parseInt(pctVal, 10) || 100));
+    bioImgSelected.style.width = v + '%';
+    bioImgSelected.style.height = 'auto';
+    bioImgSelected.dataset.bioSize = String(v);
+    if (bioImgPopup && bioImgPopup.querySelector('input[type=range]')) {
+      const r = bioImgPopup.querySelector('input[type=range]');
+      const p = bioImgPopup.querySelector('.pct');
+      r.value = String(v);
+      p.textContent = v + '%';
+    }
+  }
+
+  function deleteSelectedImage() {
+    if (!bioImgSelected || !state.quill) return;
+    // Quill tracks embedded image positions via the DOM; the simplest removal
+    // is to walk the editor's children and replace the img node with a blank
+    // line, then let Quill pick up the change via input event.
+    const img = bioImgSelected;
+    const blot = state.quill.findEmbed && state.quill.findEmbed(img);
+    if (blot && typeof blot.remove === 'function') {
+      blot.remove();
+    } else {
+      // Fallback: replace the parent paragraph with its remaining children.
+      const parent = img.parentNode;
+      while (img.firstChild) parent.insertBefore(img.firstChild, img);
+      parent.removeChild(img);
+    }
+    hideBioImagePopup();
+    updateBioCounter();
+    // Trigger Quill's text-change so the doc state syncs.
+    state.quill.update && state.quill.update('user');
+  }
+
+  function positionBioImagePopup(img) {
+    if (!bioImgPopup) return;
+    const editor = state.quill && state.quill.root;
+    if (!editor) return;
+    const edRect = editor.getBoundingClientRect();
+    const imRect = img.getBoundingClientRect();
+    const pop = bioImgPopup;
+    // Make sure it's visible so width/height are measurable.
+    pop.hidden = false;
+    pop.style.left = '-9999px';
+    pop.style.top = '-9999px';
+    const popRect = pop.getBoundingClientRect();
+    const left = Math.max(
+      edRect.left + 8,
+      Math.min(
+        window.scrollX + imRect.left,
+        window.scrollX + edRect.right - popRect.width - 8
+      )
+    );
+    const top = Math.max(
+      window.scrollY + edRect.top + 4,
+      window.scrollY + imRect.top - popRect.height - 8
+    );
+    pop.style.left = left + 'px';
+    pop.style.top  = top + 'px';
+  }
+
+  function showBioImagePopup(img) {
+    bioImgSelected = img;
+    document.querySelectorAll('.bio-editor img.bio-img-selected')
+      .forEach(n => n.classList.remove('bio-img-selected'));
+    img.classList.add('bio-img-selected');
+    buildBioImagePopup();
+    const pct = parseInt(img.dataset.bioSize || (parseFloat(img.style.width) || 100), 10) || 100;
+    const r = bioImgPopup.querySelector('input[type=range]');
+    const p = bioImgPopup.querySelector('.pct');
+    r.value = String(pct);
+    p.textContent = pct + '%';
+    positionBioImagePopup(img);
+  }
+
+  function hideBioImagePopup() {
+    if (bioImgPopup) bioImgPopup.hidden = true;
+    if (bioImgSelected) bioImgSelected.classList.remove('bio-img-selected');
+    bioImgSelected = null;
   }
 
   function wireBioEditor() {
@@ -520,6 +663,8 @@
     const bioSave = $('bioSave');
     const bioText = $('bioText');
     const fileInput = $('bioImageInput');
+    const toolbar = $('bioToolbar');
+    const editorEl = $('bioEditor');
 
     editBtn.addEventListener('click', () => {
       const current = (state.target && state.target.bio) || '';
@@ -531,30 +676,22 @@
           toast('Editor is still loading…', 'error');
           return;
         }
+        // No `modules.toolbar` — we drive Quill via our own buttons in #bioToolbar.
         state.quill = new window.Quill('#bioEditor', {
           theme: 'snow',
-          modules: {
-            toolbar: [
-              ['bold', 'italic', 'underline'],
-              [{ color: ['#F0F6FC','#58A6FF','#3FB950','#D29922','#F85149','#56D4DD','#A371F7','#FF7B72'] }],
-              ['link', 'image'],
-              ['clean']
-            ]
-          },
+          modules: {},
           bounds: '#bioForm',
           placeholder: 'Tell people about yourself…',
         });
-        // Override Quill's default image handler (which prompts for a URL)
-        // with our own file picker that uploads to the avatars bucket.
-        state.quill.getModule('toolbar').addHandler('image', () => {
-          const input = $('bioImageInput');
-          if (input) input.click();
-        });
         state.quill.on('text-change', () => updateBioCounter());
+        // Image popup wiring: click + select on the editor.
+        state.quill.root.addEventListener('click', onEditorClick);
+        state.quill.on('selection-change', onSelectionChange);
       }
       const clean = sanitizeBioHtml(current);
       state.quill.clipboard.dangerouslyPasteHTML(clean || '');
       updateBioCounter();
+      hideBioImagePopup();
       setTimeout(() => state.quill && state.quill.focus(), 0);
     });
 
@@ -562,9 +699,127 @@
       bioForm.hidden = true;
       bioText.hidden = false;
       editBtn.hidden = false;
+      hideBioImagePopup();
     });
 
-    // Image upload — reuses the avatars bucket with a bio/ sub-prefix.
+    // ----- Custom toolbar wiring -----
+    if (toolbar && !toolbar.dataset.recallWired) {
+      toolbar.dataset.recallWired = '1';
+
+      toolbar.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-cmd]');
+        if (!btn) return;
+        e.preventDefault();
+        const cmd = btn.dataset.cmd;
+        if (cmd === 'color') {
+          // Toggle the swatch dropdown.
+          const wrap = btn.closest('.rt-color-wrap');
+          const menu = wrap && wrap.querySelector('.rt-color-menu');
+          if (menu) {
+            const open = menu.hidden;
+            menu.hidden = !open;
+            if (open) state.quill && state.quill.focus();
+          }
+          return;
+        }
+        if (cmd === 'link') {
+          askLink();
+          return;
+        }
+        if (cmd === 'image') {
+          if (fileInput) fileInput.click();
+          return;
+        }
+        if (cmd === 'clear') {
+          if (!state.quill) return;
+          state.quill.removeFormat(
+            state.quill.getSelection() ? state.quill.getSelection().index : 0,
+            state.quill.getSelection() ? state.quill.getSelection().length : state.quill.getLength()
+          );
+          updateBioCounter();
+          syncActiveFormats();
+          return;
+        }
+        if (!state.quill) return;
+        // bold / italic / underline — toggle the active state.
+        const range = state.quill.getSelection();
+        if (!range) return;
+        const current = state.quill.getFormat(range);
+        const next = !current[cmd];
+        state.quill.format(cmd, next, 'user');
+        syncActiveFormats();
+      });
+
+      // Color swatches.
+      toolbar.querySelectorAll('.rt-swatch').forEach((sw) => {
+        sw.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!state.quill) return;
+          const color = sw.dataset.color || '';
+          state.quill.format('color', color, 'user');
+          // Update the swatch strip under the colour button.
+          const swatch = toolbar.querySelector('.rt-color-swatch');
+          if (swatch) swatch.style.background = color || '';
+          const menu = sw.closest('.rt-color-menu');
+          if (menu) menu.hidden = true;
+          syncActiveFormats();
+        });
+      });
+
+      // Close the colour menu on outside click.
+      document.addEventListener('click', (e) => {
+        const wrap = toolbar.querySelector('.rt-color-wrap');
+        if (!wrap) return;
+        if (!wrap.contains(e.target)) {
+          const menu = wrap.querySelector('.rt-color-menu');
+          if (menu) menu.hidden = true;
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const menu = toolbar.querySelector('.rt-color-menu');
+          if (menu) menu.hidden = true;
+        }
+      });
+
+      // Dismiss the image popup when clicking elsewhere.
+      editorEl && editorEl.addEventListener('blur', () => {
+        // Defer — the popup may be the next focused element.
+        setTimeout(() => {
+          if (!bioImgPopup) return;
+          if (document.activeElement && bioImgPopup.contains(document.activeElement)) return;
+          hideBioImagePopup();
+        }, 120);
+      }, true);
+    }
+
+    // ----- Link dialog (prompt) -----
+    function askLink() {
+      if (!state.quill) return;
+      const range = state.quill.getSelection();
+      if (!range) {
+        toast('Select some text first', 'error');
+        return;
+      }
+      const existing = state.quill.getFormat(range).link || '';
+      const raw = window.prompt('Link URL (https://…)', existing || 'https://');
+      if (raw === null) return;
+      const trimmed = String(raw).trim();
+      if (!trimmed) {
+        state.quill.format('link', false, 'user');
+        return;
+      }
+      let href = trimmed;
+      if (!/^https?:\/\//i.test(href)) href = 'https://' + href;
+      if (!/^https:\/\//i.test(href)) {
+        toast('Only https links are allowed', 'error');
+        return;
+      }
+      state.quill.format('link', href, 'user');
+    }
+
+    // ----- Image upload -----
     fileInput.addEventListener('change', async () => {
       const file = fileInput.files && fileInput.files[0];
       fileInput.value = '';
@@ -589,12 +844,17 @@
         if (!url) throw new Error('no public url');
         const range = state.quill.getSelection(true);
         state.quill.insertEmbed(range ? range.index : state.quill.getLength(), 'image', url, 'user');
+        // Move the caret past the new image.
+        const after = state.quill.getSelection();
+        if (after) state.quill.setSelection(after.index + 1, 0);
+        updateBioCounter();
       } catch (e) {
         console.error(e);
         toast('Image upload failed', 'error');
       }
     });
 
+    // ----- Save / submit -----
     bioForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!state.quill) return;
@@ -611,6 +871,7 @@
         bioForm.hidden = true;
         bioText.hidden = false;
         editBtn.hidden = false;
+        hideBioImagePopup();
         render();
         toast('Bio saved', 'success');
       } catch (err) {
@@ -626,6 +887,36 @@
         bioSave.disabled = false;
       }
     });
+
+    // ----- Helpers used above -----
+    function onEditorClick(e) {
+      if (!state.quill) return;
+      if (e.target && e.target.tagName === 'IMG' && e.target.closest('#bioEditor')) {
+        e.preventDefault();
+        showBioImagePopup(e.target);
+      } else {
+        hideBioImagePopup();
+      }
+    }
+    function onSelectionChange(range) {
+      if (!range) { hideBioImagePopup(); return; }
+      syncActiveFormats();
+    }
+  }
+
+  // Mirror active formats onto the toolbar's buttons (bold/italic/underline
+  // + the colour swatch strip).
+  function syncActiveFormats() {
+    const toolbar = $('bioToolbar');
+    if (!toolbar || !state.quill) return;
+    const sel = state.quill.getSelection();
+    const fmt = sel ? state.quill.getFormat(sel) : {};
+    ['bold', 'italic', 'underline'].forEach((cmd) => {
+      const b = toolbar.querySelector('[data-cmd="' + cmd + '"]');
+      if (b) b.classList.toggle('is-active', !!fmt[cmd]);
+    });
+    const swatch = toolbar.querySelector('.rt-color-swatch');
+    if (swatch) swatch.style.background = fmt.color || '';
   }
 
   // ---------------------------------------------------------------------------

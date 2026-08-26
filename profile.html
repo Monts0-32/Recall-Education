@@ -37,65 +37,201 @@
       --r-md: 8px;
     }
 
-    /* ---------- Quill dark-mode tweaks (must come after :root) ---------- */
-    .ql-toolbar.ql-snow {
+    /* ---------- Custom bio toolbar (replaces snow theme toolbar entirely) ---------- */
+    .bio-toolbar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+      padding: 8px 10px;
       background: var(--bg-3);
       border: 1px solid var(--line-2);
       border-bottom: 0;
       border-radius: var(--r-sm) var(--r-sm) 0 0;
-      padding: 6px 8px;
     }
-    .ql-toolbar.ql-snow .ql-formats { margin-right: 12px; }
-    .ql-toolbar.ql-snow button {
-      width: 32px; height: 30px;
-      padding: 4px 5px;
+    .rt-btn {
+      position: relative;
+      min-width: 34px; height: 30px;
+      padding: 0 8px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: var(--r-sm);
+      color: var(--text-2);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+      transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
     }
-    .ql-toolbar.ql-snow button svg { width: 22px; height: 22px; }
-    .ql-snow .ql-stroke { stroke: #C9D1D9; }
-    .ql-snow .ql-fill   { fill: #C9D1D9; }
-    .ql-snow .ql-picker-label { color: #C9D1D9; }
-    .ql-snow .ql-picker-label svg .ql-stroke { stroke: #C9D1D9; }
-    .ql-snow .ql-picker-options {
-      background: var(--bg-2); border: 1px solid var(--line-2);
+    .rt-btn:hover { background: var(--bg-4); color: var(--text); }
+    .rt-btn.is-active { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
+    .rt-btn b { font-weight: 800; font-size: 14px; }
+    .rt-btn i { font-style: italic; font-size: 14px; font-family: Georgia, serif; }
+    .rt-btn u { text-decoration: underline; font-size: 14px; }
+    .rt-sep {
+      width: 1px; height: 18px;
+      background: var(--line-2);
+      margin: 0 4px;
+      flex-shrink: 0;
     }
-    .ql-snow .ql-picker-item { color: var(--text-2); }
-    .ql-snow .ql-picker-item:hover { color: var(--text); }
-    .ql-snow .ql-active .ql-stroke,
-    .ql-snow button:hover .ql-stroke,
-    .ql-snow .ql-picker-label.ql-active .ql-stroke { stroke: var(--blue); }
-    .ql-snow .ql-active .ql-fill,
-    .ql-snow button:hover .ql-fill,
-    .ql-snow .ql-picker-label.ql-active .ql-fill { fill: var(--blue); }
-    .ql-snow .ql-active .ql-picker-label,
-    .ql-snow button:hover,
-    .ql-snow .ql-picker-label:hover { color: var(--blue); }
+    .rt-color-wrap { position: relative; }
+    .rt-color-btn {
+      padding-right: 6px;
+      min-width: 44px;
+    }
+    .rt-color-label {
+      font-weight: 800; font-size: 14px;
+      line-height: 1;
+      text-decoration: underline;
+      text-decoration-color: currentColor;
+    }
+    .rt-color-swatch {
+      width: 14px; height: 4px;
+      background: var(--text);
+      border-radius: 1px;
+      display: inline-block;
+    }
+    .rt-caret {
+      width: 6px; height: 6px;
+      border-right: 1.5px solid var(--text-3);
+      border-bottom: 1.5px solid var(--text-3);
+      transform: rotate(45deg);
+      margin-top: -3px;
+    }
+    .rt-color-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      display: grid;
+      grid-template-columns: repeat(5, 22px);
+      gap: 4px;
+      padding: 8px;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 40;
+    }
+    .rt-color-menu[hidden] { display: none !important; }
+    .rt-swatch {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      border: 1px solid var(--line-3);
+      cursor: pointer;
+      padding: 0;
+      transition: transform 0.1s ease, border-color 0.1s ease;
+    }
+    .rt-swatch:hover { transform: scale(1.15); border-color: var(--text); }
+    .rt-swatch-clear {
+      background: var(--bg-3) !important;
+      color: var(--text-3);
+      font-size: 9px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+      grid-column: span 2;
+      width: auto;
+      border-radius: var(--r-sm);
+    }
+    .rt-icon-link, .rt-icon-image {
+      display: inline-block;
+      width: 16px; height: 16px;
+      background: currentColor;
+      mask-position: center;
+      mask-repeat: no-repeat;
+      mask-size: contain;
+      -webkit-mask-position: center;
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-size: contain;
+    }
+    .rt-icon-link {
+      mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/><path d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/></svg>");
+      -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/><path d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/></svg>");
+    }
+    .rt-icon-image {
+      mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='18' height='18' rx='2'/><circle cx='8.5' cy='8.5' r='1.5'/><polyline points='21 15 16 10 5 21'/></svg>");
+      -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='18' height='18' rx='2'/><circle cx='8.5' cy='8.5' r='1.5'/><polyline points='21 15 16 10 5 21'/></svg>");
+    }
+
+    /* ---------- Link / image input bar (inline above the editor) ---------- */
+    .link-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg-3);
+      border: 1px solid var(--blue);
+      border-radius: var(--r-sm);
+      margin-bottom: 6px;
+    }
+    .link-bar input {
+      flex: 1;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      padding: 6px 10px;
+      font-family: inherit; font-size: 13px;
+      outline: none;
+    }
+    .link-bar input:focus { border-color: var(--blue); }
+    .link-bar button {
+      background: var(--bg-3); color: var(--text);
+      border: 1px solid var(--line-2);
+      padding: 6px 12px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12.5px; font-weight: 500;
+      cursor: pointer;
+    }
+    .link-bar button:hover { background: var(--bg-4); }
+
+    /* ---------- Image popup (resize + delete) ---------- */
+    .bio-image-popup {
+      position: absolute;
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-sm);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      padding: 10px 12px;
+      display: flex; align-items: center; gap: 10px;
+      z-index: 50;
+      font-family: inherit; font-size: 12.5px;
+    }
+    .bio-image-popup[hidden] { display: none !important; }
+    .bio-image-popup label { color: var(--text-3); display: flex; align-items: center; gap: 6px; }
+    .bio-image-popup input[type=range] { width: 110px; accent-color: var(--blue); }
+    .bio-image-popup .pct { color: var(--text-2); font-variant-numeric: tabular-nums; min-width: 36px; }
+    .bio-image-popup button {
+      background: transparent;
+      color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 5px 10px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 12px; font-weight: 500;
+      cursor: pointer;
+    }
+    .bio-image-popup button:hover { background: var(--bg-3); color: var(--text); }
+    .bio-image-popup button.danger { color: var(--red); border-color: var(--red); }
+    .bio-image-popup button.danger:hover { background: var(--red-dim); }
+    /* Highlight the selected image inside the editor. */
+    .bio-editor img.bio-img-selected {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    /* ---------- Quill dark-mode container (no toolbar) ---------- */
     .ql-container.ql-snow {
       background: var(--bg);
       border: 1px solid var(--line-2);
       border-radius: 0 0 var(--r-sm) var(--r-sm);
-      min-height: 220px;
-      font-family: inherit; font-size: 14px;
+      min-height: 260px;
+      font-family: inherit; font-size: 15px;
+      position: relative; /* anchor for the image popup */
     }
     .ql-container.ql-snow .ql-editor {
       color: var(--text);
-      min-height: 220px;
-      padding: 14px 16px;
+      min-height: 260px;
+      padding: 14px 18px;
     }
     .ql-container.ql-snow .ql-editor.ql-blank::before {
       color: var(--text-4); font-style: normal;
     }
-    .ql-snow .ql-tooltip {
-      background: var(--bg-2); border: 1px solid var(--line-2);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-      color: var(--text);
-    }
-    .ql-snow .ql-tooltip input[type=text] {
-      background: var(--bg); color: var(--text);
-      border: 1px solid var(--line-2);
-    }
-    .ql-snow .ql-tooltip a { color: var(--blue); }
-    .ql-snow .ql-color-picker .ql-picker-options {
-      padding: 4px 6px; width: 168px;
+    .ql-container.ql-snow img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 6px 0;
+      cursor: pointer;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; min-height: 100%; }
@@ -792,6 +928,35 @@
           <button class="link-btn" type="button" id="editBioBtn">Edit bio</button>
         </div>
         <form id="bioForm" hidden>
+          <div id="bioToolbar" class="bio-toolbar" role="toolbar" aria-label="Bio formatting">
+            <button type="button" class="rt-btn" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+            <button type="button" class="rt-btn" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+            <button type="button" class="rt-btn" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+            <span class="rt-sep"></span>
+            <div class="rt-color-wrap" data-cmd="color">
+              <button type="button" class="rt-btn rt-color-btn" title="Text color" aria-haspopup="true">
+                <span class="rt-color-label">A</span>
+                <span class="rt-color-swatch"></span>
+                <span class="rt-caret"></span>
+              </button>
+              <div class="rt-color-menu" hidden role="menu">
+                <button type="button" class="rt-swatch" data-color="#F0F6FC" style="background:#F0F6FC" title="White"></button>
+                <button type="button" class="rt-swatch" data-color="#58A6FF" style="background:#58A6FF" title="Blue"></button>
+                <button type="button" class="rt-swatch" data-color="#3FB950" style="background:#3FB950" title="Green"></button>
+                <button type="button" class="rt-swatch" data-color="#D29922" style="background:#D29922" title="Yellow"></button>
+                <button type="button" class="rt-swatch" data-color="#F85149" style="background:#F85149" title="Red"></button>
+                <button type="button" class="rt-swatch" data-color="#56D4DD" style="background:#56D4DD" title="Teal"></button>
+                <button type="button" class="rt-swatch" data-color="#A371F7" style="background:#A371F7" title="Purple"></button>
+                <button type="button" class="rt-swatch" data-color="#FF7B72" style="background:#FF7B72" title="Coral"></button>
+                <button type="button" class="rt-swatch rt-swatch-clear" data-color="" title="Default">Auto</button>
+              </div>
+            </div>
+            <span class="rt-sep"></span>
+            <button type="button" class="rt-btn" data-cmd="link" title="Insert / edit link"><span class="rt-icon-link"></span></button>
+            <button type="button" class="rt-btn" data-cmd="image" title="Insert image from your device"><span class="rt-icon-image"></span></button>
+            <span class="rt-sep"></span>
+            <button type="button" class="rt-btn" data-cmd="clear" title="Clear formatting">Clear</button>
+          </div>
           <div id="bioEditor" class="bio-editor"></div>
           <input type="file" id="bioImageInput" accept="image/jpeg,image/png,image/webp" hidden />
           <div class="foot">
