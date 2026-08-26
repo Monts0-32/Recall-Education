@@ -921,6 +921,9 @@
 
   // ---------------------------------------------------------------------------
   // Settings modal — account visibility (Public / Friends only / Private).
+  // Only the profile owner may open / save. Defence in depth: the button is
+  // already hidden via CSS on non-self pages, but if it ever leaks through we
+  // still refuse to do anything here.
   // ---------------------------------------------------------------------------
   function wireSettings() {
     const btn = $('openSettingsBtn');
@@ -929,6 +932,7 @@
     if (!btn || !modal || !saveBtn) return;
 
     btn.addEventListener('click', () => {
+      if (!state.isSelf) return; // never open on someone else's profile
       const cur = (state.target && state.target.account_visibility) || 'public';
       const radio = modal.querySelector('input[name="vis"][value="' + cur + '"]');
       if (radio) radio.checked = true;
@@ -945,6 +949,11 @@
     });
 
     saveBtn.addEventListener('click', async () => {
+      if (!state.isSelf) {
+        modal.hidden = true;
+        toast('You can only change your own profile settings', 'error');
+        return;
+      }
       const v = (modal.querySelector('input[name="vis"]:checked') || {}).value || 'public';
       saveBtn.disabled = true;
       try {
