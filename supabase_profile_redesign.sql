@@ -44,7 +44,12 @@ alter table public.profiles
 -- ============================================================================
 -- 2. Re-publish profiles + lesson_progress on the realtime channel
 --    (idempotent — pg_publication_tables guards each insert).
+--    REPLICA IDENTITY FULL is required so UPDATE events fire with the full
+--    row payload — important for last_seen_at flips from the heartbeat.
 -- ============================================================================
+
+alter table public.profiles       replica identity full;
+alter table public.lesson_progress replica identity full;
 
 do $rt$
 begin
@@ -73,6 +78,11 @@ end$rt$;
 
 -- ---------------------------------------------------------------------------
 -- 3.1 heartbeat — caller pings so other viewers see them as online.
+--     The on-line / idle / offline thresholds live in the
+--     get_profile_for_view RPC (see 3.4). The heartbeat just stamps the
+--     timestamp; the RPC derives the status. Clients should call this on
+--     a 30-second timer AND on user activity (mousemove / keydown) for
+--     the most accurate "online now" feel.
 -- ---------------------------------------------------------------------------
 
 create or replace function public.heartbeat()
@@ -85,6 +95,13 @@ as $$
 $$;
 
 grant execute on function public.heartbeat() to authenticated;
+
+-- Thresholds used by get_profile_for_view (3.4) below.
+-- Kept as named constants in the function body so a single edit propagates.
+--   < 5 minutes  since last_seen  -> 'online'
+--   < 15 minutes since last_seen  -> 'idle'
+--   otherwise                     -> 'offline'
+-- If last_seen_at is null (never seen), status is 'offline'.
 
 -- ---------------------------------------------------------------------------
 -- 3.2 set_my_account_visibility — caller updates own visibility.
@@ -173,7 +190,8 @@ grant execute on function public.set_my_bio(text, text) to authenticated;
 -- ---------------------------------------------------------------------------
 -- 3.4 get_profile_for_view — REPLACES the version in supabase_profile_social.sql
 --     * Mutual-friends SQL now requires both directions (caller ↔ X, target ↔ X)
---     * Adds is_online, account_visibility, bio_format to the response
+--     * Adds activity_status ('online' | 'idle' | 'offline'),
+--       last_seen_at, account_visibility, bio_format to the response
 --     * Privacy gate: private + friends_only non-friends receive only the
 --       identity card fields, not bio / stats / mutuals / learning.
 -- ---------------------------------------------------------------------------
@@ -187,7 +205,7 @@ declare
   v_row        jsonb;
   v_visibility text;
   v_last_seen  timestamptz;
-  v_is_online  boolean;
+  v_status     text;        -- 'online' | 'idle' | 'offline'
   v_is_friend  boolean;
   v_visible    boolean := true;
 begin
@@ -205,7 +223,20 @@ begin
 
   v_visibility := coalesce(v_row->>'account_visibility', 'public');
   v_last_seen  := (v_row->>'last_seen_at')::timestamptz;
-  v_is_online  := v_last_seen is not null and now() - v_last_seen < interval '2 minutes';
+
+  -- Activity status from last_seen_at.
+  --   < 5 minutes   -> online
+  --   < 15 minutes  -> idle
+  --   otherwise     -> offline (includes null last_seen_at)
+  if v_last_seen is null then
+    v_status := 'offline';
+  elsif now() - v_last_seen < interval '5 minutes' then
+    v_status := 'online';
+  elsif now() - v_last_seen < interval '15 minutes' then
+    v_status := 'idle';
+  else
+    v_status := 'offline';
+  end if;
 
   -- Relationship flags (we always know these; the follow button needs them).
   v_row := v_row || jsonb_build_object(
@@ -241,7 +272,8 @@ begin
     v_row := v_row - 'bio' - 'school_id' - 'school_name';
     v_row := v_row || jsonb_build_object(
       'account_visibility', v_visibility,
-      'is_online', v_is_online,
+      'activity_status', v_status,
+      'last_seen_at', v_last_seen,
       'follower_count', 0,
       'following_count', 0,
       'likes_count', 0,
@@ -269,7 +301,8 @@ begin
     'likes_count',
       (select count(*)::int from public.profile_likes where profile_id = p_target_id),
     'account_visibility', v_visibility,
-    'is_online', v_is_online
+    'activity_status', v_status,
+    'last_seen_at', v_last_seen
   );
 
   -- Mutual friends: caller ↔ X AND target ↔ X (true mutual definition).

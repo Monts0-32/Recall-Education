@@ -159,6 +159,20 @@
     return then.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
   }
 
+  // Status pill label. The server already buckets the user into
+  // online / idle / offline, but for OFFLINE we surface "last seen Xm ago"
+  // so the value stays useful after they leave.
+  function statusLabel(status, lastSeenIso) {
+    if (status === 'online')  return 'Online now';
+    if (status === 'idle')    return 'Idle';
+    if (status === 'offline') {
+      if (!lastSeenIso) return 'Offline';
+      const seen = timeAgo(lastSeenIso);
+      return seen ? 'Last seen ' + seen : 'Offline';
+    }
+    return 'Offline';
+  }
+
   // ---------------------------------------------------------------------------
   // HTML sanitiser for rich bios. Runs on save AND render (defence in depth).
   // Allowlist: b, i, u, strong, em, br, span (with safe color), a (https only),
@@ -234,6 +248,7 @@
     isSelf: false,
     channel: null,
     heartbeatTimer: null,
+    statusTickerTimer: null,
     quill: null,
   };
 
@@ -292,14 +307,27 @@
       school.hidden = true;
     }
 
-    // Presence dot. Hidden on self; reflects is_online for others.
+    // Presence dot + status pill. Hidden on self; reflects activity_status
+    // ('online' | 'idle' | 'offline') for everyone else. The label changes
+    // depending on how long it's been since the user was last seen.
     const dot = $('presenceDot');
+    const statusEl = $('statusPill');
+    const statusDot = $('statusPillDot');
+    const statusLbl = $('statusPillLabel');
+    const status = (p && p.activity_status) || 'offline';
     if (isSelf) {
       dot.hidden = true;
+      if (statusEl) statusEl.hidden = true;
     } else {
       dot.hidden = false;
-      dot.dataset.self = isSelf ? '1' : '0';
-      dot.dataset.offline = p.is_online ? '0' : '1';
+      dot.dataset.self = '0';
+      dot.dataset.status = status;
+      if (statusEl) {
+        statusEl.hidden = false;
+        statusEl.dataset.status = status;
+        if (statusDot) statusDot.classList.toggle('pulse', status === 'online');
+        if (statusLbl) statusLbl.textContent = statusLabel(status, p && p.last_seen_at);
+      }
     }
 
     $('identityCard').hidden = false;
@@ -973,18 +1001,93 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Online presence — heartbeat fires every 60s on the caller's own session
-  // so other viewers can see the green dot.
+  // Online presence — heartbeat fires every 30s on the caller's own session
+  // AND whenever they're actively using the page (mouse / keys / scroll),
+  // so other viewers see ONLINE for as long as the user is active.
+  // Server-side thresholds (in get_profile_for_view):
+  //   < 5 min  since last_seen -> 'online'
+  //   < 15 min since last_seen -> 'idle'
+  //   otherwise                -> 'offline'
   // ---------------------------------------------------------------------------
   function wirePresence() {
     if (!state.isSelf) return;
-    const beat = async () => {
+    let lastSent = 0;
+    let inFlight = false;
+    const beat = async (force) => {
+      const now = Date.now();
+      // Throttle to one ping per 20s. Forced beats (page unload etc.) always go.
+      if (!force && now - lastSent < 20_000) return;
+      if (inFlight) return;
+      inFlight = true;
+      lastSent = now;
       try { await supabaseClient.rpc('heartbeat'); } catch (_) { /* ignore */ }
+      inFlight = false;
     };
-    beat();
-    state.heartbeatTimer = setInterval(beat, 60_000);
+    beat(true);
+    state.heartbeatTimer = setInterval(() => beat(false), 30_000);
+
+    // Activity events: bump the heartbeat (throttled by `lastSent`) whenever
+    // the user actually does something. Without this, a user reading a long
+    // page would flip to "idle" after 5 minutes of mouse-only activity.
+    ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'].forEach((evt) => {
+      window.addEventListener(evt, () => beat(false), { passive: true });
+    });
+
     window.addEventListener('beforeunload', () => {
       if (state.heartbeatTimer) clearInterval(state.heartbeatTimer);
+      // Final beat so the very last "online" timestamp is the most recent.
+      try { supabaseClient.rpc('heartbeat'); } catch (_) {}
+    });
+
+    // While the tab is hidden, browsers throttle timers and may not deliver
+    // activity events. Pause heartbeat beats while hidden and send one fresh
+    // beat on visibility return so the user comes back as online.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') beat(true);
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Status ticker — re-evaluates the activity_status every 30s based on
+  // last_seen_at so the dot/pill animates from ONLINE → IDLE → OFFLINE
+  // without needing a realtime event for every transition. Mirrors the
+  // 5 / 15 minute thresholds the server uses.
+  // ---------------------------------------------------------------------------
+  function wireStatusTicker() {
+    function tick() {
+      if (state.isSelf) return;
+      const t = state.target;
+      if (!t || !t.last_seen_at) return;
+      const then = new Date(t.last_seen_at);
+      if (isNaN(then.getTime())) return;
+      const ageMs = Date.now() - then.getTime();
+      let next = 'offline';
+      if (ageMs < 5  * 60_000) next = 'online';
+      else if (ageMs < 15 * 60_000) next = 'idle';
+      if (t.activity_status !== next) {
+        t.activity_status = next;
+        // Re-paint just the presence row in the identity card.
+        const dot = $('presenceDot');
+        if (dot) dot.dataset.status = next;
+        const pill = $('statusPill');
+        if (pill) pill.dataset.status = next;
+        const dotEl = $('statusPillDot');
+        if (dotEl) dotEl.classList.toggle('pulse', next === 'online');
+        const lbl = $('statusPillLabel');
+        if (lbl) lbl.textContent = statusLabel(next, t.last_seen_at);
+      } else {
+        // Status didn't change, but the OFFLINE label uses timeAgo —
+        // refresh the label so "Last seen X mins ago" stays current.
+        if (next === 'offline') {
+          const lbl = $('statusPillLabel');
+          if (lbl) lbl.textContent = statusLabel(next, t.last_seen_at);
+        }
+      }
+    }
+    tick();
+    state.statusTickerTimer = setInterval(tick, 30_000);
+    window.addEventListener('beforeunload', () => {
+      if (state.statusTickerTimer) clearInterval(state.statusTickerTimer);
     });
   }
 
@@ -1292,6 +1395,7 @@
     wireSearch();
     wireRealtime();
     wirePresence();
+    wireStatusTicker();
     await refresh();
 
     // If the URL hash is #settings, open the modal after load (used by the

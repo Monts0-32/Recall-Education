@@ -412,12 +412,46 @@
       position: absolute; right: -2px; bottom: -2px;
       width: 14px; height: 14px;
       border-radius: 50%;
-      background: var(--green);
+      background: var(--text-4);  /* default = offline */
       border: 3px solid var(--bg-2);
       box-sizing: content-box;
+      transition: background 0.25s ease;
     }
-    .presence-dot[data-offline="1"] { background: var(--text-4); }
+    .presence-dot[data-status="online"] { background: var(--green); }
+    .presence-dot[data-status="idle"]   { background: var(--yellow); }
+    .presence-dot[data-status="offline"] { background: var(--text-4); }
     .presence-dot[data-self="1"] { display: none; }
+
+    /* Status pill that sits next to the user's name (Online / Idle / Offline).
+       Hidden on self — you don't need to see your own status. */
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 6px;
+      padding: 3px 10px 3px 8px;
+      border-radius: 999px;
+      font-size: 12px; font-weight: 500;
+      background: var(--bg-3);
+      color: var(--text-2);
+      border: 1px solid var(--line-2);
+    }
+    .status-pill[data-status="online"]  { color: var(--green); border-color: color-mix(in srgb, var(--green) 40%, var(--line-2)); }
+    .status-pill[data-status="idle"]    { color: var(--yellow); border-color: color-mix(in srgb, var(--yellow) 40%, var(--line-2)); }
+    .status-pill[data-status="offline"] { color: var(--text-4); }
+    .status-pill .pill-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+    .status-pill .pill-dot.pulse {
+      box-shadow: 0 0 0 0 currentColor;
+      animation: presence-pulse 2s ease-out infinite;
+    }
+    @keyframes presence-pulse {
+      0%   { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 60%, transparent); }
+      70%  { box-shadow: 0 0 0 8px transparent; }
+      100% { box-shadow: 0 0 0 0 transparent; }
+    }
 
     /* ---------- ROLE PILL (mirrors staff-dashboard line 84-95) ---------- */
     .role-pill {
@@ -872,6 +906,10 @@
           <div class="meta">
             <div class="name" id="displayName">…</div>
             <span class="role-pill" id="rolePill"></span>
+            <div class="status-pill" id="statusPill" hidden>
+              <span class="pill-dot" id="statusPillDot"></span>
+              <span class="pill-label" id="statusPillLabel"></span>
+            </div>
             <div class="school-name-row">
               <span class="school" id="schoolLine"></span>
             </div>
