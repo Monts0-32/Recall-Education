@@ -680,6 +680,27 @@
         });
       }
 
+      // Defensive sort: the SQL has ORDER BY unit.sort_order, unit.name,
+      // topic.order_index, lesson.order_index — but if any of those is NULL
+      // (legacy rows, freshly-inserted rows), Postgres pushes them to the
+      // end in arbitrary order, which is what the user is seeing. Sort the
+      // three levels here so the rendered tree is always in order regardless
+      // of what came back. Nulls sort last (so newly-inserted lessons still
+      // land where the user expects when their order_index is set later).
+      const cmp = (a, b) => {
+        if (a == null && b == null) return 0;
+        if (a == null) return 1;
+        if (b == null) return -1;
+        return a - b;
+      };
+      units.sort((a, b) => cmp(a.sort_order, b.sort_order) || a.name.localeCompare(b.name));
+      for (const u of units) {
+        u.topics.sort((a, b) => cmp(a.order_index, b.order_index) || a.name.localeCompare(b.name));
+        for (const t of u.topics) {
+          t.lessons.sort((a, b) => cmp(a.order_index, b.order_index));
+        }
+      }
+
       // Server-side lock check per lesson.
       const ids = rows.map(r => r.lesson_id);
       const lockMap = new Map();
