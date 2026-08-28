@@ -571,6 +571,197 @@
       line-height: 1.5;
       white-space: pre-wrap;
     }
+
+    /* ---------- Subject tree manager ----------
+       The tree manager shows the full hierarchy for a chosen subject:
+         SUBJECT > EXAM BOARD (not in the tree) > YEAR GROUP (also
+         navigation, not in the tree) > UNIT > TOPIC > LESSON.
+
+       Each level renders as a collapsible section. Boards and years
+       act as the navigation; the actual TREE branches are
+       subject -> unit -> topic -> lesson. The user picks the subject
+       (and optionally the board + year to filter by), and the panel
+       renders the units underneath. Click a unit to expand its topics,
+       click a topic to expand its lessons.
+
+       Admins can move lessons between topics and topics between units
+       via dropdown selects (kept simple — drag-and-drop would need a
+       heavier interaction layer; the same RPCs work either way).
+    */
+    .tree-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .tree-layout { grid-template-columns: 1fr; }
+    }
+    .tree-side {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 12px;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    .tree-side h3 {
+      margin: 4px 0 10px;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--text-3);
+    }
+    .tree-subject-list { display: flex; flex-direction: column; gap: 4px; }
+    .tree-subject-item {
+      padding: 8px 10px;
+      border-radius: var(--r-sm);
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-2);
+      display: flex; align-items: center; gap: 8px;
+      border: 1px solid transparent;
+    }
+    .tree-subject-item:hover { background: var(--bg-3); color: var(--text); }
+    .tree-subject-item.active {
+      background: var(--blue-dim); color: var(--blue);
+      border-color: rgba(56, 139, 253, 0.3);
+      font-weight: 600;
+    }
+    .tree-subject-item .dot {
+      width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto;
+    }
+
+    /* Right pane: the tree itself. */
+    .tree-pane {
+      background: var(--bg-2);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-md);
+      padding: 16px 20px;
+      min-height: 240px;
+    }
+    .tree-pane-head {
+      display: flex; align-items: baseline; gap: 12px;
+      margin-bottom: 16px; padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+      flex-wrap: wrap;
+    }
+    .tree-pane-head h2 {
+      margin: 0; font-size: 18px; font-weight: 600;
+    }
+    .tree-pane-head .meta { color: var(--text-3); font-size: 12.5px; }
+    .tree-pane-head .right { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* Navigation row: the board + year dropdowns sit on top of the
+       tree as filters, not as tree branches. Selecting a board narrows
+       the unit list to that board; selecting a year narrows further. */
+    .tree-nav {
+      display: flex; gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .tree-nav .field {
+      display: flex; flex-direction: column; gap: 4px;
+      flex: 1; min-width: 160px;
+    }
+    .tree-nav label {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--text-3);
+    }
+    .tree-nav select {
+      padding: 6px 10px; font-size: 12.5px;
+    }
+
+    /* Unit block: each unit shows its topics + a count badge. Topics
+       show their lessons. Lessons show status (draft/published/archived)
+       and can be moved to another topic in the same subject via a
+       dropdown. */
+    .tree-unit {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      margin-bottom: 12px;
+    }
+    .tree-unit-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg-3);
+      border-bottom: 1px solid var(--line);
+      font-size: 13.5px; font-weight: 600;
+      cursor: pointer;
+    }
+    .tree-unit-head .caret {
+      width: 14px; color: var(--text-4); font-size: 10px;
+      transition: transform 0.15s ease;
+    }
+    .tree-unit.open .tree-unit-head .caret { transform: rotate(90deg); }
+    .tree-unit-head .name { flex: 1; }
+    .tree-unit-head .badge {
+      font-size: 11px; color: var(--text-4); font-weight: 500;
+    }
+    .tree-unit-body { display: none; padding: 4px 0 8px; }
+    .tree-unit.open .tree-unit-body { display: block; }
+
+    .tree-topic {
+      padding: 8px 14px 8px 28px;
+      border-top: 1px solid var(--line);
+    }
+    .tree-topic-head {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 500;
+      color: var(--text-2);
+      cursor: pointer;
+    }
+    .tree-topic-head .caret {
+      width: 10px; color: var(--text-4); font-size: 9px;
+      transition: transform 0.15s ease;
+    }
+    .tree-topic.open .tree-topic-head .caret { transform: rotate(90deg); }
+    .tree-topic-head .name { flex: 1; }
+    .tree-topic-head .badge { font-size: 11px; color: var(--text-4); }
+    .tree-topic-body { display: none; padding: 4px 0 4px 22px; }
+    .tree-topic.open .tree-topic-body { display: block; }
+
+    .tree-lesson-row {
+      display: grid;
+      grid-template-columns: 18px 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 12.5px;
+      color: var(--text-2);
+      border-bottom: 1px dashed var(--line);
+    }
+    .tree-lesson-row:last-child { border-bottom: 0; }
+    .tree-lesson-row .icon {
+      width: 18px; height: 18px; border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 11px; font-weight: 700;
+      background: var(--bg-3); color: var(--text-3);
+    }
+    .tree-lesson-row .icon.published { background: rgba(63,185,80,0.2); color: #56d364; }
+    .tree-lesson-row .icon.draft     { background: rgba(210,153,34,0.2); color: #e3b341; }
+    .tree-lesson-row .icon.archived  { background: var(--bg-3); color: var(--text-4); }
+    .tree-lesson-row .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tree-lesson-row .move-select {
+      width: auto; min-width: 180px;
+      font-size: 11.5px; padding: 4px 8px;
+    }
+
+    .tree-empty {
+      padding: 32px;
+      text-align: center;
+      color: var(--text-4);
+      font-style: italic;
+    }
+    .tree-warn {
+      background: rgba(248, 81, 73, 0.06);
+      border: 1px solid rgba(248, 81, 73, 0.25);
+      color: #ffb4ad;
+      padding: 8px 12px; border-radius: var(--r-sm);
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
   </style>
 </head>
 <body>
@@ -625,6 +816,9 @@
     <button data-section="lessons">
       <span>Lessons</span>
       <span class="count" id="lessonCount">0</span>
+    </button>
+    <button data-section="tree">
+      <span>Subject tree</span>
     </button>
     <button data-section="audit">
       <span>Audit log</span>
@@ -747,6 +941,33 @@
           </thead>
           <tbody id="lessonRows"><tr class="empty-row"><td colspan="4">Loading…</td></tr></tbody>
         </table>
+      </div>
+    </section>
+
+    <!-- SUBJECT TREE MANAGER PANEL -->
+    <section id="sec-tree" class="hidden">
+      <div class="page-head">
+        <div>
+          <h1>Subject tree</h1>
+          <div class="desc">Browse the full catalogue and reorganise where lessons and topics live. Subjects, exam boards, and year groups are managed separately from this view.</div>
+        </div>
+        <div class="right">
+          <button id="treeRefreshBtn" class="btn">↻ Refresh</button>
+        </div>
+      </div>
+      <div id="treeWarn" class="tree-warn" hidden></div>
+      <div class="tree-layout">
+        <!-- Left: subject picker. -->
+        <div class="tree-side">
+          <h3>Subjects</h3>
+          <div id="treeSubjectList" class="tree-subject-list">
+            <div class="meta" style="padding: 10px;">Loading…</div>
+          </div>
+        </div>
+        <!-- Right: the tree for the chosen subject. -->
+        <div class="tree-pane" id="treePane">
+          <div class="tree-empty">Pick a subject on the left to see its structure.</div>
+        </div>
       </div>
     </section>
 
@@ -925,7 +1146,7 @@
     document.querySelectorAll('.side button').forEach((b) => {
       b.classList.toggle('active', b.dataset.section === name);
     });
-    ['dashboard', 'staff', 'invites', 'lessons', 'audit', 'dev'].forEach((s) => {
+    ['dashboard', 'staff', 'invites', 'lessons', 'tree', 'audit', 'dev'].forEach((s) => {
       $('sec-' + s).classList.toggle('hidden', s !== name);
     });
     // Refresh the section we just showed so the data is always live.
@@ -933,6 +1154,7 @@
     if (name === 'staff')     loadStaff();
     if (name === 'invites')   loadInvites();
     if (name === 'lessons')   loadLessons();
+    if (name === 'tree')      loadSubjectTree();
     if (name === 'audit')     loadAudit();
     if (name === 'dev')       loadDev();
   }
@@ -2067,6 +2289,514 @@
 
   // ----- Boot -----
   boot();
+
+  // =====================================================================
+  // SUBJECT TREE MANAGER
+  // =====================================================================
+  //
+  // The tree manager is a read-first browsing tool that lets admins
+  // reorganise where lessons and topics live without leaving the admin
+  // panel.
+  //
+  // Structure (as specified by the user):
+  //   SUBJECT  > EXAM BOARD (not in tree — nav)
+  //           > YEAR GROUP  (not in tree — nav)
+  //           > UNIT        (tree branch)
+  //             > TOPIC     (tree branch)
+  //               > LESSON  (tree leaf)
+  //
+  // Subjects, exam boards, and year groups are the navigation axes:
+  // pick a subject on the left, optionally narrow by board, optionally
+  // narrow by year, and the tree under that filter renders.
+  //
+  // Subjects themselves are NOT created here — that flow lives in
+  // lesson-creator.html so authors can also create them. This panel
+  // is admin-only and focuses on REORGANISATION:
+  //   - move a lesson from one topic to another (admin_move_lesson)
+  //   - move a topic from one unit to another  (admin_move_topic_to_unit)
+  // Subjects, exam boards, and year groups can only be deleted by
+  // admins via the existing lesson-creator / admin flow — the tree
+  // manager doesn't expose destructive actions on those because the
+  // RLS path makes them server-gated.
+  //
+  // State shape:
+  //   treeState = {
+  //     subjects:        [...rows from admin_list_subjects_with_resources],
+  //     selectedSubject: id|null,
+  //     selectedBoard:   id|'__all__',
+  //     selectedYear:    id|'__all__',
+  //     expanded:        Set<unit_id>,            // open units
+  //     expandedTopics:  Set<topic_id>,           // open topics
+  //     topicsByUnit:    Map<unit_id, topic_rows>, // topics per unit
+  //     lessonsByTopic:  Map<topic_id, lesson_rows>,
+  //     loadingTopics:   Set<unit_id>,            // units whose topics are in flight
+  //     loadingLessons:  Set<topic_id>,           // topics whose lessons are in flight
+  //   }
+
+  let treeState = {
+    subjects: [],
+    selectedSubject: null,
+    selectedBoard: '__all__',
+    selectedYear: '__all__',
+    expanded: new Set(),
+    expandedTopics: new Set(),
+    topicsByUnit: new Map(),
+    lessonsByTopic: new Map(),
+    loadingTopics: new Set(),
+    loadingLessons: new Set(),
+  };
+
+  function escHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // Allowed colour classes for the subject dot.
+  const COLOR_KEYS = ['maths','eng','bio','chem','phys','hist','geog','psych'];
+
+  function showTreeWarn(msg) {
+    const el = $('treeWarn');
+    if (!msg) { el.hidden = true; el.textContent = ''; return; }
+    el.hidden = false;
+    el.textContent = msg;
+  }
+
+  async function loadSubjectTree() {
+    showTreeWarn('');
+    // Load every subject + the boards/years/units beneath it. The
+    // admin_list_subjects_with_resources RPC returns one row per
+    // (subject, board, year, unit) combination so we can rebuild the
+    // whole tree without follow-up joins.
+    try {
+      const { data, error } = await supabaseClient.rpc('admin_list_subjects_with_resources');
+      if (error) {
+        showTreeWarn('Could not load tree: ' + error.message);
+        $('treeSubjectList').innerHTML = '<div class="meta" style="padding: 10px;">Could not load subjects.</div>';
+        return;
+      }
+      treeState.subjects = data || [];
+    } catch (e) {
+      showTreeWarn('Could not load tree: ' + (e.message || e));
+      return;
+    }
+
+    // Build the left-side subject picker. One row per distinct subject
+    // (we dedupe the per-(board,year,unit) RPC rows on the client).
+    const subjects = new Map();
+    for (const r of treeState.subjects) {
+      if (!subjects.has(r.subject_id)) {
+        subjects.set(r.subject_id, {
+          id:        r.subject_id,
+          name:      r.subject_name,
+          level:     r.level,
+          color_key: r.color_key,
+        });
+      }
+    }
+    const subjArr = [...subjects.values()].sort((a, b) => a.name.localeCompare(b.name));
+    if (subjArr.length === 0) {
+      $('treeSubjectList').innerHTML = '<div class="meta" style="padding: 10px;">No subjects yet. Create one in lesson-creator.html.</div>';
+      $('treePane').innerHTML = '<div class="tree-empty">No subjects in the catalogue yet.</div>';
+      return;
+    }
+    $('treeSubjectList').innerHTML = subjArr.map(s => {
+      const color = COLOR_KEYS.includes(String(s.color_key || '')) ? s.color_key : '';
+      const isActive = treeState.selectedSubject === s.id;
+      return `
+        <div class="tree-subject-item ${isActive ? 'active' : ''}"
+             onclick="selectTreeSubject('${s.id}')">
+          <span class="dot ${escHtml(color)}" style="${color ? '' : 'background: var(--text-4);'}"></span>
+          <span>${escHtml(s.name)}</span>
+        </div>`;
+    }).join('');
+
+    // If we had a selection, re-render the pane. Otherwise prompt.
+    if (treeState.selectedSubject) {
+      renderTreePane();
+    } else {
+      $('treePane').innerHTML = '<div class="tree-empty">Pick a subject on the left to see its structure.</div>';
+    }
+  }
+
+  // selectTreeSubject: jump to the chosen subject. Resets the board /
+  // year filter to "All" so the user sees the full structure first.
+  window.selectTreeSubject = (id) => {
+    treeState.selectedSubject = id;
+    treeState.selectedBoard = '__all__';
+    treeState.selectedYear = '__all__';
+    treeState.expanded = new Set();
+    treeState.expandedTopics = new Set();
+    // Re-render the left list so the active state moves.
+    loadSubjectTree();
+  };
+
+  // setTreeBoard / setTreeYear: filter the unit list. The board /
+  // year dropdowns are the navigation axes; the tree below re-renders
+  // for the chosen combination.
+  window.setTreeBoard = (boardId) => {
+    treeState.selectedBoard = boardId;
+    // Reset the year filter — picking a different board may make the
+    // previous year meaningless (a Curriculum year vs a GCSE year).
+    treeState.selectedYear = '__all__';
+    renderTreePane();
+  };
+  window.setTreeYear = (yearId) => {
+    treeState.selectedYear = yearId;
+    renderTreePane();
+  };
+
+  function renderTreePane() {
+    const sid = treeState.selectedSubject;
+    if (!sid) {
+      $('treePane').innerHTML = '<div class="tree-empty">Pick a subject on the left.</div>';
+      return;
+    }
+    // All rows for this subject.
+    const allRows = treeState.subjects.filter(r => r.subject_id === sid);
+    if (allRows.length === 0) {
+      $('treePane').innerHTML = '<div class="tree-empty">No structure for this subject yet.</div>';
+      return;
+    }
+    const subjMeta = allRows[0];
+
+    // Distinct boards + years for the nav row.
+    const boardsMap = new Map();
+    const yearsMap = new Map();
+    for (const r of allRows) {
+      if (r.board_id) {
+        boardsMap.set(r.board_id, { id: r.board_id, name: r.board_name, kind: r.board_kind });
+      }
+      if (r.year_id) {
+        yearsMap.set(r.year_id, { id: r.year_id, label: r.year_label, sort_order: r.year_sort });
+      }
+    }
+    const boards = [...boardsMap.values()].sort((a, b) => {
+      const order = { curriculum: 0, exam_board: 1, course: 2 };
+      const ka = order[a.kind] ?? 3;
+      const kb = order[b.kind] ?? 3;
+      return ka - kb || a.name.localeCompare(b.name);
+    });
+    let years = [...yearsMap.values()].sort((a, b) => a.sort_order - b.sort_order);
+    // When a board is picked, only show years that exist for that board.
+    if (treeState.selectedBoard !== '__all__') {
+      const yearsForBoard = new Set(
+        allRows.filter(r => r.board_id === treeState.selectedBoard && r.year_id)
+                .map(r => r.year_id)
+      );
+      years = years.filter(y => yearsForBoard.has(y.id));
+    }
+
+    // Filter units by board + year.
+    let units = allRows.filter(r => r.unit_id &&
+      (treeState.selectedBoard === '__all__' || r.board_id === treeState.selectedBoard) &&
+      (treeState.selectedYear  === '__all__' || r.year_id   === treeState.selectedYear)
+    );
+    // Dedupe by unit_id (the RPC returns one row per unit per (board,year)
+    // combination; if a unit shows up across multiple years it'll appear
+    // multiple times in the result set).
+    const seenUnits = new Map();
+    for (const r of units) {
+      if (!seenUnits.has(r.unit_id)) seenUnits.set(r.unit_id, r);
+    }
+    units = [...seenUnits.values()].sort((a, b) => a.unit_name.localeCompare(b.unit_name));
+
+    // Topic + lesson totals for the meta line.
+    const topicTotal = units.reduce((acc, u) => acc + Number(u.topic_count || 0), 0);
+    const lessonTotal = units.reduce((acc, u) => acc + Number(u.lesson_count || 0), 0);
+    const boardLabel = treeState.selectedBoard === '__all__'
+      ? 'All boards'
+      : (boardsMap.get(treeState.selectedBoard)?.name || '—');
+    const yearLabel = treeState.selectedYear === '__all__'
+      ? 'All years'
+      : (yearsMap.get(treeState.selectedYear)?.label || '—');
+
+    // Nav row.
+    const navHtml = `
+      <div class="tree-nav">
+        <div class="field">
+          <label>Exam board / course</label>
+          <select onchange="setTreeBoard(this.value)">
+            <option value="__all__">All boards</option>
+            ${boards.map(b => `<option value="${b.id}" ${treeState.selectedBoard === b.id ? 'selected' : ''}>${escHtml(b.name)}${b.kind !== 'exam_board' ? ' (' + b.kind + ')' : ''}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Year group</label>
+          <select onchange="setTreeYear(this.value)">
+            <option value="__all__">All years</option>
+            ${years.map(y => `<option value="${y.id}" ${treeState.selectedYear === y.id ? 'selected' : ''}>${escHtml(y.label)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    `;
+
+    // Empty state: no units at the chosen filter.
+    if (units.length === 0) {
+      $('treePane').innerHTML = `
+        <div class="tree-pane-head">
+          <h2>${escHtml(subjMeta.subject_name)}</h2>
+          <span class="meta">${escHtml(boardLabel)} · ${escHtml(yearLabel)}</span>
+        </div>
+        ${navHtml}
+        <div class="tree-empty">
+          No units for this combination.
+          <div style="margin-top: 8px; font-size: 12.5px; font-style: normal;">
+            Tip: pick "All boards" and "All years" to see every unit in this subject. If nothing shows up, the subject hasn't been populated yet — open it in lesson-creator.html.
+          </div>
+        </div>`;
+      return;
+    }
+
+    // Render the tree. Units are open by default if the count is small.
+    const unitsHtml = units.map(u => renderTreeUnit(u)).join('');
+    $('treePane').innerHTML = `
+      <div class="tree-pane-head">
+        <h2>${escHtml(subjMeta.subject_name)}</h2>
+        <span class="meta">${escHtml(boardLabel)} · ${escHtml(yearLabel)} · ${units.length} unit${units.length === 1 ? '' : 's'} · ${topicTotal} topic${topicTotal === 1 ? '' : 's'} · ${lessonTotal} lesson${lessonTotal === 1 ? '' : 's'}</span>
+        <div class="right"></div>
+      </div>
+      ${navHtml}
+      <div>${unitsHtml}</div>
+    `;
+  }
+
+  function renderTreeUnit(unit) {
+    const isOpen = treeState.expanded.has(unit.unit_id);
+    const loading = treeState.loadingTopics.has(unit.unit_id);
+    return `
+      <div class="tree-unit ${isOpen ? 'open' : ''}" data-unit-id="${unit.unit_id}">
+        <div class="tree-unit-head" onclick="toggleTreeUnit('${unit.unit_id}')">
+          <span class="caret">▶</span>
+          <span class="name">${escHtml(unit.unit_name || '(untitled unit)')}</span>
+          <span class="badge">${Number(unit.topic_count || 0)} topic${unit.topic_count === 1 ? '' : 's'} · ${Number(unit.lesson_count || 0)} lesson${unit.lesson_count === 1 ? '' : 's'}</span>
+        </div>
+        <div class="tree-unit-body">${
+          loading ? '<div class="tree-empty" style="padding: 14px;">Loading topics…</div>'
+                : renderUnitTopics(unit)
+        }</div>
+      </div>
+    `;
+  }
+
+  function renderUnitTopics(unit) {
+    const topics = treeState.topicsByUnit.get(unit.unit_id) || [];
+    if (topics.length === 0) {
+      // Distinguish "haven't loaded yet" from "loaded and empty". The
+      // unit counter shows 0 — render an empty hint but don't error.
+      return `<div class="tree-empty" style="padding: 12px 14px;">No topics in this unit yet.</div>`;
+    }
+    return topics.map(t => renderTreeTopic(unit.unit_id, t)).join('');
+  }
+
+  function renderTreeTopic(unitId, topic) {
+    const isOpen = treeState.expandedTopics.has(topic.id);
+    const loading = treeState.loadingLessons.has(topic.id);
+    return `
+      <div class="tree-topic ${isOpen ? 'open' : ''}" data-topic-id="${topic.id}">
+        <div class="tree-topic-head" onclick="toggleTreeTopic('${topic.id}')">
+          <span class="caret">▶</span>
+          <span class="name">${escHtml(topic.name)}</span>
+          <span class="badge">${Number(topic.lesson_count || 0)} lesson${topic.lesson_count === 1 ? '' : 's'}</span>
+        </div>
+        <div class="tree-topic-body">${
+          loading ? '<div class="tree-empty" style="padding: 10px 0;">Loading lessons…</div>'
+                : renderTopicLessons(topic)
+        }</div>
+      </div>
+    `;
+  }
+
+  function renderTopicLessons(topic) {
+    const lessons = treeState.lessonsByTopic.get(topic.id) || [];
+    if (lessons.length === 0) {
+      return `<div class="tree-empty" style="padding: 8px 0;">No lessons yet.</div>`;
+    }
+    // Build a flat list of all topics in the same subject so the move
+    // dropdown can offer every target. Fetched lazily on first expand.
+    const allTopics = collectAllTopics();
+    const optionsHtml = allTopics
+      .filter(t => t.id !== topic.id)
+      .map(t => `<option value="${t.id}">${escHtml(t.unit_name)} · ${escHtml(t.name)}</option>`)
+      .join('');
+
+    return lessons.map(l => {
+      const status = String(l.status || 'draft').toLowerCase();
+      const iconCls = ['draft', 'published', 'archived'].includes(status) ? status : 'draft';
+      const icon = status === 'published' ? '✓' : status === 'archived' ? '⌫' : '•';
+      return `
+        <div class="tree-lesson-row" data-lesson-id="${l.id}">
+          <span class="icon ${iconCls}" title="${escHtml(status)}">${icon}</span>
+          <span class="title" title="${escHtml(l.title || '')}">${escHtml(l.title || '(untitled)')}</span>
+          <select class="move-select" onchange="moveLessonToTopic('${l.id}', this.value, '${topic.id}')">
+            <option value="">Move to topic…</option>
+            ${optionsHtml}
+          </select>
+          <span class="meta" style="font-size: 11px;">${escHtml(status)}</span>
+        </div>`;
+    }).join('');
+  }
+
+  // collectAllTopics: gather every (unit, topic) pair across the
+  // selected subject so the move-lesson dropdown has a complete list
+  // of destinations. Built once per pane render and cached.
+  let _allTopicsCache = null;
+  function collectAllTopics() {
+    if (_allTopicsCache) return _allTopicsCache;
+    const arr = [];
+    for (const [unitId, topics] of treeState.topicsByUnit.entries()) {
+      const unit = treeState.subjects.find(r => r.unit_id === unitId);
+      const unitName = unit ? unit.unit_name : '(unit)';
+      for (const t of topics) arr.push({ id: t.id, name: t.name, unit_name: unitName });
+    }
+    _allTopicsCache = arr;
+    return arr;
+  }
+  function clearAllTopicsCache() { _allTopicsCache = null; }
+
+  // toggleTreeUnit: expand/collapse a unit. On first expand, fetch the
+  // topics underneath via .from('topics') and cache them.
+  window.toggleTreeUnit = async (unitId) => {
+    if (treeState.expanded.has(unitId)) {
+      treeState.expanded.delete(unitId);
+    } else {
+      treeState.expanded.add(unitId);
+      if (!treeState.topicsByUnit.has(unitId)) {
+        await fetchUnitTopics(unitId);
+      }
+    }
+    clearAllTopicsCache();
+    renderTreePane();
+  };
+
+  window.toggleTreeTopic = async (topicId) => {
+    if (treeState.expandedTopics.has(topicId)) {
+      treeState.expandedTopics.delete(topicId);
+    } else {
+      treeState.expandedTopics.add(topicId);
+      if (!treeState.lessonsByTopic.has(topicId)) {
+        await fetchTopicLessons(topicId);
+      }
+    }
+    renderTreePane();
+  };
+
+  async function fetchUnitTopics(unitId) {
+    treeState.loadingTopics.add(unitId);
+    renderTreePane();
+    try {
+      const { data, error } = await supabaseClient
+        .from('topics')
+        .select('id, name, order_index')
+        .eq('unit_id', unitId)
+        .order('order_index', { ascending: true });
+      if (error) {
+        showTreeWarn('Could not load topics: ' + error.message);
+        return;
+      }
+      // Compute per-topic lesson counts in a single follow-up query so
+      // we don't have to fan-out one .count() per topic.
+      const ids = (data || []).map(t => t.id);
+      const counts = new Map();
+      if (ids.length > 0) {
+        const { data: ls, error: lErr } = await supabaseClient
+          .from('lessons')
+          .select('topic_id')
+          .in('topic_id', ids);
+        if (!lErr && ls) {
+          for (const l of ls) {
+            counts.set(l.topic_id, (counts.get(l.topic_id) || 0) + 1);
+          }
+        }
+      }
+      const rows = (data || []).map(t => ({
+        id: t.id,
+        name: t.name,
+        order_index: t.order_index,
+        lesson_count: counts.get(t.id) || 0,
+      }));
+      treeState.topicsByUnit.set(unitId, rows);
+    } catch (e) {
+      showTreeWarn('Could not load topics: ' + (e.message || e));
+    } finally {
+      treeState.loadingTopics.delete(unitId);
+      renderTreePane();
+    }
+  }
+
+  async function fetchTopicLessons(topicId) {
+    treeState.loadingLessons.add(topicId);
+    renderTreePane();
+    try {
+      const { data, error } = await supabaseClient
+        .from('lessons')
+        .select('id, title, status, order_index, is_general')
+        .eq('topic_id', topicId)
+        .order('order_index', { ascending: true });
+      if (error) {
+        showTreeWarn('Could not load lessons: ' + error.message);
+        return;
+      }
+      const rows = (data || []).filter(l => !l.is_general); // hide loose/general lessons
+      treeState.lessonsByTopic.set(topicId, rows);
+    } catch (e) {
+      showTreeWarn('Could not load lessons: ' + (e.message || e));
+    } finally {
+      treeState.loadingLessons.delete(topicId);
+      renderTreePane();
+    }
+  }
+
+  // moveLessonToTopic: fires when the user picks a destination topic
+  // in a lesson's move dropdown. Calls admin_move_lesson, then
+  // refreshes the affected topics.
+  window.moveLessonToTopic = async (lessonId, targetTopicId, currentTopicId) => {
+    if (!targetTopicId) return; // user picked the placeholder
+    if (targetTopicId === currentTopicId) {
+      // Reset the dropdown — no-op is no-op.
+      return;
+    }
+    try {
+      const { data, error } = await supabaseClient.rpc('admin_move_lesson', {
+        p_lesson_id: lessonId,
+        p_target_topic: targetTopicId,
+      });
+      if (error) {
+        showTreeWarn('Move failed: ' + error.message);
+        return;
+      }
+      if (data && data.ok === false) {
+        showTreeWarn('Move refused: ' + (data.reason || 'unknown'));
+        return;
+      }
+      toast('Lesson moved', 'success');
+      // Drop cached lessons for both source and target so the next
+      // expand shows the updated list. Don't clear the expanded
+      // state — the user might want to keep their place.
+      treeState.lessonsByTopic.delete(currentTopicId);
+      treeState.lessonsByTopic.delete(targetTopicId);
+      // The unit counts depend on the lesson counts; re-fetch.
+      await Promise.all([
+        fetchTopicLessons(currentTopicId),
+        fetchTopicLessons(targetTopicId),
+      ]);
+      // Refresh the side panel's per-subject rollup so the unit badges
+      // (which display lesson_count) are accurate.
+      await loadSubjectTree();
+    } catch (e) {
+      showTreeWarn('Move failed: ' + (e.message || e));
+    }
+  };
+
+  // Refresh button.
+  $('treeRefreshBtn').addEventListener('click', () => {
+    treeState.expanded = new Set();
+    treeState.expandedTopics = new Set();
+    treeState.topicsByUnit = new Map();
+    treeState.lessonsByTopic = new Map();
+    clearAllTopicsCache();
+    loadSubjectTree();
+  });
 </script>
 <script src="topbar.js" defer></script>
 <script src="header-avatar.js" defer></script>
