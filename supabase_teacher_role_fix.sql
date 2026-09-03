@@ -70,7 +70,7 @@ declare
   meta            jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
   intended_role   text  := meta->>'intended_role';
   intended_school text  := trim(coalesce(meta->>'intended_school', ''));
-  intended_plan   text  := coalesce(nullif(trim(meta->>'intended_plan')), 'free');
+  intended_plan   text  := coalesce(nullif(trim(meta->>'intended_plan'), ''), 'free');
   intended_code   text  := trim(coalesce(meta->>'intended_school_code', ''));
   intended_school_id uuid := nullif(meta->>'intended_school_id', '')::uuid;
   dob_text        text  := meta->>'dob';
