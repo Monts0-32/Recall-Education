@@ -458,12 +458,22 @@
 
     try {
       // 1) Create the auth user.
+      // intended_role + intended_school_code land in raw_user_meta_data.
+      // The handle_new_user trigger reads them and stamps the profile
+      // with role='teacher' + school_id inline at auth.users insert
+      // time, so the teacher is correctly promoted even before they
+      // confirm their email (and even though the form doesn't have a
+      // session yet, which blocks the post-signUp attach RPC).
       const { data: su, error: suErr } = await supabaseClient.auth.signUp({
         email,
         password: pw,
         options: {
           emailRedirectTo: redirectTo,
-          data: { full_name: name },
+          data: {
+            full_name: name,
+            intended_role: 'teacher',
+            intended_school_code: resolvedSchool.school_code,
+          },
         },
       });
       if (suErr) {
