@@ -16,11 +16,19 @@
 --      activity in their bell without any new student-facing UI.
 --   4. get_school_analytics — one round-trip aggregate stats blob.
 --
--- Permission keys used (defined in supabase_school_settings.sql):
---   register_absences  — save_register, record_absence, delete_absence
---   behaviour_praise   — log/delete behaviour, award praise
---   ops_announcements  — announcements, resource booking, clubs
---   Timetables + analytics are staff-wide (no toggle).
+-- Permission keys used (resolved by _school_teacher_perm in
+-- supabase_school_settings.sql / supabase_school_roles.sql):
+--   register      — save_register, get_register, list_day_lessons
+--   absences      — record_absence, delete_absence
+--   behaviour     — log/delete behaviour incidents
+--   praise        — award praise points
+--   announcements — post/delete announcements
+--   resources      — create/delete bookable resources
+--   booking       — book/cancel resource bookings
+--   clubs         — create/update/delete clubs + members
+--   timetable      — upsert/delete timetable slots
+--   analytics      — get_school_analytics
+-- Every RPC here is now granularly gated; organisers always pass.
 -- ============================================================================
 
 -- ============================================================================
@@ -50,6 +58,29 @@ create table if not exists public.register_marks (
 );
 create index if not exists register_marks_session_idx
   on public.register_marks (session_id);
+
+-- Registers are per-lesson: each timetable slot (class + date + period)
+-- gets its own session. period 0 = ad-hoc register (any class + date,
+-- no scheduled lesson) — 0 can't collide with slot periods (1-12).
+--   timetable_slot_id  which scheduled lesson this register belongs to
+--   submitted_at       last time the register was saved
+--   is_late            sticky flag: true when the FIRST submission came
+--                      more than register_late_minutes (school_settings,
+--                      default 20) after the lesson's scheduled start.
+--                      Re-saving a register never flips the flag.
+alter table public.register_sessions
+  add column if not exists timetable_slot_id uuid references public.timetable_slots(id) on delete set null,
+  add column if not exists period        int not null default 0,
+  add column if not exists submitted_at  timestamptz,
+  add column if not exists is_late       boolean not null default false;
+
+-- Swap the uniqueness: one register per class + date + period (was per
+-- class + date). Drop-then-add because Postgres has no "add constraint
+-- if not exists"; the generated names cover both old and new shapes.
+alter table public.register_sessions drop constraint if exists register_sessions_class_id_session_date_key;
+alter table public.register_sessions drop constraint if exists register_sessions_class_date_period_key;
+alter table public.register_sessions add constraint register_sessions_class_date_period_key
+  unique (class_id, session_date, period);
 
 -- ---- Absences ----
 create table if not exists public.absence_records (
@@ -316,12 +347,24 @@ create policy "club_members_school_read" on public.club_members
 -- 3. REGISTER RPCs
 -- ============================================================================
 
--- save_register — upsert one class's register for one date. The marks
--- payload replaces whatever was saved before for that (class, date).
+-- save_register — upsert one class's register for one date + period.
+--   p_period              0 = ad-hoc manual register (default)
+--   p_timetable_slot_id   when the register belongs to a scheduled lesson;
+--                         forces the period and enables the late flag
+-- The marks payload replaces whatever was saved before for that
+-- (class, date, period).
+--
+-- STICKY LATE: is_late is computed only on the insert path. Re-saving
+-- (a correction) keeps the original flag, so an on-time register never
+-- flips to LATE because someone edited a mark after the window closed.
+drop function if exists public.save_register(uuid, date, jsonb);
+
 create or replace function public.save_register(
-  p_class_id uuid,
-  p_date     date,
-  p_marks    jsonb
+  p_class_id           uuid,
+  p_date               date,
+  p_marks              jsonb,
+  p_period             int default 0,
+  p_timetable_slot_id  uuid default null
 )
 returns jsonb
 language plpgsql
@@ -330,6 +373,9 @@ set search_path = public
 as $$
 declare
   v_class  public.classes%rowtype;
+  v_slot   public.timetable_slots%rowtype;
+  v_late_minutes int;
+  v_is_late boolean := false;
   v_sid    uuid;
   v_mark   jsonb;
   v_student uuid;
@@ -343,12 +389,41 @@ begin
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'unknown_class');
   end if;
-  perform public._assert_school_staff_with_perm(v_class.school_id, 'register_absences');
+  perform public._assert_school_staff_with_perm(v_class.school_id, 'register');
   if p_date is null then
     return jsonb_build_object('ok', false, 'reason', 'date_required');
   end if;
   if jsonb_typeof(p_marks) is distinct from 'array' or coalesce(jsonb_array_length(p_marks), 0) = 0 then
     return jsonb_build_object('ok', false, 'reason', 'no_marks');
+  end if;
+
+  -- A slot was supplied: it must belong to the class's school and be a
+  -- slot for this class. The slot's period always wins over p_period.
+  if p_timetable_slot_id is not null then
+    select * into v_slot from public.timetable_slots
+     where id = p_timetable_slot_id and school_id = v_class.school_id;
+    if not found then
+      return jsonb_build_object('ok', false, 'reason', 'unknown_slot');
+    end if;
+    if v_slot.class_id <> p_class_id then
+      return jsonb_build_object('ok', false, 'reason', 'slot_mismatch');
+    end if;
+    p_period := v_slot.period;
+  end if;
+
+  -- Late window: minutes after the lesson's scheduled start (from
+  -- school_settings, default 20). Only timetable-driven registers are
+  -- ever flagged; ad-hoc (slotless) ones are not.
+  if v_slot.id is not null then
+    select coalesce(ss.register_late_minutes, 20)
+      into v_late_minutes
+      from public.school_settings ss
+     where ss.school_id = v_class.school_id;
+    if v_late_minutes is null then
+      v_late_minutes := 20;
+    end if;
+    v_is_late := now() > (p_date + v_slot.start_time)::timestamp
+                       + make_interval(mins => v_late_minutes);
   end if;
 
   -- Validate the payload up-front so a bad row can't half-save.
@@ -360,10 +435,18 @@ begin
     end if;
   end loop;
 
-  insert into public.register_sessions (school_id, class_id, session_date, taken_by)
-  values (v_class.school_id, p_class_id, p_date, auth.uid())
-  on conflict (class_id, session_date) do update
-    set taken_by = auth.uid()
+  insert into public.register_sessions (
+    school_id, class_id, session_date, taken_by,
+    period, timetable_slot_id, submitted_at, is_late
+  ) values (
+    v_class.school_id, p_class_id, p_date, auth.uid(),
+    coalesce(p_period, 0), v_slot.id, now(), v_is_late
+  )
+  on conflict (class_id, session_date, period) do update
+    set taken_by          = auth.uid(),
+        timetable_slot_id = excluded.timetable_slot_id,
+        submitted_at      = now(),
+        is_late           = public.register_sessions.is_late  -- sticky
   returning id into v_sid;
 
   -- Remove marks for students no longer in the payload.
@@ -392,16 +475,22 @@ begin
     end if;
   end loop;
 
-  return jsonb_build_object('ok', true, 'session_id', v_sid);
+  select s.is_late into v_is_late from public.register_sessions s where s.id = v_sid;
+
+  return jsonb_build_object('ok', true, 'session_id', v_sid, 'is_late', v_is_late);
 end;
 $$;
-grant execute on function public.save_register(uuid, date, jsonb) to authenticated;
+grant execute on function public.save_register(uuid, date, jsonb, int, uuid) to authenticated;
 
--- get_register — the roster for a class with any saved marks for the date
--- merged in (status is null when the student hasn't been marked).
+-- get_register — the roster for a class with any saved marks for the
+-- date + period merged in (status is null when the student hasn't
+-- been marked).
+drop function if exists public.get_register(uuid, date);
+
 create or replace function public.get_register(
   p_class_id uuid,
-  p_date     date
+  p_date     date,
+  p_period   int default 0
 )
 returns table (
   student_user_id uuid,
@@ -425,6 +514,7 @@ as $$
     join auth.users u on u.id = cm.student_user_id
     left join public.register_sessions s
       on s.class_id = cm.class_id and s.session_date = p_date
+     and s.period = coalesce(p_period, 0)
     left join public.register_marks m
       on m.session_id = s.id and m.student_user_id = cm.student_user_id
    where cm.class_id = p_class_id
@@ -437,9 +527,13 @@ as $$
      )
    order by p.full_name asc;
 $$;
-grant execute on function public.get_register(uuid, date) to authenticated;
+grant execute on function public.get_register(uuid, date, int) to authenticated;
 
 -- list_recent_registers — the last N saved sessions with their counts.
+-- Return type changed (period / is_late / submitted_at added), so the
+-- old version must be dropped first.
+drop function if exists public.list_recent_registers(uuid, int);
+
 create or replace function public.list_recent_registers(
   p_school_id uuid,
   p_limit     int default 20
@@ -448,6 +542,9 @@ returns table (
   class_id       uuid,
   class_name     text,
   session_date   date,
+  period         int,
+  is_late        boolean,
+  submitted_at   timestamptz,
   present        int,
   late           int,
   absent         int,
@@ -462,6 +559,9 @@ as $$
   select s.class_id,
          c.name as class_name,
          s.session_date,
+         s.period,
+         s.is_late,
+         s.submitted_at,
          count(*) filter (where m.status = 'present')::int,
          count(*) filter (where m.status = 'late')::int,
          count(*) filter (where m.status = 'absent')::int,
@@ -479,11 +579,91 @@ as $$
           and me.school_id = p_school_id
           and me.role in ('teacher','school_organiser')
      )
-   group by s.class_id, c.name, s.session_date, s.taken_by, tp.full_name, tu.email
-   order by s.session_date desc, c.name asc
+   group by s.class_id, c.name, s.session_date, s.period, s.is_late,
+            s.submitted_at, s.taken_by, tp.full_name, tu.email
+   order by s.session_date desc, s.period asc, c.name asc
    limit greatest(coalesce(p_limit, 20), 0);
 $$;
 grant execute on function public.list_recent_registers(uuid, int) to authenticated;
+
+-- list_day_lessons — every timetable slot for a school on p_date,
+-- joined to any register already saved for that (class, date, period).
+-- p_teacher_user_id narrows to one teacher's timetable (null = whole
+-- school — used by the organiser view). Day matching is isodow-based
+-- so Monday=1 → 0 matches timetable_slots.day_of_week.
+create or replace function public.list_day_lessons(
+  p_school_id        uuid,
+  p_date             date default current_date,
+  p_teacher_user_id  uuid default null
+)
+returns table (
+  slot_id         uuid,
+  class_id        uuid,
+  class_name      text,
+  teacher_user_id uuid,
+  teacher_name    text,
+  period          int,
+  start_time      time,
+  end_time        time,
+  room            text,
+  label           text,
+  session_id      uuid,
+  is_late         boolean,
+  submitted_at    timestamptz,
+  present         int,
+  absent          int,
+  excused         int
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select t.id                as slot_id,
+         t.class_id,
+         c.name              as class_name,
+         t.teacher_user_id,
+         coalesce(tp.full_name, tu.email::text, '') as teacher_name,
+         t.period,
+         t.start_time,
+         t.end_time,
+         t.room,
+         t.label,
+         s.id                as session_id,
+         s.is_late,
+         s.submitted_at,
+         coalesce(rm.present, 0),
+         coalesce(rm.absent, 0),
+         coalesce(rm.excused, 0)
+    from public.timetable_slots t
+    join public.classes c on c.id = t.class_id
+    left join public.profiles tp on tp.id = t.teacher_user_id
+    left join auth.users tu on tu.id = t.teacher_user_id
+    left join public.register_sessions s
+      on s.class_id = t.class_id
+     and s.session_date = p_date
+     and s.period = t.period
+     and s.school_id = t.school_id
+    left join (
+      select m.session_id,
+             count(*) filter (where m.status = 'present')::int as present,
+             count(*) filter (where m.status = 'absent')::int  as absent,
+             count(*) filter (where m.status = 'excused')::int as excused
+        from public.register_marks m
+       group by m.session_id
+    ) rm on rm.session_id = s.id
+   where t.school_id = p_school_id
+     and t.day_of_week = (extract(isodow from p_date) - 1)::int
+     and (p_teacher_user_id is null or t.teacher_user_id = p_teacher_user_id)
+     and exists (
+       select 1 from public.profiles me
+        where me.id = auth.uid()
+          and me.school_id = p_school_id
+          and me.role in ('teacher','school_organiser')
+     )
+   order by t.period asc, t.start_time asc;
+$$;
+grant execute on function public.list_day_lessons(uuid, date, uuid) to authenticated;
 
 -- ============================================================================
 -- 4. ABSENCE RPCs
@@ -506,7 +686,7 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   end if;
-  perform public._assert_school_staff_with_perm(p_school_id, 'register_absences');
+  perform public._assert_school_staff_with_perm(p_school_id, 'absences');
   if p_start_date is null or p_end_date is null then
     return jsonb_build_object('ok', false, 'reason', 'dates_required');
   end if;
@@ -629,7 +809,7 @@ create or replace function public.log_behaviour_incident(
   p_student_user_id uuid,
   p_severity        text,
   p_category        text default 'other',
-  p_note            text,
+  p_note            text default null,
   p_class_id        uuid default null
 )
 returns jsonb
@@ -643,7 +823,7 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   end if;
-  perform public._assert_school_staff_with_perm(p_school_id, 'behaviour_praise');
+  perform public._assert_school_staff_with_perm(p_school_id, 'behaviour');
   if p_severity not in ('low','medium','high') then
     return jsonb_build_object('ok', false, 'reason', 'invalid_severity');
   end if;
@@ -787,7 +967,7 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   end if;
-  perform public._assert_school_staff_with_perm(p_school_id, 'behaviour_praise');
+  perform public._assert_school_staff_with_perm(p_school_id, 'praise');
   if p_points is null or p_points < 1 or p_points > 10 then
     return jsonb_build_object('ok', false, 'reason', 'invalid_points');
   end if;
@@ -903,10 +1083,10 @@ create or replace function public.upsert_timetable_slot(
   p_slot_id         uuid default null,
   p_class_id        uuid default null,
   p_teacher_user_id uuid default null,
-  p_day_of_week     int,
-  p_period          int,
-  p_start_time      time,
-  p_end_time        time,
+  p_day_of_week     int default null,
+  p_period          int default null,
+  p_start_time      time default null,
+  p_end_time        time default null,
   p_room            text default null,
   p_label           text default null
 )
@@ -921,7 +1101,7 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   end if;
-  perform public._assert_school_staff(p_school_id);
+  perform public._assert_school_staff_with_perm(p_school_id, 'timetable');
   if p_day_of_week is null or p_day_of_week not between 0 and 6 then
     return jsonb_build_object('ok', false, 'reason', 'invalid_day');
   end if;
@@ -1011,7 +1191,7 @@ begin
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'unknown_slot');
   end if;
-  perform public._assert_school_staff(v_slot.school_id);
+  perform public._assert_school_staff_with_perm(v_slot.school_id, 'timetable');
   delete from public.timetable_slots where timetable_slots.id = p_slot_id;
   return jsonb_build_object('ok', true);
 end;
@@ -1077,8 +1257,8 @@ create or replace function public.post_announcement(
   p_school_id uuid,
   p_class_id   uuid default null,
   p_audience   text default 'everyone',
-  p_title      text,
-  p_body       text
+  p_title      text default null,
+  p_body       text default null
 )
 returns jsonb
 language plpgsql
@@ -1093,7 +1273,7 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   end if;
-  perform public._assert_school_staff_with_perm(p_school_id, 'ops_announcements');
+  perform public._assert_school_staff_with_perm(p_school_id, 'announcements');
   if coalesce(p_audience, 'everyone') not in ('everyone','staff','students','class') then
     return jsonb_build_object('ok', false, 'reason', 'invalid_audience');
   end if;
@@ -1254,7 +1434,7 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   end if;
-  perform public._assert_school_organiser(p_school_id);
+  perform public._assert_school_staff_with_perm(p_school_id, 'resources');
   if nullif(trim(coalesce(p_name, '')), '') is null then
     return jsonb_build_object('ok', false, 'reason', 'name_required');
   end if;
@@ -1290,7 +1470,7 @@ begin
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'unknown_resource');
   end if;
-  perform public._assert_school_organiser(v_r.school_id);
+  perform public._assert_school_staff_with_perm(v_r.school_id, 'resources');
   delete from public.resources where resources.id = p_resource_id;
   return jsonb_build_object('ok', true);
 end;
@@ -1316,7 +1496,7 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   end if;
-  perform public._assert_school_staff_with_perm(p_school_id, 'ops_announcements');
+  perform public._assert_school_staff_with_perm(p_school_id, 'booking');
   if not exists (
     select 1 from public.resources where id = p_resource_id and school_id = p_school_id
   ) then
@@ -1491,7 +1671,7 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   end if;
-  perform public._assert_school_staff_with_perm(p_school_id, 'ops_announcements');
+  perform public._assert_school_staff_with_perm(p_school_id, 'clubs');
   if nullif(trim(coalesce(p_name, '')), '') is null then
     return jsonb_build_object('ok', false, 'reason', 'name_required');
   end if;
@@ -1529,7 +1709,7 @@ begin
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'unknown_club');
   end if;
-  perform public._assert_school_staff_with_perm(v_club.school_id, 'ops_announcements');
+  perform public._assert_school_staff_with_perm(v_club.school_id, 'clubs');
   update public.clubs
      set name         = coalesce(nullif(trim(p_name), ''), name),
          description  = nullif(trim(coalesce(p_description, '')), ''),
@@ -1559,7 +1739,7 @@ begin
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'unknown_club');
   end if;
-  perform public._assert_school_staff_with_perm(v_club.school_id, 'ops_announcements');
+  perform public._assert_school_staff_with_perm(v_club.school_id, 'clubs');
   delete from public.clubs where clubs.id = p_club_id;
   return jsonb_build_object('ok', true);
 end;
@@ -1586,7 +1766,7 @@ begin
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'unknown_club');
   end if;
-  perform public._assert_school_staff_with_perm(v_club.school_id, 'ops_announcements');
+  perform public._assert_school_staff_with_perm(v_club.school_id, 'clubs');
   insert into public.club_members (club_id, student_user_id, added_by)
   select p_club_id, sid, auth.uid()
     from unnest(p_student_user_ids) sid
@@ -1621,7 +1801,7 @@ begin
   if not found then
     return jsonb_build_object('ok', false, 'reason', 'unknown_club');
   end if;
-  perform public._assert_school_staff_with_perm(v_club.school_id, 'ops_announcements');
+  perform public._assert_school_staff_with_perm(v_club.school_id, 'clubs');
   delete from public.club_members
    where club_id = p_club_id and student_user_id = p_student_user_id;
   return jsonb_build_object('ok', true);
@@ -1735,7 +1915,7 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
   end if;
-  perform public._assert_school_staff(p_school_id);
+  perform public._assert_school_staff_with_perm(p_school_id, 'analytics');
 
   select count(*) filter (where m.status = 'present'),
          count(*) filter (where m.status = 'late'),
@@ -1766,6 +1946,20 @@ begin
     'ok', true,
     'days', v_days,
     'since', v_since,
+    -- Register submissions in the window: how many registers were
+    -- taken, how many were flagged late (submitted past the school's
+    -- late window) and how many were ad-hoc (not tied to a timetable
+    -- lesson). is_late is sticky — set on first submission only.
+    'registers', (
+      select jsonb_build_object(
+               'submitted', count(*)::int,
+               'late',      count(*) filter (where s.is_late)::int,
+               'ad_hoc',    count(*) filter (where s.timetable_slot_id is null)::int
+             )
+        from public.register_sessions s
+       where s.school_id = p_school_id
+         and s.session_date >= v_since
+    ),
     'attendance', jsonb_build_object(
       'present',  v_att_present,
       'late',     v_att_late,

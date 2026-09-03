@@ -284,6 +284,17 @@
     $('schoolPill').textContent = school ? school.name : '—';
     $('sub').textContent = school ? `Key numbers for ${school.name}.` : 'School analytics.';
 
+    try {
+      const { data: settings } = await supabaseClient.rpc('get_school_settings', {
+        p_school_id: school.id,
+      });
+      if (settings && settings.ok === true) state.settings = settings;
+    } catch (_) { /* fail open: organisers may not have re-run migrations */ }
+    if (state.settings && state.settings.perms?.analytics === false) {
+      renderGate('Permission needed', 'Your role doesn\'t include this permission. Ask your organiser to update it under School Settings.');
+      return;
+    }
+
     function unhideSignOut() {
       const btn = $('signOutBtn');
       if (!btn) { setTimeout(unhideSignOut, 30); return; }
@@ -380,6 +391,7 @@
     const pr = d.praise || {};
     const bh = d.behaviour || {};
     const hw = d.homework || {};
+    const rg = d.registers || {};
     const since = d.since ? new Date(d.since + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—';
 
     const kpis = `
@@ -399,6 +411,10 @@
         <div class="kpi">
           <div class="num ${pctClass(hw.completion_pct)}">${hw.completion_pct != null ? hw.completion_pct + '%' : '—'}</div>
           <div class="lbl">Homework completion${hw.completion_pct != null ? ` (${hw.done}/${hw.total})` : ''}</div>
+        </div>
+        <div class="kpi">
+          <div class="num ${rg.late ? 'warn' : ''}">${rg.submitted ?? 0}</div>
+          <div class="lbl">Registers taken${rg.submitted ? ` (${rg.late || 0} late · ${rg.ad_hoc || 0} ad-hoc)` : ''}</div>
         </div>
       </div>
     `;

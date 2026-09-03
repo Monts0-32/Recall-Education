@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Register — Recall</title>
   <link rel="icon" type="image/png" href="favicon.png" />
-  <meta name="description" content="Take the attendance register for your classes." />
+  <meta name="description" content="Take the attendance register for your classes and lessons." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -80,6 +80,7 @@
       padding: 8px 12px; font-family: inherit; font-size: 13.5px; outline: none;
     }
     select:focus, input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+    select:disabled, input:disabled { opacity: 0.65; cursor: not-allowed; }
 
     .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
     .kpi { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 16px; }
@@ -88,6 +89,29 @@
     .kpi .num.green { color: var(--green); }
     .kpi .num.yellow { color: var(--yellow); }
     .kpi .num.red { color: var(--red); }
+
+    /* Today's lessons */
+    .lesson-row {
+      display: grid; grid-template-columns: 44px 96px 1fr auto;
+      gap: 14px; align-items: center;
+      padding: 12px 18px; border-bottom: 1px solid var(--line);
+      font-size: 13px; cursor: pointer;
+    }
+    .lesson-row:last-child { border-bottom: none; }
+    .lesson-row:hover { background: var(--bg-3); }
+    .lesson-row .period {
+      width: 40px; text-align: center; padding: 3px 0;
+      background: var(--blue-dim); border: 1px solid rgba(56,139,253,0.35);
+      border-radius: var(--r-sm); color: var(--blue);
+      font-weight: 700; font-size: 12px;
+    }
+    .lesson-row .time { color: var(--text-3); font-variant-numeric: tabular-nums; }
+    .lesson-row .cls { color: var(--text); font-weight: 600; }
+    .lesson-row .meta { color: var(--text-4); font-size: 11.5px; margin-top: 2px; }
+    .status-chip { font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 600; white-space: nowrap; }
+    .status-chip.todo { border: 1px solid var(--line-2); color: var(--text-3); }
+    .status-chip.done { border: 1px solid var(--green); color: var(--green); background: var(--green-dim); }
+    .status-chip.late { border: 1px solid var(--red); color: var(--red); background: var(--red-dim); }
 
     .roster { display: flex; flex-direction: column; }
     .mark-row {
@@ -114,11 +138,13 @@
 
     .empty { padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px; }
 
-    .recent-row { display: grid; grid-template-columns: 1fr 110px 150px; gap: 10px; padding: 9px 18px; border-bottom: 1px solid var(--line); font-size: 12.5px; align-items: center; }
+    .recent-row { display: grid; grid-template-columns: 1fr 84px 104px 150px; gap: 10px; padding: 9px 18px; border-bottom: 1px solid var(--line); font-size: 12.5px; align-items: center; }
     .recent-row:last-child { border-bottom: none; }
     .recent-row .cls { color: var(--text); font-weight: 600; }
     .recent-row .date { color: var(--text-3); }
     .recent-row .counts { color: var(--text-2); text-align: right; }
+    .pchip { padding: 1px 7px; border-radius: 999px; font-size: 10.5px; background: var(--bg-3); border: 1px solid var(--line-2); color: var(--text-3); margin-left: 6px; white-space: nowrap; }
+    .late-badge { padding: 1px 7px; border-radius: 999px; font-size: 10.5px; background: var(--red-dim); border: 1px solid var(--red); color: var(--red); margin-left: 6px; font-weight: 700; letter-spacing: 0.04em; }
 
     .gate { max-width: 520px; margin: 80px auto; padding: 32px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); text-align: center; }
     .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
@@ -128,12 +154,15 @@
     .toast { background: var(--bg-3); border: 1px solid var(--line-2); color: var(--text); padding: 10px 14px; border-radius: var(--r-sm); font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: toast-in 0.2s ease; }
     .toast.success { border-color: var(--green); }
     .toast.error   { border-color: var(--red); }
+    .toast.warn    { border-color: var(--yellow); }
     @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
     @media (max-width: 700px) {
       .kpis { grid-template-columns: repeat(2, 1fr); }
-      .recent-row { grid-template-columns: 1fr 110px; }
-      .recent-row .counts { text-align: left; grid-column: 1 / -1; }
+      .lesson-row { grid-template-columns: 44px 1fr auto; }
+      .lesson-row .time { display: none; }
+      .recent-row { grid-template-columns: 1fr 104px 150px; }
+      .recent-row .date { display: none; }
     }
     a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
   </style>
@@ -161,13 +190,34 @@
     </div>
   </div>
 
-  <div class="card" id="pickerCard">
+  <!-- Scheduled lessons for the chosen day, from the timetable -->
+  <div class="card" id="lessonsCard">
     <div class="card-head">
       <div>
-        <h3>Take the register</h3>
-        <div class="sub">Pick a class and date, mark each student, then save.</div>
+        <h3 id="lessonsTitle">Lessons</h3>
+        <div class="sub" id="lessonsSub">Submit each register within the late window to avoid a LATE flag.</div>
       </div>
-      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <input type="date" id="lessonDate" aria-label="Lesson date" />
+      </div>
+    </div>
+    <div id="lessonList">
+      <div class="empty">Loading…</div>
+    </div>
+    <div class="card-body" style="border-top: 1px solid var(--line); padding: 12px 18px;">
+      <button class="btn-secondary" id="manualBtn" type="button">Register another class (ad-hoc)</button>
+    </div>
+  </div>
+
+  <!-- Register editor (lesson mode or ad-hoc manual mode) -->
+  <div class="card" id="pickerCard" hidden>
+    <div class="card-head">
+      <div>
+        <h3 id="editorTitle">Take the register</h3>
+        <div class="sub" id="editorContext">—</div>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <button class="btn-ghost" id="backBtn" type="button">← Lessons</button>
         <select id="classSelect" aria-label="Class"></select>
         <input type="date" id="dateInput" aria-label="Date" />
         <button class="btn-secondary" id="allPresentBtn" type="button">Mark all present</button>
@@ -175,7 +225,7 @@
       </div>
     </div>
     <div class="roster" id="roster">
-      <div class="empty">Pick a class to load its roster.</div>
+      <div class="empty">Pick a lesson or class to load its roster.</div>
     </div>
   </div>
 
@@ -233,20 +283,36 @@
     const d = new Date(iso + (String(iso).length === 10 ? 'T00:00:00' : ''));
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   }
+  function fmtTime(t) {
+    // "09:30:00" → "09:30"
+    return (t || '').slice(0, 5) || '—';
+  }
+  function fmtSubmitted(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  }
   function toast(msg, kind = '') {
     const t = document.createElement('div');
     t.className = 'toast ' + kind;
     t.textContent = msg;
     $('toastWrap').appendChild(t);
-    setTimeout(() => t.remove(), 3200);
+    setTimeout(() => t.remove(), 3600);
   }
 
   const state = {
     user: null,
     school: null,
     settings: null,
+    isOrganiser: false,
     classes: [],
-    roster: [],   // [{student_user_id, full_name, year_group, status, note}]
+    lessons: [],  // today's (or chosen day's) timetable lessons
+    roster: [],    // [{student_user_id, full_name, year_group, status, note}]
+    // editor context:
+    mode: 'lessons', // 'lessons' | 'lesson' | 'manual'
+    lesson: null,    // selected lesson row (lesson mode)
+    period: 0,       // 0 = ad-hoc; lesson mode sets the slot's period
+    slotId: null,    // timetable_slot_id (lesson mode only)
     dirty: false,
   };
 
@@ -334,8 +400,11 @@
       });
       if (settings && settings.ok === true) state.settings = settings;
     } catch (_) {}
-    if (state.settings && state.settings.perms?.register_absences === false) {
-      renderGate('Permission needed', 'Your school organiser has disabled this tool. Ask them to enable it under School Settings.');
+    // Prefer the server's view — the JWT role can be stale right after
+    // an ownership transfer.
+    state.isOrganiser = state.settings?.is_organiser === true || role === 'school_organiser';
+    if (state.settings && state.settings.perms?.register === false) {
+      renderGate('Permission needed', 'Your role doesn\'t include this permission. Ask your organiser to update it under School Settings.');
       return;
     }
 
@@ -346,13 +415,13 @@
     }
     unhideSignOut();
 
-    await Promise.all([loadClasses(), loadRecent()]);
-    if (state.classes.length) {
-      $('classSelect').value = state.classes[0].id;
-      await loadRoster();
-    } else {
-      $('roster').innerHTML = `<div class="empty">No classes yet. Create one on the <a href="classes.html">Classes page</a> first.</div>`;
+    const lateMins = state.settings?.register_late_minutes;
+    if (typeof lateMins === 'number') {
+      $('lessonsSub').textContent =
+        `Submit each register within ${lateMins} minute${lateMins === 1 ? '' : 's'} of the lesson start to avoid a LATE flag.`;
     }
+
+    await Promise.all([loadClasses(), loadRecent(), loadLessons()]);
 
     mountHeaderExtras(profile || { id: state.user.id, full_name: (state.user.user_metadata || {}).full_name || '', role, avatar_url: null });
   }
@@ -374,6 +443,127 @@
         window.recallChat.mount({ supabaseClient, user: state.user, profile: profileRow });
       } catch (e) { console.error('chat mount failed:', e); }
     }
+  }
+
+  // ---------- today's lessons ----------
+  async function loadLessons() {
+    const date = $('lessonDate').value;
+    if (!date) return;
+    $('lessonList').innerHTML = `<div class="empty">Loading lessons…</div>`;
+    try {
+      const { data, error } = await supabaseClient.rpc('list_day_lessons', {
+        p_school_id: state.school.id,
+        p_date: date,
+        // Organisers see the whole school's timetable; teachers see theirs.
+        p_teacher_user_id: state.isOrganiser ? null : state.user.id,
+      });
+      if (error) {
+        $('lessonList').innerHTML = `<div class="empty">Couldn't load lessons${error.message ? ': ' + escapeHtml(error.message) : ''}.</div>`;
+        return;
+      }
+      state.lessons = data || [];
+      renderLessons();
+    } catch (e) {
+      $('lessonList').innerHTML = `<div class="empty">Couldn't load lessons.</div>`;
+    }
+  }
+
+  function renderLessons() {
+    const list = $('lessonList');
+    const d = new Date($('lessonDate').value + 'T00:00:00');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const title = d.getTime() === today.getTime() ? "Today's lessons"
+      : d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' }) + ' lessons';
+    $('lessonsTitle').textContent = title;
+
+    if (!state.lessons.length) {
+      list.innerHTML = `<div class="empty">No lessons scheduled for this date. Check the date, build the timetable, or take an ad-hoc register below.</div>`;
+      return;
+    }
+    list.innerHTML = state.lessons.map((l, i) => {
+      const chip = l.session_id
+        ? (l.is_late
+            ? `<span class="status-chip late">LATE</span>`
+            : `<span class="status-chip done">Submitted${l.submitted_at ? ' ' + fmtSubmitted(l.submitted_at) : ''}</span>`)
+        : `<span class="status-chip todo">Not submitted</span>`;
+      const metaBits = [
+        l.room ? 'Room ' + escapeHtml(l.room) : null,
+        l.label ? escapeHtml(l.label) : null,
+        state.isOrganiser && l.teacher_name ? '👤 ' + escapeHtml(l.teacher_name) : null,
+        l.session_id ? `${l.present}P · ${l.absent}A · ${l.excused}E` : null,
+      ].filter(Boolean).join(' · ');
+      return `
+        <div class="lesson-row" data-i="${i}" role="button" tabindex="0" title="Take this register">
+          <div class="period">P${escapeHtml(String(l.period))}</div>
+          <div class="time">${fmtTime(l.start_time)}–${fmtTime(l.end_time)}</div>
+          <div>
+            <div class="cls">${escapeHtml(l.class_name)}</div>
+            ${metaBits ? `<div class="meta">${metaBits}</div>` : ''}
+          </div>
+          <div>${chip}</div>
+        </div>
+      `;
+    }).join('');
+    list.querySelectorAll('.lesson-row').forEach(row => {
+      const open = () => openLesson(state.lessons[Number(row.dataset.i)]);
+      row.addEventListener('click', open);
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+      });
+    });
+  }
+
+  // ---------- editor (lesson / manual) ----------
+  function showEditor(contextTitle, contextSub) {
+    $('lessonsCard').hidden = true;
+    $('pickerCard').hidden = false;
+    $('editorTitle').textContent = contextTitle;
+    $('editorContext').textContent = contextSub;
+  }
+
+  function openLesson(l) {
+    state.mode = 'lesson';
+    state.lesson = l;
+    state.period = l.period;
+    state.slotId = l.slot_id;
+    $('classSelect').value = l.class_id;
+    $('dateInput').value = $('lessonDate').value;
+    $('classSelect').disabled = true;
+    $('dateInput').disabled = true;
+    // showEditor sets textContent, so pass raw strings (no escaping).
+    showEditor(
+      `P${l.period} · ${l.class_name}`,
+      `${fmtTime(l.start_time)}–${fmtTime(l.end_time)}${l.room ? ' · Room ' + l.room : ''}${l.label ? ' · ' + l.label : ''} · ${$('lessonDate').value}`
+    );
+    loadRoster();
+  }
+
+  function openManual() {
+    state.mode = 'manual';
+    state.lesson = null;
+    state.period = 0;
+    state.slotId = null;
+    $('classSelect').disabled = false;
+    $('dateInput').disabled = false;
+    showEditor('Ad-hoc register', 'Not tied to a timetable lesson — never flagged as late.');
+    if (state.classes.length) {
+      $('classSelect').value = state.classes[0].id;
+      loadRoster();
+    } else {
+      $('roster').innerHTML = `<div class="empty">No classes yet. Create one on the <a href="classes.html">Classes page</a> first.</div>`;
+    }
+  }
+
+  function backToLessons() {
+    state.mode = 'lessons';
+    state.lesson = null;
+    state.period = 0;
+    state.slotId = null;
+    state.dirty = false;
+    $('pickerCard').hidden = true;
+    $('lessonsCard').hidden = false;
+    $('kpiRow').hidden = true;
+    loadLessons();
   }
 
   // ---------- data ----------
@@ -408,8 +598,13 @@
       }
       $('recentList').innerHTML = rows.map(r => `
         <div class="recent-row">
-          <div class="cls">${escapeHtml(r.class_name)}</div>
+          <div class="cls">
+            ${escapeHtml(r.class_name)}
+            <span class="pchip">${r.period ? 'P' + escapeHtml(String(r.period)) : 'Ad-hoc'}</span>
+            ${r.is_late ? '<span class="late-badge">LATE</span>' : ''}
+          </div>
           <div class="date">${fmtDate(r.session_date)}</div>
+          <div class="date">${r.submitted_at ? fmtSubmitted(r.submitted_at) : '—'}</div>
           <div class="counts">
             <span style="color: var(--green);">${r.present}P</span>
             <span style="color: var(--yellow); margin-left: 6px;">${r.late}L</span>
@@ -431,7 +626,7 @@
     $('saveBtn').disabled = true;
     $('kpiRow').hidden = true;
     const { data, error } = await supabaseClient.rpc('get_register', {
-      p_class_id: classId, p_date: date,
+      p_class_id: classId, p_date: date, p_period: state.period,
     });
     if (error) {
       $('roster').innerHTML = `<div class="empty">Couldn't load the roster: ${escapeHtml(error.message)}</div>`;
@@ -499,7 +694,11 @@
   }
 
   // ---------- events ----------
+  $('lessonDate').valueAsDate = new Date();
   $('dateInput').valueAsDate = new Date();
+  $('lessonDate').addEventListener('change', loadLessons);
+  $('manualBtn').addEventListener('click', openManual);
+  $('backBtn').addEventListener('click', backToLessons);
   $('classSelect').addEventListener('change', loadRoster);
   $('dateInput').addEventListener('change', loadRoster);
 
@@ -528,17 +727,32 @@
         p_marks: state.roster.map(m => ({
           student_user_id: m.student_user_id, status: m.status,
         })),
+        p_period: state.period,
+        p_timetable_slot_id: state.slotId,
       });
       if (error) throw error;
       if (data && data.ok !== true) throw new Error(data.reason || 'failed');
       state.dirty = false;
-      toast('Register saved.', 'success');
+      // The server decides lateness (sticky on first submission).
+      if (data && data.is_late === true) {
+        toast('Register saved — flagged as submitted late.', 'warn');
+      } else {
+        toast('Register saved.', 'success');
+      }
+      if (state.lesson) {
+        state.lesson.session_id = data.session_id;
+        state.lesson.is_late = data.is_late === true;
+        state.lesson.submitted_at = new Date().toISOString();
+        state.lesson.present = state.roster.filter(m => m.status === 'present').length;
+        state.lesson.absent = state.roster.filter(m => m.status === 'absent').length;
+        state.lesson.excused = state.roster.filter(m => m.status === 'excused').length;
+      }
       renderKpis();
-      await loadRecent();
+      await Promise.all([loadRecent(), loadLessons()]);
     } catch (err) {
       const reason = String(err.message || err);
-      if (reason.includes('register_absences')) {
-        toast('Your organiser has disabled register access for teachers.', 'error');
+      if (reason.includes('permission register')) {
+        toast('Your role doesn\'t include this permission. Ask your organiser to update it under School Settings.', 'error');
       } else {
         toast('Couldn\'t save: ' + reason, 'error');
       }

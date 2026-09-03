@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>School settings — Recall</title>
   <link rel="icon" type="image/png" href="favicon.png" />
-  <meta name="description" content="Control what teachers at your school can do." />
+  <meta name="description" content="Roles, permissions and settings for your school." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -33,6 +33,7 @@
       --red:       #F85149;
       --red-dim:   rgba(248,81,73,0.12);
       --purple:    #A371F7;
+      --purple-dim:rgba(163,113,247,0.12);
       --r-sm: 6px;
       --r-md: 8px;
     }
@@ -56,133 +57,114 @@
     .crumbs .sep { color: var(--text-4); margin: 0 6px; }
     .crumbs .current { color: var(--text); font-weight: 600; }
 
-    .head-bar {
-      display: flex; align-items: center; gap: 12px;
-      margin-bottom: 18px;
-    }
+    .head-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
     .head-bar h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
     .head-bar .sub { color: var(--text-3); font-size: 13.5px; margin: 0; }
     .head-bar .grow { flex: 1; }
     .head-bar .right { display: flex; align-items: center; gap: 8px; }
-    .pill {
-      padding: 2px 10px; background: var(--bg-2); border: 1px solid var(--line);
-      border-radius: 999px; font-size: 12px; color: var(--text-2);
-    }
+    .pill { padding: 2px 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--text-2); }
 
-    .card {
-      background: var(--bg-2);
-      border: 1px solid var(--line);
-      border-radius: var(--r-md);
-      overflow: hidden;
-      margin-bottom: 18px;
-    }
-    .card-head {
-      padding: 14px 18px;
-      display: flex; justify-content: space-between; align-items: center;
-      border-bottom: 1px solid var(--line);
-    }
+    .card { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; margin-bottom: 18px; }
+    .card-head { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); gap: 10px; flex-wrap: wrap; }
     .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
     .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .card-body { padding: 16px 18px; }
 
-    .btn-ghost {
-      background: transparent; color: var(--text-2);
-      border: 1px solid var(--line-2);
-      padding: 7px 14px; border-radius: var(--r-sm);
-      font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
-    }
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--line-2); padding: 7px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
     .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
-    .btn-primary {
-      background: var(--blue); color: #fff;
-      padding: 8px 14px; border-radius: var(--r-sm);
-      font-family: inherit; font-size: 13px; font-weight: 600;
-      border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block;
-    }
+    .btn-primary { background: var(--blue); color: #fff; padding: 8px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block; }
     .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,81,73,0.4); padding: 8px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-danger:hover { border-color: var(--red); background: rgba(248,81,73,0.2); }
+    .mini-btn { background: transparent; border: 1px solid var(--line-2); color: var(--text-3); border-radius: var(--r-sm); font-family: inherit; font-size: 11.5px; padding: 3px 9px; cursor: pointer; }
+    .mini-btn:hover { color: var(--text); border-color: var(--line-3); }
+    .mini-btn.danger:hover { color: var(--red); border-color: var(--red); }
 
-    .intro {
-      padding: 14px 18px;
-      color: var(--text-2); font-size: 13.5px;
-      background: var(--blue-pale);
-      border-bottom: 1px solid var(--line);
+    select, input {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      padding: 8px 12px; font-family: inherit; font-size: 13.5px; outline: none;
     }
+    select:focus, input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+    input[type="checkbox"] { accent-color: var(--blue); }
+
+    .intro { padding: 14px 18px; color: var(--text-2); font-size: 13.5px; background: var(--blue-pale); border-bottom: 1px solid var(--line); }
     .intro b { color: var(--text); }
 
-    /* toggle rows */
-    .perm-list { display: flex; flex-direction: column; }
-    .perm-row {
-      display: grid;
-      grid-template-columns: 1fr 54px;
-      gap: 16px; align-items: center;
-      padding: 16px 18px;
-      border-bottom: 1px solid var(--line);
-    }
-    .perm-row:last-child { border-bottom: none; }
-    .perm-row .title { color: var(--text); font-weight: 600; font-size: 14px; }
-    .perm-row .desc { color: var(--text-3); font-size: 12.5px; margin-top: 3px; }
+    .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-row label { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+    .form-row .hint { font-size: 11.5px; color: var(--text-4); }
 
-    .switch {
-      position: relative; width: 44px; height: 24px;
-      border-radius: 999px; border: 1px solid var(--line-3);
-      background: var(--bg-4); cursor: pointer; padding: 0;
-      transition: background 0.15s ease, border-color 0.15s ease;
-      flex-shrink: 0;
+    /* roles list */
+    .role-list { display: flex; flex-direction: column; }
+    .role-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px; border-bottom: 1px solid var(--line); font-size: 13px;
     }
-    .switch::after {
-      content: '';
-      position: absolute; top: 2px; left: 2px;
-      width: 18px; height: 18px; border-radius: 50%;
-      background: var(--text-3);
-      transition: left 0.15s ease, background 0.15s ease;
-    }
-    .switch[aria-checked="true"] {
-      background: var(--green-dim); border-color: var(--green);
-    }
-    .switch[aria-checked="true"]::after {
-      left: 22px; background: var(--green);
-    }
-    .switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .role-row:last-child { border-bottom: none; }
+    .role-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--line-3); flex-shrink: 0; border: 1px solid var(--line-3); }
+    .role-row .nm { color: var(--text); font-weight: 600; font-size: 14px; }
+    .role-row .meta { color: var(--text-3); font-size: 12px; margin-top: 2px; }
+    .role-row .grow { flex: 1; }
+    .role-row .acts { display: flex; gap: 6px; flex-wrap: wrap; }
 
-    .save-bar {
-      display: flex; align-items: center; gap: 10px;
-      padding: 14px 18px;
-    }
-    .save-bar .hint { color: var(--text-4); font-size: 12px; }
-    .save-bar .grow { flex: 1; }
+    .swatches { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .swatch { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+    .swatch.sel { border-color: var(--text); }
+    .swatch.none { background: var(--bg-4); border: 1px dashed var(--line-3); color: var(--text-3); font-size: 11px; font-family: inherit; }
 
-    .gate {
-      max-width: 520px; margin: 80px auto; padding: 32px;
-      background: var(--bg-2); border: 1px solid var(--line-2);
-      border-radius: var(--r-md); text-align: center;
-    }
+    .perm-checks { display: flex; flex-direction: column; }
+    .perm-check { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; cursor: pointer; }
+    .perm-check:last-child { border-bottom: none; }
+    .perm-check input { margin-top: 3px; }
+    .perm-check .t { color: var(--text); font-weight: 600; }
+    .perm-check .d { color: var(--text-4); font-size: 11.5px; margin-top: 1px; }
+
+    /* modals */
+    .modal-back { position: fixed; inset: 0; background: rgba(1,4,9,0.7); z-index: 100; display: none; align-items: flex-start; justify-content: center; padding: 60px 20px 20px; overflow-y: auto; }
+    .modal-back.open { display: flex; }
+    .modal { background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); width: 100%; max-width: 520px; }
+    .modal-head { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+    .modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .modal-close { background: transparent; border: none; color: var(--text-3); font-size: 20px; cursor: pointer; padding: 0 4px; }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 16px 18px; max-height: 70vh; overflow-y: auto; }
+    .modal-foot { padding: 14px 18px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 10px; }
+
+    .member-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .member-row:last-child { border-bottom: none; }
+    .member-row .avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--bg-4); color: var(--text-2); display: grid; place-items: center; font-weight: 700; font-size: 10.5px; flex-shrink: 0; }
+    .member-row .nm { font-weight: 600; }
+    .member-row .em { color: var(--text-4); font-size: 11px; }
+    .member-row .grow { flex: 1; }
+
+    .picker-list { border: 1px solid var(--line); border-radius: var(--r-sm); max-height: 220px; overflow-y: auto; margin-bottom: 12px; }
+    .picker-row { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+    .picker-row:last-child { border-bottom: none; }
+    .picker-row label { display: flex; align-items: center; gap: 8px; cursor: pointer; width: 100%; }
+
+    .empty { padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+    /* danger zone */
+    .danger-card { border-color: rgba(248,81,73,0.35); }
+    .danger-card .card-head h3 { color: var(--red); }
+
+    .gate { max-width: 520px; margin: 80px auto; padding: 32px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); text-align: center; }
     .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
     .gate p { color: var(--text-2); margin: 0 0 18px; }
 
-    .toast-wrap {
-      position: fixed; bottom: 24px; right: 24px; z-index: 200;
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    .toast {
-      background: var(--bg-3); border: 1px solid var(--line-2);
-      color: var(--text); padding: 10px 14px;
-      border-radius: var(--r-sm); font-size: 13px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      animation: toast-in 0.2s ease;
-    }
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--bg-3); border: 1px solid var(--line-2); color: var(--text); padding: 10px 14px; border-radius: var(--r-sm); font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: toast-in 0.2s ease; }
     .toast.success { border-color: var(--green); }
     .toast.error   { border-color: var(--red); }
-    @keyframes toast-in {
-      from { transform: translateY(8px); opacity: 0; }
-      to   { transform: translateY(0); opacity: 1; }
-    }
+    @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
     @media (max-width: 560px) {
-      .perm-row { grid-template-columns: 1fr 54px; gap: 10px; }
       .head-bar { flex-direction: column; align-items: flex-start; }
+      .role-row { flex-wrap: wrap; }
     }
-    a:focus-visible, button:focus-visible, input:focus-visible {
-      outline: 2px solid var(--blue); outline-offset: 2px;
-    }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
   </style>
 </head>
 <body>
@@ -208,23 +190,131 @@
     </div>
   </div>
 
+  <!-- Register late window -->
   <div class="card">
     <div class="card-head">
       <div>
-        <h3>Teacher permissions</h3>
-        <div class="sub" id="permsSub">—</div>
+        <h3>Register late window</h3>
+        <div class="sub">How long after a lesson's scheduled start a register can be submitted before it's flagged LATE.</div>
       </div>
     </div>
-    <div class="intro" id="intro" hidden>
-      Control what teachers at <b id="introSchoolName">your school</b> can do. You always keep every permission yourself — these switches only apply to teachers.
+    <div class="card-body">
+      <div class="form-row">
+        <label for="lateMinutes">Late window (minutes after lesson start)</label>
+        <input type="number" id="lateMinutes" min="0" max="240" step="1" value="20" style="max-width: 140px;" />
+        <div class="hint">Between 0 and 240. Registers taken from the lessons list use this window; ad-hoc registers are never flagged. The flag is set on the first submission only — later edits don't change it.</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button class="btn-primary" id="saveLateBtn" type="button">Save</button>
+        <span class="hint" id="lateHint" style="color: var(--text-4); font-size: 12px;"></span>
+      </div>
     </div>
-    <div class="perm-list" id="permList">
-      <div class="perm-row" style="justify-content: center; color: var(--text-3);">Loading…</div>
+  </div>
+
+  <!-- Staff roles -->
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>Staff roles</h3>
+        <div class="sub">Give staff named roles with specific permissions — like Discord roles.</div>
+      </div>
+      <button class="btn-primary" id="newRoleBtn" type="button">+ New role</button>
     </div>
-    <div class="save-bar" id="saveBar" hidden>
-      <span class="hint" id="savedHint"></span>
-      <span class="grow"></span>
-      <button class="btn-primary" id="saveBtn" type="button">Save settings</button>
+    <div class="intro">
+      Staff with <b>no role keep every permission</b> — roles only ever restrict or grant. As the organiser you always have every permission, whatever your roles say.
+    </div>
+    <div class="role-list" id="roleList">
+      <div class="empty">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Danger zone -->
+  <div class="card danger-card">
+    <div class="card-head">
+      <div>
+        <h3>Transfer ownership</h3>
+        <div class="sub">Hand the school to a teacher. There can only be one organiser.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="form-row">
+        <label for="transferSelect">New organiser</label>
+        <select id="transferSelect" aria-label="New organiser"><option value="">Loading teachers…</option></select>
+        <div class="hint">You become a teacher immediately. Your new role's permissions apply to you straight away — you lose access to this page and the organiser console.</div>
+      </div>
+      <button class="btn-danger" id="transferBtn" type="button">Transfer ownership…</button>
+    </div>
+  </div>
+</div>
+
+<!-- role editor modal -->
+<div class="modal-back" id="roleModalBack">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="roleModalTitle">New role</h3>
+      <button class="modal-close" data-close="roleModalBack" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label for="roleName">Role name</label>
+        <input type="text" id="roleName" maxlength="40" placeholder="e.g. Trainee, Cover supervisor" style="width: 100%;" />
+      </div>
+      <div class="form-row">
+        <label>Colour</label>
+        <div class="swatches" id="swatches"></div>
+      </div>
+      <div class="form-row">
+        <label>Permissions this role grants</label>
+        <div class="perm-checks" id="permChecks"></div>
+        <div class="hint">A staff member with a role can use the permissions granted by <b>any</b> of their roles. A role with nothing checked grants nothing.</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" data-close="roleModalBack" type="button">Cancel</button>
+      <button class="btn-primary" id="roleSaveBtn" type="button">Save role</button>
+    </div>
+  </div>
+</div>
+
+<!-- role members modal -->
+<div class="modal-back" id="memberModalBack">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="memberModalTitle">Members</h3>
+      <button class="modal-close" data-close="memberModalBack" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="memberList">
+        <div class="empty">Loading…</div>
+      </div>
+      <div id="picker" style="display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line);">
+        <div class="picker-list" id="pickerList"></div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button class="btn-ghost" id="pickerCancelBtn" type="button">Cancel</button>
+          <button class="btn-primary" id="pickerAddBtn" type="button">Add to role</button>
+        </div>
+      </div>
+      <div style="margin-top: 14px;">
+        <button class="btn-ghost" id="addMembersBtn" type="button">+ Add staff</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- transfer confirm modal -->
+<div class="modal-back" id="transferModalBack">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Transfer ownership</h3>
+      <button class="modal-close" data-close="transferModalBack" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <p id="transferConfirmText" style="margin: 0 0 10px; color: var(--text-2);">—</p>
+      <p style="margin: 0; color: var(--red); font-size: 12.5px;">This can't be undone from your side — the new organiser would have to transfer it back to you.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" data-close="transferModalBack" type="button">Cancel</button>
+      <button class="btn-danger" id="transferConfirmBtn" type="button">Make them the organiser</button>
     </div>
   </div>
 </div>
@@ -253,48 +343,47 @@
   const escapeHtml = (s) => String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  function fmtDate(iso) {
-    if (!iso) return '—';
-    const d = new Date(iso);
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  }
+  const initials = (name) => {
+    if (!name) return '?';
+    const p = name.trim().split(/\s+/);
+    return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '?';
+  };
   function toast(msg, kind = '') {
     const t = document.createElement('div');
     t.className = 'toast ' + kind;
     t.textContent = msg;
     $('toastWrap').appendChild(t);
-    setTimeout(() => t.remove(), 3200);
+    setTimeout(() => t.remove(), 3600);
   }
 
   const state = {
     user: null,
     school: null,
-    stored: null,  // raw flags as saved in the DB
+    roles: [],
+    teachers: [],        // candidates for role membership / transfer
+    editingRoleId: null, // role id in the editor modal (null = new)
+    editorColour: null,
+    activeRole: null,    // role in the members modal
+    activeMembers: [],
   };
 
-  // The four toggles. Keys match the columns on school_settings.
-  const PERMS = [
-    {
-      key: 'create_classes',
-      title: 'Class creation',
-      desc: 'Create and manage classes, including adding students to a class roster.',
-    },
-    {
-      key: 'behaviour_praise',
-      title: 'Behaviour logs & praise points',
-      desc: 'Log behaviour incidents and award praise points to students.',
-    },
-    {
-      key: 'register_absences',
-      title: 'Register & absences',
-      desc: 'Take the daily attendance register and record student absences.',
-    },
-    {
-      key: 'ops_announcements',
-      title: 'Announcements, booking & clubs',
-      desc: 'Post announcements, book resources and manage clubs.',
-    },
+  // The 11 granular permissions a role can grant. Keys must match
+  // school_role_perms' CHECK constraint in supabase_school_roles.sql.
+  const ROLE_PERMS = [
+    { key: 'create_classes', title: 'Classes',          desc: 'Create and manage classes' },
+    { key: 'register',        title: 'Register',         desc: 'Take attendance registers' },
+    { key: 'absences',        title: 'Absences',         desc: 'Record planned absences' },
+    { key: 'behaviour',       title: 'Behaviour logs',   desc: 'Log behaviour incidents' },
+    { key: 'praise',          title: 'Praise points',    desc: 'Award praise points' },
+    { key: 'announcements',   title: 'Announcements',   desc: 'Post announcements' },
+    { key: 'booking',         title: 'Resource booking', desc: 'Book rooms and equipment' },
+    { key: 'resources',       title: 'Resources',       desc: 'Create and delete bookable resources' },
+    { key: 'clubs',           title: 'Clubs',            desc: 'Manage clubs and members' },
+    { key: 'timetable',       title: 'Timetables',      desc: 'Edit the weekly timetable' },
+    { key: 'analytics',       title: 'Analytics',        desc: 'View school analytics' },
   ];
+
+  const SWATCH_COLOURS = ['#58A6FF', '#3FB950', '#D29922', '#F85149', '#A371F7', '#79C0FF', '#7EE787', '#FFA657'];
 
   function renderGate(title, msg) {
     $('main').innerHTML = `
@@ -306,117 +395,7 @@
     `;
   }
 
-  function renderPerms() {
-    const list = $('permList');
-    list.innerHTML = PERMS.map(p => {
-      const on = state.stored ? state.stored[p.key] !== false : true;
-      return `
-        <div class="perm-row">
-          <div>
-            <div class="title">${escapeHtml(p.title)}</div>
-            <div class="desc">${escapeHtml(p.desc)}</div>
-          </div>
-          <button class="switch" role="switch" aria-checked="${on}" data-perm="${escapeHtml(p.key)}"
-                  aria-label="${escapeHtml(p.title)}" type="button"></button>
-        </div>
-      `;
-    }).join('');
-    list.querySelectorAll('button.switch').forEach(btn => {
-      btn.addEventListener('click', () => {
-        btn.setAttribute('aria-checked', btn.getAttribute('aria-checked') !== 'true');
-      });
-    });
-    $('saveBar').hidden = false;
-    $('intro').hidden = false;
-    $('introSchoolName').textContent = state.school ? state.school.name : 'your school';
-  }
-
-  function collectPerms() {
-    const out = {};
-    $('permList').querySelectorAll('button.switch').forEach(btn => {
-      out[btn.dataset.perm] = btn.getAttribute('aria-checked') === 'true';
-    });
-    return out;
-  }
-
-  async function onSession(user) {
-    if (!user) {
-      renderGate('Sign-in required', 'Your session has expired or you haven\'t signed in yet. Sign in to manage your school settings.');
-      return;
-    }
-    state.user = user;
-
-    // Role check: JWT first, fall back to current_role() RPC.
-    let role = state.user.app_metadata?.role;
-    if (!role) {
-      try {
-        const r = await supabaseClient.rpc('current_role');
-        if (!r.error && r.data) role = r.data;
-      } catch (_) {}
-    }
-    if (role !== 'school_organiser') {
-      renderGate(
-        'Organiser access only',
-        'This page is for school organisers. Teachers can\'t change school settings — ask your organiser.'
-      );
-      return;
-    }
-
-    // Find the school this organiser owns.
-    const { data: school, error: schoolErr } = await supabaseClient
-      .from('schools')
-      .select('id, name, code')
-      .eq('owner_user_id', state.user.id)
-      .maybeSingle();
-    if (schoolErr || !school) {
-      renderGate('No school yet', 'Your account doesn\'t own a school. Sign up at signup-organisation.html to create one.');
-      return;
-    }
-    state.school = school;
-    $('schoolPill').textContent = school.name;
-    $('sub').textContent = `Teacher permissions for ${school.name}.`;
-
-    const { data: settings, error: settingsErr } = await supabaseClient.rpc('get_school_settings', {
-      p_school_id: school.id,
-    });
-    if (settingsErr || !settings || settings.ok !== true) {
-      // get_school_settings isn't installed yet — tell the organiser to
-      // run the migration rather than showing a broken page.
-      renderGate(
-        'Settings not installed yet',
-        'The school settings migration (supabase_school_settings.sql) hasn\'t been run on this database yet. Run it in the Supabase SQL editor, then reload this page.'
-      );
-      return;
-    }
-    state.stored = settings.stored || {};
-    renderPerms();
-    if (settings.updated_at) {
-      $('savedHint').textContent = `Last saved ${fmtDate(settings.updated_at)}`;
-    }
-  }
-
-  $('saveBtn').addEventListener('click', async () => {
-    const btn = $('saveBtn');
-    btn.disabled = true;
-    btn.textContent = 'Saving…';
-    try {
-      const { data, error } = await supabaseClient.rpc('update_school_settings', {
-        p_school_id: state.school.id,
-        p_perms: collectPerms(),
-      });
-      if (error) throw error;
-      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
-      state.stored = collectPerms();
-      $('savedHint').textContent = 'Saved just now';
-      toast('Settings saved. Teachers will see the change straight away.', 'success');
-    } catch (err) {
-      toast('Couldn\'t save: ' + (err.message || err), 'error');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Save settings';
-    }
-  });
-
+  // ---------- boot ----------
   async function boot() {
     let resolved = false;
     const finish = (user) => {
@@ -439,6 +418,457 @@
     });
     setTimeout(() => { if (!resolved) finish(null); }, 1500);
   }
+
+  async function onSession(user) {
+    if (!user) {
+      renderGate('Sign-in required', 'Your session has expired or you haven\'t signed in yet. Sign in to manage your school settings.');
+      return;
+    }
+    state.user = user;
+
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) {}
+    }
+    if (role !== 'school_organiser') {
+      renderGate(
+        'Organiser access only',
+        'This page is for school organisers. Teachers can\'t change school settings — ask your organiser.'
+      );
+      return;
+    }
+
+    // Find the school this organiser owns — the authoritative check
+    // (schools.owner_user_id), not the possibly-stale JWT role.
+    const { data: school, error: schoolErr } = await supabaseClient
+      .from('schools')
+      .select('id, name, code')
+      .eq('owner_user_id', state.user.id)
+      .maybeSingle();
+    if (schoolErr || !school) {
+      renderGate('No school yet', 'Your account doesn\'t own a school. Sign up at signup-organisation.html to create one.');
+      return;
+    }
+    state.school = school;
+    $('schoolPill').textContent = school.name;
+    $('sub').textContent = `Roles and settings for ${school.name}.`;
+
+    const { data: settings } = await supabaseClient.rpc('get_school_settings', {
+      p_school_id: school.id,
+    });
+    if (!settings || settings.ok !== true) {
+      renderGate(
+        'Settings not installed yet',
+        'The school settings migrations (supabase_school_settings.sql, then supabase_school_roles.sql) haven\'t been run on this database yet. Run them in the Supabase SQL editor, then reload this page.'
+      );
+      return;
+    }
+    if (typeof settings.register_late_minutes === 'number') {
+      $('lateMinutes').value = settings.register_late_minutes;
+    }
+
+    function unhideSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(unhideSignOut, 30); return; }
+      btn.hidden = false;
+    }
+    unhideSignOut();
+
+    renderSwatches(null);
+    renderPermChecks();
+    await Promise.all([loadRoles(), loadTeachers()]);
+    renderTransferSelect();
+
+    mountHeaderExtras({ id: state.user.id, full_name: (state.user.user_metadata || {}).full_name || '', role, avatar_url: null });
+  }
+
+  function mountHeaderExtras(profileRow) {
+    function mountAvatar() {
+      if (!window.recallHeaderAvatar || typeof window.recallHeaderAvatar.mount !== 'function') {
+        setTimeout(mountAvatar, 50); return;
+      }
+      try {
+        window.recallHeaderAvatar.mount('avatarSlot', {
+          supabaseClient, user: state.user, profile: profileRow,
+        });
+      } catch (e) { console.error('headerAvatar mount failed:', e); }
+    }
+    mountAvatar();
+    if (window.recallChat && typeof window.recallChat.mount === 'function') {
+      try {
+        window.recallChat.mount({ supabaseClient, user: state.user, profile: profileRow });
+      } catch (e) { console.error('chat mount failed:', e); }
+    }
+  }
+
+  // ---------- register late window ----------
+  $('saveLateBtn').addEventListener('click', async () => {
+    const btn = $('saveLateBtn');
+    const mins = Number($('lateMinutes').value);
+    if (!Number.isInteger(mins) || mins < 0 || mins > 240) {
+      toast('The late window must be a whole number of minutes between 0 and 240.', 'error');
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      const { data, error } = await supabaseClient.rpc('update_school_settings', {
+        p_school_id: state.school.id,
+        p_late_minutes: mins,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      $('lateHint').textContent = 'Saved just now';
+      toast(`Late window set to ${mins} minute${mins === 1 ? '' : 's'}.`, 'success');
+    } catch (err) {
+      const reason = String(err.message || err);
+      if (reason.includes('invalid_late_minutes')) {
+        toast('The late window must be between 0 and 240 minutes.', 'error');
+      } else {
+        toast('Couldn\'t save: ' + reason, 'error');
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save';
+    }
+  });
+
+  // ---------- roles ----------
+  async function loadRoles() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_roles', {
+        p_school_id: state.school.id,
+      });
+      if (error) throw error;
+      state.roles = data || [];
+      renderRoles();
+    } catch (e) {
+      $('roleList').innerHTML = `<div class="empty">Couldn't load roles${e.message ? ': ' + escapeHtml(e.message) : ''}.</div>`;
+    }
+  }
+
+  async function loadTeachers() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_members', {
+        p_school_id: state.school.id, p_role_filter: 'teacher',
+      });
+      if (!error) state.teachers = data || [];
+    } catch (_) { /* keep empty */ }
+  }
+
+  function renderRoles() {
+    const list = $('roleList');
+    if (!state.roles.length) {
+      list.innerHTML = `<div class="empty">No roles yet. Everyone without a role keeps every permission — create a role to restrict what specific staff can do.</div>`;
+      return;
+    }
+    list.innerHTML = state.roles.map(r => `
+      <div class="role-row">
+        <span class="role-dot" style="${r.colour ? 'background:' + escapeHtml(r.colour) + ';border-color:' + escapeHtml(r.colour) + ';' : ''}"></span>
+        <div class="grow">
+          <div class="nm">${escapeHtml(r.name)}</div>
+          <div class="meta">${(r.perms || []).length} permission${(r.perms || []).length === 1 ? '' : 's'} · ${r.member_count} member${r.member_count === 1 ? '' : 's'}</div>
+        </div>
+        <div class="acts">
+          <button class="mini-btn" data-edit="${escapeHtml(r.id)}" type="button">Edit</button>
+          <button class="mini-btn" data-members="${escapeHtml(r.id)}" type="button">Members</button>
+          <button class="mini-btn danger" data-del="${escapeHtml(r.id)}" type="button">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  $('roleList').addEventListener('click', async (e) => {
+    const editBtn = e.target.closest('[data-edit]');
+    const memBtn = e.target.closest('[data-members]');
+    const delBtn = e.target.closest('[data-del]');
+    if (editBtn) {
+      const role = state.roles.find(r => r.id === editBtn.dataset.edit);
+      if (role) openRoleEditor(role);
+      return;
+    }
+    if (memBtn) {
+      const role = state.roles.find(r => r.id === memBtn.dataset.members);
+      if (role) openMemberModal(role);
+      return;
+    }
+    if (delBtn) {
+      const role = state.roles.find(r => r.id === delBtn.dataset.del);
+      if (!role) return;
+      if (!confirm(`Delete the role "${role.name}"? Staff who only had this role go back to having every permission.`)) return;
+      try {
+        const { data, error } = await supabaseClient.rpc('delete_school_role', {
+          p_role_id: role.id,
+        });
+        if (error) throw error;
+        if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+        toast('Role deleted.', 'success');
+        await loadRoles();
+      } catch (err) {
+        toast('Couldn\'t delete: ' + String(err.message || err), 'error');
+      }
+    }
+  });
+
+  // ----- role editor modal -----
+  function renderSwatches(selected) {
+    state.editorColour = selected || null;
+    $('swatches').innerHTML =
+      `<button class="swatch none ${selected ? '' : 'sel'}" data-c="" title="No colour" type="button">—</button>` +
+      SWATCH_COLOURS.map(c => `
+        <button class="swatch ${selected === c ? 'sel' : ''}" style="background:${c};" data-c="${c}" title="${c}" type="button"></button>
+      `).join('');
+    $('swatches').querySelectorAll('.swatch').forEach(b => {
+      b.addEventListener('click', () => {
+        state.editorColour = b.dataset.c || null;
+        $('swatches').querySelectorAll('.swatch').forEach(x =>
+          x.classList.toggle('sel', x === b));
+      });
+    });
+  }
+
+  function renderPermChecks(checked) {
+    const set = new Set(checked || []);
+    $('permChecks').innerHTML = ROLE_PERMS.map(p => `
+      <label class="perm-check">
+        <input type="checkbox" data-perm="${p.key}" ${set.has(p.key) ? 'checked' : ''} />
+        <div>
+          <div class="t">${escapeHtml(p.title)}</div>
+          <div class="d">${escapeHtml(p.desc)}</div>
+        </div>
+      </label>
+    `).join('');
+  }
+
+  function openRoleEditor(role) {
+    state.editingRoleId = role ? role.id : null;
+    $('roleModalTitle').textContent = role ? `Edit "${role.name}"` : 'New role';
+    $('roleName').value = role ? role.name : '';
+    renderSwatches(role ? role.colour : null);
+    renderPermChecks(role ? role.perms : []);
+    $('roleModalBack').classList.add('open');
+    if (!role) $('roleName').focus();
+  }
+
+  $('newRoleBtn').addEventListener('click', () => openRoleEditor(null));
+
+  $('roleSaveBtn').addEventListener('click', async () => {
+    const name = $('roleName').value.trim();
+    if (!name) { toast('Give the role a name.', 'error'); return; }
+    const perms = Array.from($('permChecks').querySelectorAll('input:checked')).map(c => c.dataset.perm);
+    const btn = $('roleSaveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      let data, error;
+      if (state.editingRoleId) {
+        ({ data, error } = await supabaseClient.rpc('update_school_role', {
+          p_role_id: state.editingRoleId,
+          p_name: name,
+          p_colour: state.editorColour,
+          p_perms: perms,
+        }));
+      } else {
+        ({ data, error } = await supabaseClient.rpc('create_school_role', {
+          p_school_id: state.school.id,
+          p_name: name,
+          p_colour: state.editorColour,
+          p_perms: perms,
+        }));
+      }
+      if (error) throw error;
+      if (data && data.ok !== true) {
+        const reason = data.reason || 'failed';
+        if (reason.includes('name_taken')) throw new Error('A role with that name already exists.');
+        if (reason.includes('name_required')) throw new Error('Give the role a name.');
+        if (reason.includes('invalid_colour')) throw new Error('Pick one of the colour swatches.');
+        if (reason.includes('invalid_perm')) throw new Error('Unknown permission: ' + (data.perm || ''));
+        throw new Error(reason);
+      }
+      toast(state.editingRoleId ? 'Role updated.' : 'Role created.', 'success');
+      $('roleModalBack').classList.remove('open');
+      await loadRoles();
+    } catch (err) {
+      toast('Couldn\'t save the role: ' + String(err.message || err), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save role';
+    }
+  });
+
+  // ----- members modal -----
+  function openMemberModal(role) {
+    state.activeRole = role;
+    $('memberModalTitle').textContent = `Members of "${role.name}"`;
+    $('picker').style.display = 'none';
+    $('memberModalBack').classList.add('open');
+    loadActiveMembers();
+  }
+
+  async function loadActiveMembers() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_role_members', {
+        p_role_id: state.activeRole.id,
+      });
+      if (error) throw error;
+      state.activeMembers = data || [];
+      if (!state.activeMembers.length) {
+        $('memberList').innerHTML = `<div class="empty">No members yet. Add staff below.</div>`;
+        return;
+      }
+      $('memberList').innerHTML = state.activeMembers.map(m => `
+        <div class="member-row">
+          <div class="avatar">${escapeHtml(initials(m.full_name || m.email))}</div>
+          <div class="grow">
+            <div class="nm">${escapeHtml(m.full_name || '(no name)')}</div>
+            <div class="em">${escapeHtml(m.email || '')}</div>
+          </div>
+          <button class="mini-btn danger" data-rem="${escapeHtml(m.user_id)}" type="button">Remove</button>
+        </div>
+      `).join('');
+    } catch (e) {
+      $('memberList').innerHTML = `<div class="empty">Couldn't load members.</div>`;
+    }
+  }
+
+  $('addMembersBtn').addEventListener('click', () => {
+    if (!state.activeRole) return;
+    const inRole = new Set(state.activeMembers.map(m => m.user_id));
+    const candidates = state.teachers.filter(m => !inRole.has(m.id));
+    if (!candidates.length) {
+      $('pickerList').innerHTML = `<div class="empty">Every teacher in your school already has this role.</div>`;
+    } else {
+      $('pickerList').innerHTML = candidates.map(m => `
+        <div class="picker-row">
+          <label>
+            <input type="checkbox" data-uid="${escapeHtml(m.id)}" />
+            <div class="avatar" style="width:24px;height:24px;font-size:10px;display:grid;place-items:center;border-radius:50%;background:var(--bg-4);color:var(--text-2);font-weight:700;">${escapeHtml(initials(m.full_name || m.email))}</div>
+            <div style="flex:1;">
+              <div style="color: var(--text); font-weight: 600;">${escapeHtml(m.full_name || '(no name)')}</div>
+              <div style="color: var(--text-3); font-size: 11.5px;">${escapeHtml(m.email || '')}</div>
+            </div>
+          </label>
+        </div>
+      `).join('');
+    }
+    $('picker').style.display = '';
+  });
+
+  $('pickerCancelBtn').addEventListener('click', () => { $('picker').style.display = 'none'; });
+
+  $('pickerAddBtn').addEventListener('click', async () => {
+    const uids = Array.from($('pickerList').querySelectorAll('input:checked')).map(c => c.dataset.uid);
+    if (!uids.length) { toast('Pick at least one teacher.', 'error'); return; }
+    const btn = $('pickerAddBtn');
+    btn.disabled = true;
+    btn.textContent = 'Adding…';
+    try {
+      const { data, error } = await supabaseClient.rpc('assign_school_role', {
+        p_role_id: state.activeRole.id, p_user_ids: uids,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) {
+        const reason = data.reason || 'failed';
+        if (reason.includes('invalid_user')) throw new Error('One of those people isn\'t a current teacher at your school.');
+        throw new Error(reason);
+      }
+      toast('Added to role.', 'success');
+      $('picker').style.display = 'none';
+      await loadActiveMembers();
+      await loadRoles();
+    } catch (err) {
+      toast('Couldn\'t add: ' + String(err.message || err), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Add to role';
+    }
+  });
+
+  $('memberList').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-rem]');
+    if (!btn || !btn.dataset.rem) return;
+    if (!confirm('Remove this staff member from the role?')) return;
+    try {
+      const { data, error } = await supabaseClient.rpc('remove_school_role_member', {
+        p_role_id: state.activeRole.id, p_user_id: btn.dataset.rem,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast('Removed.', 'success');
+      await loadActiveMembers();
+      await loadRoles();
+    } catch (err) {
+      toast('Couldn\'t remove: ' + String(err.message || err), 'error');
+    }
+  });
+
+  // ---------- transfer ownership ----------
+  function renderTransferSelect() {
+    const sel = $('transferSelect');
+    if (!state.teachers.length) {
+      sel.innerHTML = '<option value="">No teachers at your school</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">Pick a teacher…</option>' + state.teachers.map(t =>
+      `<option value="${escapeHtml(t.id)}">${escapeHtml(t.full_name || t.email || '(no name)')}</option>`
+    ).join('');
+  }
+
+  $('transferBtn').addEventListener('click', () => {
+    const uid = $('transferSelect').value;
+    if (!uid) { toast('Pick a teacher to transfer to.', 'error'); return; }
+    const t = state.teachers.find(x => x.id === uid);
+    if (!t) return;
+    const name = t.full_name || t.email || 'this teacher';
+    $('transferConfirmText').textContent =
+      `This makes ${name} the organiser of ${state.school.name}. You become a teacher and lose access to this page and the organiser console.`;
+    $('transferModalBack').classList.add('open');
+  });
+
+  $('transferConfirmBtn').addEventListener('click', async () => {
+    const uid = $('transferSelect').value;
+    if (!uid) return;
+    const btn = $('transferConfirmBtn');
+    btn.disabled = true;
+    btn.textContent = 'Transferring…';
+    try {
+      const { data, error } = await supabaseClient.rpc('transfer_organiser', {
+        p_school_id: state.school.id,
+        p_new_owner_id: uid,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) {
+        const reason = data.reason || 'failed';
+        if (reason.includes('invalid_target')) throw new Error('That person isn\'t a current teacher at your school.');
+        if (reason.includes('target_owns_school')) throw new Error('That person already organises another school.');
+        throw new Error(reason);
+      }
+      toast('Ownership transferred. Redirecting…', 'success');
+      setTimeout(() => { window.location.href = 'teacher-dashboard.html'; }, 1200);
+    } catch (err) {
+      toast('Couldn\'t transfer: ' + String(err.message || err), 'error');
+      btn.disabled = false;
+      btn.textContent = 'Make them the organiser';
+    }
+  });
+
+  // ---------- modal plumbing ----------
+  document.querySelectorAll('.modal-close, [data-close]').forEach(el => {
+    el.addEventListener('click', () => $(el.dataset.close).classList.remove('open'));
+  });
+  document.querySelectorAll('.modal-back').forEach(back => {
+    back.addEventListener('click', (e) => {
+      if (e.target === back) back.classList.remove('open');
+    });
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-back.open').forEach(m => m.classList.remove('open'));
+    }
+  });
 
   function wireSignOut() {
     const btn = $('signOutBtn');

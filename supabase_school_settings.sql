@@ -51,6 +51,12 @@ insert into public.school_settings (school_id)
 select s.id from public.schools s
 on conflict (school_id) do nothing;
 
+-- Timetable-driven registers: how many minutes after a lesson's scheduled
+-- start a register submission is still "on time". Beyond this the session
+-- is flagged late. Ad-hoc (manual) registers are never flagged.
+alter table public.school_settings
+  add column if not exists register_late_minutes int not null default 20;
+
 -- ============================================================================
 -- 2. RLS — staff of the school can read (teachers need it to know which
 -- buttons to hide). All writes are RPC-only (no write policies).

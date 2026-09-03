@@ -362,8 +362,8 @@
       });
       if (settings && settings.ok === true) state.settings = settings;
     } catch (_) {}
-    if (state.settings && state.settings.perms?.behaviour_praise === false) {
-      renderGate('Permission needed', 'Your school organiser has disabled this tool. Ask them to enable it under School Settings.');
+    if (state.settings && state.settings.perms?.praise === false) {
+      renderGate('Permission needed', 'Your role doesn\'t include this permission. Ask your organiser to update it under School Settings.');
       return;
     }
 
@@ -497,8 +497,8 @@
       await Promise.all([loadLeaderboard(), loadFeed()]);
     } catch (err) {
       const reason = String(err.message || err);
-      if (reason.includes('behaviour_praise')) {
-        toast('Your organiser has disabled praise points for teachers.', 'error');
+      if (reason.includes('praise')) {
+        toast('Your role doesn\'t include this permission. Ask your organiser to update it under School Settings.', 'error');
       } else {
         toast('Couldn\'t award: ' + reason, 'error');
       }

@@ -355,8 +355,8 @@
         state.isOrganiser = !!settings.is_organiser;
       }
     } catch (_) {}
-    if (state.settings && state.settings.perms?.behaviour_praise === false) {
-      renderGate('Permission needed', 'Your school organiser has disabled this tool. Ask them to enable it under School Settings.');
+    if (state.settings && state.settings.perms?.behaviour === false) {
+      renderGate('Permission needed', 'Your role doesn\'t include this permission. Ask your organiser to update it under School Settings.');
       return;
     }
 
@@ -500,8 +500,8 @@
       await loadIncidents();
     } catch (err) {
       const reason = String(err.message || err);
-      if (reason.includes('behaviour_praise')) {
-        toast('Your organiser has disabled behaviour logging for teachers.', 'error');
+      if (reason.includes('behaviour')) {
+        toast('Your role doesn\'t include this permission. Ask your organiser to update it under School Settings.', 'error');
       } else {
         toast('Couldn\'t log: ' + reason, 'error');
       }

@@ -344,6 +344,17 @@
     $('schoolPill').textContent = school ? school.name : '—';
     $('sub').textContent = school ? `Weekly timetable for ${school.name}.` : 'Weekly timetable.';
 
+    try {
+      const { data: settings } = await supabaseClient.rpc('get_school_settings', {
+        p_school_id: school.id,
+      });
+      if (settings && settings.ok === true) state.settings = settings;
+    } catch (_) { /* fail open: organisers may not have re-run migrations */ }
+    if (state.settings && state.settings.perms?.timetable === false) {
+      renderGate('Permission needed', 'Your role doesn\'t include this permission. Ask your organiser to update it under School Settings.');
+      return;
+    }
+
     function unhideSignOut() {
       const btn = $('signOutBtn');
       if (!btn) { setTimeout(unhideSignOut, 30); return; }

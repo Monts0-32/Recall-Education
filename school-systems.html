@@ -155,18 +155,19 @@
     setTimeout(() => t.remove(), 3200);
   }
 
-  // perm: null = always available. Otherwise the settings flag that must
-  // be on for teachers (organisers always have everything).
+  // perm: the granular role permission that must be granted for
+  // teachers. Staff with no role have everything; organisers always
+  // have everything.
   const SYSTEMS = [
-    { href: 'register.html',    icon: '🗓️', name: 'Register',        desc: 'Take the daily attendance register.', perm: 'register_absences' },
-    { href: 'absences.html',    icon: '🤒', name: 'Absences',        desc: 'Record and track planned absences.', perm: 'register_absences' },
-    { href: 'timetables.html',  icon: '⏰', name: 'Timetables',      desc: 'Build the weekly class timetable.', perm: null },
-    { href: 'behaviour.html',   icon: '📝', name: 'Behaviour logs',  desc: 'Log and review behaviour incidents.', perm: 'behaviour_praise' },
-    { href: 'praise.html',      icon: '⭐', name: 'Praise points',   desc: 'Award points and see the leaderboard.', perm: 'behaviour_praise', tone: 'green' },
-    { href: 'announcements.html', icon: '📣', name: 'Announcements', desc: 'Post news to staff and students.', perm: 'ops_announcements', tone: 'yellow' },
-    { href: 'booking.html',     icon: '📍', name: 'Resource booking', desc: 'Book rooms and equipment.', perm: 'ops_announcements', tone: 'purple' },
-    { href: 'clubs.html',       icon: '🎨', name: 'Clubs',           desc: 'Manage clubs and their members.', perm: 'ops_announcements' },
-    { href: 'analytics.html',  icon: '📊', name: 'Analytics',       desc: 'Attendance, praise, behaviour, homework.', perm: null },
+    { href: 'register.html',      icon: '🗓️', name: 'Register',        desc: 'Take the daily attendance register.', perm: 'register' },
+    { href: 'absences.html',      icon: '🤒', name: 'Absences',        desc: 'Record and track planned absences.', perm: 'absences' },
+    { href: 'timetables.html',    icon: '⏰', name: 'Timetables',      desc: 'Build the weekly class timetable.', perm: 'timetable' },
+    { href: 'behaviour.html',     icon: '📝', name: 'Behaviour logs',  desc: 'Log and review behaviour incidents.', perm: 'behaviour' },
+    { href: 'praise.html',        icon: '⭐', name: 'Praise points',   desc: 'Award points and see the leaderboard.', perm: 'praise', tone: 'green' },
+    { href: 'announcements.html', icon: '📣', name: 'Announcements', desc: 'Post news to staff and students.', perm: 'announcements', tone: 'yellow' },
+    { href: 'booking.html',       icon: '📍', name: 'Resource booking', desc: 'Book rooms and equipment.', perm: 'booking', tone: 'purple' },
+    { href: 'clubs.html',         icon: '🎨', name: 'Clubs',           desc: 'Manage clubs and their members.', perm: 'clubs' },
+    { href: 'analytics.html',     icon: '📊', name: 'Analytics',       desc: 'Attendance, praise, behaviour, homework.', perm: 'analytics' },
   ];
 
   const state = {
@@ -285,13 +286,16 @@
   }
 
   function renderTiles() {
-    if (state.isOrganiser) $('settingsLink').style.display = '';
+    // Prefer the server's view of who the organiser is — profiles/JWT
+    // roles can be stale right after an ownership transfer.
+    const isOrganiser = state.settings?.is_organiser === true || state.isOrganiser;
+    if (isOrganiser) $('settingsLink').style.display = '';
     $('tiles').innerHTML = SYSTEMS.map(s => {
-      const denied = !state.isOrganiser && state.settings &&
+      const denied = !isOrganiser && state.settings &&
         s.perm && state.settings.perms?.[s.perm] === false;
       const cls = ['tile', s.tone || '', denied ? 'locked' : ''].filter(Boolean).join(' ');
       return `
-        <a class="${cls}" href="${s.href}" ${denied ? 'aria-disabled="true" title="Ask your organiser to enable this"' : ''}>
+        <a class="${cls}" href="${s.href}" ${denied ? 'aria-disabled="true" title="Ask your organiser to update your role"' : ''}>
           <div class="icon">${s.icon}</div>
           <div class="name">${escapeHtml(s.name)} ${denied ? '<span class="lock">🔒</span>' : ''}</div>
           <div class="desc">${escapeHtml(s.desc)}</div>
@@ -305,7 +309,7 @@
     document.querySelectorAll('.tile.locked').forEach(a => {
       a.addEventListener('click', (e) => {
         e.preventDefault();
-        toast('Your school organiser has disabled this system. Ask them to enable it under School Settings.', 'error');
+        toast("Your role doesn't include this — ask your organiser to update it under School Settings.", 'error');
       });
     });
   }
