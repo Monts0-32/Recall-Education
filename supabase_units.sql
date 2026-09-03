@@ -313,6 +313,16 @@ declare v_clean text := trim(coalesce(p_name, ''));
 begin
   perform public._assert_admin();
   if v_clean = '' then raise exception 'name is required'; end if;
+  -- exam_boards.name is UNIQUE — refuse collisions with a different row
+  -- before the UPDATE so the error stays a clean 22023 (Supabase surfaces
+  -- unique_violation 23505 as HTTP 409 which the UI can't recover from).
+  if exists (
+    select 1 from public.exam_boards
+     where name = v_clean and id <> p_id
+  ) then
+    raise exception 'an exam_board named % already exists', v_clean
+      using errcode = '22023';
+  end if;
   update public.exam_boards set name = v_clean where id = p_id;
   if not found then raise exception 'exam_board not found'; end if;
   perform public._log_staff_action(
@@ -381,6 +391,16 @@ declare v_clean text := trim(coalesce(p_label, ''));
 begin
   perform public._assert_admin();
   if v_clean = '' then raise exception 'label is required'; end if;
+  -- year_levels.label is UNIQUE — refuse collisions with a different row
+  -- before the UPDATE so the error stays a clean 22023 (Supabase surfaces
+  -- unique_violation 23505 as HTTP 409 which the UI can't recover from).
+  if exists (
+    select 1 from public.year_levels
+     where label = v_clean and id <> p_id
+  ) then
+    raise exception 'a year_level labelled % already exists', v_clean
+      using errcode = '22023';
+  end if;
   update public.year_levels set label = v_clean where id = p_id;
   if not found then raise exception 'year_level not found'; end if;
   perform public._log_staff_action(

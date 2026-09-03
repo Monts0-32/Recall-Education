@@ -50,6 +50,7 @@ drop policy if exists "subjects_staff_write" on public.subjects;
 -- always consistent. Anyone authenticated can still SELECT subjects
 -- (the existing subjects_read_all policy from supabase_tables.sql
 -- already covers that — we don't drop it here).
+drop policy if exists "subjects_admin_write" on public.subjects;
 create policy "subjects_admin_write" on public.subjects
   for all to authenticated
   using (exists (
@@ -173,6 +174,7 @@ declare
   v_year_sort  int;
   v_year_ids   uuid[] := '{}'::uuid[];
   v_unit_ids   uuid[] := '{}'::uuid[];
+  v_new_unit_id uuid;
   v_resolved_years text[];
 begin
   if v_uid is null then
@@ -269,7 +271,8 @@ begin
 
       insert into public.units (subject_id, exam_board_id, year_id, name, sort_order)
         values (v_subject_id, v_curr_id, v_year_id, 'Curriculum', 0)
-        returning id into v_unit_ids[array_length(v_unit_ids, 1) + 1];
+        returning id into v_new_unit_id;
+      v_unit_ids := array_append(v_unit_ids, v_new_unit_id);
     end loop;
   end;
 
@@ -322,7 +325,8 @@ begin
 
       insert into public.units (subject_id, exam_board_id, year_id, name, sort_order)
         values (v_subject_id, v_board_id, v_year_id, 'Curriculum', 0)
-        returning id into v_unit_ids[array_length(v_unit_ids, 1) + 1];
+        returning id into v_new_unit_id;
+      v_unit_ids := array_append(v_unit_ids, v_new_unit_id);
     end loop;
   end if;
 
