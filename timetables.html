@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Timetables — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Build your school's weekly timetable." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --purple-dim:rgba(163,113,247,0.12);
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .layout { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    .crumbs { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+    .crumbs a { color: var(--text-3); }
+    .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+
+    .head-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .head-bar h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .head-bar .sub { color: var(--text-3); font-size: 13.5px; margin: 0; }
+    .head-bar .grow { flex: 1; }
+    .pill { padding: 2px 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--text-2); }
+
+    .card { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; margin-bottom: 18px; }
+    .card-head { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); gap: 10px; flex-wrap: wrap; }
+    .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .card-body { padding: 16px 18px; }
+
+    .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .filters label { font-size: 12px; color: var(--text-3); font-weight: 500; }
+
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--line-2); padding: 7px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+    .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--line-2); padding: 7px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .btn-danger:hover { background: var(--red-dim); border-color: var(--red); }
+    .btn-primary { background: var(--blue); color: #fff; padding: 8px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    select, input, textarea {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      padding: 8px 12px; font-family: inherit; font-size: 13.5px; outline: none;
+    }
+    select:focus, input:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+
+    /* ---------- grid ---------- */
+    .tt-scroll { overflow-x: auto; }
+    .tt-grid { display: grid; grid-template-columns: 76px repeat(5, minmax(150px, 1fr)); min-width: 820px; border-top: 1px solid var(--line); }
+    .tt-cell { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 8px; min-height: 64px; }
+    .tt-cell:last-child { border-right: none; }
+    .tt-head { background: var(--bg-3); font-size: 12px; font-weight: 600; color: var(--text-2); text-align: center; padding: 9px 8px; border-bottom: 1px solid var(--line-2); }
+    .tt-period { display: flex; align-items: center; justify-content: center; gap: 4px; background: var(--bg-3); font-size: 12px; font-weight: 600; color: var(--text-3); border-bottom: 1px solid var(--line); }
+    .tt-period .p { color: var(--text); }
+    .tt-body { cursor: pointer; transition: background 0.1s; }
+    .tt-body:hover { background: var(--bg-3); }
+    .tt-body:empty::after { content: '+'; display: block; text-align: center; color: var(--text-4); font-size: 15px; }
+    .slot-chip {
+      background: var(--blue-dim); border: 1px solid rgba(56,139,253,0.35);
+      border-radius: var(--r-sm); padding: 4px 8px; margin-bottom: 6px;
+      font-size: 11.5px; line-height: 1.35;
+    }
+    .slot-chip:last-child { margin-bottom: 0; }
+    .slot-chip .cls { font-weight: 600; color: var(--text); display: block; }
+    .slot-chip .meta { color: var(--text-3); display: block; }
+    .slot-chip.clash { background: var(--red-dim); border-color: rgba(248,81,73,0.4); }
+
+    .empty { padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+    /* ---------- modal ---------- */
+    .modal-back { position: fixed; inset: 0; background: rgba(1,4,9,0.7); z-index: 100; display: none; align-items: flex-start; justify-content: center; padding: 60px 20px 20px; overflow-y: auto; }
+    .modal-back.open { display: flex; }
+    .modal { background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); width: 100%; max-width: 480px; }
+    .modal-head { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+    .modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .modal-body { padding: 16px 18px; }
+    .modal-close { background: none; border: none; color: var(--text-3); font-size: 20px; cursor: pointer; line-height: 1; padding: 2px 6px; }
+    .modal-close:hover { color: var(--text); }
+
+    .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-row label { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+    .form-row .hint { font-size: 11.5px; color: var(--text-4); }
+    .form-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .existing-list { border: 1px solid var(--line); border-radius: var(--r-sm); margin-bottom: 14px; }
+    .existing-list:empty { display: none; }
+    .ex-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+    .ex-row:last-child { border-bottom: none; }
+    .ex-row .t { font-weight: 600; color: var(--text); }
+    .ex-row .m { color: var(--text-3); font-size: 11.5px; }
+    .ex-row .acts { display: flex; gap: 6px; }
+    .mini-btn { background: transparent; border: 1px solid var(--line-2); color: var(--text-3); border-radius: var(--r-sm); font-family: inherit; font-size: 11.5px; padding: 3px 9px; cursor: pointer; }
+    .mini-btn:hover { color: var(--text); border-color: var(--line-3); }
+    .mini-btn.danger:hover { color: var(--red); border-color: var(--red); }
+
+    .gate { max-width: 520px; margin: 80px auto; padding: 32px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); text-align: center; }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--bg-3); border: 1px solid var(--line-2); color: var(--text); padding: 10px 14px; border-radius: var(--r-sm); font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: toast-in 0.2s ease; }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+    @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    @media (max-width: 640px) { .form-2 { grid-template-columns: 1fr; } }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+
+<div id="headerSlot" data-mode="auth"></div>
+
+<div class="layout" id="main">
+  <div class="crumbs">
+    <a href="index.html">Recall</a>
+    <span class="sep">/</span>
+    <a href="school-systems.html">School systems</a>
+    <span class="sep">/</span>
+    <span class="current">Timetables</span>
+  </div>
+
+  <div class="head-bar">
+    <div class="grow">
+      <h1>Timetables</h1>
+      <p class="sub" id="sub">Loading your school…</p>
+    </div>
+    <div class="right">
+      <span class="pill" id="schoolPill">—</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>Weekly timetable</h3>
+        <div class="sub">Click any cell to add, edit or remove a slot.</div>
+      </div>
+      <div class="filters">
+        <label for="classFilter">Class</label>
+        <select id="classFilter"><option value="">All</option></select>
+        <label for="teacherFilter">Teacher</label>
+        <select id="teacherFilter"><option value="">All</option></select>
+      </div>
+    </div>
+    <div class="tt-scroll">
+      <div class="tt-grid" id="grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- slot modal -->
+<div class="modal-back" id="slotModalBack">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="slotModalTitle">Period</h3>
+      <button class="modal-close" id="slotModalClose" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="existing-list" id="existingList"></div>
+      <div class="form-row">
+        <label for="slClass">Class</label>
+        <select id="slClass"><option value="">— none —</option></select>
+      </div>
+      <div class="form-row">
+        <label for="slTeacher">Teacher</label>
+        <select id="slTeacher"><option value="">— none —</option></select>
+      </div>
+      <div class="form-row">
+        <label>Times</label>
+        <div class="form-2">
+          <input type="time" id="slStart" value="09:00" />
+          <input type="time" id="slEnd" value="09:50" />
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="slRoom">Room</label>
+        <input type="text" id="slRoom" maxlength="40" placeholder="e.g. Lab 2" />
+      </div>
+      <div class="form-row">
+        <label for="slLabel">Label</label>
+        <input type="text" id="slLabel" maxlength="60" placeholder="Optional, e.g. Assembly" />
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button class="btn-danger" id="slDeleteBtn" type="button" style="display: none;">Delete</button>
+        <button class="btn-primary" id="slSaveBtn" type="button">Save slot</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  const PERIODS = 8;
+
+  const state = {
+    user: null,
+    school: null,
+    classes: [],
+    teachers: [],
+    slots: [],
+    cell: null,      // { day, period } of the open modal
+    editingId: null,  // slot id being edited, or null for new
+  };
+
+  function renderGate(title, msg) {
+    $('main').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-primary" href="login.html">Sign in</a></p>
+      </div>
+    `;
+  }
+
+  async function boot() {
+    let resolved = false;
+    const finish = (user) => {
+      if (resolved) return;
+      resolved = true;
+      onSession(user);
+    };
+    try {
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) { finish(null); return; }
+      const session = data && data.session;
+      if (session && session.user) { finish(session.user); return; }
+    } catch (_) { /* fall through to event listener */ }
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
+        finish(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        finish(null);
+      }
+    });
+    setTimeout(() => { if (!resolved) finish(null); }, 1500);
+  }
+
+  async function onSession(user) {
+    if (!user) {
+      renderGate('Sign-in required', 'Your session has expired or you haven\'t signed in yet. Sign in to manage timetables.');
+      return;
+    }
+    state.user = user;
+
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) {}
+    }
+    if (role !== 'school_organiser' && role !== 'teacher') {
+      renderGate('Staff access only', 'This page is for teachers and school organisers.');
+      return;
+    }
+
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id, school_id, full_name, role, avatar_url')
+      .eq('id', state.user.id)
+      .maybeSingle();
+    if (!profile || !profile.school_id) {
+      renderGate('No school attached', 'Your account isn\'t attached to a school yet.');
+      return;
+    }
+    const { data: school } = await supabaseClient
+      .from('schools')
+      .select('id, name, code')
+      .eq('id', profile.school_id)
+      .maybeSingle();
+    state.school = school;
+    $('schoolPill').textContent = school ? school.name : '—';
+    $('sub').textContent = school ? `Weekly timetable for ${school.name}.` : 'Weekly timetable.';
+
+    function unhideSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(unhideSignOut, 30); return; }
+      btn.hidden = false;
+    }
+    unhideSignOut();
+
+    await Promise.all([loadClasses(), loadTeachers(), loadSlots()]);
+    renderGrid();
+    mountHeaderExtras(profile || { id: state.user.id, full_name: (state.user.user_metadata || {}).full_name || '', role, avatar_url: null });
+  }
+
+  function mountHeaderExtras(profileRow) {
+    function mountAvatar() {
+      if (!window.recallHeaderAvatar || typeof window.recallHeaderAvatar.mount !== 'function') {
+        setTimeout(mountAvatar, 50); return;
+      }
+      try {
+        window.recallHeaderAvatar.mount('avatarSlot', {
+          supabaseClient, user: state.user, profile: profileRow,
+        });
+      } catch (e) { console.error('headerAvatar mount failed:', e); }
+    }
+    mountAvatar();
+    if (window.recallChat && typeof window.recallChat.mount === 'function') {
+      try {
+        window.recallChat.mount({ supabaseClient, user: state.user, profile: profileRow });
+      } catch (e) { console.error('chat mount failed:', e); }
+    }
+  }
+
+  async function loadClasses() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_classes', {
+        p_school_id: state.school.id, p_include_archived: false,
+      });
+      if (!error) {
+        state.classes = data || [];
+        const prev = $('classFilter').value;
+        $('classFilter').innerHTML = '<option value="">All</option>' +
+          state.classes.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
+        $('slClass').innerHTML = '<option value="">— none —</option>' +
+          state.classes.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
+        if (prev) $('classFilter').value = prev;
+      }
+    } catch (_) { /* keep empty */ }
+  }
+
+  async function loadTeachers() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_members', {
+        p_school_id: state.school.id, p_role_filter: 'teacher',
+      });
+      if (!error) {
+        state.teachers = data || [];
+        const prev = $('teacherFilter').value;
+        $('teacherFilter').innerHTML = '<option value="">All</option>' +
+          state.teachers.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.full_name || t.email || '(no name)')}</option>`).join('');
+        $('slTeacher').innerHTML = '<option value="">— none —</option>' +
+          state.teachers.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.full_name || t.email || '(no name)')}</option>`).join('');
+        if (prev) $('teacherFilter').value = prev;
+      }
+    } catch (_) { /* keep empty */ }
+  }
+
+  async function loadSlots() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_timetable_slots', {
+        p_school_id: state.school.id,
+      });
+      if (error) throw error;
+      state.slots = data || [];
+    } catch (e) {
+      toast('Couldn\'t load the timetable.', 'error');
+    }
+  }
+
+  function visibleSlots() {
+    const cf = $('classFilter').value;
+    const tf = $('teacherFilter').value;
+    return state.slots.filter(s =>
+      (!cf || s.class_id === cf) && (!tf || s.teacher_user_id === tf)
+    );
+  }
+
+  function slotChip(s) {
+    const bits = [];
+    if (s.teacher_name) bits.push(s.teacher_name);
+    if (s.room) bits.push(s.room);
+    const times = `${(s.start_time || '').slice(0, 5)}–${(s.end_time || '').slice(0, 5)}`;
+    bits.push(times);
+    const title = s.label || s.class_name || 'Slot';
+    return `
+      <div class="slot-chip" data-id="${escapeHtml(s.id)}">
+        <span class="cls">${escapeHtml(title)}</span>
+        <span class="meta">${escapeHtml(bits.join(' · '))}</span>
+      </div>
+    `;
+  }
+
+  function renderGrid() {
+    const slots = visibleSlots();
+    // head row
+    let html = `<div class="tt-cell tt-head"></div>`;
+    for (const d of DAYS) html += `<div class="tt-cell tt-head">${d}</div>`;
+    // body rows
+    for (let p = 1; p <= PERIODS; p++) {
+      html += `<div class="tt-cell tt-period">Period <span class="p">${p}</span></div>`;
+      for (let d = 0; d < 5; d++) {
+        const inCell = slots.filter(s => s.period === p && s.day_of_week === d);
+        html += `<div class="tt-cell tt-body" data-day="${d}" data-period="${p}">${inCell.map(slotChip).join('')}</div>`;
+      }
+    }
+    $('grid').innerHTML = html;
+  }
+
+  function openModal(day, period, slotId) {
+    state.cell = { day, period };
+    state.editingId = slotId || null;
+    $('slotModalTitle').textContent = `${DAYS[day]} · Period ${period}`;
+    const inCell = state.slots.filter(s => s.day_of_week === day && s.period === period);
+    $('existingList').innerHTML = inCell.map(s => `
+      <div class="ex-row">
+        <div>
+          <div class="t">${escapeHtml(s.label || s.class_name || 'Slot')}</div>
+          <div class="m">${escapeHtml([
+            s.teacher_name || null,
+            s.room || null,
+            `${(s.start_time || '').slice(0, 5)}–${(s.end_time || '').slice(0, 5)}`,
+          ].filter(Boolean).join(' · '))}</div>
+        </div>
+        <div class="acts">
+          <button class="mini-btn" type="button" data-edit="${escapeHtml(s.id)}">Edit</button>
+          <button class="mini-btn danger" type="button" data-del="${escapeHtml(s.id)}">Remove</button>
+        </div>
+      </div>
+    `).join('');
+    if (slotId) {
+      const s = state.slots.find(x => x.id === slotId);
+      $('slClass').value = s?.class_id || '';
+      $('slTeacher').value = s?.teacher_user_id || '';
+      $('slStart').value = (s?.start_time || '09:00').slice(0, 5);
+      $('slEnd').value = (s?.end_time || '09:50').slice(0, 5);
+      $('slRoom').value = s?.room || '';
+      $('slLabel').value = s?.label || '';
+      $('slDeleteBtn').style.display = '';
+    } else {
+      $('slClass').value = '';
+      $('slTeacher').value = '';
+      $('slStart').value = '09:00';
+      $('slEnd').value = '09:50';
+      $('slRoom').value = '';
+      $('slLabel').value = '';
+      $('slDeleteBtn').style.display = 'none';
+    }
+    $('slotModalBack').classList.add('open');
+  }
+
+  function closeModal() {
+    $('slotModalBack').classList.remove('open');
+    state.cell = null;
+    state.editingId = null;
+  }
+
+  $('grid').addEventListener('click', (e) => {
+    const editBtn = e.target.closest('[data-edit]');
+    if (editBtn) {
+      const cell = editBtn.closest('.tt-body');
+      openModal(Number(cell.dataset.day), Number(cell.dataset.period), editBtn.dataset.edit);
+      return;
+    }
+    const delBtn = e.target.closest('[data-del]');
+    if (delBtn) {
+      removeSlot(delBtn.dataset.del);
+      return;
+    }
+    const body = e.target.closest('.tt-body');
+    if (body) openModal(Number(body.dataset.day), Number(body.dataset.period), null);
+  });
+
+  $('slotModalClose').addEventListener('click', closeModal);
+  $('slotModalBack').addEventListener('click', (e) => {
+    if (e.target === $('slotModalBack')) closeModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  $('slSaveBtn').addEventListener('click', async () => {
+    if (!state.cell) return;
+    const start = $('slStart').value;
+    const end = $('slEnd').value;
+    if (!start || !end) { toast('Pick start and end times.', 'error'); return; }
+    if (end <= start) { toast('End time must be after the start time.', 'error'); return; }
+    const btn = $('slSaveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      const { data, error } = await supabaseClient.rpc('upsert_timetable_slot', {
+        p_school_id: state.school.id,
+        p_slot_id: state.editingId,
+        p_class_id: $('slClass').value || null,
+        p_teacher_user_id: $('slTeacher').value || null,
+        p_day_of_week: state.cell.day,
+        p_period: state.cell.period,
+        p_start_time: start,
+        p_end_time: end,
+        p_room: $('slRoom').value.trim() || null,
+        p_label: $('slLabel').value.trim() || null,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast(state.editingId ? 'Slot updated.' : 'Slot added.', 'success');
+      closeModal();
+      await loadSlots();
+      renderGrid();
+    } catch (err) {
+      const reason = String(err.message || err);
+      if (reason.includes('teacher_busy')) {
+        toast('That teacher already has a slot at this time.', 'error');
+      } else if (reason.includes('class_busy')) {
+        toast('That class already has a slot at this time.', 'error');
+      } else {
+        toast('Couldn\'t save: ' + reason, 'error');
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save slot';
+    }
+  });
+
+  async function removeSlot(slotId) {
+    try {
+      const { data, error } = await supabaseClient.rpc('delete_timetable_slot', {
+        p_slot_id: slotId,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast('Slot removed.', 'success');
+      closeModal();
+      await loadSlots();
+      renderGrid();
+    } catch (err) {
+      toast('Couldn\'t remove: ' + String(err.message || err), 'error');
+    }
+  }
+
+  $('slDeleteBtn').addEventListener('click', () => {
+    if (state.editingId) removeSlot(state.editingId);
+  });
+
+  $('classFilter').addEventListener('change', renderGrid);
+  $('teacherFilter').addEventListener('change', renderGrid);
+
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
+
+  boot();
+</script>
+<script src="header.js" defer></script>
+<script src="bubbles.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
+</body>
+</html>

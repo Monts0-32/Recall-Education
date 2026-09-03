@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Announcements — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Post school announcements to staff and students." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --purple-dim:rgba(163,113,247,0.12);
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .layout { max-width: 860px; margin: 0 auto; padding: 24px; }
+    .crumbs { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+    .crumbs a { color: var(--text-3); }
+    .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+
+    .head-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .head-bar h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .head-bar .sub { color: var(--text-3); font-size: 13.5px; margin: 0; }
+    .head-bar .grow { flex: 1; }
+    .pill { padding: 2px 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--text-2); }
+
+    .card { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; margin-bottom: 18px; }
+    .card-head { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); gap: 10px; flex-wrap: wrap; }
+    .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .card-body { padding: 16px 18px; }
+
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--line-2); padding: 7px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+    .btn-primary { background: var(--blue); color: #fff; padding: 8px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    select, input, textarea {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      padding: 8px 12px; font-family: inherit; font-size: 13.5px; outline: none;
+    }
+    select:focus, input:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+    textarea { min-height: 90px; line-height: 1.5; resize: vertical; width: 100%; }
+
+    .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-row label { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+    .form-row .hint { font-size: 11.5px; color: var(--text-4); }
+    .form-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .ann {
+      display: grid; grid-template-columns: 40px 1fr; gap: 14px;
+      padding: 16px 18px; border-bottom: 1px solid var(--line);
+    }
+    .ann:last-child { border-bottom: none; }
+    .ann .icon {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--blue-dim); border: 1px solid rgba(56,139,253,0.35);
+      display: grid; place-items: center; font-size: 17px;
+    }
+    .ann .title { font-weight: 600; font-size: 14.5px; }
+    .ann .body { color: var(--text-2); font-size: 13.5px; margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .ann .meta { color: var(--text-4); font-size: 11.5px; margin-top: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .aud { padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1px solid var(--line-2); }
+    .aud.everyone { color: var(--blue); border-color: rgba(56,139,253,0.4); background: var(--blue-dim); }
+    .aud.staff     { color: var(--yellow); border-color: rgba(210,153,34,0.4); background: var(--yellow-dim); }
+    .aud.students  { color: var(--green); border-color: rgba(63,185,80,0.4); background: var(--green-dim); }
+    .aud.class     { color: var(--purple); border-color: rgba(163,113,247,0.4); background: var(--purple-dim); }
+
+    .empty { padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+    .gate { max-width: 520px; margin: 80px auto; padding: 32px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); text-align: center; }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--bg-3); border: 1px solid var(--line-2); color: var(--text); padding: 10px 14px; border-radius: var(--r-sm); font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: toast-in 0.2s ease; }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+    @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    @media (max-width: 640px) { .form-2 { grid-template-columns: 1fr; } }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+
+<div id="headerSlot" data-mode="auth"></div>
+
+<div class="layout" id="main">
+  <div class="crumbs">
+    <a href="index.html">Recall</a>
+    <span class="sep">/</span>
+    <a href="school-systems.html">School systems</a>
+    <span class="sep">/</span>
+    <span class="current">Announcements</span>
+  </div>
+
+  <div class="head-bar">
+    <div class="grow">
+      <h1>Announcements</h1>
+      <p class="sub" id="sub">Loading your school…</p>
+    </div>
+    <div class="right">
+      <span class="pill" id="schoolPill">—</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>New announcement</h3>
+        <div class="sub">Recipients get a notification in their Recall bell.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="form-row">
+        <label for="anTitle">Title</label>
+        <input type="text" id="anTitle" maxlength="120" placeholder="e.g. Sports day — Friday 12th" />
+      </div>
+      <div class="form-row">
+        <label for="anBody">Message</label>
+        <textarea id="anBody" maxlength="2000" placeholder="Write your announcement…"></textarea>
+      </div>
+      <div class="form-row">
+        <label>Audience</label>
+        <div class="form-2">
+          <select id="anAudience">
+            <option value="everyone">Everyone</option>
+            <option value="staff">Staff only</option>
+            <option value="students">Students only</option>
+            <option value="class">A class</option>
+          </select>
+          <select id="anClass" disabled></select>
+        </div>
+        <div class="hint" id="audHint">Everyone = all staff and students at your school.</div>
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button class="btn-primary" id="anPostBtn" type="button">Post announcement</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>Recent announcements</h3>
+        <div class="sub" id="feedSub">—</div>
+      </div>
+    </div>
+    <div id="feed">
+      <div class="empty">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  function fmtWhen(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) +
+      ' at ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  }
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  const AUD_HINTS = {
+    everyone: 'Everyone = all staff and students at your school.',
+    staff: 'Staff only = teachers and organisers.',
+    students: 'Students only = everyone else at your school.',
+    class: 'Class = students in one class.',
+  };
+
+  const state = {
+    user: null,
+    school: null,
+    settings: null,
+    isOrganiser: false,
+    classes: [],
+  };
+
+  function renderGate(title, msg) {
+    $('main').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-primary" href="login.html">Sign in</a></p>
+      </div>
+    `;
+  }
+
+  async function boot() {
+    let resolved = false;
+    const finish = (user) => {
+      if (resolved) return;
+      resolved = true;
+      onSession(user);
+    };
+    try {
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) { finish(null); return; }
+      const session = data && data.session;
+      if (session && session.user) { finish(session.user); return; }
+    } catch (_) { /* fall through to event listener */ }
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
+        finish(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        finish(null);
+      }
+    });
+    setTimeout(() => { if (!resolved) finish(null); }, 1500);
+  }
+
+  async function onSession(user) {
+    if (!user) {
+      renderGate('Sign-in required', 'Your session has expired or you haven\'t signed in yet. Sign in to post announcements.');
+      return;
+    }
+    state.user = user;
+
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) {}
+    }
+    if (role !== 'school_organiser' && role !== 'teacher') {
+      renderGate('Staff access only', 'This page is for teachers and school organisers.');
+      return;
+    }
+    state.isOrganiser = role === 'school_organiser';
+
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id, school_id, full_name, role, avatar_url')
+      .eq('id', state.user.id)
+      .maybeSingle();
+    if (!profile || !profile.school_id) {
+      renderGate('No school attached', 'Your account isn\'t attached to a school yet.');
+      return;
+    }
+    const { data: school } = await supabaseClient
+      .from('schools')
+      .select('id, name, code')
+      .eq('id', profile.school_id)
+      .maybeSingle();
+    state.school = school;
+    $('schoolPill').textContent = school ? school.name : '—';
+    $('sub').textContent = school ? `Announcements for ${school.name}.` : 'Announcements.';
+
+    try {
+      const { data: settings } = await supabaseClient.rpc('get_school_settings', {
+        p_school_id: school.id,
+      });
+      if (settings && settings.ok === true) state.settings = settings;
+    } catch (_) {}
+    if (state.settings && state.settings.perms?.ops_announcements === false) {
+      renderGate('Permission needed', 'Your school organiser has disabled this tool. Ask them to enable it under School Settings.');
+      return;
+    }
+
+    function unhideSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(unhideSignOut, 30); return; }
+      btn.hidden = false;
+    }
+    unhideSignOut();
+
+    await Promise.all([loadClasses(), loadFeed()]);
+    mountHeaderExtras(profile || { id: state.user.id, full_name: (state.user.user_metadata || {}).full_name || '', role, avatar_url: null });
+  }
+
+  function mountHeaderExtras(profileRow) {
+    function mountAvatar() {
+      if (!window.recallHeaderAvatar || typeof window.recallHeaderAvatar.mount !== 'function') {
+        setTimeout(mountAvatar, 50); return;
+      }
+      try {
+        window.recallHeaderAvatar.mount('avatarSlot', {
+          supabaseClient, user: state.user, profile: profileRow,
+        });
+      } catch (e) { console.error('headerAvatar mount failed:', e); }
+    }
+    mountAvatar();
+    if (window.recallChat && typeof window.recallChat.mount === 'function') {
+      try {
+        window.recallChat.mount({ supabaseClient, user: state.user, profile: profileRow });
+      } catch (e) { console.error('chat mount failed:', e); }
+    }
+  }
+
+  async function loadClasses() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_classes', {
+        p_school_id: state.school.id, p_include_archived: false,
+      });
+      if (!error) {
+        state.classes = data || [];
+        $('anClass').innerHTML = '<option value="">— pick a class —</option>' +
+          state.classes.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
+      }
+    } catch (_) { /* keep empty */ }
+  }
+
+  function audLabel(a) {
+    if (a === 'staff') return 'Staff';
+    if (a === 'students') return 'Students';
+    if (a === 'class') return 'Class';
+    return 'Everyone';
+  }
+
+  async function loadFeed() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_announcements', {
+        p_school_id: state.school.id, p_limit: 50,
+      });
+      if (error) throw error;
+      const rows = data || [];
+      $('feedSub').textContent = rows.length ? `${rows.length} recent` : '—';
+      if (!rows.length) {
+        $('feed').innerHTML = `<div class="empty">No announcements yet. Post the first one above.</div>`;
+        return;
+      }
+      $('feed').innerHTML = rows.map(r => {
+        const mine = r.posted_by === state.user.id;
+        const canDelete = mine || state.isOrganiser;
+        return `
+          <div class="ann">
+            <div class="icon">📣</div>
+            <div>
+              <div class="title">${escapeHtml(r.title)}</div>
+              <div class="body">${escapeHtml(r.body)}</div>
+              <div class="meta">
+                <span class="aud ${escapeHtml(r.audience)}">${escapeHtml(r.audience === 'class' && r.class_name ? 'Class · ' + r.class_name : audLabel(r.audience))}</span>
+                <span>By ${escapeHtml(r.posted_by_name || 'staff')}</span>
+                <span>· ${escapeHtml(fmtWhen(r.created_at))}</span>
+                ${canDelete ? `<button class="btn-ghost" style="padding: 2px 10px; font-size: 11.5px; margin-left: auto;" data-del="${escapeHtml(r.id)}" type="button">Delete</button>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (e) {
+      $('feed').innerHTML = `<div class="empty">Couldn't load announcements.</div>`;
+    }
+  }
+
+  $('anAudience').addEventListener('change', () => {
+    const v = $('anAudience').value;
+    $('anClass').disabled = v !== 'class';
+    $('audHint').textContent = AUD_HINTS[v] || AUD_HINTS.everyone;
+  });
+
+  $('anPostBtn').addEventListener('click', async () => {
+    const title = $('anTitle').value.trim();
+    const body = $('anBody').value.trim();
+    const audience = $('anAudience').value;
+    if (!title) { toast('Give the announcement a title.', 'error'); return; }
+    if (!body) { toast('Write a message.', 'error'); return; }
+    const classId = audience === 'class' ? $('anClass').value : '';
+    if (audience === 'class' && !classId) { toast('Pick which class.', 'error'); return; }
+
+    const btn = $('anPostBtn');
+    btn.disabled = true;
+    btn.textContent = 'Posting…';
+    try {
+      const { data, error } = await supabaseClient.rpc('post_announcement', {
+        p_school_id: state.school.id,
+        p_class_id: classId || null,
+        p_audience: audience,
+        p_title: title,
+        p_body: body,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast('Announcement posted.', 'success');
+      $('anTitle').value = '';
+      $('anBody').value = '';
+      await loadFeed();
+    } catch (err) {
+      const reason = String(err.message || err);
+      if (reason.includes('ops_announcements')) {
+        toast('Your organiser has disabled announcements for teachers.', 'error');
+      } else {
+        toast('Couldn\'t post: ' + reason, 'error');
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Post announcement';
+    }
+  });
+
+  $('feed').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-del]');
+    if (!btn || !btn.dataset.del) return;
+    if (!confirm('Delete this announcement?')) return;
+    try {
+      const { data, error } = await supabaseClient.rpc('delete_announcement', {
+        p_announcement_id: btn.dataset.del,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast('Announcement deleted.', 'success');
+      await loadFeed();
+    } catch (err) {
+      toast('Couldn\'t delete: ' + String(err.message || err), 'error');
+    }
+  });
+
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
+
+  boot();
+</script>
+<script src="header.js" defer></script>
+<script src="bubbles.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
+</body>
+</html>

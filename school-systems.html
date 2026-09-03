@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>School systems — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="All of your school's day-to-day systems in one place." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --purple-dim:rgba(163,113,247,0.12);
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .layout { max-width: 1000px; margin: 0 auto; padding: 24px; }
+    .crumbs { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+    .crumbs a { color: var(--text-3); }
+    .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+
+    .head-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .head-bar h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .head-bar .sub { color: var(--text-3); font-size: 13.5px; margin: 0; }
+    .head-bar .grow { flex: 1; }
+    .pill { padding: 2px 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--text-2); }
+
+    .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+    .tile {
+      display: flex; flex-direction: column; gap: 10px;
+      background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md);
+      padding: 18px; color: var(--text);
+      transition: border-color 0.12s, background 0.12s;
+    }
+    .tile:hover { border-color: var(--line-3); background: var(--bg-3); text-decoration: none; }
+    .tile .icon {
+      width: 40px; height: 40px; border-radius: var(--r-md);
+      display: grid; place-items: center; font-size: 20px;
+      background: var(--blue-dim); border: 1px solid rgba(56,139,253,0.3);
+    }
+    .tile.green .icon { background: var(--green-dim); border-color: rgba(63,185,80,0.3); }
+    .tile.yellow .icon { background: var(--yellow-dim); border-color: rgba(210,153,34,0.3); }
+    .tile.red .icon { background: var(--red-dim); border-color: rgba(248,81,73,0.3); }
+    .tile.purple .icon { background: var(--purple-dim); border-color: rgba(163,113,247,0.3); }
+    .tile .name { font-weight: 600; font-size: 14.5px; display: flex; align-items: center; gap: 8px; }
+    .tile .desc { color: var(--text-3); font-size: 12.5px; }
+    .tile.locked { opacity: 0.55; cursor: not-allowed; }
+    .tile.locked:hover { border-color: var(--line); background: var(--bg-2); }
+    .tile .lock { font-size: 13px; }
+
+    .gate { max-width: 520px; margin: 80px auto; padding: 32px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); text-align: center; }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+    .btn-primary { background: var(--blue); color: #fff; padding: 8px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--bg-3); border: 1px solid var(--line-2); color: var(--text); padding: 10px 14px; border-radius: var(--r-sm); font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: toast-in 0.2s ease; }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+    @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    a:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+
+<div id="headerSlot" data-mode="auth"></div>
+
+<div class="layout" id="main">
+  <div class="crumbs">
+    <a href="index.html">Recall</a>
+    <span class="sep">/</span>
+    <span class="current">School systems</span>
+  </div>
+
+  <div class="head-bar">
+    <div class="grow">
+      <h1>School systems</h1>
+      <p class="sub" id="sub">Loading your school…</p>
+    </div>
+    <div class="right" style="display: flex; gap: 10px; align-items: center;">
+      <a class="pill" id="settingsLink" href="school-settings.html" style="display: none;">Settings</a>
+      <span class="pill" id="schoolPill">—</span>
+    </div>
+  </div>
+
+  <div class="tile-grid" id="tiles"></div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  // perm: null = always available. Otherwise the settings flag that must
+  // be on for teachers (organisers always have everything).
+  const SYSTEMS = [
+    { href: 'register.html',    icon: '🗓️', name: 'Register',        desc: 'Take the daily attendance register.', perm: 'register_absences' },
+    { href: 'absences.html',    icon: '🤒', name: 'Absences',        desc: 'Record and track planned absences.', perm: 'register_absences' },
+    { href: 'timetables.html',  icon: '⏰', name: 'Timetables',      desc: 'Build the weekly class timetable.', perm: null },
+    { href: 'behaviour.html',   icon: '📝', name: 'Behaviour logs',  desc: 'Log and review behaviour incidents.', perm: 'behaviour_praise' },
+    { href: 'praise.html',      icon: '⭐', name: 'Praise points',   desc: 'Award points and see the leaderboard.', perm: 'behaviour_praise', tone: 'green' },
+    { href: 'announcements.html', icon: '📣', name: 'Announcements', desc: 'Post news to staff and students.', perm: 'ops_announcements', tone: 'yellow' },
+    { href: 'booking.html',     icon: '📍', name: 'Resource booking', desc: 'Book rooms and equipment.', perm: 'ops_announcements', tone: 'purple' },
+    { href: 'clubs.html',       icon: '🎨', name: 'Clubs',           desc: 'Manage clubs and their members.', perm: 'ops_announcements' },
+    { href: 'analytics.html',  icon: '📊', name: 'Analytics',       desc: 'Attendance, praise, behaviour, homework.', perm: null },
+  ];
+
+  const state = {
+    user: null,
+    school: null,
+    settings: null,
+    isOrganiser: false,
+  };
+
+  function renderGate(title, msg) {
+    $('main').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-primary" href="login.html">Sign in</a></p>
+      </div>
+    `;
+  }
+
+  async function boot() {
+    let resolved = false;
+    const finish = (user) => {
+      if (resolved) return;
+      resolved = true;
+      onSession(user);
+    };
+    try {
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) { finish(null); return; }
+      const session = data && data.session;
+      if (session && session.user) { finish(session.user); return; }
+    } catch (_) { /* fall through to event listener */ }
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
+        finish(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        finish(null);
+      }
+    });
+    setTimeout(() => { if (!resolved) finish(null); }, 1500);
+  }
+
+  async function onSession(user) {
+    if (!user) {
+      renderGate('Sign-in required', 'Your session has expired or you haven\'t signed in yet. Sign in to see school systems.');
+      return;
+    }
+    state.user = user;
+
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) {}
+    }
+    if (role !== 'school_organiser' && role !== 'teacher') {
+      renderGate('Staff access only', 'This page is for teachers and school organisers.');
+      return;
+    }
+    state.isOrganiser = role === 'school_organiser';
+
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id, school_id, full_name, role, avatar_url')
+      .eq('id', state.user.id)
+      .maybeSingle();
+    if (!profile || !profile.school_id) {
+      renderGate('No school attached', 'Your account isn\'t attached to a school yet.');
+      return;
+    }
+    const { data: school } = await supabaseClient
+      .from('schools')
+      .select('id, name, code')
+      .eq('id', profile.school_id)
+      .maybeSingle();
+    state.school = school;
+    $('schoolPill').textContent = school ? school.name : '—';
+    $('sub').textContent = school ? `Day-to-day systems for ${school.name}.` : 'School systems.';
+
+    try {
+      const { data: settings } = await supabaseClient.rpc('get_school_settings', {
+        p_school_id: school.id,
+      });
+      if (settings && settings.ok === true) state.settings = settings;
+    } catch (_) { /* fail open: show everything */ }
+
+    function unhideSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(unhideSignOut, 30); return; }
+      btn.hidden = false;
+    }
+    unhideSignOut();
+
+    renderTiles();
+    mountHeaderExtras(profile || { id: state.user.id, full_name: (state.user.user_metadata || {}).full_name || '', role, avatar_url: null });
+  }
+
+  function mountHeaderExtras(profileRow) {
+    function mountAvatar() {
+      if (!window.recallHeaderAvatar || typeof window.recallHeaderAvatar.mount !== 'function') {
+        setTimeout(mountAvatar, 50); return;
+      }
+      try {
+        window.recallHeaderAvatar.mount('avatarSlot', {
+          supabaseClient, user: state.user, profile: profileRow,
+        });
+      } catch (e) { console.error('headerAvatar mount failed:', e); }
+    }
+    mountAvatar();
+    if (window.recallChat && typeof window.recallChat.mount === 'function') {
+      try {
+        window.recallChat.mount({ supabaseClient, user: state.user, profile: profileRow });
+      } catch (e) { console.error('chat mount failed:', e); }
+    }
+  }
+
+  function renderTiles() {
+    if (state.isOrganiser) $('settingsLink').style.display = '';
+    $('tiles').innerHTML = SYSTEMS.map(s => {
+      const denied = !state.isOrganiser && state.settings &&
+        s.perm && state.settings.perms?.[s.perm] === false;
+      const cls = ['tile', s.tone || '', denied ? 'locked' : ''].filter(Boolean).join(' ');
+      return `
+        <a class="${cls}" href="${s.href}" ${denied ? 'aria-disabled="true" title="Ask your organiser to enable this"' : ''}>
+          <div class="icon">${s.icon}</div>
+          <div class="name">${escapeHtml(s.name)} ${denied ? '<span class="lock">🔒</span>' : ''}</div>
+          <div class="desc">${escapeHtml(s.desc)}</div>
+        </a>
+      `;
+    }).join('');
+
+    // Locked tiles stay visible so staff know the system exists, but a
+    // click just explains who can enable it (same pattern as the staff
+    // dashboard's admin-only nav links).
+    document.querySelectorAll('.tile.locked').forEach(a => {
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        toast('Your school organiser has disabled this system. Ask them to enable it under School Settings.', 'error');
+      });
+    });
+  }
+
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
+
+  boot();
+</script>
+<script src="header.js" defer></script>
+<script src="bubbles.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
+</body>
+</html>

@@ -442,6 +442,7 @@
     activeClass: null,    // class being edited in the modal
     activeMembers: [],    // members of the active class
     editing: false,
+    canCreateClasses: true, // false when the organiser has switched off teacher class creation
   };
 
   function renderGate(title, msg) {
@@ -548,6 +549,19 @@
       .maybeSingle();
     state.school = school;
 
+    // Teacher permissions: hide the "+ New class" button when the
+    // organiser has switched off teacher class creation. Fails open so
+    // the page keeps working before supabase_school_settings.sql is run.
+    try {
+      const { data: settings, error: settingsErr } = await supabaseClient.rpc('get_school_settings', {
+        p_school_id: school.id,
+      });
+      if (!settingsErr && settings && settings.ok === true && settings.perms?.create_classes === false) {
+        state.canCreateClasses = false;
+        $('newClassBtn').style.display = 'none';
+      }
+    } catch (_) { /* fail open */ }
+
     // navName no longer rendered — header.js shows the name in the avatar button.
     const navName = document.getElementById('navName');
     if (navName) navName.textContent = meta.full_name || state.user.email;
@@ -646,7 +660,9 @@
   function renderClasses() {
     const list = $('classList');
     if (!state.classes.length) {
-      list.innerHTML = `<div class="empty">No classes yet. Click <b>+ New class</b> to create one.</div>`;
+      list.innerHTML = state.canCreateClasses
+        ? `<div class="empty">No classes yet. Click <b>+ New class</b> to create one.</div>`
+        : `<div class="empty">No classes yet. Your school organiser hasn't given teachers permission to create classes.</div>`;
       $('classesSub').textContent = '0 classes';
       return;
     }

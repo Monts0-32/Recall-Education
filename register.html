@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Register — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Take the attendance register for your classes." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .layout { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .crumbs { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+    .crumbs a { color: var(--text-3); }
+    .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+
+    .head-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .head-bar h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .head-bar .sub { color: var(--text-3); font-size: 13.5px; margin: 0; }
+    .head-bar .grow { flex: 1; }
+    .head-bar .right { display: flex; align-items: center; gap: 8px; }
+    .pill { padding: 2px 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--text-2); }
+
+    .card { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; margin-bottom: 18px; }
+    .card-head { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); gap: 10px; flex-wrap: wrap; }
+    .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .card-body { padding: 16px 18px; }
+
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--line-2); padding: 7px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+    .btn-primary { background: var(--blue); color: #fff; padding: 8px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: var(--bg-3); color: var(--text); border: 1px solid var(--line-2); padding: 7px 12px; border-radius: var(--r-sm); font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-secondary:hover { background: var(--bg-4); border-color: var(--line-3); text-decoration: none; }
+
+    select, input[type="date"] {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      padding: 8px 12px; font-family: inherit; font-size: 13.5px; outline: none;
+    }
+    select:focus, input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+
+    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+    .kpi { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 16px; }
+    .kpi .num { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .kpi .label { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .kpi .num.green { color: var(--green); }
+    .kpi .num.yellow { color: var(--yellow); }
+    .kpi .num.red { color: var(--red); }
+
+    .roster { display: flex; flex-direction: column; }
+    .mark-row {
+      display: grid; grid-template-columns: 30px 1fr auto;
+      gap: 14px; align-items: center;
+      padding: 10px 18px; border-bottom: 1px solid var(--line); font-size: 13px;
+    }
+    .mark-row:last-child { border-bottom: none; }
+    .mark-row:hover { background: var(--bg-3); }
+    .mark-row .avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-4); color: var(--text-2); display: grid; place-items: center; font-weight: 700; font-size: 11px; }
+    .mark-row .name { color: var(--text); font-weight: 600; }
+    .mark-row .year { color: var(--text-4); font-size: 12px; margin-left: 8px; }
+    .mark-row .status-btns { display: flex; gap: 6px; }
+    .mark-btn {
+      min-width: 34px; padding: 5px 8px; border-radius: var(--r-sm);
+      border: 1px solid var(--line-2); background: var(--bg); color: var(--text-3);
+      font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .mark-btn:hover { color: var(--text); }
+    .mark-btn.sel.present  { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+    .mark-btn.sel.late     { background: var(--yellow-dim); border-color: var(--yellow); color: var(--yellow); }
+    .mark-btn.sel.absent   { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+    .mark-btn.sel.excused  { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
+
+    .empty { padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+    .recent-row { display: grid; grid-template-columns: 1fr 110px 150px; gap: 10px; padding: 9px 18px; border-bottom: 1px solid var(--line); font-size: 12.5px; align-items: center; }
+    .recent-row:last-child { border-bottom: none; }
+    .recent-row .cls { color: var(--text); font-weight: 600; }
+    .recent-row .date { color: var(--text-3); }
+    .recent-row .counts { color: var(--text-2); text-align: right; }
+
+    .gate { max-width: 520px; margin: 80px auto; padding: 32px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); text-align: center; }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--bg-3); border: 1px solid var(--line-2); color: var(--text); padding: 10px 14px; border-radius: var(--r-sm); font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: toast-in 0.2s ease; }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+    @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    @media (max-width: 700px) {
+      .kpis { grid-template-columns: repeat(2, 1fr); }
+      .recent-row { grid-template-columns: 1fr 110px; }
+      .recent-row .counts { text-align: left; grid-column: 1 / -1; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+
+<div id="headerSlot" data-mode="auth"></div>
+
+<div class="layout" id="main">
+  <div class="crumbs">
+    <a href="index.html">Recall</a>
+    <span class="sep">/</span>
+    <a href="school-systems.html">School systems</a>
+    <span class="sep">/</span>
+    <span class="current">Register</span>
+  </div>
+
+  <div class="head-bar">
+    <div class="grow">
+      <h1>Register</h1>
+      <p class="sub" id="sub">Loading your school…</p>
+    </div>
+    <div class="right">
+      <span class="pill" id="schoolPill">—</span>
+    </div>
+  </div>
+
+  <div class="card" id="pickerCard">
+    <div class="card-head">
+      <div>
+        <h3>Take the register</h3>
+        <div class="sub">Pick a class and date, mark each student, then save.</div>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <select id="classSelect" aria-label="Class"></select>
+        <input type="date" id="dateInput" aria-label="Date" />
+        <button class="btn-secondary" id="allPresentBtn" type="button">Mark all present</button>
+        <button class="btn-primary" id="saveBtn" type="button" disabled>Save register</button>
+      </div>
+    </div>
+    <div class="roster" id="roster">
+      <div class="empty">Pick a class to load its roster.</div>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpiRow" hidden>
+    <div class="kpi"><div class="num green" id="kpiPresent">0</div><div class="label">Present</div></div>
+    <div class="kpi"><div class="num yellow" id="kpiLate">0</div><div class="label">Late</div></div>
+    <div class="kpi"><div class="num red" id="kpiAbsent">0</div><div class="label">Absent</div></div>
+    <div class="kpi"><div class="num" id="kpiPct">—</div><div class="label">Attendance %</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>Recent registers</h3>
+        <div class="sub" id="recentSub">—</div>
+      </div>
+    </div>
+    <div id="recentList">
+      <div class="empty">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const initials = (name) => {
+    if (!name) return '?';
+    const p = name.trim().split(/\s+/);
+    return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '?';
+  };
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso + (String(iso).length === 10 ? 'T00:00:00' : ''));
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  const state = {
+    user: null,
+    school: null,
+    settings: null,
+    classes: [],
+    roster: [],   // [{student_user_id, full_name, year_group, status, note}]
+    dirty: false,
+  };
+
+  const STATUSES = [
+    { key: 'present',  label: 'P', title: 'Present' },
+    { key: 'late',     label: 'L', title: 'Late' },
+    { key: 'absent',   label: 'A', title: 'Absent' },
+    { key: 'excused',  label: 'E', title: 'Excused' },
+  ];
+
+  function renderGate(title, msg) {
+    $('main').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-primary" href="login.html">Sign in</a></p>
+      </div>
+    `;
+  }
+
+  // ---------- boot ----------
+  async function boot() {
+    let resolved = false;
+    const finish = (user) => {
+      if (resolved) return;
+      resolved = true;
+      onSession(user);
+    };
+    try {
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) { finish(null); return; }
+      const session = data && data.session;
+      if (session && session.user) { finish(session.user); return; }
+    } catch (_) { /* fall through to event listener */ }
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
+        finish(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        finish(null);
+      }
+    });
+    setTimeout(() => { if (!resolved) finish(null); }, 1500);
+  }
+
+  async function onSession(user) {
+    if (!user) {
+      renderGate('Sign-in required', 'Your session has expired or you haven\'t signed in yet. Sign in to take the register.');
+      return;
+    }
+    state.user = user;
+
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) {}
+    }
+    if (role !== 'school_organiser' && role !== 'teacher') {
+      renderGate('Staff access only', 'This page is for teachers and school organisers.');
+      return;
+    }
+
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id, school_id, full_name, role, avatar_url')
+      .eq('id', state.user.id)
+      .maybeSingle();
+    if (!profile || !profile.school_id) {
+      renderGate('No school attached', 'Your account isn\'t attached to a school yet.');
+      return;
+    }
+    const { data: school } = await supabaseClient
+      .from('schools')
+      .select('id, name, code')
+      .eq('id', profile.school_id)
+      .maybeSingle();
+    state.school = school;
+    $('schoolPill').textContent = school ? school.name : '—';
+    $('sub').textContent = school ? `Attendance register for ${school.name}.` : 'Attendance register.';
+
+    try {
+      const { data: settings } = await supabaseClient.rpc('get_school_settings', {
+        p_school_id: school.id,
+      });
+      if (settings && settings.ok === true) state.settings = settings;
+    } catch (_) {}
+    if (state.settings && state.settings.perms?.register_absences === false) {
+      renderGate('Permission needed', 'Your school organiser has disabled this tool. Ask them to enable it under School Settings.');
+      return;
+    }
+
+    function unhideSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(unhideSignOut, 30); return; }
+      btn.hidden = false;
+    }
+    unhideSignOut();
+
+    await Promise.all([loadClasses(), loadRecent()]);
+    if (state.classes.length) {
+      $('classSelect').value = state.classes[0].id;
+      await loadRoster();
+    } else {
+      $('roster').innerHTML = `<div class="empty">No classes yet. Create one on the <a href="classes.html">Classes page</a> first.</div>`;
+    }
+
+    mountHeaderExtras(profile || { id: state.user.id, full_name: (state.user.user_metadata || {}).full_name || '', role, avatar_url: null });
+  }
+
+  function mountHeaderExtras(profileRow) {
+    function mountAvatar() {
+      if (!window.recallHeaderAvatar || typeof window.recallHeaderAvatar.mount !== 'function') {
+        setTimeout(mountAvatar, 50); return;
+      }
+      try {
+        window.recallHeaderAvatar.mount('avatarSlot', {
+          supabaseClient, user: state.user, profile: profileRow,
+        });
+      } catch (e) { console.error('headerAvatar mount failed:', e); }
+    }
+    mountAvatar();
+    if (window.recallChat && typeof window.recallChat.mount === 'function') {
+      try {
+        window.recallChat.mount({ supabaseClient, user: state.user, profile: profileRow });
+      } catch (e) { console.error('chat mount failed:', e); }
+    }
+  }
+
+  // ---------- data ----------
+  async function loadClasses() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_classes', {
+        p_school_id: state.school.id, p_include_archived: false,
+      });
+      if (!error) {
+        state.classes = data || [];
+        $('classSelect').innerHTML = state.classes.map(c =>
+          `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`
+        ).join('') || '<option value="">No classes</option>';
+      }
+    } catch (_) { /* keep empty */ }
+  }
+
+  async function loadRecent() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_recent_registers', {
+        p_school_id: state.school.id, p_limit: 12,
+      });
+      if (error) {
+        $('recentList').innerHTML = `<div class="empty">Couldn't load recent registers${error.message ? ': ' + escapeHtml(error.message) : ''}.</div>`;
+        return;
+      }
+      const rows = data || [];
+      $('recentSub').textContent = rows.length ? `${rows.length} most recent` : '—';
+      if (!rows.length) {
+        $('recentList').innerHTML = `<div class="empty">No registers saved yet.</div>`;
+        return;
+      }
+      $('recentList').innerHTML = rows.map(r => `
+        <div class="recent-row">
+          <div class="cls">${escapeHtml(r.class_name)}</div>
+          <div class="date">${fmtDate(r.session_date)}</div>
+          <div class="counts">
+            <span style="color: var(--green);">${r.present}P</span>
+            <span style="color: var(--yellow); margin-left: 6px;">${r.late}L</span>
+            <span style="color: var(--red); margin-left: 6px;">${r.absent}A</span>
+            <span style="color: var(--blue); margin-left: 6px;">${r.excused}E</span>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      $('recentList').innerHTML = `<div class="empty">Couldn't load recent registers.</div>`;
+    }
+  }
+
+  async function loadRoster() {
+    const classId = $('classSelect').value;
+    const date = $('dateInput').value;
+    if (!classId || !date) return;
+    $('roster').innerHTML = `<div class="empty">Loading roster…</div>`;
+    $('saveBtn').disabled = true;
+    $('kpiRow').hidden = true;
+    const { data, error } = await supabaseClient.rpc('get_register', {
+      p_class_id: classId, p_date: date,
+    });
+    if (error) {
+      $('roster').innerHTML = `<div class="empty">Couldn't load the roster: ${escapeHtml(error.message)}</div>`;
+      return;
+    }
+    state.roster = data || [];
+    state.dirty = false;
+    renderRoster();
+  }
+
+  function renderRoster() {
+    const list = $('roster');
+    if (!state.roster.length) {
+      list.innerHTML = `<div class="empty">This class has no students. Add some from the <a href="classes.html">Classes page</a>.</div>`;
+      $('saveBtn').disabled = true;
+      return;
+    }
+    list.innerHTML = state.roster.map((m, i) => `
+      <div class="mark-row" data-i="${i}">
+        <div class="avatar">${escapeHtml(initials(m.full_name))}</div>
+        <div>
+          <span class="name">${escapeHtml(m.full_name || '(no name)')}</span>
+          ${m.year_group ? `<span class="year">Year ${escapeHtml(m.year_group)}</span>` : ''}
+        </div>
+        <div class="status-btns">
+          ${STATUSES.map(s => `
+            <button class="mark-btn ${m.status === s.key ? 'sel ' + s.key : ''}"
+                    data-status="${s.key}" title="${s.title}" type="button">${s.label}</button>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+    list.querySelectorAll('.mark-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = Number(btn.closest('.mark-row').dataset.i);
+        state.roster[i].status = btn.dataset.status;
+        state.dirty = true;
+        const row = btn.closest('.mark-row');
+        row.querySelectorAll('.mark-btn').forEach(b => {
+          b.className = 'mark-btn' + (b.dataset.status === state.roster[i].status ? ' sel ' + b.dataset.status : '');
+        });
+        updateSaveState();
+      });
+    });
+    updateSaveState();
+  }
+
+  function updateSaveState() {
+    const marked = state.roster.filter(m => m.status).length;
+    $('saveBtn').disabled = !(state.roster.length && marked === state.roster.length);
+    $('saveBtn').textContent = marked === state.roster.length
+      ? 'Save register'
+      : `Save register (${state.roster.length - marked} unmarked)`;
+  }
+
+  function renderKpis() {
+    const counts = { present: 0, late: 0, absent: 0, excused: 0 };
+    state.roster.forEach(m => { if (m.status) counts[m.status]++; });
+    const total = counts.present + counts.late + counts.absent;
+    $('kpiPresent').textContent = counts.present;
+    $('kpiLate').textContent = counts.late;
+    $('kpiAbsent').textContent = counts.absent;
+    $('kpiPct').textContent = total ? Math.round((counts.present + counts.late) * 100 / total) + '%' : '—';
+    $('kpiRow').hidden = false;
+  }
+
+  // ---------- events ----------
+  $('dateInput').valueAsDate = new Date();
+  $('classSelect').addEventListener('change', loadRoster);
+  $('dateInput').addEventListener('change', loadRoster);
+
+  $('allPresentBtn').addEventListener('click', () => {
+    if (!state.roster.length) return;
+    state.roster.forEach(m => { m.status = 'present'; });
+    state.dirty = true;
+    renderRoster();
+  });
+
+  $('saveBtn').addEventListener('click', async () => {
+    const classId = $('classSelect').value;
+    const date = $('dateInput').value;
+    if (!classId || !date) return;
+    if (state.roster.some(m => !m.status)) {
+      toast('Mark every student before saving (use "Mark all present" first).', 'error');
+      return;
+    }
+    const btn = $('saveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      const { data, error } = await supabaseClient.rpc('save_register', {
+        p_class_id: classId,
+        p_date: date,
+        p_marks: state.roster.map(m => ({
+          student_user_id: m.student_user_id, status: m.status,
+        })),
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      state.dirty = false;
+      toast('Register saved.', 'success');
+      renderKpis();
+      await loadRecent();
+    } catch (err) {
+      const reason = String(err.message || err);
+      if (reason.includes('register_absences')) {
+        toast('Your organiser has disabled register access for teachers.', 'error');
+      } else {
+        toast('Couldn\'t save: ' + reason, 'error');
+      }
+    } finally {
+      updateSaveState();
+    }
+  });
+
+  window.addEventListener('beforeunload', (e) => {
+    if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
+
+  boot();
+</script>
+<script src="header.js" defer></script>
+<script src="bubbles.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
+</body>
+</html>

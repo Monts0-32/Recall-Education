@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Praise points — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Award praise points and see the leaderboard." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .layout { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .crumbs { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+    .crumbs a { color: var(--text-3); }
+    .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+
+    .head-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .head-bar h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .head-bar .sub { color: var(--text-3); font-size: 13.5px; margin: 0; }
+    .head-bar .grow { flex: 1; }
+    .pill { padding: 2px 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--text-2); }
+
+    .cols { display: grid; grid-template-columns: 5fr 4fr; gap: 18px; align-items: start; }
+
+    .card { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; margin-bottom: 18px; }
+    .card-head { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); gap: 10px; flex-wrap: wrap; }
+    .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .card-body { padding: 16px 18px; }
+
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--line-2); padding: 7px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+    .btn-primary { background: var(--blue); color: #fff; padding: 8px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    select, input, textarea {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      padding: 8px 12px; font-family: inherit; font-size: 13.5px; outline: none;
+    }
+    select:focus, input:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+    textarea { min-height: 64px; line-height: 1.5; resize: vertical; width: 100%; }
+
+    .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-row label { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+    .form-row .hint { font-size: 11.5px; color: var(--text-4); }
+
+    .point-presets { display: flex; gap: 8px; flex-wrap: wrap; }
+    .preset {
+      min-width: 52px; padding: 8px 12px; border-radius: var(--r-sm);
+      background: var(--bg); border: 1px solid var(--line-2); color: var(--text-2);
+      font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+      font-variant-numeric: tabular-nums;
+    }
+    .preset:hover { color: var(--text); border-color: var(--line-3); }
+    .preset.sel { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+
+    .lb-row {
+      display: grid; grid-template-columns: 28px 34px 1fr auto;
+      gap: 12px; align-items: center; padding: 10px 18px;
+      border-bottom: 1px solid var(--line); font-size: 13px;
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-row:hover { background: var(--bg-3); }
+    .lb-row .rank { color: var(--text-4); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .lb-row .rank.r1 { color: var(--yellow); }
+    .lb-row .rank.r2 { color: var(--text-2); }
+    .lb-row .rank.r3 { color: var(--purple); }
+    .lb-row .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--bg-4); color: var(--text-2); display: grid; place-items: center; font-weight: 700; font-size: 11px; }
+    .lb-row .name { color: var(--text); font-weight: 600; }
+    .lb-row .awards { color: var(--text-4); font-size: 11.5px; }
+    .lb-row .pts { color: var(--green); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .feed-row {
+      display: grid; grid-template-columns: 44px 1fr;
+      gap: 12px; padding: 11px 18px; border-bottom: 1px solid var(--line); font-size: 13px;
+    }
+    .feed-row:last-child { border-bottom: none; }
+    .feed-row .pts-badge {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--green-dim); border: 1px solid var(--green);
+      color: var(--green); display: grid; place-items: center;
+      font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums;
+    }
+    .feed-row .name { color: var(--text); font-weight: 600; }
+    .feed-row .reason { color: var(--text-3); font-size: 12.5px; margin-top: 1px; }
+    .feed-row .by { color: var(--text-4); font-size: 11.5px; margin-top: 2px; }
+
+    .empty { padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+    .gate { max-width: 520px; margin: 80px auto; padding: 32px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); text-align: center; }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--bg-3); border: 1px solid var(--line-2); color: var(--text); padding: 10px 14px; border-radius: var(--r-sm); font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: toast-in 0.2s ease; }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+    @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+
+<div id="headerSlot" data-mode="auth"></div>
+
+<div class="layout" id="main">
+  <div class="crumbs">
+    <a href="index.html">Recall</a>
+    <span class="sep">/</span>
+    <a href="school-systems.html">School systems</a>
+    <span class="sep">/</span>
+    <span class="current">Praise points</span>
+  </div>
+
+  <div class="head-bar">
+    <div class="grow">
+      <h1>Praise points</h1>
+      <p class="sub" id="sub">Loading your school…</p>
+    </div>
+    <div class="right">
+      <span class="pill" id="schoolPill">—</span>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div>
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Award points</h3>
+            <div class="sub">The student is notified in their Recall bell.</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-row">
+            <label for="prStudent">Student</label>
+            <select id="prStudent"></select>
+          </div>
+          <div class="form-row">
+            <label>Points</label>
+            <div class="point-presets" id="pointPresets">
+              <button class="preset sel" data-pts="1" type="button">1</button>
+              <button class="preset" data-pts="2" type="button">2</button>
+              <button class="preset" data-pts="5" type="button">5</button>
+              <button class="preset" data-pts="10" type="button">10</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <label for="prReason">Reason (optional)</label>
+            <textarea id="prReason" maxlength="300" placeholder="e.g. Outstanding effort on the science project."></textarea>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <button class="btn-primary" id="prSaveBtn" type="button">Award points</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Recent awards</h3>
+            <div class="sub" id="feedSub">—</div>
+          </div>
+        </div>
+        <div id="feed">
+          <div class="empty">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h3>Leaderboard</h3>
+          <div class="sub" id="lbSub">—</div>
+        </div>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <label for="lbDays" style="font-size: 12px; color: var(--text-3);">Window</label>
+          <select id="lbDays">
+            <option value="7">7 days</option>
+            <option value="30" selected>30 days</option>
+            <option value="365">All time</option>
+          </select>
+        </div>
+      </div>
+      <div id="leaderboard">
+        <div class="empty">Loading…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const initials = (name) => {
+    if (!name) return '?';
+    const p = name.trim().split(/\s+/);
+    return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '?';
+  };
+  function fmtWhen(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    const diff = (Date.now() - d.getTime()) / 1000;
+    if (diff < 3600) return Math.max(1, Math.round(diff / 60)) + 'm ago';
+    if (diff < 86400) return Math.round(diff / 3600) + 'h ago';
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  const state = {
+    user: null,
+    school: null,
+    settings: null,
+    students: [],
+    points: 1,
+  };
+
+  function renderGate(title, msg) {
+    $('main').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-primary" href="login.html">Sign in</a></p>
+      </div>
+    `;
+  }
+
+  async function boot() {
+    let resolved = false;
+    const finish = (user) => {
+      if (resolved) return;
+      resolved = true;
+      onSession(user);
+    };
+    try {
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) { finish(null); return; }
+      const session = data && data.session;
+      if (session && session.user) { finish(session.user); return; }
+    } catch (_) { /* fall through to event listener */ }
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
+        finish(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        finish(null);
+      }
+    });
+    setTimeout(() => { if (!resolved) finish(null); }, 1500);
+  }
+
+  async function onSession(user) {
+    if (!user) {
+      renderGate('Sign-in required', 'Your session has expired or you haven\'t signed in yet. Sign in to award praise points.');
+      return;
+    }
+    state.user = user;
+
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) {}
+    }
+    if (role !== 'school_organiser' && role !== 'teacher') {
+      renderGate('Staff access only', 'This page is for teachers and school organisers.');
+      return;
+    }
+
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id, school_id, full_name, role, avatar_url')
+      .eq('id', state.user.id)
+      .maybeSingle();
+    if (!profile || !profile.school_id) {
+      renderGate('No school attached', 'Your account isn\'t attached to a school yet.');
+      return;
+    }
+    const { data: school } = await supabaseClient
+      .from('schools')
+      .select('id, name, code')
+      .eq('id', profile.school_id)
+      .maybeSingle();
+    state.school = school;
+    $('schoolPill').textContent = school ? school.name : '—';
+    $('sub').textContent = school ? `Praise points at ${school.name}.` : 'Praise points.';
+
+    try {
+      const { data: settings } = await supabaseClient.rpc('get_school_settings', {
+        p_school_id: school.id,
+      });
+      if (settings && settings.ok === true) state.settings = settings;
+    } catch (_) {}
+    if (state.settings && state.settings.perms?.behaviour_praise === false) {
+      renderGate('Permission needed', 'Your school organiser has disabled this tool. Ask them to enable it under School Settings.');
+      return;
+    }
+
+    function unhideSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(unhideSignOut, 30); return; }
+      btn.hidden = false;
+    }
+    unhideSignOut();
+
+    await Promise.all([loadStudents(), loadLeaderboard(), loadFeed()]);
+    mountHeaderExtras(profile || { id: state.user.id, full_name: (state.user.user_metadata || {}).full_name || '', role, avatar_url: null });
+  }
+
+  function mountHeaderExtras(profileRow) {
+    function mountAvatar() {
+      if (!window.recallHeaderAvatar || typeof window.recallHeaderAvatar.mount !== 'function') {
+        setTimeout(mountAvatar, 50); return;
+      }
+      try {
+        window.recallHeaderAvatar.mount('avatarSlot', {
+          supabaseClient, user: state.user, profile: profileRow,
+        });
+      } catch (e) { console.error('headerAvatar mount failed:', e); }
+    }
+    mountAvatar();
+    if (window.recallChat && typeof window.recallChat.mount === 'function') {
+      try {
+        window.recallChat.mount({ supabaseClient, user: state.user, profile: profileRow });
+      } catch (e) { console.error('chat mount failed:', e); }
+    }
+  }
+
+  async function loadStudents() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_members', {
+        p_school_id: state.school.id, p_role_filter: 'student',
+      });
+      if (!error) {
+        state.students = data || [];
+        $('prStudent').innerHTML = '<option value="">— Pick a student —</option>' +
+          state.students.map(s =>
+            `<option value="${escapeHtml(s.id)}">${escapeHtml(s.full_name || s.email || '(no name)')}</option>`
+          ).join('');
+      }
+    } catch (_) { /* keep empty */ }
+  }
+
+  async function loadLeaderboard() {
+    const days = Number($('lbDays').value) || 30;
+    try {
+      const { data, error } = await supabaseClient.rpc('list_praise_leaderboard', {
+        p_school_id: state.school.id, p_days: days,
+      });
+      if (error) throw error;
+      const rows = data || [];
+      $('lbSub').textContent = days === 365 ? 'All time' : `Last ${days} days`;
+      if (!rows.length) {
+        $('leaderboard').innerHTML = `<div class="empty">No points awarded yet — be the first!</div>`;
+        return;
+      }
+      $('leaderboard').innerHTML = rows.map((r, i) => `
+        <div class="lb-row">
+          <div class="rank ${i < 3 ? 'r' + (i + 1) : ''}">${i + 1}</div>
+          <div class="avatar">${escapeHtml(initials(r.full_name))}</div>
+          <div>
+            <div class="name">${escapeHtml(r.full_name)}</div>
+            <div class="awards">${r.awards_count} award${r.awards_count === 1 ? '' : 's'}</div>
+          </div>
+          <div class="pts">${r.total_points}</div>
+        </div>
+      `).join('');
+    } catch (e) {
+      $('leaderboard').innerHTML = `<div class="empty">Couldn't load the leaderboard${e.message ? ': ' + escapeHtml(e.message) : ''}.</div>`;
+    }
+  }
+
+  async function loadFeed() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_praise_recent', {
+        p_school_id: state.school.id, p_limit: 25,
+      });
+      if (error) throw error;
+      const rows = data || [];
+      $('feedSub').textContent = rows.length ? `${rows.length} most recent` : '—';
+      if (!rows.length) {
+        $('feed').innerHTML = `<div class="empty">No praise points awarded yet.</div>`;
+        return;
+      }
+      $('feed').innerHTML = rows.map(r => `
+        <div class="feed-row">
+          <div class="pts-badge">+${r.points}</div>
+          <div>
+            <div class="name">${escapeHtml(r.student_name)}</div>
+            ${r.reason ? `<div class="reason">${escapeHtml(r.reason)}</div>` : ''}
+            <div class="by">By ${escapeHtml(r.awarded_by_name || 'staff')} · ${escapeHtml(fmtWhen(r.created_at))}</div>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      $('feed').innerHTML = `<div class="empty">Couldn't load recent awards.</div>`;
+    }
+  }
+
+  // ---------- award ----------
+  $('pointPresets').addEventListener('click', (e) => {
+    const btn = e.target.closest('.preset');
+    if (!btn) return;
+    state.points = Number(btn.dataset.pts);
+    $('pointPresets').querySelectorAll('.preset').forEach(b => b.classList.toggle('sel', b === btn));
+  });
+
+  $('prSaveBtn').addEventListener('click', async () => {
+    const student = $('prStudent').value;
+    if (!student) { toast('Pick a student.', 'error'); return; }
+    const btn = $('prSaveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Awarding…';
+    try {
+      const { data, error } = await supabaseClient.rpc('award_praise_points', {
+        p_school_id: state.school.id,
+        p_student_user_id: student,
+        p_points: state.points,
+        p_reason: $('prReason').value.trim() || null,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast(`Awarded ${state.points} point${state.points === 1 ? '' : 's'}!`, 'success');
+      $('prReason').value = '';
+      $('prStudent').value = '';
+      await Promise.all([loadLeaderboard(), loadFeed()]);
+    } catch (err) {
+      const reason = String(err.message || err);
+      if (reason.includes('behaviour_praise')) {
+        toast('Your organiser has disabled praise points for teachers.', 'error');
+      } else {
+        toast('Couldn\'t award: ' + reason, 'error');
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Award points';
+    }
+  });
+
+  $('lbDays').addEventListener('change', loadLeaderboard);
+
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
+
+  boot();
+</script>
+<script src="header.js" defer></script>
+<script src="bubbles.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
+</body>
+</html>

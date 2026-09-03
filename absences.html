@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Absences — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Record and track student absences." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .layout { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .crumbs { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+    .crumbs a { color: var(--text-3); }
+    .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+
+    .head-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .head-bar h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .head-bar .sub { color: var(--text-3); font-size: 13.5px; margin: 0; }
+    .head-bar .grow { flex: 1; }
+    .pill { padding: 2px 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--text-2); }
+
+    .card { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; margin-bottom: 18px; }
+    .card-head { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); gap: 10px; flex-wrap: wrap; }
+    .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .card-body { padding: 16px 18px; }
+
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--line-2); padding: 7px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+    .btn-primary { background: var(--blue); color: #fff; padding: 8px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: var(--bg-3); color: var(--text); border: 1px solid var(--line-2); padding: 7px 12px; border-radius: var(--r-sm); font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-secondary:hover { background: var(--bg-4); border-color: var(--line-3); text-decoration: none; }
+    .btn-danger { background: transparent; color: var(--red); border: 1px solid rgba(248,81,73,0.3); padding: 5px 10px; border-radius: var(--r-sm); font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; }
+    .btn-danger:hover { background: var(--red-dim); border-color: var(--red); }
+
+    select, input, textarea {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      padding: 8px 12px; font-family: inherit; font-size: 13.5px; outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+    textarea { min-height: 64px; line-height: 1.5; resize: vertical; width: 100%; }
+
+    .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+    .kpi { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 16px; }
+    .kpi .num { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .kpi .num.red { color: var(--red); }
+    .kpi .num.yellow { color: var(--yellow); }
+    .kpi .label { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+    .abs-table { display: flex; flex-direction: column; }
+    .abs-row {
+      display: grid; grid-template-columns: 1fr 180px 110px 1fr auto;
+      gap: 12px; align-items: center; padding: 11px 18px;
+      border-bottom: 1px solid var(--line); font-size: 13px;
+    }
+    .abs-row:last-child { border-bottom: none; }
+    .abs-row:hover { background: var(--bg-3); }
+    .abs-row .name { color: var(--text); font-weight: 600; }
+    .abs-row .dates { color: var(--text-2); font-variant-numeric: tabular-nums; }
+    .abs-row .reason { font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--text-2); text-transform: capitalize; }
+    .abs-row .reason.illness  { border-color: var(--red); color: var(--red); }
+    .abs-row .reason.holiday  { border-color: var(--blue); color: var(--blue); }
+    .abs-row .reason.approved{ border-color: var(--green); color: var(--green); }
+    .abs-row .note { color: var(--text-3); font-size: 12px; }
+    .abs-row .by { color: var(--text-4); font-size: 11.5px; margin-top: 2px; }
+
+    .empty { padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+    .modal-back { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; padding: 32px; }
+    .modal-back.open { display: flex; }
+    .modal { background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); max-width: 560px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+    .modal-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+    .modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .modal-head .right { margin-left: auto; }
+    .modal-body { padding: 20px; overflow-y: auto; }
+    .modal-foot { padding: 14px 18px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; }
+    .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-row label { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+    .form-row .hint { font-size: 11.5px; color: var(--text-4); }
+
+    .gate { max-width: 520px; margin: 80px auto; padding: 32px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); text-align: center; }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--bg-3); border: 1px solid var(--line-2); color: var(--text); padding: 10px 14px; border-radius: var(--r-sm); font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: toast-in 0.2s ease; }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+    @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    @media (max-width: 700px) {
+      .kpis { grid-template-columns: 1fr; }
+      .abs-row { grid-template-columns: 1fr 1fr; }
+      .abs-row .by, .abs-row .note { display: none; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+
+<div id="headerSlot" data-mode="auth"></div>
+
+<div class="layout" id="main">
+  <div class="crumbs">
+    <a href="index.html">Recall</a>
+    <span class="sep">/</span>
+    <a href="school-systems.html">School systems</a>
+    <span class="sep">/</span>
+    <span class="current">Absences</span>
+  </div>
+
+  <div class="head-bar">
+    <div class="grow">
+      <h1>Absences</h1>
+      <p class="sub" id="sub">Loading your school…</p>
+    </div>
+    <div class="right">
+      <span class="pill" id="schoolPill">—</span>
+      <button class="btn-primary" id="newAbsBtn" type="button">+ Record absence</button>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpiRow">
+    <div class="kpi"><div class="num red" id="kpiNow">—</div><div class="label">Absent today</div></div>
+    <div class="kpi"><div class="num yellow" id="kpiUpcoming">—</div><div class="label">Upcoming (next 7 days)</div></div>
+    <div class="kpi"><div class="num" id="kpiTotal">—</div><div class="label">Records total</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>Absence records</h3>
+        <div class="sub" id="listSub">—</div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <label for="filterRange" style="font-size: 12px; color: var(--text-3);">Show</label>
+        <select id="filterRange">
+          <option value="upcoming">Current &amp; upcoming</option>
+          <option value="all">All records</option>
+        </select>
+      </div>
+    </div>
+    <div class="abs-table" id="absList">
+      <div class="empty">Loading…</div>
+    </div>
+  </div>
+
+  <p style="color: var(--text-4); font-size: 12px; margin-top: 4px;">
+    Taking the daily register? <a href="register.html">Open the Register</a>.
+  </p>
+</div>
+
+<!-- Record absence modal -->
+<div class="modal-back" id="absModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Record absence</h3>
+      <div class="right"><button class="btn-ghost" id="absCloseBtn" type="button">Close</button></div>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label for="absStudent">Student</label>
+        <select id="absStudent"></select>
+      </div>
+      <div class="form-row">
+        <label for="absStart">First day absent</label>
+        <input type="date" id="absStart" />
+      </div>
+      <div class="form-row">
+        <label for="absEnd">Last day absent</label>
+        <div class="hint">For a single day, use the same date.</div>
+        <input type="date" id="absEnd" />
+      </div>
+      <div class="form-row">
+        <label for="absReason">Reason</label>
+        <select id="absReason">
+          <option value="illness">Illness</option>
+          <option value="holiday">Holiday</option>
+          <option value="approved">Approved leave</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="absNote">Note (optional)</label>
+        <textarea id="absNote" maxlength="500" placeholder="Any extra context for other staff."></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="absCancelBtn" type="button">Cancel</button>
+      <button class="btn-primary" id="absSaveBtn" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso + (String(iso).length === 10 ? 'T00:00:00' : ''));
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+  function todayStr() { return new Date().toISOString().slice(0, 10); }
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  const state = {
+    user: null,
+    school: null,
+    settings: null,
+    isOrganiser: false,
+    students: [],
+    records: [],
+  };
+
+  function renderGate(title, msg) {
+    $('main').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-primary" href="login.html">Sign in</a></p>
+      </div>
+    `;
+  }
+
+  async function boot() {
+    let resolved = false;
+    const finish = (user) => {
+      if (resolved) return;
+      resolved = true;
+      onSession(user);
+    };
+    try {
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) { finish(null); return; }
+      const session = data && data.session;
+      if (session && session.user) { finish(session.user); return; }
+    } catch (_) { /* fall through to event listener */ }
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
+        finish(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        finish(null);
+      }
+    });
+    setTimeout(() => { if (!resolved) finish(null); }, 1500);
+  }
+
+  async function onSession(user) {
+    if (!user) {
+      renderGate('Sign-in required', 'Your session has expired or you haven\'t signed in yet. Sign in to manage absences.');
+      return;
+    }
+    state.user = user;
+
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) {}
+    }
+    if (role !== 'school_organiser' && role !== 'teacher') {
+      renderGate('Staff access only', 'This page is for teachers and school organisers.');
+      return;
+    }
+
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id, school_id, full_name, role, avatar_url')
+      .eq('id', state.user.id)
+      .maybeSingle();
+    if (!profile || !profile.school_id) {
+      renderGate('No school attached', 'Your account isn\'t attached to a school yet.');
+      return;
+    }
+    const { data: school } = await supabaseClient
+      .from('schools')
+      .select('id, name, code')
+      .eq('id', profile.school_id)
+      .maybeSingle();
+    state.school = school;
+    $('schoolPill').textContent = school ? school.name : '—';
+    $('sub').textContent = school ? `Absence records for ${school.name}.` : 'Absence records.';
+
+    try {
+      const { data: settings } = await supabaseClient.rpc('get_school_settings', {
+        p_school_id: school.id,
+      });
+      if (settings && settings.ok === true) {
+        state.settings = settings;
+        state.isOrganiser = !!settings.is_organiser;
+      }
+    } catch (_) {}
+    if (state.settings && state.settings.perms?.register_absences === false) {
+      renderGate('Permission needed', 'Your school organiser has disabled this tool. Ask them to enable it under School Settings.');
+      return;
+    }
+
+    function unhideSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(unhideSignOut, 30); return; }
+      btn.hidden = false;
+    }
+    unhideSignOut();
+
+    await Promise.all([loadStudents(), loadRecords()]);
+    mountHeaderExtras(profile || { id: state.user.id, full_name: (state.user.user_metadata || {}).full_name || '', role, avatar_url: null });
+  }
+
+  function mountHeaderExtras(profileRow) {
+    function mountAvatar() {
+      if (!window.recallHeaderAvatar || typeof window.recallHeaderAvatar.mount !== 'function') {
+        setTimeout(mountAvatar, 50); return;
+      }
+      try {
+        window.recallHeaderAvatar.mount('avatarSlot', {
+          supabaseClient, user: state.user, profile: profileRow,
+        });
+      } catch (e) { console.error('headerAvatar mount failed:', e); }
+    }
+    mountAvatar();
+    if (window.recallChat && typeof window.recallChat.mount === 'function') {
+      try {
+        window.recallChat.mount({ supabaseClient, user: state.user, profile: profileRow });
+      } catch (e) { console.error('chat mount failed:', e); }
+    }
+  }
+
+  async function loadStudents() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_members', {
+        p_school_id: state.school.id, p_role_filter: 'student',
+      });
+      if (!error) {
+        state.students = data || [];
+        $('absStudent').innerHTML = '<option value="">— Pick a student —</option>' +
+          state.students.map(s =>
+            `<option value="${escapeHtml(s.id)}">${escapeHtml(s.full_name || s.email || '(no name)')}</option>`
+          ).join('');
+      }
+    } catch (_) { /* keep empty */ }
+  }
+
+  async function loadRecords() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_absences', {
+        p_school_id: state.school.id,
+      });
+      if (error) throw error;
+      state.records = data || [];
+      renderRecords();
+    } catch (e) {
+      $('absList').innerHTML = `<div class="empty">Couldn't load absences${e.message ? ': ' + escapeHtml(e.message) : ''}.</div>`;
+    }
+  }
+
+  function renderRecords() {
+    const today = todayStr();
+    const in7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+    const now = state.records.filter(r => r.start_date <= today && r.end_date >= today).length;
+    const upcoming = state.records.filter(r => r.start_date > today && r.start_date <= in7).length;
+    $('kpiNow').textContent = now;
+    $('kpiUpcoming').textContent = upcoming;
+    $('kpiTotal').textContent = state.records.length;
+
+    const showAll = $('filterRange').value === 'all';
+    const rows = showAll ? state.records : state.records.filter(r => r.end_date >= today);
+
+    $('listSub').textContent = showAll
+      ? `${state.records.length} record${state.records.length === 1 ? '' : 's'}`
+      : `${rows.length} current or upcoming`;
+
+    if (!rows.length) {
+      $('absList').innerHTML = `<div class="empty">No absences recorded${showAll ? ' yet' : ' right now'}.</div>`;
+      return;
+    }
+    $('absList').innerHTML = rows.map(r => {
+      const mine = r.reported_by === state.user.id || state.isOrganiser;
+      const dates = r.start_date === r.end_date
+        ? fmtDate(r.start_date)
+        : `${fmtDate(r.start_date)} – ${fmtDate(r.end_date)}`;
+      return `
+        <div class="abs-row" data-id="${escapeHtml(r.id)}">
+          <div>
+            <div class="name">${escapeHtml(r.student_name)}</div>
+            <div class="by">Reported by ${escapeHtml(r.reported_by_name || 'staff')}</div>
+          </div>
+          <div class="dates">${escapeHtml(dates)}</div>
+          <div class="reason ${escapeHtml(r.reason)}">${escapeHtml(r.reason)}</div>
+          <div class="note">${escapeHtml(r.note || '')}</div>
+          <div>
+            ${mine ? `<button class="btn-danger" data-del="${escapeHtml(r.id)}" type="button">Delete</button>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+    $('absList').querySelectorAll('button[data-del]').forEach(btn => {
+      btn.addEventListener('click', () => deleteAbsence(btn.dataset.del));
+    });
+  }
+
+  async function deleteAbsence(id) {
+    if (!confirm('Delete this absence record?')) return;
+    const { data, error } = await supabaseClient.rpc('delete_absence', { p_absence_id: id });
+    if (error) { toast('Couldn\'t delete: ' + error.message, 'error'); return; }
+    if (data && data.ok !== true) { toast('Couldn\'t delete: ' + (data.reason || 'failed'), 'error'); return; }
+    toast('Absence deleted.', 'success');
+    await loadRecords();
+  }
+
+  // ---------- modal ----------
+  function openAbsModal() {
+    if (!state.students.length) { toast('No students in your school yet.', 'error'); return; }
+    $('absStudent').value = '';
+    $('absStart').value = todayStr();
+    $('absEnd').value = todayStr();
+    $('absReason').value = 'illness';
+    $('absNote').value = '';
+    $('absModal').classList.add('open');
+  }
+  function closeAbsModal() { $('absModal').classList.remove('open'); }
+
+  $('newAbsBtn').addEventListener('click', openAbsModal);
+  $('absCloseBtn').addEventListener('click', closeAbsModal);
+  $('absCancelBtn').addEventListener('click', closeAbsModal);
+  $('absModal').addEventListener('click', (e) => { if (e.target.id === 'absModal') closeAbsModal(); });
+
+  $('absSaveBtn').addEventListener('click', async () => {
+    const student = $('absStudent').value;
+    const start = $('absStart').value;
+    const end = $('absEnd').value || start;
+    const reason = $('absReason').value;
+    const note = $('absNote').value.trim();
+    if (!student) { toast('Pick a student.', 'error'); return; }
+    if (!start) { toast('Pick the first day absent.', 'error'); return; }
+    if (end < start) { toast('The last day can\'t be before the first day.', 'error'); return; }
+    const btn = $('absSaveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      const { data, error } = await supabaseClient.rpc('record_absence', {
+        p_school_id: state.school.id,
+        p_student_user_id: student,
+        p_start_date: start,
+        p_end_date: end,
+        p_reason: reason,
+        p_note: note || null,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast('Absence recorded.', 'success');
+      closeAbsModal();
+      await loadRecords();
+    } catch (err) {
+      const reason = String(err.message || err);
+      if (reason.includes('register_absences')) {
+        toast('Your organiser has disabled absence recording for teachers.', 'error');
+      } else {
+        toast('Couldn\'t save: ' + reason, 'error');
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save';
+    }
+  });
+
+  $('filterRange').addEventListener('change', renderRecords);
+
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
+
+  boot();
+</script>
+<script src="header.js" defer></script>
+<script src="bubbles.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
+</body>
+</html>

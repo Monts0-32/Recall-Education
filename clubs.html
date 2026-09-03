@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clubs — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Manage school clubs and their members." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --purple-dim:rgba(163,113,247,0.12);
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .layout { max-width: 1000px; margin: 0 auto; padding: 24px; }
+    .crumbs { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+    .crumbs a { color: var(--text-3); }
+    .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+
+    .head-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .head-bar h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .head-bar .sub { color: var(--text-3); font-size: 13.5px; margin: 0; }
+    .head-bar .grow { flex: 1; }
+    .pill { padding: 2px 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--text-2); }
+
+    .card { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; margin-bottom: 18px; }
+    .card-head { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); gap: 10px; flex-wrap: wrap; }
+    .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .card-body { padding: 16px 18px; }
+
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--line-2); padding: 7px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+    .btn-primary { background: var(--blue); color: #fff; padding: 8px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    select, input, textarea {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      padding: 8px 12px; font-family: inherit; font-size: 13.5px; outline: none;
+    }
+    select:focus, input:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+    textarea { min-height: 70px; line-height: 1.5; resize: vertical; width: 100%; }
+
+    .club-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    .club-card { background: var(--bg-3); border: 1px solid var(--line-2); border-radius: var(--r-md); padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .club-card .top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .club-card .name { font-weight: 700; font-size: 15.5px; }
+    .club-card .desc { color: var(--text-3); font-size: 12.5px; }
+    .club-card .sched { font-size: 12px; color: var(--yellow); font-weight: 600; }
+    .club-card .lead { font-size: 12px; color: var(--text-3); }
+    .club-card .count { font-size: 11.5px; color: var(--text-2); background: var(--bg-4); border: 1px solid var(--line-2); padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+    .club-card .acts { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+
+    .mini-btn { background: transparent; border: 1px solid var(--line-2); color: var(--text-3); border-radius: var(--r-sm); font-family: inherit; font-size: 11.5px; padding: 3px 9px; cursor: pointer; }
+    .mini-btn:hover { color: var(--text); border-color: var(--line-3); }
+    .mini-btn.danger:hover { color: var(--red); border-color: var(--red); }
+
+    .empty { padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+    /* ---------- modal ---------- */
+    .modal-back { position: fixed; inset: 0; background: rgba(1,4,9,0.7); z-index: 100; display: none; align-items: flex-start; justify-content: center; padding: 60px 20px 20px; overflow-y: auto; }
+    .modal-back.open { display: flex; }
+    .modal { background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); width: 100%; max-width: 520px; }
+    .modal-head { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+    .modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .modal-body { padding: 16px 18px; max-height: 70vh; overflow-y: auto; }
+    .modal-close { background: none; border: none; color: var(--text-3); font-size: 20px; cursor: pointer; line-height: 1; padding: 2px 6px; }
+    .modal-close:hover { color: var(--text); }
+    .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-row label { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+
+    .member-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .member-row:last-child { border-bottom: none; }
+    .member-row .avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--bg-4); color: var(--text-2); display: grid; place-items: center; font-weight: 700; font-size: 10.5px; flex-shrink: 0; }
+    .member-row .nm { font-weight: 600; }
+    .member-row .em { color: var(--text-4); font-size: 11px; }
+
+    .picker-list { border: 1px solid var(--line); border-radius: var(--r-sm); max-height: 220px; overflow-y: auto; margin-bottom: 12px; }
+    .picker-row { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+    .picker-row:last-child { border-bottom: none; }
+    .picker-row label { display: flex; align-items: center; gap: 8px; cursor: pointer; width: 100%; }
+    .picker-row input { accent-color: var(--blue); }
+
+    .gate { max-width: 520px; margin: 80px auto; padding: 32px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); text-align: center; }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--bg-3); border: 1px solid var(--line-2); color: var(--text); padding: 10px 14px; border-radius: var(--r-sm); font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: toast-in 0.2s ease; }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+    @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+
+<div id="headerSlot" data-mode="auth"></div>
+
+<div class="layout" id="main">
+  <div class="crumbs">
+    <a href="index.html">Recall</a>
+    <span class="sep">/</span>
+    <a href="school-systems.html">School systems</a>
+    <span class="sep">/</span>
+    <span class="current">Clubs</span>
+  </div>
+
+  <div class="head-bar">
+    <div class="grow">
+      <h1>Clubs</h1>
+      <p class="sub" id="sub">Loading your school…</p>
+    </div>
+    <div class="right" style="display: flex; gap: 10px; align-items: center;">
+      <button class="btn-primary" id="newClubBtn" type="button">+ New club</button>
+      <span class="pill" id="schoolPill">—</span>
+    </div>
+  </div>
+
+  <div id="clubWrap">
+    <div class="empty">Loading…</div>
+  </div>
+</div>
+
+<!-- new/edit club modal -->
+<div class="modal-back" id="clubModalBack">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="clubModalTitle">New club</h3>
+      <button class="modal-close" id="clubModalClose" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label for="clName">Name</label>
+        <input type="text" id="clName" maxlength="80" placeholder="e.g. Chess club" />
+      </div>
+      <div class="form-row">
+        <label for="clDescription">Description</label>
+        <textarea id="clDescription" maxlength="500" placeholder="What happens at this club?"></textarea>
+      </div>
+      <div class="form-row">
+        <label for="clSchedule">Schedule</label>
+        <input type="text" id="clSchedule" maxlength="80" placeholder="e.g. Thursdays 3:30–4:30pm" />
+      </div>
+      <div class="form-row">
+        <label for="clLead">Club lead</label>
+        <select id="clLead"></select>
+        <div class="hint" style="font-size: 11.5px; color: var(--text-4);">Optional — a teacher who runs the club.</div>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button class="btn-ghost" id="clDeleteBtn" type="button" style="display: none; color: var(--red); border-color: rgba(248,81,73,0.4);">Delete club</button>
+        <button class="btn-primary" id="clSaveBtn" type="button">Save club</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- member manager modal -->
+<div class="modal-back" id="memberModalBack">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="memberModalTitle">Members</h3>
+      <button class="modal-close" id="memberModalClose" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="memberList">
+        <div class="empty">Loading…</div>
+      </div>
+      <div id="picker" style="display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line);">
+        <div class="picker-list" id="pickerList"></div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button class="btn-ghost" id="pickerCancelBtn" type="button">Cancel</button>
+          <button class="btn-primary" id="pickerAddBtn" type="button">Add to club</button>
+        </div>
+      </div>
+      <div style="margin-top: 14px;">
+        <button class="btn-ghost" id="addMembersBtn" type="button">+ Add students</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const initials = (name) => {
+    if (!name) return '?';
+    const p = name.trim().split(/\s+/);
+    return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '?';
+  };
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  const state = {
+    user: null,
+    school: null,
+    settings: null,
+    isOrganiser: false,
+    students: [],
+    teachers: [],
+    clubs: [],
+    editingClubId: null,   // club id in the club modal (null = new)
+    activeClub: null,      // club in the member modal
+    activeMembers: [],
+  };
+
+  function renderGate(title, msg) {
+    $('main').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-primary" href="login.html">Sign in</a></p>
+      </div>
+    `;
+  }
+
+  async function boot() {
+    let resolved = false;
+    const finish = (user) => {
+      if (resolved) return;
+      resolved = true;
+      onSession(user);
+    };
+    try {
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) { finish(null); return; }
+      const session = data && data.session;
+      if (session && session.user) { finish(session.user); return; }
+    } catch (_) { /* fall through to event listener */ }
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
+        finish(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        finish(null);
+      }
+    });
+    setTimeout(() => { if (!resolved) finish(null); }, 1500);
+  }
+
+  async function onSession(user) {
+    if (!user) {
+      renderGate('Sign-in required', 'Your session has expired or you haven\'t signed in yet. Sign in to manage clubs.');
+      return;
+    }
+    state.user = user;
+
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) {}
+    }
+    if (role !== 'school_organiser' && role !== 'teacher') {
+      renderGate('Staff access only', 'This page is for teachers and school organisers.');
+      return;
+    }
+    state.isOrganiser = role === 'school_organiser';
+
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id, school_id, full_name, role, avatar_url')
+      .eq('id', state.user.id)
+      .maybeSingle();
+    if (!profile || !profile.school_id) {
+      renderGate('No school attached', 'Your account isn\'t attached to a school yet.');
+      return;
+    }
+    const { data: school } = await supabaseClient
+      .from('schools')
+      .select('id, name, code')
+      .eq('id', profile.school_id)
+      .maybeSingle();
+    state.school = school;
+    $('schoolPill').textContent = school ? school.name : '—';
+    $('sub').textContent = school ? `Clubs at ${school.name}.` : 'Clubs.';
+
+    try {
+      const { data: settings } = await supabaseClient.rpc('get_school_settings', {
+        p_school_id: school.id,
+      });
+      if (settings && settings.ok === true) state.settings = settings;
+    } catch (_) {}
+    if (state.settings && state.settings.perms?.ops_announcements === false) {
+      renderGate('Permission needed', 'Your school organiser has disabled this tool. Ask them to enable it under School Settings.');
+      return;
+    }
+
+    function unhideSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(unhideSignOut, 30); return; }
+      btn.hidden = false;
+    }
+    unhideSignOut();
+
+    await Promise.all([loadStudents(), loadTeachers(), loadClubs()]);
+    mountHeaderExtras(profile || { id: state.user.id, full_name: (state.user.user_metadata || {}).full_name || '', role, avatar_url: null });
+  }
+
+  function mountHeaderExtras(profileRow) {
+    function mountAvatar() {
+      if (!window.recallHeaderAvatar || typeof window.recallHeaderAvatar.mount !== 'function') {
+        setTimeout(mountAvatar, 50); return;
+      }
+      try {
+        window.recallHeaderAvatar.mount('avatarSlot', {
+          supabaseClient, user: state.user, profile: profileRow,
+        });
+      } catch (e) { console.error('headerAvatar mount failed:', e); }
+    }
+    mountAvatar();
+    if (window.recallChat && typeof window.recallChat.mount === 'function') {
+      try {
+        window.recallChat.mount({ supabaseClient, user: state.user, profile: profileRow });
+      } catch (e) { console.error('chat mount failed:', e); }
+    }
+  }
+
+  async function loadStudents() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_members', {
+        p_school_id: state.school.id, p_role_filter: 'student',
+      });
+      if (!error) state.students = data || [];
+    } catch (_) { /* keep empty */ }
+  }
+
+  async function loadTeachers() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_members', {
+        p_school_id: state.school.id, p_role_filter: 'teacher',
+      });
+      if (!error) {
+        state.teachers = data || [];
+        $('clLead').innerHTML = '<option value="">— none —</option>' +
+          state.teachers.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.full_name || t.email || '(no name)')}</option>`).join('');
+      }
+    } catch (_) { /* keep empty */ }
+  }
+
+  async function loadClubs() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_clubs', {
+        p_school_id: state.school.id,
+      });
+      if (error) throw error;
+      state.clubs = data || [];
+      if (!state.clubs.length) {
+        $('clubWrap').innerHTML = `<div class="card"><div class="empty">No clubs yet. Create the first one with “+ New club”.</div></div>`;
+        return;
+      }
+      $('clubWrap').innerHTML = `<div class="club-grid">` + state.clubs.map(c => `
+        <div class="club-card">
+          <div class="top">
+            <div class="name">${escapeHtml(c.name)}</div>
+            <span class="count">${c.member_count || 0} member${(c.member_count || 0) === 1 ? '' : 's'}</span>
+          </div>
+          ${c.description ? `<div class="desc">${escapeHtml(c.description)}</div>` : ''}
+          ${c.schedule ? `<div class="sched">${escapeHtml(c.schedule)}</div>` : ''}
+          ${c.lead_name ? `<div class="lead">Led by ${escapeHtml(c.lead_name)}</div>` : ''}
+          <div class="acts">
+            <button class="btn-primary" style="padding: 5px 12px; font-size: 12px;" data-members="${escapeHtml(c.id)}" type="button">Members</button>
+            <button class="mini-btn" data-edit="${escapeHtml(c.id)}" type="button">Edit</button>
+            <button class="mini-btn danger" data-delclub="${escapeHtml(c.id)}" type="button">Delete</button>
+          </div>
+        </div>
+      `).join('') + `</div>`;
+    } catch (e) {
+      $('clubWrap').innerHTML = `<div class="card"><div class="empty">Couldn't load clubs.</div></div>`;
+    }
+  }
+
+  // ---------- club modal ----------
+  function openClubModal(clubId) {
+    state.editingClubId = clubId || null;
+    if (clubId) {
+      const c = state.clubs.find(x => x.id === clubId);
+      $('clubModalTitle').textContent = 'Edit club';
+      $('clName').value = c?.name || '';
+      $('clDescription').value = c?.description || '';
+      $('clSchedule').value = c?.schedule || '';
+      $('clLead').value = c?.lead_user_id || '';
+      $('clDeleteBtn').style.display = '';
+    } else {
+      $('clubModalTitle').textContent = 'New club';
+      $('clName').value = '';
+      $('clDescription').value = '';
+      $('clSchedule').value = '';
+      $('clLead').value = '';
+      $('clDeleteBtn').style.display = 'none';
+    }
+    $('clubModalBack').classList.add('open');
+  }
+
+  $('newClubBtn').addEventListener('click', () => openClubModal(null));
+  $('clubModalClose').addEventListener('click', () => $('clubModalBack').classList.remove('open'));
+  $('clubModalBack').addEventListener('click', (e) => {
+    if (e.target === $('clubModalBack')) $('clubModalBack').classList.remove('open');
+  });
+
+  $('clSaveBtn').addEventListener('click', async () => {
+    const name = $('clName').value.trim();
+    if (!name) { toast('Give the club a name.', 'error'); return; }
+    const btn = $('clSaveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      const payload = {
+        p_name: name,
+        p_description: $('clDescription').value.trim() || null,
+        p_schedule: $('clSchedule').value.trim() || null,
+        p_lead_user_id: $('clLead').value || null,
+      };
+      let data, error;
+      if (state.editingClubId) {
+        ({ data, error } = await supabaseClient.rpc('update_club', {
+          p_club_id: state.editingClubId, ...payload,
+        }));
+      } else {
+        ({ data, error } = await supabaseClient.rpc('create_club', {
+          p_school_id: state.school.id, ...payload,
+        }));
+      }
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast(state.editingClubId ? 'Club updated.' : 'Club created.', 'success');
+      $('clubModalBack').classList.remove('open');
+      await loadClubs();
+    } catch (err) {
+      const reason = String(err.message || err);
+      if (reason.includes('ops_announcements')) {
+        toast('Your organiser has disabled clubs for teachers.', 'error');
+      } else {
+        toast('Couldn\'t save: ' + reason, 'error');
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save club';
+    }
+  });
+
+  $('clDeleteBtn').addEventListener('click', async () => {
+    if (!state.editingClubId) return;
+    if (!confirm('Delete this club? Its members will be removed too.')) return;
+    try {
+      const { data, error } = await supabaseClient.rpc('delete_club', {
+        p_club_id: state.editingClubId,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast('Club deleted.', 'success');
+      $('clubModalBack').classList.remove('open');
+      await loadClubs();
+    } catch (err) {
+      toast('Couldn\'t delete: ' + String(err.message || err), 'error');
+    }
+  });
+
+  $('clubWrap').addEventListener('click', (e) => {
+    const editBtn = e.target.closest('[data-edit]');
+    if (editBtn) { openClubModal(editBtn.dataset.edit); return; }
+    const delBtn = e.target.closest('[data-delclub]');
+    if (delBtn) {
+      const c = state.clubs.find(x => x.id === delBtn.dataset.delclub);
+      if (c && confirm(`Delete "${c.name}"? Its members will be removed too.`)) deleteClub(c.id);
+      return;
+    }
+    const memBtn = e.target.closest('[data-members]');
+    if (memBtn) openMemberModal(memBtn.dataset.members);
+  });
+
+  async function deleteClub(clubId) {
+    try {
+      const { data, error } = await supabaseClient.rpc('delete_club', {
+        p_club_id: clubId,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast('Club deleted.', 'success');
+      await loadClubs();
+    } catch (err) {
+      toast('Couldn\'t delete: ' + String(err.message || err), 'error');
+    }
+  }
+
+  // ---------- member modal ----------
+  async function openMemberModal(clubId) {
+    const c = state.clubs.find(x => x.id === clubId);
+    if (!c) return;
+    state.activeClub = c;
+    $('memberModalTitle').textContent = `${c.name} — members`;
+    $('picker').style.display = 'none';
+    $('memberModalBack').classList.add('open');
+    await loadActiveMembers();
+  }
+
+  async function loadActiveMembers() {
+    try {
+      const { data, error } = await supabaseClient.rpc('get_club_members', {
+        p_club_id: state.activeClub.id,
+      });
+      if (error) throw error;
+      state.activeMembers = data || [];
+      if (!state.activeMembers.length) {
+        $('memberList').innerHTML = `<div class="empty">No members yet. Add students below.</div>`;
+        return;
+      }
+      $('memberList').innerHTML = state.activeMembers.map(m => `
+        <div class="member-row">
+          <div class="avatar">${escapeHtml(initials(m.full_name || m.email))}</div>
+          <div style="flex: 1;">
+            <div class="nm">${escapeHtml(m.full_name || '(no name)')}</div>
+            <div class="em">${escapeHtml(m.year_group ? m.year_group + ' · ' : '')}${escapeHtml(m.email || '')}</div>
+          </div>
+          <button class="mini-btn danger" data-rem="${escapeHtml(m.student_user_id)}" type="button">Remove</button>
+        </div>
+      `).join('');
+    } catch (e) {
+      $('memberList').innerHTML = `<div class="empty">Couldn't load members.</div>`;
+    }
+  }
+
+  $('memberModalClose').addEventListener('click', () => $('memberModalBack').classList.remove('open'));
+  $('memberModalBack').addEventListener('click', (e) => {
+    if (e.target === $('memberModalBack')) $('memberModalBack').classList.remove('open');
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      $('clubModalBack').classList.remove('open');
+      $('memberModalBack').classList.remove('open');
+    }
+  });
+
+  $('addMembersBtn').addEventListener('click', () => {
+    if (!state.activeClub) return;
+    const inClub = new Set(state.activeMembers.map(m => m.student_user_id));
+    const candidates = state.students.filter(m => !inClub.has(m.id));
+    if (!candidates.length) {
+      $('pickerList').innerHTML = `<div class="empty">All students in your school are already in this club.</div>`;
+    } else {
+      $('pickerList').innerHTML = candidates.map(m => `
+        <div class="picker-row">
+          <label>
+            <input type="checkbox" data-uid="${escapeHtml(m.id)}" />
+            <div class="avatar" style="width:24px;height:24px;font-size:10px;">${escapeHtml(initials(m.full_name || m.email))}</div>
+            <div style="flex:1;">
+              <div style="color: var(--text); font-weight: 600;">${escapeHtml(m.full_name || '(no name)')}</div>
+              <div style="color: var(--text-3); font-size: 11.5px;">${escapeHtml(m.email || '')}</div>
+            </div>
+          </label>
+        </div>
+      `).join('');
+    }
+    $('picker').style.display = '';
+  });
+
+  $('pickerCancelBtn').addEventListener('click', () => { $('picker').style.display = 'none'; });
+
+  $('pickerAddBtn').addEventListener('click', async () => {
+    const uids = Array.from($('pickerList').querySelectorAll('input:checked')).map(c => c.dataset.uid);
+    if (!uids.length) { toast('Pick at least one student.', 'error'); return; }
+    const btn = $('pickerAddBtn');
+    btn.disabled = true;
+    btn.textContent = 'Adding…';
+    try {
+      const { data, error } = await supabaseClient.rpc('add_club_members', {
+        p_club_id: state.activeClub.id, p_student_user_ids: uids,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast('Added to club.', 'success');
+      $('picker').style.display = 'none';
+      await loadActiveMembers();
+      await loadClubs();
+    } catch (err) {
+      const reason = String(err.message || err);
+      if (reason.includes('ops_announcements')) {
+        toast('Your organiser has disabled clubs for teachers.', 'error');
+      } else {
+        toast('Couldn\'t add: ' + reason, 'error');
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Add to club';
+    }
+  });
+
+  $('memberList').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-rem]');
+    if (!btn || !btn.dataset.rem) return;
+    if (!confirm('Remove this student from the club?')) return;
+    try {
+      const { data, error } = await supabaseClient.rpc('remove_club_member', {
+        p_club_id: state.activeClub.id, p_student_user_id: btn.dataset.rem,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast('Removed.', 'success');
+      await loadActiveMembers();
+      await loadClubs();
+    } catch (err) {
+      toast('Couldn\'t remove: ' + String(err.message || err), 'error');
+    }
+  });
+
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
+
+  boot();
+</script>
+<script src="header.js" defer></script>
+<script src="bubbles.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
+</body>
+</html>
