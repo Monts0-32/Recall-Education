@@ -526,6 +526,43 @@
     return right;
   }
 
+  // Point the brand link at the signed-in user's dashboard. The href keeps
+  // its page default (index.html) until a session resolves, so signed-out
+  // visitors and no-JS fallbacks still land on the homepage. The profile
+  // row's role wins over the JWT copy (which can go stale). Re-resolves on
+  // auth state changes so sign-in/sign-out from another tab stays in sync.
+  function pointBrandAtDashboard(brand, attempts) {
+    const fallback = brand.getAttribute('href') || 'index.html';
+    const sb = (typeof window !== 'undefined') ? window.supabaseClient : null;
+    if (!sb || !sb.auth || typeof sb.auth.getSession !== 'function') {
+      // Supabase isn't ready yet — retry while the page initialises; give up
+      // quietly (keeping the homepage href) on pages with no client at all.
+      if ((attempts || 0) > 100) return;
+      setTimeout(function () { pointBrandAtDashboard(brand, (attempts || 0) + 1); }, 50);
+      return;
+    }
+    function resolve() {
+      sb.auth.getSession().then(async function (res) {
+        const user = res && res.data && res.data.session && res.data.session.user;
+        if (!user) { brand.setAttribute('href', fallback); return; }
+        let role = (user.app_metadata && user.app_metadata.role) || null;
+        try {
+          const { data: p } = await sb
+            .from('profiles').select('role').eq('id', user.id).maybeSingle();
+          if (p && p.role) role = p.role;
+        } catch (_) { /* fall back to the JWT role */ }
+        brand.setAttribute('href', dashboardUrlFor(role));
+      }).catch(function () { /* keep the current href */ });
+    }
+    resolve();
+    if (typeof sb.auth.onAuthStateChange === 'function') {
+      sb.auth.onAuthStateChange(function (_event, session) {
+        if (session && session.user) resolve();
+        else brand.setAttribute('href', fallback);
+      });
+    }
+  }
+
   function mount(slotEl, opts) {
     if (!slotEl) return null;
     opts = opts || {};
@@ -544,6 +581,8 @@
       brand.appendChild(el('span', { class: 'tag', text: opts.tag }));
     }
     row.appendChild(brand);
+    // Signed-in users: the logo goes to their dashboard, not the homepage.
+    pointBrandAtDashboard(brand);
 
     const mode = opts.mode || 'auth';
     if (mode === 'marketing') {
