@@ -199,6 +199,9 @@
         }
       }
     });
+    // Module scope isn't visible to classic scripts — expose the client so
+    // brand-dashboard.js can point the logo at the signed-in user's dashboard.
+    window.supabaseClient = supabase;
 
     const card = document.getElementById("card");
 
@@ -426,5 +429,6 @@
     }
   </script>
 <script src="bubbles.js" defer></script>
+<script src="brand-dashboard.js" defer></script>
 </body>
 </html>

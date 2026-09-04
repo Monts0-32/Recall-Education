@@ -29,6 +29,16 @@
 
   const STYLE_ID = 'recall-header-style';
 
+  // Pages in subfolders load this module as "../header.js" — derive the path
+  // prefix from the script's own src so dashboard/profile/login links
+  // resolve correctly from any depth.
+  var PATH_PREFIX = (function () {
+    var s = document.querySelector('script[src$="header.js"]');
+    if (!s) return '';
+    var m = /^((?:.*\/)?)header\.js$/.exec(s.getAttribute('src') || '');
+    return m ? m[1] : '';
+  })();
+
   function injectStyle() {
     if (document.getElementById(STYLE_ID)) return;
     const s = document.createElement('style');
@@ -237,6 +247,20 @@
     document.head.appendChild(s);
   }
 
+  // Find the page's Supabase client. Most pages declare it as a top-level
+  // `const supabaseClient` in an inline script — that lives in the shared
+  // global lexical scope but NOT on `window`, so `window.supabaseClient`
+  // alone misses them (only index.html and moderation.html set the window
+  // property). `typeof` guards the undeclared case; deferred header.js runs
+  // after the page's inline scripts, so the binding is initialised by then.
+  function getSupabase() {
+    if (typeof window !== 'undefined' && window.supabaseClient) return window.supabaseClient;
+    try {
+      if (typeof supabaseClient !== 'undefined' && supabaseClient) return supabaseClient;
+    } catch (_) { /* undeclared — fall through */ }
+    return null;
+  }
+
   function el(tag, attrs, children) {
     const e = document.createElement(tag);
     if (attrs) {
@@ -317,13 +341,13 @@
       case 'staff_author':
       case 'staff_reviewer':
       case 'admin':
-        return 'staff-dashboard.html';
+        return PATH_PREFIX + 'staff-dashboard.html';
       case 'school_organiser':
-        return 'school-organiser-dashboard.html';
+        return PATH_PREFIX + 'school-organiser-dashboard.html';
       case 'teacher':
-        return 'teacher-dashboard.html';
+        return PATH_PREFIX + 'teacher-dashboard.html';
       default:
-        return 'dashboard.html';
+        return PATH_PREFIX + 'dashboard.html';
     }
   }
 
@@ -351,7 +375,7 @@
   function mountAvatarPill() {
     const slot = document.getElementById('avatarSlot');
     if (!slot || slot.firstChild) return; // already mounted, or no slot
-    const sb = (typeof window !== 'undefined') ? window.supabaseClient : null;
+    const sb = getSupabase();
     if (!sb || !sb.auth || typeof sb.auth.getSession !== 'function') {
       // Supabase isn't ready yet — try again next tick. Pages that initialise
       // the client after header.js has loaded will get the pill shortly after.
@@ -449,7 +473,7 @@
 
     const profileLink = document.createElement('a');
     profileLink.className = 'recall-avatar-menu-item';
-    profileLink.href = 'profile.html?id=' + encodeURIComponent(user.id);
+    profileLink.href = PATH_PREFIX + 'profile.html?id=' + encodeURIComponent(user.id);
     profileLink.textContent = 'My profile';
     menu.appendChild(profileLink);
 
@@ -462,11 +486,11 @@
     signOutBtn.type = 'button';
     signOutBtn.textContent = 'Sign out';
     signOutBtn.addEventListener('click', async function () {
-      const client = window.supabaseClient;
+      const client = getSupabase();
       try {
         if (client && client.auth && client.auth.signOut) await client.auth.signOut();
       } catch (_) { /* ignore */ }
-      window.location.href = 'login.html';
+      window.location.href = PATH_PREFIX + 'login.html';
     });
     menu.appendChild(signOutBtn);
 
@@ -532,8 +556,8 @@
   // row's role wins over the JWT copy (which can go stale). Re-resolves on
   // auth state changes so sign-in/sign-out from another tab stays in sync.
   function pointBrandAtDashboard(brand, attempts) {
-    const fallback = brand.getAttribute('href') || 'index.html';
-    const sb = (typeof window !== 'undefined') ? window.supabaseClient : null;
+    const fallback = PATH_PREFIX + (brand.getAttribute('href') || 'index.html');
+    const sb = getSupabase();
     if (!sb || !sb.auth || typeof sb.auth.getSession !== 'function') {
       // Supabase isn't ready yet — retry while the page initialises; give up
       // quietly (keeping the homepage href) on pages with no client at all.
@@ -645,7 +669,7 @@
   function tryUnhideSignOut() {
     const btn = document.getElementById('signOutBtn');
     if (!btn) return; // minimal / marketing modes don't have one
-    const sb = (typeof window !== 'undefined') ? window.supabaseClient : null;
+    const sb = getSupabase();
     if (!sb || !sb.auth) return;
     if (typeof sb.auth.getSession === 'function') {
       sb.auth.getSession().then(function (res) {
@@ -668,9 +692,9 @@
     if (!btn.dataset.recallSignOutWired) {
       btn.dataset.recallSignOutWired = '1';
       btn.addEventListener('click', async function () {
-        const sb = window.supabaseClient;
+        const sb = getSupabase();
         try { if (sb && sb.auth && sb.auth.signOut) await sb.auth.signOut(); } catch (_) {}
-        window.location.href = 'login.html';
+        window.location.href = PATH_PREFIX + 'login.html';
       });
     }
     tryUnhideSignOut();
