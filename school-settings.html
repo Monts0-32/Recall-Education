@@ -211,6 +211,68 @@
     </div>
   </div>
 
+  <!-- School day structure -->
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>School day</h3>
+        <div class="sub">How many periods the day has and when they run. The booking grid and timetables use this structure.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="form-row">
+        <label for="dayPeriods">Periods per day</label>
+        <input type="number" id="dayPeriods" min="1" max="12" step="1" value="8" style="max-width: 140px;" />
+        <div class="hint">Between 1 and 12. Changing this resizes the timetable and booking grids straight away.</div>
+      </div>
+      <div class="form-row">
+        <label for="periodLength">Period length (minutes)</label>
+        <input type="number" id="periodLength" min="10" max="240" step="1" value="50" style="max-width: 140px;" />
+        <div class="hint" id="spanHint"></div>
+      </div>
+      <div class="form-row">
+        <label for="dayStart">Day starts</label>
+        <input type="time" id="dayStart" value="08:30" style="max-width: 140px;" />
+        <div class="hint">Period 1 starts at this time; each period runs consecutively (breaks aren't modelled).</div>
+      </div>
+      <div class="form-row">
+        <label for="dayEnd">Day ends</label>
+        <input type="time" id="dayEnd" value="15:30" style="max-width: 140px;" />
+        <div class="hint">Informational — periods may end before or after this.</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button class="btn-primary" id="saveDayBtn" type="button">Save</button>
+        <span class="hint" id="dayHint" style="color: var(--text-4); font-size: 12px;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resource booking limits -->
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>Resource booking</h3>
+        <div class="sub">How far ahead staff can book, and for how long. Bookings always fall inside the school day's periods.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="form-row">
+        <label for="bookMaxPeriods">Maximum booking length (periods)</label>
+        <input type="number" id="bookMaxPeriods" min="0" max="12" step="1" value="0" style="max-width: 140px;" />
+        <div class="hint">0 = no limit. Otherwise a single booking can span at most this many periods.</div>
+      </div>
+      <div class="form-row">
+        <label for="bookAdvanceDays">Book up to N days ahead</label>
+        <input type="number" id="bookAdvanceDays" min="0" max="365" step="1" value="0" style="max-width: 140px;" />
+        <div class="hint">0 = no limit. Past dates are never allowed either way.</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button class="btn-primary" id="saveBookingBtn" type="button">Save</button>
+        <span class="hint" id="bookingHint" style="color: var(--text-4); font-size: 12px;"></span>
+      </div>
+    </div>
+  </div>
+
   <!-- Staff roles -->
   <div class="card">
     <div class="card-head">
@@ -469,6 +531,14 @@
     if (typeof settings.register_late_minutes === 'number') {
       $('lateMinutes').value = settings.register_late_minutes;
     }
+    // Day structure + booking limits (fall back to defaults pre-migration).
+    $('dayPeriods').value = settings.periods_per_day ?? 8;
+    $('periodLength').value = settings.period_length_minutes ?? 50;
+    $('dayStart').value = String(settings.day_start_time || '08:30').slice(0, 5);
+    $('dayEnd').value = String(settings.day_end_time || '15:30').slice(0, 5);
+    $('bookMaxPeriods').value = settings.booking_max_periods ?? 0;
+    $('bookAdvanceDays').value = settings.booking_advance_days ?? 0;
+    updateSpanHint();
 
     function unhideSignOut() {
       const btn = $('signOutBtn');
@@ -527,6 +597,120 @@
       const reason = String(err.message || err);
       if (reason.includes('invalid_late_minutes')) {
         toast('The late window must be between 0 and 240 minutes.', 'error');
+      } else {
+        toast('Couldn\'t save: ' + reason, 'error');
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save';
+    }
+  });
+
+  // ---------- school day structure ----------
+  function timeToMin(v) {
+    const [h, m] = String(v || '0:0').split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  }
+  function minToHHMM(mins) {
+    const m = ((mins % 1440) + 1440) % 1440;
+    return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  }
+  function updateSpanHint() {
+    const start = timeToMin($('dayStart').value);
+    const len = Number($('periodLength').value) || 0;
+    const n = Number($('dayPeriods').value) || 0;
+    const end = timeToMin($('dayEnd').value);
+    const spanEnd = start + n * len;
+    $('spanHint').textContent =
+      `Periods span ${minToHHMM(start)}–${minToHHMM(spanEnd)}.` +
+      (spanEnd > end ? ' That runs past your day end.' : '');
+  }
+  ['dayPeriods', 'periodLength', 'dayStart', 'dayEnd'].forEach((id) => {
+    $(id).addEventListener('input', updateSpanHint);
+  });
+
+  $('saveDayBtn').addEventListener('click', async () => {
+    const btn = $('saveDayBtn');
+    const periods = Number($('dayPeriods').value);
+    const len = Number($('periodLength').value);
+    const start = $('dayStart').value;
+    const end = $('dayEnd').value;
+    if (!Number.isInteger(periods) || periods < 1 || periods > 12) {
+      toast('Periods per day must be a whole number between 1 and 12.', 'error');
+      return;
+    }
+    if (!Number.isInteger(len) || len < 10 || len > 240) {
+      toast('Period length must be a whole number of minutes between 10 and 240.', 'error');
+      return;
+    }
+    if (!start || !end || timeToMin(end) <= timeToMin(start)) {
+      toast('The day must end after it starts.', 'error');
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      const { data, error } = await supabaseClient.rpc('update_school_settings', {
+        p_school_id: state.school.id,
+        p_periods_per_day: periods,
+        p_period_length_minutes: len,
+        p_day_start_time: start,
+        p_day_end_time: end,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      $('dayHint').textContent = 'Saved just now';
+      toast(`School day set: ${periods} period${periods === 1 ? '' : 's'} of ${len} minutes.`, 'success');
+    } catch (err) {
+      const reason = String(err.message || err);
+      if (reason.includes('invalid_periods_per_day')) {
+        toast('Periods per day must be between 1 and 12.', 'error');
+      } else if (reason.includes('invalid_period_length')) {
+        toast('Period length must be between 10 and 240 minutes.', 'error');
+      } else if (reason.includes('invalid_day_times')) {
+        toast('The day must end after it starts.', 'error');
+      } else {
+        toast('Couldn\'t save: ' + reason, 'error');
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save';
+    }
+  });
+
+  // ---------- resource booking limits ----------
+  $('saveBookingBtn').addEventListener('click', async () => {
+    const btn = $('saveBookingBtn');
+    const max = Number($('bookMaxPeriods').value);
+    const adv = Number($('bookAdvanceDays').value);
+    if (!Number.isInteger(max) || max < 0 || max > 12) {
+      toast('Max booking length must be a whole number of periods between 0 and 12.', 'error');
+      return;
+    }
+    if (!Number.isInteger(adv) || adv < 0 || adv > 365) {
+      toast('Days ahead must be a whole number between 0 and 365.', 'error');
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      const { data, error } = await supabaseClient.rpc('update_school_settings', {
+        p_school_id: state.school.id,
+        p_booking_max_periods: max,
+        p_booking_advance_days: adv,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      $('bookingHint').textContent = 'Saved just now';
+      toast(max === 0 && adv === 0
+        ? 'Booking limits removed (no max length, any future date).'
+        : `Booking limits saved: max ${max} period${max === 1 ? '' : 's'}, ${adv === 0 ? 'no' : adv} day${adv === 1 ? '' : 's'} ahead.`, 'success');
+    } catch (err) {
+      const reason = String(err.message || err);
+      if (reason.includes('invalid_booking_max_periods')) {
+        toast('Max booking length must be between 0 and 12 periods.', 'error');
+      } else if (reason.includes('invalid_booking_advance_days')) {
+        toast('Days ahead must be between 0 and 365.', 'error');
       } else {
         toast('Couldn\'t save: ' + reason, 'error');
       }

@@ -176,9 +176,8 @@
   }
 
   const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  const PERIODS = 8;
 
-  const state = { user: null, school: null, slots: [] };
+  const state = { user: null, school: null, structure: null, slots: [] };
 
   function renderGate(title, msg) {
     $('main').innerHTML = `
@@ -250,6 +249,15 @@
     $('schoolPill').textContent = school ? school.name : '—';
     $('sub').textContent = school ? `Lessons for your classes at ${school.name}.` : 'Lessons for your classes.';
 
+    // Day structure (period count) — students can't call get_school_settings,
+    // so use the member-readable RPC; fail open to 8 periods pre-migration.
+    try {
+      const { data: structure } = await supabaseClient.rpc('get_school_day_structure', {
+        p_school_id: school.id,
+      });
+      if (structure && structure.ok === true) state.structure = structure;
+    } catch (_) {}
+
     function unhideSignOut() {
       const btn = $('signOutBtn');
       if (!btn) { setTimeout(unhideSignOut, 30); return; }
@@ -310,10 +318,11 @@
 
   function renderGrid() {
     const slots = state.slots;
+    const n = (state.structure && state.structure.periods_per_day) || 8;
     $('emptyNote').hidden = slots.length > 0;
     let html = `<div class="tt-cell tt-head"></div>`;
     for (const d of DAYS) html += `<div class="tt-cell tt-head">${d}</div>`;
-    for (let p = 1; p <= PERIODS; p++) {
+    for (let p = 1; p <= n; p++) {
       html += `<div class="tt-cell tt-period">Period <span class="p">${p}</span></div>`;
       for (let d = 0; d < 5; d++) {
         const inCell = slots.filter(s => s.period === p && s.day_of_week === d);

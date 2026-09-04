@@ -262,7 +262,6 @@
   }
 
   const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  const PERIODS = 8;
 
   const state = {
     user: null,
@@ -457,11 +456,12 @@
 
   function renderGrid() {
     const slots = visibleSlots();
+    const n = (state.settings && state.settings.periods_per_day) || 8;
     // head row
     let html = `<div class="tt-cell tt-head"></div>`;
     for (const d of DAYS) html += `<div class="tt-cell tt-head">${d}</div>`;
     // body rows
-    for (let p = 1; p <= PERIODS; p++) {
+    for (let p = 1; p <= n; p++) {
       html += `<div class="tt-cell tt-period">Period <span class="p">${p}</span></div>`;
       for (let d = 0; d < 5; d++) {
         const inCell = slots.filter(s => s.period === p && s.day_of_week === d);
@@ -504,8 +504,18 @@
     } else {
       $('slClass').value = '';
       $('slTeacher').value = '';
-      $('slStart').value = '09:00';
-      $('slEnd').value = '09:50';
+      // Default new slots to the school day's period 1 times when known.
+      if (state.settings && state.settings.day_start_time) {
+        const [h, m] = String(state.settings.day_start_time).split(':').map(Number);
+        const len = state.settings.period_length_minutes || 50;
+        const toHHMM = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+        const start = (h || 8) * 60 + (m || 30);
+        $('slStart').value = toHHMM(start);
+        $('slEnd').value = toHHMM(start + len);
+      } else {
+        $('slStart').value = '09:00';
+        $('slEnd').value = '09:50';
+      }
       $('slRoom').value = '';
       $('slLabel').value = '';
       $('slDeleteBtn').style.display = 'none';

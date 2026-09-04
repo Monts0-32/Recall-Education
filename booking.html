@@ -105,6 +105,26 @@
     .mini-btn:hover { color: var(--text); border-color: var(--line-3); }
     .mini-btn.danger:hover { color: var(--red); border-color: var(--red); }
 
+    /* ---------- booking grid (rooms × periods) ---------- */
+    .bk-scroll { overflow-x: auto; }
+    .bk-grid { display: grid; min-width: 900px; }
+    .bk-cell { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 8px; min-height: 58px; }
+    .bk-head { background: var(--bg-3); font-weight: 600; font-size: 12.5px; }
+    .bk-head .t { display: block; font-weight: 400; font-size: 11px; color: var(--text-4); font-variant-numeric: tabular-nums; margin-top: 1px; }
+    .bk-room { background: var(--bg-3); display: flex; flex-direction: column; justify-content: center; }
+    .bk-room .nm { font-weight: 600; font-size: 13px; }
+    .bk-room .kind { font-size: 11px; color: var(--text-4); text-transform: capitalize; }
+    .bk-body { cursor: pointer; }
+    .bk-body:hover { background: var(--bg-3); }
+    .bk-body:empty::after { content: '+'; color: var(--text-4); }
+    .bk-chip { display: flex; flex-direction: column; gap: 2px; background: var(--blue-dim); border: 1px solid rgba(56,139,253,0.35); border-radius: var(--r-sm); padding: 6px 8px; font-size: 12px; }
+    .bk-chip .cls { font-weight: 600; }
+    .bk-chip .meta { color: var(--text-3); font-size: 11px; }
+    .bk-chip .acts { display: flex; justify-content: flex-end; margin-top: 2px; }
+    .bk-chip.mine { background: var(--green-dim); border-color: rgba(63,185,80,0.35); }
+    .bk-outside-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 18px; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .bk-outside-row:last-child { border-bottom: none; }
+
     .empty { padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px; }
 
     /* ---------- modal ---------- */
@@ -179,16 +199,19 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="gridCard">
     <div class="card-head">
       <div>
         <h3 id="dayTitle">Bookings</h3>
         <div class="sub" id="daySub">—</div>
       </div>
     </div>
-    <div id="dayList">
-      <div class="empty">Loading…</div>
+    <div class="bk-scroll" id="bkGridWrap">
+      <div class="bk-grid" id="bkGrid">
+        <div class="empty">Loading…</div>
+      </div>
     </div>
+    <div id="bkOutside"></div>
   </div>
 </div>
 
@@ -205,11 +228,12 @@
         <input type="date" id="bkModalDate" />
       </div>
       <div class="form-row">
-        <label>Time</label>
+        <label>Periods</label>
         <div class="form-2">
-          <input type="time" id="bkStart" value="09:00" />
-          <input type="time" id="bkEnd" value="10:00" />
+          <select id="bkStartPeriod"></select>
+          <select id="bkEndPeriod"></select>
         </div>
+        <div id="bkTimeHint" style="color: var(--text-4); font-size: 12px;"></div>
       </div>
       <div class="form-row">
         <label for="bkPurpose">Purpose (optional)</label>
@@ -290,6 +314,25 @@
     const d = new Date(dateStr + 'T00:00:00');
     return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
   }
+  function timeToMin(v) {
+    const [h, m] = String(v || '0:0').split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  }
+  function minToHHMM(mins) {
+    const m = ((mins % 1440) + 1440) % 1440;
+    return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  }
+  // Day structure values, failing open to the defaults when the migration
+  // hasn't been run or the school has no settings row.
+  function structureVal(key, fallback) {
+    const v = state.structure ? Number(state.structure[key]) : NaN;
+    return Number.isFinite(v) ? v : fallback;
+  }
+  function periodTimes(p) {
+    const start = timeToMin((state.structure && state.structure.day_start_time) || '08:30');
+    const len = structureVal('period_length_minutes', 50);
+    return { start: start + (p - 1) * len, end: start + p * len };
+  }
   function toast(msg, kind = '') {
     const t = document.createElement('div');
     t.className = 'toast ' + kind;
@@ -302,10 +345,11 @@
     user: null,
     school: null,
     settings: null,
+    structure: null,   // day structure (periods, times, booking limits)
     isOrganiser: false,
     resources: [],
     bookings: [],   // for picked date
-    bookTarget: null,
+    bookTarget: null, // { resource, period } for the book modal
   };
 
   function renderGate(title, msg) {
@@ -390,6 +434,14 @@
       return;
     }
 
+    // Day structure for the grid (fails open to defaults pre-migration).
+    try {
+      const { data: structure } = await supabaseClient.rpc('get_school_day_structure', {
+        p_school_id: school.id,
+      });
+      if (structure && structure.ok === true) state.structure = structure;
+    } catch (_) {}
+
     function unhideSignOut() {
       const btn = $('signOutBtn');
       if (!btn) { setTimeout(unhideSignOut, 30); return; }
@@ -448,7 +500,7 @@
           ${r.notes ? `<div class="notes">${escapeHtml(r.notes)}</div>` : ''}
           <div class="today">${r.bookings_today || 0} booking${(r.bookings_today || 0) === 1 ? '' : 's'} today</div>
           <div class="acts">
-            <button class="btn-primary" style="padding: 5px 12px; font-size: 12px;" data-book="${escapeHtml(r.id)}" type="button">Book</button>
+            <span style="font-size: 11.5px; color: var(--text-4);">Book it from the grid below.</span>
             ${state.isOrganiser ? `<button class="mini-btn danger" data-delres="${escapeHtml(r.id)}" type="button">Delete</button>` : ''}
           </div>
         </div>
@@ -466,54 +518,98 @@
       });
       if (error) throw error;
       state.bookings = data || [];
+      state.bookings.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
       const mine = state.bookings.filter(b => b.booked_by === state.user.id);
       $('kpiToday').textContent = state.bookings.length;
       $('kpiMine').textContent = mine.length;
       $('dayTitle').textContent = `Bookings — ${fmtDate(date)}`;
       $('daySub').textContent = state.bookings.length ? `${state.bookings.length} booking${state.bookings.length === 1 ? '' : 's'}` : '—';
-      if (!state.bookings.length) {
-        $('dayList').innerHTML = `<div class="empty">Nothing booked on this date yet.</div>`;
-        return;
-      }
-      state.bookings.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
-      $('dayList').innerHTML = state.bookings.map(b => {
-        const canCancel = b.booked_by === state.user.id || state.isOrganiser;
-        return `
-          <div class="bk-row">
-            <div>
-              <div class="res">${escapeHtml(b.resource_name)}</div>
-              <div class="meta">${escapeHtml([
-                b.purpose || null,
-                'By ' + (b.booked_by_name || 'staff'),
-              ].filter(Boolean).join(' · '))}</div>
-            </div>
-            <div style="display: flex; gap: 10px; align-items: center;">
-              <span class="time">${(b.start_time || '').slice(0, 5)}–${(b.end_time || '').slice(0, 5)}</span>
-              ${canCancel ? `<button class="mini-btn danger" data-cancel="${escapeHtml(b.id)}" type="button">Cancel</button>` : ''}
-            </div>
-          </div>
-        `;
-      }).join('');
+      renderGrid();
+      renderOutside();
     } catch (e) {
-      $('dayList').innerHTML = `<div class="empty">Couldn't load bookings.</div>`;
+      $('bkGrid').innerHTML = `<div class="empty">Couldn't load bookings.</div>`;
+      $('bkOutside').innerHTML = '';
     }
+  }
+
+  // ---------- grid (rooms = rows, periods = columns) ----------
+  function renderGrid() {
+    const grid = $('bkGrid');
+    const n = structureVal('periods_per_day', 8);
+    if (!state.resources.length) {
+      grid.style.gridTemplateColumns = '1fr';
+      grid.innerHTML = `<div class="empty">No resources yet — there's nothing to show in the grid.${state.isOrganiser ? ' Add rooms and equipment above.' : ''}</div>`;
+      return;
+    }
+    grid.style.gridTemplateColumns = ['170px'].concat(Array.from({ length: n }, () => 'minmax(120px, 1fr)')).join(' ');
+    const head = ['<div class="bk-cell"></div>'];
+    for (let p = 1; p <= n; p++) {
+      const t = periodTimes(p);
+      head.push(`<div class="bk-cell bk-head">Period ${p}<span class="t">${minToHHMM(t.start)}–${minToHHMM(t.end)}</span></div>`);
+    }
+    const rows = state.resources.map(r => {
+      const cells = [
+        `<div class="bk-cell bk-room"><div class="nm">${escapeHtml(r.name)}</div><div class="kind">${escapeHtml(r.kind || '')}${r.location ? ' · ' + escapeHtml(r.location) : ''}</div></div>`
+      ];
+      for (let p = 1; p <= n; p++) {
+        const t = periodTimes(p);
+        // Any time-based booking shows in every period column it overlaps
+        // (legacy bookings keep their real times in the chip).
+        const chips = state.bookings.filter(b =>
+          b.resource_id === r.id &&
+          timeToMin(b.start_time) < t.end &&
+          timeToMin(b.end_time) > t.start
+        ).map(bkChip).join('');
+        cells.push(`<div class="bk-cell bk-body" data-room="${escapeHtml(r.id)}" data-period="${p}">${chips}</div>`);
+      }
+      return cells.join('');
+    });
+    grid.innerHTML = head.join('') + rows.join('');
+  }
+
+  function bkChip(b) {
+    const mine = b.booked_by === state.user.id;
+    const canCancel = mine || state.isOrganiser;
+    return `
+      <div class="bk-chip${mine ? ' mine' : ''}">
+        <div class="cls">${escapeHtml(b.purpose || b.booked_by_name || 'Booked')}</div>
+        <div class="meta">${(b.start_time || '').slice(0, 5)}–${(b.end_time || '').slice(0, 5)} · ${escapeHtml(b.booked_by_name || 'staff')}</div>
+        ${canCancel ? `<div class="acts"><button class="mini-btn danger" data-cancel="${escapeHtml(b.id)}" type="button">Cancel</button></div>` : ''}
+      </div>
+    `;
+  }
+
+  // Bookings that fall entirely outside the period span, so nothing
+  // silently disappears from the page.
+  function renderOutside() {
+    const n = structureVal('periods_per_day', 8);
+    const first = periodTimes(1).start;
+    const last = periodTimes(n).end;
+    const outside = state.bookings.filter(b => {
+      const s = timeToMin(b.start_time), e = timeToMin(b.end_time);
+      return e <= first || s >= last;
+    });
+    const wrap = $('bkOutside');
+    if (!outside.length) { wrap.innerHTML = ''; return; }
+    wrap.innerHTML = outside.map(b => {
+      const canCancel = b.booked_by === state.user.id || state.isOrganiser;
+      return `
+        <div class="bk-outside-row">
+          <div>
+            <div style="font-weight: 600;">${escapeHtml(b.resource_name)}</div>
+            <div style="color: var(--text-3); font-size: 12px;">${escapeHtml([b.purpose || null, 'By ' + (b.booked_by_name || 'staff')].filter(Boolean).join(' · '))} — outside the school day</div>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <span style="color: var(--blue); font-weight: 600; font-variant-numeric: tabular-nums;">${(b.start_time || '').slice(0, 5)}–${(b.end_time || '').slice(0, 5)}</span>
+            ${canCancel ? `<button class="mini-btn danger" data-cancel="${escapeHtml(b.id)}" type="button">Cancel</button>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   // ---------- book modal ----------
   $('resWrap').addEventListener('click', (e) => {
-    const bookBtn = e.target.closest('[data-book]');
-    if (bookBtn) {
-      const r = state.resources.find(x => x.id === bookBtn.dataset.book);
-      if (!r) return;
-      state.bookTarget = r;
-      $('bookModalTitle').textContent = `Book ${r.name}`;
-      $('bkModalDate').value = $('bkDate').value || todayStr();
-      $('bkStart').value = '09:00';
-      $('bkEnd').value = '10:00';
-      $('bkPurpose').value = '';
-      $('bookModalBack').classList.add('open');
-      return;
-    }
     const delBtn = e.target.closest('[data-delres]');
     if (delBtn) deleteResource(delBtn.dataset.delres);
   });
@@ -523,24 +619,72 @@
     if (e.target === $('bookModalBack')) $('bookModalBack').classList.remove('open');
   });
 
+  function openBookModal(resourceId, period) {
+    const r = state.resources.find(x => x.id === resourceId);
+    if (!r) return;
+    state.bookTarget = { resource: r, period };
+    $('bookModalTitle').textContent = `Book ${r.name}`;
+    $('bkModalDate').value = $('bkDate').value || todayStr();
+    const n = structureVal('periods_per_day', 8);
+    const opts = [];
+    for (let p = 1; p <= n; p++) {
+      const t = periodTimes(p);
+      opts.push(`<option value="${p}">Period ${p} (${minToHHMM(t.start)}–${minToHHMM(t.end)})</option>`);
+    }
+    $('bkStartPeriod').innerHTML = opts.join('');
+    $('bkEndPeriod').innerHTML = opts.join('');
+    $('bkStartPeriod').value = String(period);
+    $('bkEndPeriod').value = String(period);
+    $('bkPurpose').value = '';
+    updateBkTimeHint();
+    $('bookModalBack').classList.add('open');
+  }
+
+  function updateBkTimeHint() {
+    const s = Number($('bkStartPeriod').value);
+    const e = Number($('bkEndPeriod').value);
+    if (!s || !e) { $('bkTimeHint').textContent = ''; return; }
+    let msg = `${minToHHMM(periodTimes(s).start)}–${minToHHMM(periodTimes(e).end)}`;
+    const max = structureVal('booking_max_periods', 0);
+    if (e < s) msg += ' — the end period is before the start period.';
+    else if (max > 0 && e - s + 1 > max) msg += ` — your school limits bookings to ${max} period${max === 1 ? '' : 's'}.`;
+    $('bkTimeHint').textContent = msg;
+  }
+  $('bkStartPeriod').addEventListener('change', updateBkTimeHint);
+  $('bkEndPeriod').addEventListener('change', updateBkTimeHint);
+
   $('bkSaveBtn').addEventListener('click', async () => {
-    if (!state.bookTarget) return;
+    if (!state.bookTarget || !state.bookTarget.resource) return;
     const date = $('bkModalDate').value;
-    const start = $('bkStart').value;
-    const end = $('bkEnd').value;
+    const sp = Number($('bkStartPeriod').value);
+    const ep = Number($('bkEndPeriod').value);
+    const n = structureVal('periods_per_day', 8);
+    const max = structureVal('booking_max_periods', 0);
+    const adv = structureVal('booking_advance_days', 0);
     if (!date) { toast('Pick a date.', 'error'); return; }
-    if (!start || !end) { toast('Pick start and end times.', 'error'); return; }
-    if (end <= start) { toast('End time must be after the start time.', 'error'); return; }
+    if (!sp || !ep || ep < sp || ep > n) { toast('Pick a valid period range.', 'error'); return; }
+    if (max > 0 && ep - sp + 1 > max) {
+      toast(`Bookings can span at most ${max} period${max === 1 ? '' : 's'}.`, 'error'); return;
+    }
+    if (date < todayStr()) { toast('Past dates can\'t be booked.', 'error'); return; }
+    if (adv > 0) {
+      const limit = new Date();
+      limit.setDate(limit.getDate() + adv);
+      const limitStr = `${limit.getFullYear()}-${String(limit.getMonth() + 1).padStart(2, '0')}-${String(limit.getDate()).padStart(2, '0')}`;
+      if (date > limitStr) {
+        toast(`Bookings can be made at most ${adv} day${adv === 1 ? '' : 's'} ahead.`, 'error'); return;
+      }
+    }
     const btn = $('bkSaveBtn');
     btn.disabled = true;
     btn.textContent = 'Booking…';
     try {
       const { data, error } = await supabaseClient.rpc('book_resource', {
         p_school_id: state.school.id,
-        p_resource_id: state.bookTarget.id,
+        p_resource_id: state.bookTarget.resource.id,
         p_date: date,
-        p_start_time: start,
-        p_end_time: end,
+        p_start_period: sp,
+        p_end_period: ep,
         p_purpose: $('bkPurpose').value.trim() || null,
       });
       if (error) throw error;
@@ -552,7 +696,15 @@
     } catch (err) {
       const reason = String(err.message || err);
       if (reason.includes('slot_taken')) {
-        toast('That time slot is already booked for this resource.', 'error');
+        toast('That period is already booked for this room.', 'error');
+      } else if (reason.includes('too_many_periods')) {
+        toast(`Bookings can span at most ${max} period${max === 1 ? '' : 's'}.`, 'error');
+      } else if (reason.includes('date_in_past')) {
+        toast('Past dates can\'t be booked.', 'error');
+      } else if (reason.includes('date_too_far')) {
+        toast(`Bookings can be made at most ${adv} day${adv === 1 ? '' : 's'} ahead.`, 'error');
+      } else if (reason.includes('invalid_periods')) {
+        toast('Pick a valid period range.', 'error');
       } else if (reason.includes('booking')) {
         toast('Your role doesn\'t include this permission. Ask your organiser to update it under School Settings.', 'error');
       } else {
@@ -564,16 +716,14 @@
     }
   });
 
-  // ---------- day list ----------
+  // ---------- grid clicks ----------
   $('bkDate').addEventListener('change', loadDayBookings);
 
-  $('dayList').addEventListener('click', async (e) => {
-    const btn = e.target.closest('[data-cancel]');
-    if (!btn || !btn.dataset.cancel) return;
+  async function cancelBooking(id) {
     if (!confirm('Cancel this booking?')) return;
     try {
       const { data, error } = await supabaseClient.rpc('cancel_booking', {
-        p_booking_id: btn.dataset.cancel,
+        p_booking_id: id,
       });
       if (error) throw error;
       if (data && data.ok !== true) throw new Error(data.reason || 'failed');
@@ -582,6 +732,18 @@
     } catch (err) {
       toast('Couldn\'t cancel: ' + String(err.message || err), 'error');
     }
+  }
+
+  $('gridCard').addEventListener('click', (e) => {
+    const cancelBtn = e.target.closest('[data-cancel]');
+    if (cancelBtn) { cancelBooking(cancelBtn.dataset.cancel); return; }
+    const cell = e.target.closest('.bk-body');
+    if (!cell || !cell.dataset.room) return;
+    if (cell.querySelector('.bk-chip')) {
+      toast('That period already has a booking.', 'error');
+      return;
+    }
+    openBookModal(cell.dataset.room, Number(cell.dataset.period));
   });
 
   // ---------- new resource (organiser) ----------
