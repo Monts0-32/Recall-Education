@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clubs — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Your school's clubs — join and leave as a member." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --purple-dim:rgba(163,113,247,0.12);
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .layout { max-width: 860px; margin: 0 auto; padding: 24px; }
+    .crumbs { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+    .crumbs a { color: var(--text-3); }
+    .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+
+    .head-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .head-bar h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .head-bar .sub { color: var(--text-3); font-size: 13.5px; margin: 0; }
+    .head-bar .grow { flex: 1; }
+    .pill { padding: 2px 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--text-2); }
+
+    .card { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; margin-bottom: 18px; }
+    .card-head { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); gap: 10px; flex-wrap: wrap; }
+    .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .card-body { padding: 16px 18px; }
+
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--line-2); padding: 7px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+    .btn-primary { background: var(--blue); color: #fff; padding: 8px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .club-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    .club-card { background: var(--bg-3); border: 1px solid var(--line-2); border-radius: var(--r-md); padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .club-card .top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .club-card .name { font-weight: 700; font-size: 15.5px; }
+    .club-card .desc { color: var(--text-3); font-size: 12.5px; }
+    .club-card .sched { font-size: 12px; color: var(--yellow); font-weight: 600; }
+    .club-card .lead { font-size: 12px; color: var(--text-3); }
+    .club-card .count { font-size: 11.5px; color: var(--text-2); background: var(--bg-4); border: 1px solid var(--line-2); padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+    .club-card .acts { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+
+    .mini-btn { background: transparent; border: 1px solid var(--line-2); color: var(--text-3); border-radius: var(--r-sm); font-family: inherit; font-size: 11.5px; padding: 3px 9px; cursor: pointer; }
+    .mini-btn:hover { color: var(--text); border-color: var(--line-3); }
+    .mini-btn.danger:hover { color: var(--red); border-color: var(--red); }
+
+    .empty { padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+    .gate { max-width: 520px; margin: 80px auto; padding: 32px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); text-align: center; }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--bg-3); border: 1px solid var(--line-2); color: var(--text); padding: 10px 14px; border-radius: var(--r-sm); font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: toast-in 0.2s ease; }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+    @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+
+<div id="headerSlot" data-mode="auth"></div>
+
+<div class="layout" id="main">
+  <div class="crumbs">
+    <a href="index.html">Recall</a>
+    <span class="sep">/</span>
+    <a href="dashboard.html">Dashboard</a>
+    <span class="sep">/</span>
+    <span class="current">Clubs</span>
+  </div>
+
+  <div class="head-bar">
+    <div class="grow">
+      <h1>Clubs</h1>
+      <p class="sub" id="sub">Loading your school…</p>
+    </div>
+    <div class="right">
+      <span class="pill" id="schoolPill">—</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3>Clubs at your school</h3>
+        <div class="sub" id="clubSub">Join a club and it'll show up here as one you're a member of.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="club-grid" id="clubGrid">
+        <div class="empty">Loading…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  const state = { user: null, school: null, clubs: [], busy: false };
+
+  function renderGate(title, msg) {
+    $('main').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-primary" href="login.html">Sign in</a></p>
+      </div>
+    `;
+  }
+
+  async function boot() {
+    let resolved = false;
+    const finish = (user) => {
+      if (resolved) return;
+      resolved = true;
+      onSession(user);
+    };
+    try {
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) { finish(null); return; }
+      const session = data && data.session;
+      if (session && session.user) { finish(session.user); return; }
+    } catch (_) { /* fall through to event listener */ }
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
+        finish(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        finish(null);
+      }
+    });
+    setTimeout(() => { if (!resolved) finish(null); }, 1500);
+  }
+
+  async function onSession(user) {
+    if (!user) {
+      renderGate('Sign-in required', 'Your session has expired or you haven\'t signed in yet. Sign in to see your school\'s clubs.');
+      return;
+    }
+    state.user = user;
+
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) {}
+    }
+    if (role !== 'student') {
+      renderGate('Students only', 'This page is for students attached to a school. Staff manage clubs from the school systems hub.');
+      return;
+    }
+
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id, school_id, full_name, role, avatar_url')
+      .eq('id', state.user.id)
+      .maybeSingle();
+    if (!profile || !profile.school_id) {
+      renderGate('No school attached', 'Your account isn\'t attached to a school yet.');
+      return;
+    }
+    const { data: school } = await supabaseClient
+      .from('schools')
+      .select('id, name')
+      .eq('id', profile.school_id)
+      .maybeSingle();
+    state.school = school;
+    $('schoolPill').textContent = school ? school.name : '—';
+    $('sub').textContent = school ? `Clubs at ${school.name}.` : 'Clubs.';
+
+    function unhideSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(unhideSignOut, 30); return; }
+      btn.hidden = false;
+    }
+    unhideSignOut();
+
+    await loadClubs();
+    mountHeaderExtras(profile || { id: state.user.id, full_name: (state.user.user_metadata || {}).full_name || '', role, avatar_url: null });
+  }
+
+  function mountHeaderExtras(profileRow) {
+    function mountAvatar() {
+      if (!window.recallHeaderAvatar || typeof window.recallHeaderAvatar.mount !== 'function') {
+        setTimeout(mountAvatar, 50); return;
+      }
+      try {
+        window.recallHeaderAvatar.mount('avatarSlot', {
+          supabaseClient, user: state.user, profile: profileRow,
+        });
+      } catch (e) { console.error('headerAvatar mount failed:', e); }
+    }
+    mountAvatar();
+    if (window.recallChat && typeof window.recallChat.mount === 'function') {
+      try {
+        window.recallChat.mount({ supabaseClient, user: state.user, profile: profileRow });
+      } catch (e) { console.error('chat mount failed:', e); }
+    }
+  }
+
+  async function loadClubs() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_student_clubs', {
+        p_school_id: state.school.id,
+      });
+      if (error) throw error;
+      state.clubs = data || [];
+      renderClubs();
+    } catch (e) {
+      $('clubGrid').innerHTML = `<div class="empty">Couldn't load clubs.</div>`;
+    }
+  }
+
+  function renderClubs() {
+    const clubs = state.clubs;
+    if (!clubs.length) {
+      $('clubGrid').innerHTML = `<div class="empty">No clubs yet at your school.</div>`;
+      return;
+    }
+    const joined = clubs.filter(c => c.is_member).length;
+    $('clubSub').textContent = `${clubs.length} club${clubs.length === 1 ? '' : 's'} · you're a member of ${joined}.`;
+    $('clubGrid').innerHTML = clubs.map(c => `
+      <div class="club-card">
+        <div class="top">
+          <div class="name">${escapeHtml(c.name)}</div>
+          <div class="count">${escapeHtml(c.member_count)} member${c.member_count === 1 ? '' : 's'}</div>
+        </div>
+        ${c.schedule ? `<div class="sched">${escapeHtml(c.schedule)}</div>` : ''}
+        ${c.description ? `<div class="desc">${escapeHtml(c.description)}</div>` : ''}
+        <div class="lead">Led by ${escapeHtml(c.lead_name || 'staff')}</div>
+        <div class="acts">
+          ${c.is_member
+            ? `<button class="mini-btn danger" type="button" data-leave="${escapeHtml(c.id)}">Leave</button>`
+            : `<button class="btn-primary" type="button" data-join="${escapeHtml(c.id)}" style="padding: 5px 12px; font-size: 12px;">Join club</button>`}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  $('clubGrid').addEventListener('click', async (e) => {
+    const joinBtn = e.target.closest('[data-join]');
+    const leaveBtn = e.target.closest('[data-leave]');
+    if (!joinBtn && !leaveBtn) return;
+    if (state.busy) return;
+    const btn = joinBtn || leaveBtn;
+    const clubId = joinBtn ? joinBtn.dataset.join : leaveBtn.dataset.leave;
+    const club = state.clubs.find(c => c.id === clubId);
+    state.busy = true;
+    btn.disabled = true;
+    try {
+      const rpcName = joinBtn ? 'join_club' : 'leave_club';
+      const { data, error } = await supabaseClient.rpc(rpcName, { p_club_id: clubId });
+      if (error) throw error;
+      if (data && data.ok !== true) {
+        const reason = data.reason || 'failed';
+        if (reason === 'already_member') {
+          toast('You\'re already a member of that club.', 'error');
+        } else if (reason === 'not_member') {
+          toast('You\'re not a member of that club.', 'error');
+        } else if (reason === 'not_allowed') {
+          toast('Students of this school only.', 'error');
+        } else {
+          toast('Couldn\'t update membership: ' + reason, 'error');
+        }
+        await loadClubs();
+      } else {
+        toast(joinBtn ? `Joined ${club ? club.name : 'club'}.` : `Left ${club ? club.name : 'club'}.`, 'success');
+        await loadClubs();
+      }
+    } catch (err) {
+      toast('Something went wrong — try again.', 'error');
+      await loadClubs();
+    } finally {
+      state.busy = false;
+    }
+  });
+
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
+
+  boot();
+</script>
+<script src="header.js" defer></script>
+<script src="bubbles.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
+</body>
+</html>

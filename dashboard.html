@@ -801,6 +801,29 @@
       </div>
     </div>
 
+    <!-- My school — shown only to students attached to a school
+         (revealed in loadWithUser → revealMySchool). Deliberately NOT part
+         of the school_dashboard_layout reorder system, so its position is
+         stable; revealMySchool appends it to the end of .main. -->
+    <div class="card" id="mySchoolCard" hidden>
+      <div class="card-head">
+        <div>
+          <h3>My school</h3>
+          <div class="sub" id="mySchoolSub">News, timetable, clubs and attendance.</div>
+        </div>
+        <div class="right">
+          <span class="pill" id="mySchoolPill">—</span>
+        </div>
+      </div>
+      <div class="card-body" id="mySchoolLinks"
+           style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
+        <a class="btn-ghost" href="student-announcements.html" style="text-align:left;">Announcements</a>
+        <a class="btn-ghost" href="student-timetable.html" style="text-align:left;">Timetable</a>
+        <a class="btn-ghost" href="student-clubs.html" style="text-align:left;">Clubs</a>
+        <a class="btn-ghost" href="student-attendance.html" style="text-align:left;">My attendance</a>
+      </div>
+    </div>
+
   </main>
 
 </div>
@@ -1508,8 +1531,34 @@
     // the layout is purely cosmetic and doesn't gate the data fetch.
     if (schoolId) {
       try { await applySchoolLayout(schoolId); } catch (_) { /* best effort */ }
+      try { await revealMySchool(schoolId); } catch (_) { /* best effort */ }
     }
     await loadDashboard(user.id);
+  }
+
+  // Reveal the "My school" card for students attached to a school. Runs
+  // AFTER applySchoolLayout so the card ends up after any reordered layout
+  // cards (this function appends it to the end of .main — appendChild
+  // moves the node). The card is intentionally not in the layout system's
+  // cardToEl map: the organiser's published layout can't hide or move it.
+  async function revealMySchool(schoolId) {
+    const card = document.getElementById('mySchoolCard');
+    if (!card) return;
+    const main = document.querySelector('.main');
+    if (main) main.appendChild(card);
+    try {
+      const { data: school } = await supabaseClient
+        .from('schools')
+        .select('id, name')
+        .eq('id', schoolId)
+        .maybeSingle();
+      if (school && school.name) {
+        document.getElementById('mySchoolPill').textContent = school.name;
+        document.getElementById('mySchoolSub').textContent =
+          `News, timetable, clubs and attendance at ${school.name}.`;
+      }
+    } catch (_) { /* show the card even if the name read fails */ }
+    card.hidden = false;
   }
 
   // Apply a school's published dashboard layout. The school system
