@@ -660,9 +660,14 @@
     const bindingAck     = document.getElementById('bindingAck');
 
     // ----- Optional school-code attach (school system) ---------------
-    // The student can paste their school's permanent code. If it
-    // resolves, attach_student_to_school (or the invite variant) is
-    // called after signUp. The field is optional — students without a
+    // The student can paste their school's permanent code (or a student
+    // invite code). If it resolves, the code is passed in signUp
+    // metadata (intended_school_code) and the handle_new_user trigger
+    // stamps profiles.school_id at account-creation time — no session
+    // needed, which matters because email confirmation is required and
+    // the post-signUp attach RPCs have no auth.uid() until the user
+    // clicks the confirmation link. The RPC calls are kept only as a
+    // best-effort fallback. The field is optional — students without a
     // school still get a normal account and school_id = null.
     //
     // `resolvedSchool` is null OR an object:
@@ -1160,7 +1165,16 @@
                   full_name: name.value.trim(),
                   year_group: year.value,
                   dob: dob.value,
-                  parent_email: needsConsent ? parentEmail.value.trim() : null
+                  parent_email: needsConsent ? parentEmail.value.trim() : null,
+                  // School-code attach (primary path). The handle_new_user
+                  // trigger reads these at auth.users INSERT time and
+                  // stamps profiles.school_id inline — no session needed.
+                  // The post-signUp RPC calls below can't work
+                  // pre-confirmation (auth.uid() is null), so this
+                  // metadata is what actually ties the student to the
+                  // school. See supabase_student_school_fix.sql.
+                  intended_role: 'student',
+                  intended_school_code: resolvedSchool ? resolvedSchool.original_code : null
                 }
           }
         });
