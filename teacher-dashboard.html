@@ -165,6 +165,12 @@
     .quick-link p { margin: 0; color: var(--text-3); font-size: 12.5px; }
     .quick-link .cta { color: var(--blue); font-size: 13px; font-weight: 500; }
 
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--bg-3); border: 1px solid var(--line-2); color: var(--text); padding: 10px 14px; border-radius: var(--r-sm); font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: toast-in 0.2s ease; }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+    @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
     .card {
       background: var(--bg-2);
       border: 1px solid var(--line);
@@ -312,7 +318,7 @@
     <div class="btn-primary">Set homework →</div>
   </a>
 
-  <div class="quick-row">
+  <div class="quick-row" style="grid-template-columns: 1fr;">
     <a class="quick-link" href="classes.html">
       <div class="ico">🗂</div>
       <div class="copy">
@@ -321,14 +327,16 @@
       </div>
       <div class="cta">Manage classes →</div>
     </a>
-    <a class="quick-link" href="school-systems.html">
-      <div class="ico">🏫</div>
-      <div class="copy">
+  </div>
+
+  <div class="card" id="systemsCard">
+    <div class="card-head">
+      <div>
         <h3>School systems</h3>
-        <p>Register, timetables, behaviour, praise, announcements and more.</p>
+        <div class="sub">Everything your school runs day to day.</div>
       </div>
-      <div class="cta">Open systems →</div>
-    </a>
+    </div>
+    <div id="systemsWheel" style="padding: 16px 18px 22px;"></div>
   </div>
 
   <div class="card">
@@ -357,6 +365,8 @@
   </div>
 </div>
 
+<div class="toast-wrap" id="toastWrap"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
 <script>
   const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
@@ -379,12 +389,47 @@
   const escapeHtml = (s) => String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  // The nine staff systems (same inventory as school-systems.html). perm is
+  // the granular role permission that gates teachers; organisers have all.
+  const STAFF_SYSTEMS = [
+    { href: 'register.html',      icon: '🗓️', name: 'Register',         perm: 'register' },
+    { href: 'absences.html',      icon: '🤒', name: 'Absences',         perm: 'absences' },
+    { href: 'timetables.html',    icon: '⏰', name: 'Timetables',       perm: 'timetable' },
+    { href: 'behaviour.html',     icon: '📝', name: 'Behaviour logs',   perm: 'behaviour' },
+    { href: 'praise.html',        icon: '⭐', name: 'Praise points',    perm: 'praise',        tone: 'green' },
+    { href: 'announcements.html', icon: '📣', name: 'Announcements',    perm: 'announcements', tone: 'yellow' },
+    { href: 'booking.html',       icon: '📍', name: 'Resource booking', perm: 'booking',       tone: 'purple' },
+    { href: 'clubs.html',         icon: '🎨', name: 'Clubs',            perm: 'clubs' },
+    { href: 'analytics.html',     icon: '📊', name: 'Analytics',        perm: 'analytics' },
+  ];
+
+  // The wheel (school-wheel.js) polls until loaded — deferred scripts can
+  // land after boot() finishes (same pattern as mountAvatar).
+  function mountWheel(containerId, cfg) {
+    function go() {
+      if (!window.recallWheel || typeof window.recallWheel.mount !== 'function') {
+        setTimeout(go, 50); return;
+      }
+      try { window.recallWheel.mount(containerId, cfg); }
+      catch (e) { console.error('wheel mount failed:', e); }
+    }
+    go();
+  }
 
   const state = {
     user: null,
     school: null,
     members: [],
     assignments: [],
+    settings: null,
   };
 
   function renderGate(title, msg) {
@@ -457,6 +502,32 @@
     $('welcomeSub').textContent = school ? `Teaching at ${school.name}.` : '';
     $('schoolPill').textContent = school ? school.name : '—';
     $('setHomeworkCta').href = 'set-homework.html?school=' + encodeURIComponent(state.school.id);
+
+    // School systems wheel. Role permissions come from get_school_settings
+    // (fail open: a teacher with no role/staff has everything, same as the
+    // school-systems hub). Locked apps stay visible but click to a toast.
+    try {
+      const { data: settings } = await supabaseClient.rpc('get_school_settings', {
+        p_school_id: state.school.id,
+      });
+      if (settings && settings.ok === true) state.settings = settings;
+    } catch (_) { /* fail open: show everything */ }
+
+    const isOrganiser = state.settings?.is_organiser === true || role === 'school_organiser';
+    const wheelApps = [
+      { href: 'classes.html', icon: '🏫', name: 'Classes' },
+      ...STAFF_SYSTEMS.map(s => ({
+        href: s.href, icon: s.icon, name: s.name, tone: s.tone || 'blue',
+        locked: !isOrganiser && state.settings &&
+          s.perm && state.settings.perms?.[s.perm] === false,
+        title: 'Ask your organiser to update your role',
+      })),
+    ];
+    mountWheel('systemsWheel', {
+      schoolName: state.school?.name || 'Our school',
+      apps: wheelApps,
+      onLockedClick: () => toast("Your role doesn't include this — ask your organiser to update it under School Settings.", 'error'),
+    });
 
     // Load everything in parallel
     await Promise.all([loadMembers(), loadAssignments(), loadSchoolTeam()]);
@@ -660,6 +731,7 @@
 <script src="header.js" defer></script>
 <script src="bubbles.js" defer></script>
 <script src="header-avatar.js" defer></script>
+<script src="school-wheel.js" defer></script>
 <script src="chat.js" defer></script>
 </body>
 </html>

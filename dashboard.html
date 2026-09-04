@@ -815,13 +815,7 @@
           <span class="pill" id="mySchoolPill">—</span>
         </div>
       </div>
-      <div class="card-body" id="mySchoolLinks"
-           style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
-        <a class="btn-ghost" href="student-announcements.html" style="text-align:left;">Announcements</a>
-        <a class="btn-ghost" href="student-timetable.html" style="text-align:left;">Timetable</a>
-        <a class="btn-ghost" href="student-clubs.html" style="text-align:left;">Clubs</a>
-        <a class="btn-ghost" href="student-attendance.html" style="text-align:left;">My attendance</a>
-      </div>
+      <div class="card-body" id="mySchoolWheel" style="padding: 16px 18px 22px;"></div>
     </div>
 
   </main>
@@ -1536,6 +1530,29 @@
     await loadDashboard(user.id);
   }
 
+  // The student's wheel: their school systems plus their learning apps.
+  // Mounted by revealMySchool (school-wheel.js; the poll-until-loaded
+  // wrapper handles deferred scripts landing after boot()).
+  const STUDENT_APPS = [
+    { href: 'student-announcements.html', icon: '📣', name: 'Announcements' },
+    { href: 'student-timetable.html',      icon: '⏰', name: 'Timetable' },
+    { href: 'student-clubs.html',           icon: '🎨', name: 'Clubs',            tone: 'purple' },
+    { href: 'student-attendance.html',     icon: '✅', name: 'My attendance',    tone: 'green' },
+    { href: 'subjects.html',                icon: '📚', name: 'Subjects' },
+    { href: 'homework.html',                icon: '📝', name: 'Homework',         tone: 'yellow' },
+  ];
+
+  function mountWheel(containerId, cfg) {
+    function go() {
+      if (!window.recallWheel || typeof window.recallWheel.mount !== 'function') {
+        setTimeout(go, 50); return;
+      }
+      try { window.recallWheel.mount(containerId, cfg); }
+      catch (e) { console.error('wheel mount failed:', e); }
+    }
+    go();
+  }
+
   // Reveal the "My school" card for students attached to a school. Runs
   // AFTER applySchoolLayout so the card ends up after any reordered layout
   // cards (this function appends it to the end of .main — appendChild
@@ -1546,6 +1563,7 @@
     if (!card) return;
     const main = document.querySelector('.main');
     if (main) main.appendChild(card);
+    let schoolName = '';
     try {
       const { data: school } = await supabaseClient
         .from('schools')
@@ -1553,12 +1571,18 @@
         .eq('id', schoolId)
         .maybeSingle();
       if (school && school.name) {
+        schoolName = school.name;
         document.getElementById('mySchoolPill').textContent = school.name;
         document.getElementById('mySchoolSub').textContent =
           `News, timetable, clubs and attendance at ${school.name}.`;
       }
     } catch (_) { /* show the card even if the name read fails */ }
+    // Un-hide BEFORE mounting so the wheel measures a real width.
     card.hidden = false;
+    mountWheel('mySchoolWheel', {
+      schoolName: schoolName || 'Our school',
+      apps: STUDENT_APPS,
+    });
   }
 
   // Apply a school's published dashboard layout. The school system
@@ -1875,6 +1899,7 @@
 <script src="header.js" defer></script>
 <script src="topbar.js" defer></script>
 <script src="header-avatar.js" defer></script>
+<script src="school-wheel.js" defer></script>
 <script src="bubbles.js" defer></script>
 </body>
 </html>

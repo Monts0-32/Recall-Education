@@ -60,29 +60,6 @@
     .head-bar .grow { flex: 1; }
     .pill { padding: 2px 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--text-2); }
 
-    .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-    .tile {
-      display: flex; flex-direction: column; gap: 10px;
-      background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md);
-      padding: 18px; color: var(--text);
-      transition: border-color 0.12s, background 0.12s;
-    }
-    .tile:hover { border-color: var(--line-3); background: var(--bg-3); text-decoration: none; }
-    .tile .icon {
-      width: 40px; height: 40px; border-radius: var(--r-md);
-      display: grid; place-items: center; font-size: 20px;
-      background: var(--blue-dim); border: 1px solid rgba(56,139,253,0.3);
-    }
-    .tile.green .icon { background: var(--green-dim); border-color: rgba(63,185,80,0.3); }
-    .tile.yellow .icon { background: var(--yellow-dim); border-color: rgba(210,153,34,0.3); }
-    .tile.red .icon { background: var(--red-dim); border-color: rgba(248,81,73,0.3); }
-    .tile.purple .icon { background: var(--purple-dim); border-color: rgba(163,113,247,0.3); }
-    .tile .name { font-weight: 600; font-size: 14.5px; display: flex; align-items: center; gap: 8px; }
-    .tile .desc { color: var(--text-3); font-size: 12.5px; }
-    .tile.locked { opacity: 0.55; cursor: not-allowed; }
-    .tile.locked:hover { border-color: var(--line); background: var(--bg-2); }
-    .tile .lock { font-size: 13px; }
-
     .gate { max-width: 520px; margin: 80px auto; padding: 32px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); text-align: center; }
     .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
     .gate p { color: var(--text-2); margin: 0 0 18px; }
@@ -120,7 +97,7 @@
     </div>
   </div>
 
-  <div class="tile-grid" id="tiles"></div>
+  <div id="tiles"></div>
 </div>
 
 <div class="toast-wrap" id="toastWrap"></div>
@@ -285,32 +262,41 @@
     }
   }
 
+  // The wheel (school-wheel.js) polls until loaded — same pattern as
+  // mountAvatar below, since deferred scripts can land after boot().
+  function mountWheel(containerId, cfg) {
+    function go() {
+      if (!window.recallWheel || typeof window.recallWheel.mount !== 'function') {
+        setTimeout(go, 50); return;
+      }
+      try { window.recallWheel.mount(containerId, cfg); }
+      catch (e) { console.error('wheel mount failed:', e); }
+    }
+    go();
+  }
+
   function renderTiles() {
     // Prefer the server's view of who the organiser is — profiles/JWT
     // roles can be stale right after an ownership transfer.
     const isOrganiser = state.settings?.is_organiser === true || state.isOrganiser;
     if (isOrganiser) $('settingsLink').style.display = '';
-    $('tiles').innerHTML = SYSTEMS.map(s => {
+
+    // Locked apps stay visible so staff know the system exists, but a
+    // click just explains who can enable it (the wheel component
+    // intercepts locked clicks for the toast).
+    const apps = SYSTEMS.map(s => {
       const denied = !isOrganiser && state.settings &&
         s.perm && state.settings.perms?.[s.perm] === false;
-      const cls = ['tile', s.tone || '', denied ? 'locked' : ''].filter(Boolean).join(' ');
-      return `
-        <a class="${cls}" href="${s.href}" ${denied ? 'aria-disabled="true" title="Ask your organiser to update your role"' : ''}>
-          <div class="icon">${s.icon}</div>
-          <div class="name">${escapeHtml(s.name)} ${denied ? '<span class="lock">🔒</span>' : ''}</div>
-          <div class="desc">${escapeHtml(s.desc)}</div>
-        </a>
-      `;
-    }).join('');
-
-    // Locked tiles stay visible so staff know the system exists, but a
-    // click just explains who can enable it (same pattern as the staff
-    // dashboard's admin-only nav links).
-    document.querySelectorAll('.tile.locked').forEach(a => {
-      a.addEventListener('click', (e) => {
-        e.preventDefault();
-        toast("Your role doesn't include this — ask your organiser to update it under School Settings.", 'error');
-      });
+      return {
+        href: s.href, icon: s.icon, name: s.name, tone: s.tone || 'blue',
+        locked: !!denied, title: denied ? 'Ask your organiser to update your role' : '',
+      };
+    });
+    mountWheel('tiles', {
+      schoolName: (state.school && state.school.name) || 'Our school',
+      apps,
+      maxWidth: 560,
+      onLockedClick: () => toast("Your role doesn't include this — ask your organiser to update it under School Settings.", 'error'),
     });
   }
 
@@ -331,6 +317,7 @@
 <script src="header.js" defer></script>
 <script src="bubbles.js" defer></script>
 <script src="header-avatar.js" defer></script>
+<script src="school-wheel.js" defer></script>
 <script src="chat.js" defer></script>
 </body>
 </html>

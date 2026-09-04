@@ -684,6 +684,21 @@
       <div class="quick-actions" id="quickActions" style="padding: 14px;"></div>
     </div>
 
+    <div class="card" data-card-id="systems-wheel">
+      <div class="card-head">
+        <div>
+          <h3>School systems</h3>
+          <div class="sub">Everything your school runs day to day.</div>
+        </div>
+        <div class="right edit-tools">
+          <span class="grip" title="Drag to reorder">⋮⋮</span>
+          <button class="rename" data-card-id="systems-wheel" type="button">Rename</button>
+          <button class="hide" data-card-id="systems-wheel" type="button">Hide</button>
+        </div>
+      </div>
+      <div id="systemsWheel" style="padding: 16px 18px 22px;"></div>
+    </div>
+
     <div class="card" data-card-id="school">
       <div class="card-head">
         <div>
@@ -869,13 +884,41 @@
     setTimeout(() => t.remove(), 3200);
   }
 
+  // The nine staff systems (same inventory as school-systems.html) plus the
+  // organiser-only settings page — the wheel shows all of them, unlocked.
+  const STAFF_SYSTEMS = [
+    { href: 'register.html',      icon: '🗓️', name: 'Register',         tone: 'blue' },
+    { href: 'absences.html',      icon: '🤒', name: 'Absences',         tone: 'blue' },
+    { href: 'timetables.html',    icon: '⏰', name: 'Timetables',       tone: 'blue' },
+    { href: 'behaviour.html',     icon: '📝', name: 'Behaviour logs',   tone: 'blue' },
+    { href: 'praise.html',        icon: '⭐', name: 'Praise points',    tone: 'green' },
+    { href: 'announcements.html', icon: '📣', name: 'Announcements',    tone: 'yellow' },
+    { href: 'booking.html',       icon: '📍', name: 'Resource booking', tone: 'purple' },
+    { href: 'clubs.html',         icon: '🎨', name: 'Clubs',            tone: 'blue' },
+    { href: 'analytics.html',     icon: '📊', name: 'Analytics',        tone: 'blue' },
+  ];
+
+  // The wheel (school-wheel.js) polls until loaded — deferred scripts can
+  // land after boot() finishes (same pattern as the avatar mount).
+  function mountWheel(containerId, cfg) {
+    function go() {
+      if (!window.recallWheel || typeof window.recallWheel.mount !== 'function') {
+        setTimeout(go, 50); return;
+      }
+      try { window.recallWheel.mount(containerId, cfg); }
+      catch (e) { console.error('wheel mount failed:', e); }
+    }
+    go();
+  }
+
   // The order these cards exist in the DOM. The server-side validator
   // enforces the same set; we keep the client list in lockstep so the
   // default layout is always publishable.
-  const CARD_IDS = ['kpis', 'quick-actions', 'school', 'roster', 'classes', 'homework'];
+  const CARD_IDS = ['kpis', 'quick-actions', 'systems-wheel', 'school', 'roster', 'classes', 'homework'];
   const DEFAULT_LABELS = {
     'kpis': 'School stats',
     'quick-actions': 'Quick actions',
+    'systems-wheel': 'School systems',
     'school': 'Your school',
     'roster': 'Roster',
     'homework': 'Recent homework',
@@ -999,6 +1042,18 @@
     applyLayoutToDom();
     renderAll();
     setupEditMode();
+
+    // School systems wheel — organisers get every system plus settings,
+    // nothing locked. (Mounted after applyLayoutToDom so a layout-hidden
+    // card is handled: the wheel's ResizeObserver re-measures on un-hide.)
+    mountWheel('systemsWheel', {
+      schoolName: state.school.name,
+      apps: [
+        { href: 'classes.html', icon: '🏫', name: 'Classes' },
+        ...STAFF_SYSTEMS.map(s => ({ href: s.href, icon: s.icon, name: s.name, tone: s.tone || 'blue' })),
+        { href: 'school-settings.html', icon: '⚙️', name: 'School settings', tone: 'yellow' },
+      ],
+    });
 
     // Fetch profile record so the header avatar can show name + avatar + role.
     let profileRow = null;
@@ -1933,6 +1988,7 @@
 <script src="header.js" defer></script>
 <script src="bubbles.js" defer></script>
 <script src="header-avatar.js" defer></script>
+<script src="school-wheel.js" defer></script>
 <script src="chat.js" defer></script>
 </body>
 </html>
