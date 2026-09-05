@@ -185,12 +185,10 @@
         <div class="sub" id="gridSub">Click any cell to add, edit or remove a slot.</div>
       </div>
       <div class="filters" id="filtersRow">
-        <label for="classFilter">Class</label>
-        <select id="classFilter"><option value="">All</option></select>
-        <label for="teacherFilter">Teacher</label>
-        <select id="teacherFilter"><option value="">All</option></select>
-        <label for="studentFilter">Student</label>
-        <select id="studentFilter"><option value="">— none —</option></select>
+        <input type="search" id="whoSearch" placeholder="Search teachers, groups, students…" aria-label="Search teachers, groups or students" style="min-width: 220px;" />
+        <select id="whoSelect" aria-label="Whose timetable" style="min-width: 240px;">
+          <option value="">— Pick who to view/edit —</option>
+        </select>
       </div>
     </div>
     <div class="mode-note" id="modeNote"></div>
@@ -280,12 +278,13 @@
     settings: null,
     canEdit: true,        // timetable perm (organisers always true; fails open)
     students: [],
+    groups: [],      // tutor groups + sets
     classes: [],
     teachers: [],
     slots: [],
-    previewStudentId: null, // student being previewed, or null
-    previewSlots: [],
-    previewName: '',
+    who: null,       // { type: 'teacher'|'group'|'student', id, label } or null
+    groupSlots: [],  // slots of classes targeting the picked group
+    previewSlots: [], // picked student's derived timetable (read-only)
     cell: null,      // { day, period } of the open modal
     editingId: null,  // slot id being edited, or null for new
   };
@@ -384,7 +383,9 @@
     }
     unhideSignOut();
 
-    await Promise.all([loadClasses(), loadTeachers(), loadSlots()].concat(state.canEdit ? [loadStudents()] : []));
+    await Promise.all([loadClasses(), loadTeachers(), loadSlots(), loadGroups()]
+      .concat(state.canEdit ? [loadStudents()] : []));
+    buildWhoOptions();
     renderGrid();
     mountHeaderExtras(profile || { id: state.user.id, full_name: (state.user.user_metadata || {}).full_name || '', role, avatar_url: null });
   }
@@ -415,12 +416,7 @@
       });
       if (!error) {
         state.classes = data || [];
-        const prev = $('classFilter').value;
-        $('classFilter').innerHTML = '<option value="">All</option>' +
-          state.classes.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
-        $('slClass').innerHTML = '<option value="">— none —</option>' +
-          state.classes.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
-        if (prev) $('classFilter').value = prev;
+        $('slClass').innerHTML = classOptionsHtml(state.classes);
       }
     } catch (_) { /* keep empty */ }
   }
@@ -432,12 +428,8 @@
       });
       if (!error) {
         state.teachers = data || [];
-        const prev = $('teacherFilter').value;
-        $('teacherFilter').innerHTML = '<option value="">All</option>' +
-          state.teachers.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.full_name || t.email || '(no name)')}</option>`).join('');
         $('slTeacher').innerHTML = '<option value="">— none —</option>' +
           state.teachers.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.full_name || t.email || '(no name)')}</option>`).join('');
-        if (prev) $('teacherFilter').value = prev;
       }
     } catch (_) { /* keep empty */ }
   }
@@ -447,14 +439,17 @@
       const { data, error } = await supabaseClient.rpc('list_school_members', {
         p_school_id: state.school.id, p_role_filter: 'student',
       });
-      if (!error) {
-        state.students = data || [];
-        const prev = $('studentFilter').value;
-        $('studentFilter').innerHTML = '<option value="">— none —</option>' +
-          state.students.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.full_name || s.email || '(no name)')}</option>`).join('');
-        if (prev) $('studentFilter').value = prev;
-      }
+      if (!error) state.students = data || [];
     } catch (_) { /* keep empty */ }
+  }
+
+  async function loadGroups() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_student_groups', {
+        p_school_id: state.school.id, p_kind: null,
+      });
+      if (!error) state.groups = data || [];
+    } catch (_) { /* pre-migration: no groups yet */ }
   }
 
   async function loadSlots() {
@@ -470,44 +465,152 @@
     }
   }
 
-  // Preview the derived timetable of one student (read-only) — what they
-  // see from their rosters AND the tutor groups/sets their classes target.
-  async function loadStudentPreview(studentId) {
-    state.previewStudentId = studentId || null;
-    state.previewSlots = [];
-    if (!studentId) {
-      $('modeNote').classList.remove('show');
-      $('modeNote').innerHTML = '';
+  // ---- whose timetable? -------------------------------------------------
+  // Editing is target-driven: pick a teacher (their slots), a tutor group /
+  // set (slots of every class scheduled for it) or a student (read-only
+  // preview of their derived timetable) from the dropdown above the grid.
+
+  function whoLabel(type, row) {
+    return row.full_name || row.email || '(no name)';
+  }
+
+  function buildWhoOptions() {
+    const opts = [];
+    if (state.teachers.length) {
+      opts.push('<optgroup label="Teachers">');
+      for (const t of state.teachers) {
+        opts.push(`<option value="t:${escapeHtml(t.id)}">${escapeHtml(whoLabel('teacher', t))}</option>`);
+      }
+      opts.push('</optgroup>');
+    }
+    if (state.groups.length) {
+      opts.push('<optgroup label="Tutor groups & sets">');
+      for (const g of state.groups) {
+        const kind = g.kind === 'set' ? 'Set' : 'Tutor group';
+        opts.push(`<option value="g:${escapeHtml(g.id)}">${escapeHtml(kind)} · ${escapeHtml(g.name)}</option>`);
+      }
+      opts.push('</optgroup>');
+    }
+    if (state.students.length) {
+      opts.push('<optgroup label="Students (read-only)">');
+      for (const s of state.students) {
+        opts.push(`<option value="s:${escapeHtml(s.id)}">${escapeHtml(whoLabel('student', s))}</option>`);
+      }
+      opts.push('</optgroup>');
+    }
+    const sel = $('whoSelect');
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— Pick who to view/edit —</option>' + opts.join('');
+    if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+    filterWhoOptions();
+  }
+
+  // The search box hides dropdown entries that don't match (optgroups with
+  // no visible entries collapse away entirely).
+  function filterWhoOptions() {
+    const q = $('whoSearch').value.trim().toLowerCase();
+    for (const og of $('whoSelect').querySelectorAll('optgroup')) {
+      let visible = 0;
+      for (const o of og.options) {
+        const show = !q || o.textContent.toLowerCase().includes(q);
+        o.hidden = !show;
+        if (show) visible++;
+      }
+      og.hidden = visible === 0;
+    }
+  }
+
+  async function onWhoChange(value) {
+    if (!value) {
+      state.who = null;
+      state.groupSlots = [];
+      state.previewSlots = [];
       renderGrid();
       return;
     }
-    const st = state.students.find(x => x.id === studentId);
-    state.previewName = st ? (st.full_name || st.email || 'this student') : 'this student';
-    try {
-      const { data, error } = await supabaseClient.rpc('list_student_timetable_for', {
-        p_school_id: state.school.id,
-        p_student_user_id: studentId,
-      });
-      if (error) throw error;
-      state.previewSlots = data || [];
-      $('modeNote').innerHTML = `Previewing <b>${escapeHtml(state.previewName)}</b>'s timetable — read-only. It includes their classes and any tutor groups/sets their classes are scheduled for.`;
-      $('modeNote').classList.add('show');
-    } catch (e) {
-      toast('Couldn\'t load that student\'s timetable. Has the groups migration been run?', 'error');
-      state.previewStudentId = null;
-      $('studentFilter').value = '';
-      $('modeNote').classList.remove('show');
+    const [kind, id] = [value.slice(0, 1), value.slice(2)];
+    if (kind === 't') {
+      const t = state.teachers.find(x => x.id === id);
+      state.who = { type: 'teacher', id, label: whoLabel('teacher', t || { full_name: 'this teacher' }) };
+      state.groupSlots = [];
+      state.previewSlots = [];
+    } else if (kind === 'g') {
+      const g = state.groups.find(x => x.id === id);
+      state.who = { type: 'group', id, label: g ? g.name : 'this group' };
+      state.previewSlots = [];
+      state.groupSlots = [];
+      try {
+        const { data, error } = await supabaseClient.rpc('list_timetable_slots_for_group', {
+          p_school_id: state.school.id, p_group_id: id,
+        });
+        if (error) throw error;
+        state.groupSlots = data || [];
+      } catch (e) {
+        toast('Couldn\'t load that group\'s timetable. Has the groups migration been run?', 'error');
+        state.who = null;
+        $('whoSelect').value = '';
+      }
+    } else if (kind === 's') {
+      const st = state.students.find(x => x.id === id);
+      state.who = { type: 'student', id, label: whoLabel('student', st || { full_name: 'this student' }) };
+      state.groupSlots = [];
+      state.previewSlots = [];
+      try {
+        const { data, error } = await supabaseClient.rpc('list_student_timetable_for', {
+          p_school_id: state.school.id, p_student_user_id: id,
+        });
+        if (error) throw error;
+        state.previewSlots = data || [];
+      } catch (e) {
+        toast('Couldn\'t load that student\'s timetable. Has the groups migration been run?', 'error');
+        state.who = null;
+        $('whoSelect').value = '';
+      }
     }
     renderGrid();
   }
 
+  // Read-only unless the caller can edit AND a editable target (teacher or
+  // group) is picked. Students are always a read-only preview.
+  function gridReadOnly() {
+    return !state.canEdit || !state.who || state.who.type === 'student';
+  }
+
+  function updateModeUi() {
+    const note = $('modeNote');
+    const sub = $('gridSub');
+    if (!state.canEdit) {
+      sub.textContent = 'Your lessons. Editing the timetable needs the timetable permission — ask your organiser under School Settings.';
+      note.innerHTML = 'Viewing <b>your own timetable</b>, read-only.';
+      note.classList.add('show');
+      return;
+    }
+    const who = state.who;
+    if (!who) {
+      sub.textContent = 'Read-only overview of the whole school. Pick a teacher, tutor group or student above to view or edit their timetable.';
+      note.innerHTML = 'Pick <b>who</b> to view or edit above — search by name to narrow the list.';
+      note.classList.add('show');
+    } else if (who.type === 'teacher') {
+      sub.textContent = `${who.label}'s timetable. Click any cell to add, edit or remove their slots.`;
+      note.classList.remove('show');
+      note.innerHTML = '';
+    } else if (who.type === 'group') {
+      sub.textContent = `Classes scheduled for ${who.label}. Click any cell to add, edit or remove slots for those classes.`;
+      note.classList.remove('show');
+      note.innerHTML = '';
+    } else {
+      sub.textContent = `${who.label}'s timetable, read-only. It includes their classes and any tutor groups / sets their classes are scheduled for.`;
+      note.innerHTML = `Viewing <b>${escapeHtml(who.label)}</b>'s timetable — read-only. Students get their timetable from their classes, so edit it via a teacher or group instead.`;
+      note.classList.add('show');
+    }
+  }
+
   function visibleSlots() {
-    if (state.previewStudentId) return state.previewSlots;
-    const cf = $('classFilter').value;
-    const tf = $('teacherFilter').value;
-    return state.slots.filter(s =>
-      (!cf || s.class_id === cf) && (!tf || s.teacher_user_id === tf)
-    );
+    const who = state.who;
+    if (!who) return state.slots;                 // whole-school overview
+    if (who.type === 'teacher') return state.slots.filter(s => s.teacher_user_id === who.id);
+    if (who.type === 'group') return state.groupSlots;
+    return state.previewSlots;                   // student preview
   }
 
   function slotChip(s) {
@@ -525,11 +628,29 @@
     `;
   }
 
+  // Class options for the slot modal. In group view only the classes that
+  // are scheduled for the picked group can be given new slots; when
+  // editing an existing slot its own class is always listed so the value
+  // round-trips.
+  function classOptionsHtml(classes, extraId) {
+    let list = classes;
+    if (state.who && state.who.type === 'group') {
+      list = classes.filter(c => (c.groups || []).some(g => g.id === state.who.id));
+      if (extraId && !list.some(c => c.id === extraId)) {
+        const extra = classes.find(c => c.id === extraId);
+        if (extra) list = list.concat([extra]);
+      }
+    }
+    return '<option value="">— none —</option>' +
+      list.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)}</option>`).join('');
+  }
+
   function renderGrid() {
     const slots = visibleSlots();
     const n = (state.settings && state.settings.periods_per_day) || 8;
-    const readOnly = !state.canEdit || !!state.previewStudentId;
+    const readOnly = gridReadOnly();
     $('grid').classList.toggle('ro', readOnly);
+    updateModeUi();
     // head row
     let html = `<div class="tt-cell tt-head"></div>`;
     for (const d of DAYS) html += `<div class="tt-cell tt-head">${d}</div>`;
@@ -548,7 +669,10 @@
     state.cell = { day, period };
     state.editingId = slotId || null;
     $('slotModalTitle').textContent = `${DAYS[day]} · Period ${period}`;
-    const inCell = state.slots.filter(s => s.day_of_week === day && s.period === period);
+    // The "already in this cell" list is scoped to the picked target — a
+    // teacher view lists that teacher's slots, a group view the group's.
+    const target = visibleSlots();
+    const inCell = target.filter(s => s.day_of_week === day && s.period === period);
     $('existingList').innerHTML = inCell.map(s => `
       <div class="ex-row">
         <div>
@@ -566,17 +690,33 @@
       </div>
     `).join('');
     if (slotId) {
-      const s = state.slots.find(x => x.id === slotId);
+      const s = target.find(x => x.id === slotId);
+      // Group view: only classes scheduled for the group (plus the slot's
+      // own class). Teacher view: the teacher is locked to the target.
+      $('slClass').innerHTML = classOptionsHtml(state.classes, s?.class_id);
       $('slClass').value = s?.class_id || '';
-      $('slTeacher').value = s?.teacher_user_id || '';
+      if (state.who && state.who.type === 'teacher') {
+        $('slTeacher').value = state.who.id;
+        $('slTeacher').disabled = true;
+      } else {
+        $('slTeacher').value = s?.teacher_user_id || '';
+        $('slTeacher').disabled = false;
+      }
       $('slStart').value = (s?.start_time || '09:00').slice(0, 5);
       $('slEnd').value = (s?.end_time || '09:50').slice(0, 5);
       $('slRoom').value = s?.room || '';
       $('slLabel').value = s?.label || '';
       $('slDeleteBtn').style.display = '';
     } else {
+      $('slClass').innerHTML = classOptionsHtml(state.classes);
       $('slClass').value = '';
-      $('slTeacher').value = '';
+      if (state.who && state.who.type === 'teacher') {
+        $('slTeacher').value = state.who.id;
+        $('slTeacher').disabled = true;
+      } else {
+        $('slTeacher').value = '';
+        $('slTeacher').disabled = false;
+      }
       // Default new slots to the school day's period 1 times when known.
       if (state.settings && state.settings.day_start_time) {
         const [h, m] = String(state.settings.day_start_time).split(':').map(Number);
@@ -603,8 +743,11 @@
   }
 
   $('grid').addEventListener('click', (e) => {
-    // Read-only views (own lessons without the perm, student preview): no modal.
-    if (!state.canEdit || state.previewStudentId) return;
+    // The editor only opens for editable targets: the timetable perm held
+    // AND a teacher or tutor group / set picked. Students, the unfiltered
+    // overview and teachers without the perm are all read-only.
+    const editable = state.canEdit && state.who && state.who.type !== 'student';
+    if (!editable) return;
     const editBtn = e.target.closest('[data-edit]');
     if (editBtn) {
       const cell = editBtn.closest('.tt-body');
@@ -617,7 +760,14 @@
       return;
     }
     const body = e.target.closest('.tt-body');
-    if (body) openModal(Number(body.dataset.day), Number(body.dataset.period), null);
+    if (body) {
+      if (state.who.type === 'group' &&
+          !state.classes.some(c => (c.groups || []).some(g => g.id === state.who.id))) {
+        toast(`No classes are scheduled for ${state.who.label} yet — schedule a class for this group first (Classes → Manage → groups).`, 'error');
+        return;
+      }
+      openModal(Number(body.dataset.day), Number(body.dataset.period), null);
+    }
   });
 
   $('slotModalClose').addEventListener('click', closeModal);
@@ -654,8 +804,7 @@
       if (data && data.ok !== true) throw new Error(data.reason || 'failed');
       toast(state.editingId ? 'Slot updated.' : 'Slot added.', 'success');
       closeModal();
-      await loadSlots();
-      renderGrid();
+      await refreshSlots();
     } catch (err) {
       const reason = String(err.message || err);
       if (reason.includes('teacher_busy')) {
@@ -671,6 +820,21 @@
     }
   });
 
+  // After a save/delete, reload whichever views are live — always the base
+  // slot list, plus the picked group's slots when a group is selected.
+  async function refreshSlots() {
+    await loadSlots();
+    if (state.who && state.who.type === 'group') {
+      try {
+        const { data, error } = await supabaseClient.rpc('list_timetable_slots_for_group', {
+          p_school_id: state.school.id, p_group_id: state.who.id,
+        });
+        if (!error) state.groupSlots = data || [];
+      } catch (_) { /* keep previous */ }
+    }
+    renderGrid();
+  }
+
   async function removeSlot(slotId) {
     try {
       const { data, error } = await supabaseClient.rpc('delete_timetable_slot', {
@@ -680,8 +844,7 @@
       if (data && data.ok !== true) throw new Error(data.reason || 'failed');
       toast('Slot removed.', 'success');
       closeModal();
-      await loadSlots();
-      renderGrid();
+      await refreshSlots();
     } catch (err) {
       toast('Couldn\'t remove: ' + String(err.message || err), 'error');
     }
@@ -691,23 +854,12 @@
     if (state.editingId) removeSlot(state.editingId);
   });
 
-  // Class/teacher filters and the student preview are mutually exclusive
-  // views of the grid; using one resets the other.
-  $('classFilter').addEventListener('change', () => {
-    if (state.previewStudentId) { $('studentFilter').value = ''; loadStudentPreview(null); return; }
-    renderGrid();
+  // The who-picker drives the grid: changing the selection loads the new
+  // target's timetable; the search box just filters the dropdown.
+  $('whoSelect').addEventListener('change', () => {
+    onWhoChange($('whoSelect').value);
   });
-  $('teacherFilter').addEventListener('change', () => {
-    if (state.previewStudentId) { $('studentFilter').value = ''; loadStudentPreview(null); return; }
-    renderGrid();
-  });
-  $('studentFilter').addEventListener('change', () => {
-    if ($('studentFilter').value) {
-      $('classFilter').value = '';
-      $('teacherFilter').value = '';
-    }
-    loadStudentPreview($('studentFilter').value || null);
-  });
+  $('whoSearch').addEventListener('input', filterWhoOptions);
 
   function wireSignOut() {
     const btn = $('signOutBtn');

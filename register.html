@@ -146,6 +146,16 @@
     .pchip { padding: 1px 7px; border-radius: 999px; font-size: 10.5px; background: var(--bg-3); border: 1px solid var(--line-2); color: var(--text-3); margin-left: 6px; white-space: nowrap; }
     .late-badge { padding: 1px 7px; border-radius: 999px; font-size: 10.5px; background: var(--red-dim); border: 1px solid var(--red); color: var(--red); margin-left: 6px; font-weight: 700; letter-spacing: 0.04em; }
 
+    /* schedule popup */
+    .modal-back { position: fixed; inset: 0; background: rgba(1,4,9,0.7); z-index: 100; display: none; align-items: flex-start; justify-content: center; padding: 60px 20px 20px; overflow-y: auto; }
+    .modal-back.open { display: flex; }
+    .modal { background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); width: 100%; max-width: 560px; }
+    .modal-head { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .modal-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .modal-close { background: none; border: none; color: var(--text-3); font-size: 20px; cursor: pointer; line-height: 1; padding: 2px 6px; }
+    .modal-close:hover { color: var(--text); }
+
     .gate { max-width: 520px; margin: 80px auto; padding: 32px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); text-align: center; }
     .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
     .gate p { color: var(--text-2); margin: 0 0 18px; }
@@ -187,6 +197,7 @@
     </div>
     <div class="right">
       <span class="pill" id="schoolPill">—</span>
+      <button class="btn-primary" id="scheduleBtn" type="button">📅 My schedule</button>
     </div>
   </div>
 
@@ -198,7 +209,7 @@
         <div class="sub" id="lessonsSub">Submit each register within the late window to avoid a LATE flag.</div>
       </div>
       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-        <input type="date" id="lessonDate" aria-label="Lesson date" />
+        <span class="pill" id="todayPill">Today</span>
       </div>
     </div>
     <div id="lessonList">
@@ -244,6 +255,22 @@
       </div>
     </div>
     <div id="recentList">
+      <div class="empty">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<!-- My schedule popup: pick a lesson from today's schedule to take its register -->
+<div class="modal-back" id="scheduleModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <h3 id="scheduleTitle">My schedule</h3>
+        <div class="sub" id="scheduleSub">Pick a lesson to take its register — today only.</div>
+      </div>
+      <button class="modal-close" id="scheduleClose" aria-label="Close" type="button">×</button>
+    </div>
+    <div id="scheduleList">
       <div class="empty">Loading…</div>
     </div>
   </div>
@@ -299,14 +326,20 @@
     $('toastWrap').appendChild(t);
     setTimeout(() => t.remove(), 3600);
   }
+  // Browser-local today (not UTC — a UK teacher at 23:30 still means today).
+  function localTodayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
 
   const state = {
     user: null,
     school: null,
     settings: null,
     isOrganiser: false,
+    today: localTodayStr(), // registers are today-only
     classes: [],
-    lessons: [],  // today's (or chosen day's) timetable lessons
+    lessons: [],  // today's timetable lessons
     roster: [],    // [{student_user_id, full_name, year_group, status, note}]
     // editor context:
     mode: 'lessons', // 'lessons' | 'lesson' | 'manual'
@@ -392,6 +425,7 @@
       .maybeSingle();
     state.school = school;
     $('schoolPill').textContent = school ? school.name : '—';
+    $('todayPill').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
     $('sub').textContent = school ? `Attendance register for ${school.name}.` : 'Attendance register.';
 
     try {
@@ -447,8 +481,7 @@
 
   // ---------- today's lessons ----------
   async function loadLessons() {
-    const date = $('lessonDate').value;
-    if (!date) return;
+    const date = state.today;
     $('lessonList').innerHTML = `<div class="empty">Loading lessons…</div>`;
     try {
       const { data, error } = await supabaseClient.rpc('list_day_lessons', {
@@ -463,6 +496,7 @@
       }
       state.lessons = data || [];
       renderLessons();
+      renderSchedule();
     } catch (e) {
       $('lessonList').innerHTML = `<div class="empty">Couldn't load lessons.</div>`;
     }
@@ -470,14 +504,11 @@
 
   function renderLessons() {
     const list = $('lessonList');
-    const d = new Date($('lessonDate').value + 'T00:00:00');
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const title = d.getTime() === today.getTime() ? "Today's lessons"
-      : d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' }) + ' lessons';
+    const title = "Today's lessons";
     $('lessonsTitle').textContent = title;
 
     if (!state.lessons.length) {
-      list.innerHTML = `<div class="empty">No lessons scheduled for this date. Check the date, build the timetable, or take an ad-hoc register below.</div>`;
+      list.innerHTML = `<div class="empty">No lessons scheduled for today. Build the timetable, or take an ad-hoc register below.</div>`;
       return;
     }
     list.innerHTML = state.lessons.map((l, i) => {
@@ -513,6 +544,66 @@
     });
   }
 
+  // ---------- schedule popup ----------
+  function renderSchedule() {
+    const list = $('scheduleList');
+    $('scheduleTitle').textContent = state.isOrganiser
+      ? "Today's lessons — whole school"
+      : 'My schedule';
+    if (!state.lessons.length) {
+      list.innerHTML = `<div class="empty">No lessons scheduled for today.</div>`;
+      return;
+    }
+    list.innerHTML = state.lessons.map((l, i) => {
+      const chip = l.session_id
+        ? (l.is_late
+            ? `<span class="status-chip late">LATE</span>`
+            : `<span class="status-chip done">Done</span>`)
+        : `<span class="status-chip todo">To do</span>`;
+      const metaBits = [
+        l.room ? 'Room ' + escapeHtml(l.room) : null,
+        l.label ? escapeHtml(l.label) : null,
+        state.isOrganiser && l.teacher_name ? '👤 ' + escapeHtml(l.teacher_name) : null,
+      ].filter(Boolean).join(' · ');
+      return `
+        <div class="lesson-row" data-i="${i}" role="button" tabindex="0" title="Take this register">
+          <div class="period">P${escapeHtml(String(l.period))}</div>
+          <div class="time">${fmtTime(l.start_time)}–${fmtTime(l.end_time)}</div>
+          <div>
+            <div class="cls">${escapeHtml(l.class_name)}</div>
+            ${metaBits ? `<div class="meta">${metaBits}</div>` : ''}
+          </div>
+          <div>${chip}</div>
+        </div>
+      `;
+    }).join('');
+    list.querySelectorAll('.lesson-row').forEach(row => {
+      const open = () => {
+        closeSchedule();
+        openLesson(state.lessons[Number(row.dataset.i)]);
+      };
+      row.addEventListener('click', open);
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+      });
+    });
+  }
+
+  function openSchedule() {
+    renderSchedule();
+    $('scheduleModal').classList.add('open');
+  }
+  function closeSchedule() { $('scheduleModal').classList.remove('open'); }
+
+  $('scheduleBtn').addEventListener('click', openSchedule);
+  $('scheduleClose').addEventListener('click', closeSchedule);
+  $('scheduleModal').addEventListener('click', (e) => {
+    if (e.target === $('scheduleModal')) closeSchedule();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSchedule();
+  });
+
   // ---------- editor (lesson / manual) ----------
   function showEditor(contextTitle, contextSub) {
     $('lessonsCard').hidden = true;
@@ -527,13 +618,13 @@
     state.period = l.period;
     state.slotId = l.slot_id;
     $('classSelect').value = l.class_id;
-    $('dateInput').value = $('lessonDate').value;
+    $('dateInput').value = state.today;
     $('classSelect').disabled = true;
     $('dateInput').disabled = true;
     // showEditor sets textContent, so pass raw strings (no escaping).
     showEditor(
       `P${l.period} · ${l.class_name}`,
-      `${fmtTime(l.start_time)}–${fmtTime(l.end_time)}${l.room ? ' · Room ' + l.room : ''}${l.label ? ' · ' + l.label : ''} · ${$('lessonDate').value}`
+      `${fmtTime(l.start_time)}–${fmtTime(l.end_time)}${l.room ? ' · Room ' + l.room : ''}${l.label ? ' · ' + l.label : ''} · ${state.today} (today only)`
     );
     loadRoster();
   }
@@ -544,8 +635,10 @@
     state.period = 0;
     state.slotId = null;
     $('classSelect').disabled = false;
-    $('dateInput').disabled = false;
-    showEditor('Ad-hoc register', 'Not tied to a timetable lesson — never flagged as late.');
+    // Registers are today-only — the date is locked either way.
+    $('dateInput').value = state.today;
+    $('dateInput').disabled = true;
+    showEditor('Ad-hoc register', 'Not tied to a timetable lesson — never flagged as late. Today only.');
     if (state.classes.length) {
       $('classSelect').value = state.classes[0].id;
       loadRoster();
@@ -694,13 +787,10 @@
   }
 
   // ---------- events ----------
-  $('lessonDate').valueAsDate = new Date();
-  $('dateInput').valueAsDate = new Date();
-  $('lessonDate').addEventListener('change', loadLessons);
+  $('dateInput').value = state.today;
   $('manualBtn').addEventListener('click', openManual);
   $('backBtn').addEventListener('click', backToLessons);
   $('classSelect').addEventListener('change', loadRoster);
-  $('dateInput').addEventListener('change', loadRoster);
 
   $('allPresentBtn').addEventListener('click', () => {
     if (!state.roster.length) return;
@@ -753,6 +843,8 @@
       const reason = String(err.message || err);
       if (reason.includes('permission register')) {
         toast('Your role doesn\'t include this permission. Ask your organiser to update it under School Settings.', 'error');
+      } else if (reason.includes('date_not_today')) {
+        toast('Registers can only be completed for today.', 'error');
       } else {
         toast('Couldn\'t save: ' + reason, 'error');
       }
