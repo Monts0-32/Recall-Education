@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Student groups — Recall</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <meta name="description" content="Manage tutor groups and sets." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0D1117;
+      --bg-2:      #161B22;
+      --bg-3:      #1C2128;
+      --bg-4:      #21262D;
+      --line:      #21262D;
+      --line-2:    #30363D;
+      --line-3:    #484F58;
+      --text:      #F0F6FC;
+      --text-2:    #C9D1D9;
+      --text-3:    #8B949E;
+      --text-4:    #6E7681;
+      --blue:      #58A6FF;
+      --blue-2:    #1F6FEB;
+      --blue-dim:  rgba(56,139,253,0.15);
+      --blue-pale: rgba(56,139,253,0.08);
+      --green:     #3FB950;
+      --green-dim: rgba(63,185,80,0.12);
+      --yellow:    #D29922;
+      --yellow-dim:rgba(210,153,34,0.12);
+      --red:       #F85149;
+      --red-dim:   rgba(248,81,73,0.12);
+      --purple:    #A371F7;
+      --r-sm: 6px;
+      --r-md: 8px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .layout { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .crumbs { font-size: 12px; color: var(--text-3); margin-bottom: 14px; }
+    .crumbs a { color: var(--text-3); }
+    .crumbs a:hover { color: var(--text-2); text-decoration: none; }
+    .crumbs .sep { color: var(--text-4); margin: 0 6px; }
+    .crumbs .current { color: var(--text); font-weight: 600; }
+
+    .head-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .head-bar h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .head-bar .sub { color: var(--text-3); font-size: 13.5px; margin: 0; }
+    .head-bar .grow { flex: 1; }
+    .pill { padding: 2px 10px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--text-2); }
+
+    .card { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; margin-bottom: 18px; }
+    .card-head { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); gap: 10px; flex-wrap: wrap; }
+    .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .card-head .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .card-body { padding: 16px 18px; }
+
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--line-2); padding: 7px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .btn-ghost:hover { background: var(--bg-2); color: var(--text); }
+    .btn-primary { background: var(--blue); color: #fff; padding: 8px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; font-weight: 600; border: 1px solid var(--blue); cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); text-decoration: none; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: var(--bg-3); color: var(--text); border: 1px solid var(--line-2); padding: 7px 12px; border-radius: var(--r-sm); font-family: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-secondary:hover { background: var(--bg-4); border-color: var(--line-3); text-decoration: none; }
+    .btn-danger { background: transparent; color: var(--red); border: 1px solid rgba(248,81,73,0.3); padding: 5px 10px; border-radius: var(--r-sm); font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; }
+    .btn-danger:hover { background: var(--red-dim); border-color: var(--red); }
+
+    select, input, textarea {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--line-2); border-radius: var(--r-sm);
+      padding: 8px 12px; font-family: inherit; font-size: 13.5px; outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-pale); }
+
+    .tabs { display: flex; gap: 6px; margin-bottom: 18px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 4px; width: fit-content; }
+    .tab { background: transparent; color: var(--text-3); border: none; border-radius: var(--r-sm); padding: 7px 16px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .tab:hover { color: var(--text-2); }
+    .tab.active { background: var(--bg-4); color: var(--text); }
+
+    .grp-table { display: flex; flex-direction: column; }
+    .grp-row {
+      display: grid; grid-template-columns: 1fr 140px auto; gap: 12px;
+      align-items: center; padding: 12px 18px;
+      border-bottom: 1px solid var(--line); font-size: 13px;
+    }
+    .grp-row:last-child { border-bottom: none; }
+    .grp-row:hover { background: var(--bg-3); }
+    .grp-row .name { color: var(--text); font-weight: 600; }
+    .grp-row .kind-pill { font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--text-2); margin-left: 8px; text-transform: capitalize; }
+    .grp-row .count { color: var(--text-2); font-variant-numeric: tabular-nums; }
+    .grp-row .actions { display: flex; gap: 8px; }
+
+    .mbr-table { display: flex; flex-direction: column; margin-top: 6px; }
+    .mbr-row {
+      display: grid; grid-template-columns: 1fr 90px auto; gap: 12px;
+      align-items: center; padding: 8px 12px;
+      border: 1px solid var(--line); border-radius: var(--r-sm);
+      margin-bottom: 6px; font-size: 13px; background: var(--bg);
+    }
+    .mbr-row .name { color: var(--text); font-weight: 500; }
+    .mbr-row .yr { color: var(--text-3); font-size: 12px; }
+
+    .add-row { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+    .add-row select { flex: 1; }
+    .add-row select[multiple] { min-height: 120px; }
+    .hint { font-size: 11.5px; color: var(--text-4); }
+
+    .empty { padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+    .modal-back { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; padding: 32px; }
+    .modal-back.open { display: flex; }
+    .modal { background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); max-width: 560px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+    .modal-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+    .modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    .modal-head .right { margin-left: auto; }
+    .modal-body { padding: 20px; overflow-y: auto; }
+    .modal-foot { padding: 14px 18px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; }
+    .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-row label { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+    .form-row .hint { font-size: 11.5px; color: var(--text-4); }
+
+    .gate { max-width: 520px; margin: 80px auto; padding: 32px; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-md); text-align: center; }
+    .gate h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    .gate p { color: var(--text-2); margin: 0 0 18px; }
+
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--bg-3); border: 1px solid var(--line-2); color: var(--text); padding: 10px 14px; border-radius: var(--r-sm); font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: toast-in 0.2s ease; }
+    .toast.success { border-color: var(--green); }
+    .toast.error   { border-color: var(--red); }
+    @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    @media (max-width: 700px) {
+      .grp-row { grid-template-columns: 1fr auto; }
+      .grp-row .count { display: none; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+
+<div id="headerSlot" data-mode="auth"></div>
+
+<div class="layout" id="main">
+  <div class="crumbs">
+    <a href="index.html">Recall</a>
+    <span class="sep">/</span>
+    <a href="school-systems.html">School systems</a>
+    <span class="sep">/</span>
+    <span class="current">Student groups</span>
+  </div>
+
+  <div class="head-bar">
+    <div class="grow">
+      <h1>Student groups</h1>
+      <p class="sub" id="sub">Loading your school…</p>
+    </div>
+    <div class="right">
+      <span class="pill" id="schoolPill">—</span>
+      <button class="btn-primary" id="newGroupBtn" type="button">+ New group</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="kindTabs">
+    <button class="tab active" data-kind="tutor_group" type="button">Tutor groups</button>
+    <button class="tab" data-kind="set" type="button">Sets</button>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h3 id="listTitle">Tutor groups</h3>
+        <div class="sub" id="listSub">—</div>
+      </div>
+    </div>
+    <div class="grp-table" id="grpList">
+      <div class="empty">Loading…</div>
+    </div>
+  </div>
+
+  <p style="color: var(--text-4); font-size: 12px; margin-top: 4px;">
+    Classes can be scheduled for whole groups — target them from the
+    <a href="classes.html">Classes</a> page, and they drive student timetables.
+  </p>
+</div>
+
+<!-- New / rename group modal -->
+<div class="modal-back" id="grpModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="grpModalTitle">New group</h3>
+      <div class="right"><button class="btn-ghost" id="grpCloseBtn" type="button">Close</button></div>
+    </div>
+    <div class="modal-body">
+      <div class="form-row" id="grpKindRow">
+        <label for="grpKind">Type</label>
+        <select id="grpKind">
+          <option value="tutor_group">Tutor group (registration form, e.g. 8T)</option>
+          <option value="set">Set (ability group, e.g. Set 2 Maths)</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="grpName">Name</label>
+        <input type="text" id="grpName" maxlength="60" placeholder="e.g. 8T" />
+        <div class="hint" id="grpNameHint">Tutor groups are usually named by year + letter (8T). Sets are usually named by subject and ability (Set 2 Maths).</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="grpCancelBtn" type="button">Cancel</button>
+      <button class="btn-primary" id="grpSaveBtn" type="button">Create group</button>
+    </div>
+  </div>
+</div>
+
+<!-- Members modal -->
+<div class="modal-back" id="mbrModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="mbrModalTitle">Members</h3>
+      <div class="right"><button class="btn-ghost" id="mbrCloseBtn" type="button">Close</button></div>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label for="mbrPick">Add students</label>
+        <select id="mbrPick" multiple size="6"></select>
+        <div class="hint">Ctrl/Cmd-click or shift-click to pick several at once. Students already in the group are skipped.</div>
+      </div>
+      <button class="btn-secondary" id="mbrAddBtn" type="button" style="margin-bottom: 18px;">+ Add selected</button>
+      <div class="form-row" style="margin-bottom: 6px;">
+        <label>Current members</label>
+      </div>
+      <div class="mbr-table" id="mbrList">
+        <div class="empty">Loading…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script>
+  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: {
+      fetch: (url, options = {}) => {
+        try {
+          const u = new URL(url, window.location.href);
+          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
+            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
+          }
+          return fetch(u.toString(), options);
+        } catch (_) { return fetch(url, options); }
+      }
+    }
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  function toast(msg, kind = '') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + kind;
+    t.textContent = msg;
+    $('toastWrap').appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+  const KIND_LABEL = { tutor_group: 'tutor group', set: 'set' };
+  const KIND_PLURAL = { tutor_group: 'Tutor groups', set: 'Sets' };
+
+  const state = {
+    user: null,
+    school: null,
+    settings: null,
+    isOrganiser: false,
+    canManage: false,
+    kind: 'tutor_group',
+    groups: [],
+    students: [],
+    editGroupId: null,   // rename target, null = create
+    membersGroupId: null, // members modal target
+    members: [],
+  };
+
+  function renderGate(title, msg) {
+    $('main').innerHTML = `
+      <div class="gate">
+        <h1>${escapeHtml(title)}</h1>
+        <p>${escapeHtml(msg).replace(/\n/g, '<br>')}</p>
+        <p><a class="btn-primary" href="login.html">Sign in</a></p>
+      </div>
+    `;
+  }
+
+  async function boot() {
+    let resolved = false;
+    const finish = (user) => {
+      if (resolved) return;
+      resolved = true;
+      onSession(user);
+    };
+    try {
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) { finish(null); return; }
+      const session = data && data.session;
+      if (session && session.user) { finish(session.user); return; }
+    } catch (_) { /* fall through to event listener */ }
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
+        finish(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        finish(null);
+      }
+    });
+    setTimeout(() => { if (!resolved) finish(null); }, 1500);
+  }
+
+  async function onSession(user) {
+    if (!user) {
+      renderGate('Sign-in required', 'Your session has expired or you haven\'t signed in yet. Sign in to manage student groups.');
+      return;
+    }
+    state.user = user;
+
+    let role = state.user.app_metadata?.role;
+    if (!role) {
+      try {
+        const r = await supabaseClient.rpc('current_role');
+        if (!r.error && r.data) role = r.data;
+      } catch (_) {}
+    }
+    if (role !== 'school_organiser' && role !== 'teacher') {
+      renderGate('Staff access only', 'This page is for teachers and school organisers.');
+      return;
+    }
+
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id, school_id, full_name, role, avatar_url')
+      .eq('id', state.user.id)
+      .maybeSingle();
+    if (!profile || !profile.school_id) {
+      renderGate('No school attached', 'Your account isn\'t attached to a school yet.');
+      return;
+    }
+    const { data: school } = await supabaseClient
+      .from('schools')
+      .select('id, name, code')
+      .eq('id', profile.school_id)
+      .maybeSingle();
+    state.school = school;
+    $('schoolPill').textContent = school ? school.name : '—';
+    $('sub').textContent = school ? `Tutor groups and sets for ${school.name}.` : 'Student groups.';
+
+    try {
+      const { data: settings } = await supabaseClient.rpc('get_school_settings', {
+        p_school_id: school.id,
+      });
+      if (settings && settings.ok === true) {
+        state.settings = settings;
+        state.isOrganiser = !!settings.is_organiser;
+        state.canManage = settings.is_organiser || settings.perms?.groups !== false;
+      }
+    } catch (_) {}
+    if (state.settings && state.settings.perms?.groups === false) {
+      renderGate('Permission needed', 'Your role doesn\'t include this permission. Ask your organiser to update it under School Settings.');
+      return;
+    }
+    if (!state.canManage) {
+      // Settings fetch failed (pre-migration DB): organisers can still manage.
+      state.canManage = state.isOrganiser;
+    }
+
+    function unhideSignOut() {
+      const btn = $('signOutBtn');
+      if (!btn) { setTimeout(unhideSignOut, 30); return; }
+      btn.hidden = false;
+    }
+    unhideSignOut();
+
+    await Promise.all([loadGroups(), loadStudents()]);
+    mountHeaderExtras(profile || { id: state.user.id, full_name: (state.user.user_metadata || {}).full_name || '', role, avatar_url: null });
+  }
+
+  function mountHeaderExtras(profileRow) {
+    function mountAvatar() {
+      if (!window.recallHeaderAvatar || typeof window.recallHeaderAvatar.mount !== 'function') {
+        setTimeout(mountAvatar, 50); return;
+      }
+      try {
+        window.recallHeaderAvatar.mount('avatarSlot', {
+          supabaseClient, user: state.user, profile: profileRow,
+        });
+      } catch (e) { console.error('headerAvatar mount failed:', e); }
+    }
+    mountAvatar();
+    if (window.recallChat && typeof window.recallChat.mount === 'function') {
+      try {
+        window.recallChat.mount({ supabaseClient, user: state.user, profile: profileRow });
+      } catch (e) { console.error('chat mount failed:', e); }
+    }
+  }
+
+  async function loadGroups() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_student_groups', {
+        p_school_id: state.school.id, p_kind: null,
+      });
+      if (error) throw error;
+      state.groups = data || [];
+      renderGroups();
+    } catch (e) {
+      $('grpList').innerHTML = `<div class="empty">Couldn't load groups${e.message ? ': ' + escapeHtml(e.message) : ''}.</div>`;
+    }
+  }
+
+  async function loadStudents() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_members', {
+        p_school_id: state.school.id, p_role_filter: 'student',
+      });
+      if (!error) state.students = data || [];
+    } catch (_) { /* keep empty */ }
+  }
+
+  function renderGroups() {
+    const rows = state.groups.filter(g => g.kind === state.kind);
+    $('listTitle').textContent = KIND_PLURAL[state.kind];
+    $('listSub').textContent = rows.length
+      ? `${rows.length} ${KIND_LABEL[state.kind]}${rows.length === 1 ? '' : 's'}`
+      : `No ${KIND_LABEL[state.kind]}s yet`;
+
+    if (!rows.length) {
+      $('grpList').innerHTML = `<div class="empty">No ${KIND_LABEL[state.kind]}s yet. Use “+ New group” to add one.</div>`;
+      return;
+    }
+    $('grpList').innerHTML = rows.map(g => `
+      <div class="grp-row" data-id="${escapeHtml(g.id)}">
+        <div>
+          <span class="name">${escapeHtml(g.name)}</span>
+          <span class="kind-pill">${KIND_LABEL[g.kind] || g.kind}</span>
+        </div>
+        <div class="count">${g.member_count ?? 0} student${(g.member_count || 0) === 1 ? '' : 's'}</div>
+        <div class="actions">
+          <button class="btn-secondary" data-members="${escapeHtml(g.id)}" type="button">Members</button>
+          <button class="btn-ghost" data-rename="${escapeHtml(g.id)}" type="button">Rename</button>
+          <button class="btn-danger" data-del="${escapeHtml(g.id)}" type="button">Delete</button>
+        </div>
+      </div>
+    `).join('');
+
+    $('grpList').querySelectorAll('button[data-members]').forEach(btn => {
+      btn.addEventListener('click', () => openMembersModal(btn.dataset.members));
+    });
+    $('grpList').querySelectorAll('button[data-rename]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const g = state.groups.find(x => x.id === btn.dataset.rename);
+        if (g) openGroupModal(g);
+      });
+    });
+    $('grpList').querySelectorAll('button[data-del]').forEach(btn => {
+      btn.addEventListener('click', () => deleteGroup(btn.dataset.del));
+    });
+  }
+
+  // ---------- tabs ----------
+  $('kindTabs').querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      $('kindTabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      state.kind = tab.dataset.kind;
+      renderGroups();
+    });
+  });
+
+  // ---------- new / rename modal ----------
+  function openGroupModal(existing) {
+    state.editGroupId = existing ? existing.id : null;
+    $('grpModalTitle').textContent = existing ? 'Rename group' : 'New group';
+    $('grpSaveBtn').textContent = existing ? 'Save name' : 'Create group';
+    $('grpKindRow').style.display = existing ? 'none' : '';
+    $('grpKind').value = existing ? existing.kind : state.kind;
+    $('grpName').value = existing ? existing.name : '';
+    $('grpModal').classList.add('open');
+    setTimeout(() => $('grpName').focus(), 50);
+  }
+  function closeGroupModal() { $('grpModal').classList.remove('open'); state.editGroupId = null; }
+
+  $('newGroupBtn').addEventListener('click', () => {
+    if (!state.canManage) { toast('Your role doesn\'t include this permission.', 'error'); return; }
+    openGroupModal(null);
+  });
+  $('grpCloseBtn').addEventListener('click', closeGroupModal);
+  $('grpCancelBtn').addEventListener('click', closeGroupModal);
+  $('grpModal').addEventListener('click', (e) => { if (e.target.id === 'grpModal') closeGroupModal(); });
+  $('grpName').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('grpSaveBtn').click(); });
+
+  $('grpSaveBtn').addEventListener('click', async () => {
+    const kind = $('grpKind').value;
+    const name = $('grpName').value.trim();
+    if (!name) { toast('Give the group a name.', 'error'); return; }
+    const btn = $('grpSaveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      const rpc = state.editGroupId
+        ? supabaseClient.rpc('update_student_group', { p_group_id: state.editGroupId, p_name: name })
+        : supabaseClient.rpc('create_student_group', { p_school_id: state.school.id, p_kind: kind, p_name: name });
+      const { data, error } = await rpc;
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast(state.editGroupId ? 'Group renamed.' : 'Group created.', 'success');
+      closeGroupModal();
+      await loadGroups();
+    } catch (err) {
+      const reason = String(err.message || err);
+      if (reason === 'name_taken') toast('A group of this type already has that name.', 'error');
+      else if (reason.includes('groups')) toast('Your role doesn\'t include this permission. Ask your organiser to update it under School Settings.', 'error');
+      else toast('Couldn\'t save: ' + reason, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = state.editGroupId ? 'Save name' : 'Create group';
+    }
+  });
+
+  async function deleteGroup(id) {
+    const g = state.groups.find(x => x.id === id);
+    if (!g) return;
+    if (!confirm(`Delete ${KIND_LABEL[g.kind]} “${g.name}”? Classes scheduled for it keep their lessons, but students in it stop seeing them on their timetables.`)) return;
+    try {
+      const { data, error } = await supabaseClient.rpc('delete_student_group', { p_group_id: id });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast('Group deleted.', 'success');
+      await loadGroups();
+    } catch (err) {
+      toast('Couldn\'t delete: ' + String(err.message || err), 'error');
+    }
+  }
+
+  // ---------- members modal ----------
+  function openMembersModal(groupId) {
+    const g = state.groups.find(x => x.id === groupId);
+    if (!g) return;
+    state.membersGroupId = groupId;
+    $('mbrModalTitle').textContent = `${g.name} — members`;
+    $('mbrPick').innerHTML = state.students.map(s =>
+      `<option value="${escapeHtml(s.id)}">${escapeHtml((s.full_name || s.email || '(no name)') + (s.year_group ? ' · ' + s.year_group : ''))}</option>`
+    ).join('') || '<option value="" disabled>(no students in your school yet)</option>';
+    $('mbrList').innerHTML = '<div class="empty">Loading…</div>';
+    $('mbrAddBtn').style.display = state.canManage ? '' : 'none';
+    $('mbrPick').parentElement.style.display = state.canManage ? '' : 'none';
+    $('mbrModal').classList.add('open');
+    loadMembers();
+  }
+  function closeMembersModal() {
+    $('mbrModal').classList.remove('open');
+    state.membersGroupId = null;
+    state.members = [];
+  }
+
+  async function loadMembers() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_student_group_members', {
+        p_group_id: state.membersGroupId,
+      });
+      if (error) throw error;
+      state.members = data || [];
+      renderMembers();
+      // Hide already-membered students from the picker.
+      const memberIds = new Set(state.members.map(m => m.student_user_id));
+      $('mbrPick').querySelectorAll('option').forEach(o => {
+        o.hidden = memberIds.has(o.value);
+      });
+    } catch (e) {
+      $('mbrList').innerHTML = `<div class="empty">Couldn't load members${e.message ? ': ' + escapeHtml(e.message) : ''}.</div>`;
+    }
+  }
+
+  function renderMembers() {
+    if (!state.members.length) {
+      $('mbrList').innerHTML = `<div class="empty">No students in this group yet.</div>`;
+      return;
+    }
+    $('mbrList').innerHTML = state.members.map(m => `
+      <div class="mbr-row" data-id="${escapeHtml(m.student_user_id)}">
+        <div class="name">${escapeHtml(m.full_name || m.email || '(no name)')}</div>
+        <div class="yr">${escapeHtml(m.year_group || '')}</div>
+        <div>${state.canManage ? `<button class="btn-danger" data-rm="${escapeHtml(m.student_user_id)}" type="button">Remove</button>` : ''}</div>
+      </div>
+    `).join('');
+    $('mbrList').querySelectorAll('button[data-rm]').forEach(btn => {
+      btn.addEventListener('click', () => removeMember(btn.dataset.rm));
+    });
+  }
+
+  $('mbrCloseBtn').addEventListener('click', closeMembersModal);
+  $('mbrModal').addEventListener('click', (e) => { if (e.target.id === 'mbrModal') closeMembersModal(); });
+
+  $('mbrAddBtn').addEventListener('click', async () => {
+    const picked = Array.from($('mbrPick').selectedOptions).map(o => o.value).filter(Boolean);
+    if (!picked.length) { toast('Pick at least one student.', 'error'); return; }
+    const btn = $('mbrAddBtn');
+    btn.disabled = true;
+    try {
+      const { data, error } = await supabaseClient.rpc('add_student_group_members', {
+        p_group_id: state.membersGroupId,
+        p_student_user_ids: picked,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast('Members added.', 'success');
+      await loadMembers();
+      await loadGroups();
+    } catch (err) {
+      const reason = String(err.message || err);
+      if (reason.includes('groups')) toast('Your role doesn\'t include this permission.', 'error');
+      else toast('Couldn\'t add: ' + reason, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  async function removeMember(studentId) {
+    if (!confirm('Remove this student from the group?')) return;
+    try {
+      const { data, error } = await supabaseClient.rpc('remove_student_group_member', {
+        p_group_id: state.membersGroupId,
+        p_student_user_id: studentId,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+      toast('Member removed.', 'success');
+      await loadMembers();
+      await loadGroups();
+    } catch (err) {
+      toast('Couldn\'t remove: ' + String(err.message || err), 'error');
+    }
+  }
+
+  function wireSignOut() {
+    const btn = $('signOutBtn');
+    if (!btn) { setTimeout(wireSignOut, 30); return; }
+    if (btn.dataset.recallSignOutWired) return;
+    btn.dataset.recallSignOutWired = '1';
+    btn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'login.html';
+    });
+  }
+  wireSignOut();
+
+  boot();
+</script>
+<script src="header.js" defer></script>
+<script src="bubbles.js" defer></script>
+<script src="header-avatar.js" defer></script>
+<script src="chat.js" defer></script>
+</body>
+</html>

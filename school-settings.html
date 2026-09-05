@@ -429,12 +429,13 @@
     activeMembers: [],
   };
 
-  // The 11 granular permissions a role can grant. Keys must match
-  // school_role_perms' CHECK constraint in supabase_school_roles.sql.
+  // The 12 granular permissions a role can grant. Keys must match
+  // school_role_perms' CHECK constraint (see supabase_student_groups.sql).
   const ROLE_PERMS = [
     { key: 'create_classes', title: 'Classes',          desc: 'Create and manage classes' },
     { key: 'register',        title: 'Register',         desc: 'Take attendance registers' },
     { key: 'absences',        title: 'Absences',         desc: 'Record planned absences' },
+    { key: 'groups',          title: 'Student groups',   desc: 'Manage tutor groups and sets' },
     { key: 'behaviour',       title: 'Behaviour logs',   desc: 'Log behaviour incidents' },
     { key: 'praise',          title: 'Praise points',    desc: 'Award praise points' },
     { key: 'announcements',   title: 'Announcements',   desc: 'Post announcements' },

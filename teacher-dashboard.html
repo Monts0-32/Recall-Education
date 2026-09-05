@@ -397,11 +397,12 @@
     setTimeout(() => t.remove(), 3200);
   }
 
-  // The nine staff systems (same inventory as school-systems.html). perm is
+  // The ten staff systems (same inventory as school-systems.html). perm is
   // the granular role permission that gates teachers; organisers have all.
   const STAFF_SYSTEMS = [
     { href: 'register.html',      icon: '🗓️', name: 'Register',         perm: 'register' },
     { href: 'absences.html',      icon: '🤒', name: 'Absences',         perm: 'absences' },
+    { href: 'groups.html',        icon: '👥', name: 'Student groups',   perm: 'groups' },
     { href: 'timetables.html',    icon: '⏰', name: 'Timetables',       perm: 'timetable' },
     { href: 'behaviour.html',     icon: '📝', name: 'Behaviour logs',   perm: 'behaviour' },
     { href: 'praise.html',        icon: '⭐', name: 'Praise points',    perm: 'praise',        tone: 'green' },

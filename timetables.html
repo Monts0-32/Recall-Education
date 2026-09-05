@@ -105,6 +105,14 @@
     .slot-chip .meta { color: var(--text-3); display: block; }
     .slot-chip.clash { background: var(--red-dim); border-color: rgba(248,81,73,0.4); }
 
+    /* read-only grid (own lessons without the timetable perm, or student preview) */
+    .tt-grid.ro .tt-body { cursor: default; }
+    .tt-grid.ro .tt-body:hover { background: transparent; }
+    .tt-grid.ro .tt-body:empty::after { content: none; }
+    .mode-note { padding: 10px 18px; border-bottom: 1px solid var(--line); font-size: 12.5px; color: var(--text-3); display: none; }
+    .mode-note.show { display: block; }
+    .mode-note b { color: var(--text-2); }
+
     .empty { padding: 40px 18px; text-align: center; color: var(--text-3); font-size: 13px; }
 
     /* ---------- modal ---------- */
@@ -174,15 +182,18 @@
     <div class="card-head">
       <div>
         <h3>Weekly timetable</h3>
-        <div class="sub">Click any cell to add, edit or remove a slot.</div>
+        <div class="sub" id="gridSub">Click any cell to add, edit or remove a slot.</div>
       </div>
-      <div class="filters">
+      <div class="filters" id="filtersRow">
         <label for="classFilter">Class</label>
         <select id="classFilter"><option value="">All</option></select>
         <label for="teacherFilter">Teacher</label>
         <select id="teacherFilter"><option value="">All</option></select>
+        <label for="studentFilter">Student</label>
+        <select id="studentFilter"><option value="">— none —</option></select>
       </div>
     </div>
+    <div class="mode-note" id="modeNote"></div>
     <div class="tt-scroll">
       <div class="tt-grid" id="grid"></div>
     </div>
@@ -266,9 +277,15 @@
   const state = {
     user: null,
     school: null,
+    settings: null,
+    canEdit: true,        // timetable perm (organisers always true; fails open)
+    students: [],
     classes: [],
     teachers: [],
     slots: [],
+    previewStudentId: null, // student being previewed, or null
+    previewSlots: [],
+    previewName: '',
     cell: null,      // { day, period } of the open modal
     editingId: null,  // slot id being edited, or null for new
   };
@@ -349,9 +366,15 @@
       });
       if (settings && settings.ok === true) state.settings = settings;
     } catch (_) { /* fail open: organisers may not have re-run migrations */ }
-    if (state.settings && state.settings.perms?.timetable === false) {
-      renderGate('Permission needed', 'Your role doesn\'t include this permission. Ask your organiser to update it under School Settings.');
-      return;
+    // Teachers without the timetable perm aren't locked out — they see their
+    // OWN lessons, read-only. Organisers always edit.
+    state.canEdit = !(state.settings && state.settings.perms?.timetable === false);
+    if (!state.canEdit) {
+      $('filtersRow').style.display = 'none';
+      $('gridSub').textContent = 'Your lessons. Editing the timetable needs the timetable permission — ask your organiser under School Settings.';
+      $('modeNote').innerHTML = 'Viewing <b>your own timetable</b>, read-only.';
+      $('modeNote').classList.add('show');
+      $('sub').textContent = school ? `Your lessons at ${school.name}.` : 'Your lessons.';
     }
 
     function unhideSignOut() {
@@ -361,7 +384,7 @@
     }
     unhideSignOut();
 
-    await Promise.all([loadClasses(), loadTeachers(), loadSlots()]);
+    await Promise.all([loadClasses(), loadTeachers(), loadSlots()].concat(state.canEdit ? [loadStudents()] : []));
     renderGrid();
     mountHeaderExtras(profile || { id: state.user.id, full_name: (state.user.user_metadata || {}).full_name || '', role, avatar_url: null });
   }
@@ -419,11 +442,27 @@
     } catch (_) { /* keep empty */ }
   }
 
+  async function loadStudents() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_school_members', {
+        p_school_id: state.school.id, p_role_filter: 'student',
+      });
+      if (!error) {
+        state.students = data || [];
+        const prev = $('studentFilter').value;
+        $('studentFilter').innerHTML = '<option value="">— none —</option>' +
+          state.students.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.full_name || s.email || '(no name)')}</option>`).join('');
+        if (prev) $('studentFilter').value = prev;
+      }
+    } catch (_) { /* keep empty */ }
+  }
+
   async function loadSlots() {
     try {
-      const { data, error } = await supabaseClient.rpc('list_timetable_slots', {
-        p_school_id: state.school.id,
-      });
+      // Without the timetable perm a teacher only ever sees their own lessons.
+      const args = { p_school_id: state.school.id };
+      if (!state.canEdit) args.p_teacher_user_id = state.user.id;
+      const { data, error } = await supabaseClient.rpc('list_timetable_slots', args);
       if (error) throw error;
       state.slots = data || [];
     } catch (e) {
@@ -431,7 +470,39 @@
     }
   }
 
+  // Preview the derived timetable of one student (read-only) — what they
+  // see from their rosters AND the tutor groups/sets their classes target.
+  async function loadStudentPreview(studentId) {
+    state.previewStudentId = studentId || null;
+    state.previewSlots = [];
+    if (!studentId) {
+      $('modeNote').classList.remove('show');
+      $('modeNote').innerHTML = '';
+      renderGrid();
+      return;
+    }
+    const st = state.students.find(x => x.id === studentId);
+    state.previewName = st ? (st.full_name || st.email || 'this student') : 'this student';
+    try {
+      const { data, error } = await supabaseClient.rpc('list_student_timetable_for', {
+        p_school_id: state.school.id,
+        p_student_user_id: studentId,
+      });
+      if (error) throw error;
+      state.previewSlots = data || [];
+      $('modeNote').innerHTML = `Previewing <b>${escapeHtml(state.previewName)}</b>'s timetable — read-only. It includes their classes and any tutor groups/sets their classes are scheduled for.`;
+      $('modeNote').classList.add('show');
+    } catch (e) {
+      toast('Couldn\'t load that student\'s timetable. Has the groups migration been run?', 'error');
+      state.previewStudentId = null;
+      $('studentFilter').value = '';
+      $('modeNote').classList.remove('show');
+    }
+    renderGrid();
+  }
+
   function visibleSlots() {
+    if (state.previewStudentId) return state.previewSlots;
     const cf = $('classFilter').value;
     const tf = $('teacherFilter').value;
     return state.slots.filter(s =>
@@ -457,6 +528,8 @@
   function renderGrid() {
     const slots = visibleSlots();
     const n = (state.settings && state.settings.periods_per_day) || 8;
+    const readOnly = !state.canEdit || !!state.previewStudentId;
+    $('grid').classList.toggle('ro', readOnly);
     // head row
     let html = `<div class="tt-cell tt-head"></div>`;
     for (const d of DAYS) html += `<div class="tt-cell tt-head">${d}</div>`;
@@ -530,6 +603,8 @@
   }
 
   $('grid').addEventListener('click', (e) => {
+    // Read-only views (own lessons without the perm, student preview): no modal.
+    if (!state.canEdit || state.previewStudentId) return;
     const editBtn = e.target.closest('[data-edit]');
     if (editBtn) {
       const cell = editBtn.closest('.tt-body');
@@ -616,8 +691,23 @@
     if (state.editingId) removeSlot(state.editingId);
   });
 
-  $('classFilter').addEventListener('change', renderGrid);
-  $('teacherFilter').addEventListener('change', renderGrid);
+  // Class/teacher filters and the student preview are mutually exclusive
+  // views of the grid; using one resets the other.
+  $('classFilter').addEventListener('change', () => {
+    if (state.previewStudentId) { $('studentFilter').value = ''; loadStudentPreview(null); return; }
+    renderGrid();
+  });
+  $('teacherFilter').addEventListener('change', () => {
+    if (state.previewStudentId) { $('studentFilter').value = ''; loadStudentPreview(null); return; }
+    renderGrid();
+  });
+  $('studentFilter').addEventListener('change', () => {
+    if ($('studentFilter').value) {
+      $('classFilter').value = '';
+      $('teacherFilter').value = '';
+    }
+    loadStudentPreview($('studentFilter').value || null);
+  });
 
   function wireSignOut() {
     const btn = $('signOutBtn');

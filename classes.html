@@ -355,6 +355,21 @@
           <option value="">— None —</option>
         </select>
       </div>
+      <div class="form-row">
+        <label for="classRoom">Room (optional)</label>
+        <div class="hint">The room this class is normally taught in. Timetable slots without their own room fall back to this one.</div>
+        <select id="classRoom">
+          <option value="">— No fixed room —</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Scheduled for groups (optional)</label>
+        <div class="hint">Pick tutor groups and/or sets — every student in a picked group sees this class on their timetable. You can still add individual students on the Roster tab.</div>
+        <div class="picker-list" id="classGroupsList" style="max-height: 160px;">
+          <div class="empty">Loading groups…</div>
+        </div>
+        <div class="hint" style="margin-top: 4px;">No groups yet? <a href="groups.html">Create tutor groups and sets</a> first.</div>
+      </div>
       <div class="class-tabs" id="manageTabs">
         <button class="active" data-tab="details" type="button">Details</button>
         <button data-tab="roster" type="button" id="manageRosterTab" disabled>Roster</button>
@@ -439,6 +454,8 @@
     members: [],   // list_school_members rows
     teachers: [],  // list_school_members rows with role=teacher, for the tutor dropdown
     subjects: [],  // subjects rows for the subject dropdown
+    rooms: [],     // bookable resources of kind='room', for the room dropdown
+    groups: [],    // student_groups rows, for the scheduled-for picker
     activeClass: null,    // class being edited in the modal
     activeMembers: [],    // members of the active class
     editing: false,
@@ -574,7 +591,7 @@
     $('schoolPill').textContent = school ? school.name : '—';
     $('sub').textContent = school ? `Classes at ${school.name}.` : 'Classes for your school.';
 
-    await Promise.all([loadClasses(), loadMembers(), loadTeachers(), loadSubjects()]);
+    await Promise.all([loadClasses(), loadMembers(), loadTeachers(), loadSubjects(), loadRooms(), loadGroups()]);
     renderClasses();
 
     // Mount header avatar + chat (1:1 DM only) for teachers and organisers.
@@ -645,9 +662,28 @@
     } catch (_) { state.subjects = []; }
   }
 
+  async function loadRooms() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_resources', {
+        p_school_id: state.school.id,
+      });
+      if (!error) state.rooms = (data || []).filter(r => r.kind === 'room');
+    } catch (_) { state.rooms = []; }
+  }
+
+  async function loadGroups() {
+    try {
+      const { data, error } = await supabaseClient.rpc('list_student_groups', {
+        p_school_id: state.school.id, p_kind: null,
+      });
+      if (!error) state.groups = data || [];
+    } catch (_) { state.groups = []; }
+  }
+
   function populateReferenceSelects() {
     const tutorSel = $('classTutor');
     const subjectSel = $('classSubject');
+    const roomSel = $('classRoom');
     tutorSel.innerHTML = '<option value="">— None —</option>' + state.teachers.map(t => {
       const label = t.full_name || t.email || '(teacher)';
       return `<option value="${escapeHtml(t.id)}">${escapeHtml(label)}</option>`;
@@ -655,6 +691,36 @@
     subjectSel.innerHTML = '<option value="">— None —</option>' + state.subjects.map(s => {
       return `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`;
     }).join('');
+    roomSel.innerHTML = '<option value="">— No fixed room —</option>' + state.rooms.map(r => {
+      const label = r.name + (r.location ? ' · ' + r.location : '');
+      return `<option value="${escapeHtml(r.id)}">${escapeHtml(label)}</option>`;
+    }).join('');
+  }
+
+  // Checkbox list of tutor groups/sets; preselects the active class's targets.
+  function renderGroupsPicker() {
+    const box = $('classGroupsList');
+    if (!state.groups.length) {
+      box.innerHTML = `<div class="empty">No tutor groups or sets yet — create them on the <a href="groups.html">Student groups</a> page.</div>`;
+      return;
+    }
+    const picked = new Set((state.activeClass && state.activeClass.groups) || []);
+    const kinds = { tutor_group: 'tutor group', set: 'set' };
+    box.innerHTML = state.groups.map(g => `
+      <div class="picker-row">
+        <label>
+          <input type="checkbox" data-gid="${escapeHtml(g.id)}"${picked.has(g.id) ? ' checked' : ''} />
+          <div style="flex:1;">
+            <span style="color: var(--text); font-weight: 600;">${escapeHtml(g.name)}</span>
+            <span style="color: var(--text-3); font-size: 11.5px;">${escapeHtml(kinds[g.kind] || g.kind)} · ${g.member_count ?? 0} students</span>
+          </div>
+        </label>
+      </div>
+    `).join('');
+  }
+
+  function pickedGroupIds() {
+    return Array.from($('classGroupsList').querySelectorAll('input[data-gid]:checked')).map(c => c.dataset.gid);
   }
 
   function renderClasses() {
@@ -671,6 +737,8 @@
       const tags = [];
       if (c.tutor_name) tags.push(`<span class="pill" style="padding: 1px 8px; background: var(--purple-dim, rgba(163,113,247,0.15)); border: 1px solid rgba(163,113,247,0.3); border-radius: 999px; font-size: 11px; color: var(--text-2);">Tutor: ${escapeHtml(c.tutor_name)}</span>`);
       if (c.subject_name) tags.push(`<span class="pill" style="padding: 1px 8px; background: var(--blue-dim); border: 1px solid rgba(56,139,253,0.3); border-radius: 999px; font-size: 11px; color: var(--text-2);">${escapeHtml(c.subject_name)}</span>`);
+      if (c.room_name) tags.push(`<span class="pill" style="padding: 1px 8px; background: var(--green-dim); border: 1px solid rgba(63,185,80,0.3); border-radius: 999px; font-size: 11px; color: var(--text-2);">📍 ${escapeHtml(c.room_name)}</span>`);
+      (c.groups || []).forEach(g => tags.push(`<span class="pill" style="padding: 1px 8px; background: var(--blue-pale); border: 1px solid var(--line-2); border-radius: 999px; font-size: 11px; color: var(--text-2);">👥 ${escapeHtml(g.name)}</span>`));
       return `
         <div class="class-row" data-id="${escapeHtml(c.id)}">
           <div>
@@ -708,13 +776,16 @@
       $('classDesc').value    = c.description || '';
       $('classTutor').value   = c.tutor_user_id || '';
       $('classSubject').value = c.subject_id    || '';
+      $('classRoom').value    = c.room_id       || '';
     } else {
       state.activeClass = null;
       $('className').value    = '';
       $('classDesc').value    = '';
       $('classTutor').value   = '';
       $('classSubject').value = '';
+      $('classRoom').value    = '';
     }
+    renderGroupsPicker();
     state.activeMembers = [];
     setManageTab('details');
     $('picker').style.display = 'none';
@@ -746,6 +817,8 @@
     const desc = $('classDesc').value.trim();
     const tutor   = $('classTutor').value   || null;
     const subject = $('classSubject').value || null;
+    const room    = $('classRoom').value    || null;
+    const groupIds = pickedGroupIds();
     if (!name) { toast('Give the class a name.', 'error'); return; }
     const btn = $('manageSaveBtn');
     btn.disabled = true;
@@ -759,14 +832,17 @@
           p_archived: false,
           p_tutor_user_id: tutor,
           p_subject_id: subject,
+          p_room_id: room,
         });
         if (error) throw error;
         if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+        await saveClassGroups(state.activeClass.id, groupIds);
         toast('Class updated.', 'success');
         await loadClasses();
         renderClasses();
         // Refresh active class in modal
         state.activeClass = state.classes.find(c => c.id === state.activeClass.id);
+        renderGroupsPicker();
         $('manageTabs').querySelector('[data-tab="roster"]').disabled = false;
         setManageTab('roster');
       } else {
@@ -776,15 +852,18 @@
           p_description: desc || null,
           p_tutor_user_id: tutor,
           p_subject_id: subject,
+          p_room_id: room,
         });
         if (error) throw error;
         if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+        await saveClassGroups(data.class_id, groupIds);
         toast('Class created.', 'success');
         await loadClasses();
         renderClasses();
         // Switch the modal into "edit" mode for the new class.
         state.editing = true;
         state.activeClass = state.classes.find(c => c.id === data.class_id);
+        renderGroupsPicker();
         $('manageTitle').textContent = 'Edit class';
         $('deleteBtn').hidden = false;
         $('manageTabs').querySelector('[data-tab="roster"]').disabled = false;
@@ -797,6 +876,21 @@
       btn.textContent = 'Save';
     }
   });
+
+  // Replaces a class's whole target-group set. Pre-migration DBs (no
+  // set_class_groups RPC) keep working — we just skip the targeting.
+  async function saveClassGroups(classId, groupIds) {
+    try {
+      const { data, error } = await supabaseClient.rpc('set_class_groups', {
+        p_class_id: classId,
+        p_group_ids: groupIds,
+      });
+      if (error) throw error;
+      if (data && data.ok !== true) throw new Error(data.reason || 'failed');
+    } catch (err) {
+      toast('Class saved, but group targeting failed: ' + (err.message || err), 'error');
+    }
+  }
 
   $('deleteBtn').addEventListener('click', async () => {
     if (!state.activeClass) return;
