@@ -726,7 +726,17 @@
   }
   wireSignOut();
 
-  boot();
+  // An unexpected error past the auth gates would otherwise leave the page
+  // frozen on its loading skeleton with the cause only in the browser
+  // console — surface it in the gate area so it's diagnosable on screen.
+  boot().catch((err) => {
+    console.error('Dashboard boot failed:', err);
+    try {
+      renderGate('Something went wrong',
+        'The dashboard hit an unexpected error (' + ((err && err.message) || String(err)) + ').\n' +
+        'Try refreshing the page. If it keeps happening, send us this message.');
+    } catch (_) { /* nothing left to render with */ }
+  });
 </script>
 <script src="header.js" defer></script>
 <script src="bubbles.js" defer></script>

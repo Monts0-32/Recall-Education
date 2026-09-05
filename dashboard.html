@@ -1392,6 +1392,27 @@
   // don't use the soft #state banner for this because a first-time visitor
   // who lands on dashboard.html by mistake needs a clear "go sign in"
   // affordance, not a thin info bar in an otherwise-empty page.
+  // Last-resort error surface: an unexpected failure during load would
+  // otherwise leave the page frozen on its loading skeleton with the cause
+  // only in the browser console — show it on screen so it's diagnosable.
+  function showLoadError(err) {
+    console.error('Dashboard load failed:', err);
+    try {
+      $('main').innerHTML = `
+        <div class="empty-state" id="emptyState">
+          <div>
+            <h2>Something went wrong</h2>
+            <p>The dashboard hit an unexpected error (${escapeHtml((err && err.message) || String(err))}).</p>
+            <p>Try refreshing the page. If it keeps happening, send us this message.</p>
+            <div class="actions">
+              <a class="btn-primary" href="login.html">Sign in</a>
+            </div>
+          </div>
+        </div>
+      `;
+    } catch (_) { /* nothing left to render with */ }
+  }
+
   function renderSignedOut() {
     $('main').innerHTML = `
       <div class="empty-state" id="emptyState">
@@ -1640,7 +1661,7 @@
       return;
     }
     dashboardLoaded = true;
-    loadWithUser(session.user);
+    loadWithUser(session.user).catch(showLoadError);
   });
 
   const { data: authSub } = supabaseClient.auth.onAuthStateChange(
@@ -1652,7 +1673,7 @@
       if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user && !dashboardLoaded) {
         dashboardLoaded = true;
         authSub?.subscription?.unsubscribe();
-        loadWithUser(session.user);
+        loadWithUser(session.user).catch(showLoadError);
       }
     }
   );

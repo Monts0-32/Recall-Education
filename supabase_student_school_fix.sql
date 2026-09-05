@@ -434,6 +434,10 @@ $$;
 -- ---------- 4. ENSURE check_parental_consent STAMPS app_metadata.role ------
 -- Defensive re-statement (the organiser/teacher fix files already ship
 -- this). Keeps routing working even if only this migration is applied.
+-- NOTE: if an earlier version of this file was already run, re-running
+-- this section RESTORES the consent-enforcement behaviours that the
+-- earlier draft accidentally dropped (the soft-delete sign-in block and
+-- the email/signup confirmation allow-through) — safe to run again.
 create or replace function public.check_parental_consent(event jsonb)
 returns jsonb
 language plpgsql
@@ -451,7 +455,24 @@ begin
     return event;
   end if;
 
+  -- Soft-deleted accounts are blocked from signing in entirely.
+  -- (Carried over from supabase_consent_enforcement.sql — earlier drafts
+  -- of this migration dropped it; keep the enforcement behaviour.)
+  if p.deleted_at is not null then
+    raise exception 'account_removed'
+      using errcode = '42501';
+  end if;
+
   if p.requires_parental_consent and p.consent_status <> 'granted' then
+    -- Email-confirmation flow: the user just clicked the link in the
+    -- "Confirm your email" message. Let this token through so the
+    -- confirmed page can render the "waiting for your parent" UI; the
+    -- dashboard's own consent check blocks them until consent is
+    -- granted. Later sign-ins are blocked here. (Carried over from
+    -- supabase_consent_enforcement.sql.)
+    if event->>'authentication_method' = 'email/signup' then
+      return event;
+    end if;
     raise exception 'parental_consent_required'
       using errcode = '42501';
   end if;
