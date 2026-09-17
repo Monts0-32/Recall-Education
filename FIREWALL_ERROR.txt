@@ -1,0 +1,11 @@
+hkjiyibpeqdoqzlyqzwz…nfnKkQTA_xd2vVImv:1 
+ Failed to load resource: net::ERR_QUIC_PROTOCOL_ERROR
+supabase-js@2.49.4:7
+ TypeError: Failed to fetch
+    at fetch (login:582:18)
+    at i.334.D (supabase-js@2.49.4:7:5128)
+    at Y.h.headers (supabase-js@2.49.4:7:8661)
+    at Y (supabase-js@2.49.4:7:8839)
+    at i.resetPasswordForEmail (supabase-js@2.49.4:7:38668)
+    at HTMLButtonElement.<anonymous> (login:821:51)
+Y.h.headers	@	supabase-js@2.49.4:7
