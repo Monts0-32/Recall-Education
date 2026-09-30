@@ -49,6 +49,17 @@ alter table public.site_settings enable row level security;
 
 -- _log_staff_action's CHECK constraint is a fixed allowlist; add the new
 -- action idempotently (drop-then-add, same pattern as supabase_admin.sql).
+--
+-- NOT VALID: the live audit log predates the allowlist and contains
+-- historical action values outside it, so a full constraint would be
+-- rejected by those rows (23514). NOT VALID keeps the allowlist enforced
+-- for every NEW row — including 'site_setting_changed' — while exempting
+-- the pre-existing history. To see what's out there:
+--   select action, count(*) from public.staff_audit_log
+--    group by action order by 2 desc;
+-- (If those values all look legitimate, add them to the list below and
+-- run `alter table public.staff_audit_log validate constraint
+-- staff_audit_log_action_check;` to make it fully enforced.)
 alter table public.staff_audit_log
   drop constraint if exists staff_audit_log_action_check;
 alter table public.staff_audit_log
@@ -61,7 +72,7 @@ alter table public.staff_audit_log
     'user_deleted',
     'row_deleted',
     'site_setting_changed'
-  ));
+  )) not valid;
 
 -- ---------- 3. PUBLIC READ RPC --------------------------------------------
 
