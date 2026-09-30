@@ -823,6 +823,9 @@
     <button data-section="audit">
       <span>Audit log</span>
     </button>
+    <button data-section="site">
+      <span>Site settings</span>
+    </button>
     <button data-section="dev">
       <span>Developer tools</span>
     </button>
@@ -1010,6 +1013,36 @@
       </div>
     </section>
 
+    <!-- SITE SETTINGS PANEL (admin only) -->
+    <section id="sec-site" class="hidden">
+      <div class="page-head">
+        <div>
+          <h1>Site settings</h1>
+          <div class="desc">Site-wide switches. Changes apply to every visitor on their next page load.</div>
+        </div>
+      </div>
+
+      <div class="dev-card">
+        <h2>Database connection mode</h2>
+        <p class="desc">
+          <strong>Proxy</strong> routes all Supabase traffic through this site's own
+          origin at <code>/db/*</code>. Use it when a school's firewall blocks or
+          corrupts direct connections to <code>*.supabase.co</code> — the
+          ERR_QUIC_PROTOCOL_ERROR sign-in failures. <strong>Direct</strong> sends
+          every request straight to the Supabase project. Only switch back to
+          direct if the proxy itself is misbehaving.
+        </p>
+        <div class="tabs" id="siteModeTabs">
+          <button type="button" data-mode="proxy">Proxy (recommended for schools)</button>
+          <button type="button" data-mode="direct">Direct</button>
+        </div>
+        <div class="dev-row">
+          <button class="btn primary" id="siteModeSave" type="button">Save mode</button>
+          <span class="meta" id="siteModeStatus">Loading…</span>
+        </div>
+      </div>
+    </section>
+
     <!-- DEVELOPER TOOLS PANEL (admin only, destructive) -->
     <section id="sec-dev" class="hidden">
       <div class="page-head">
@@ -1074,22 +1107,14 @@
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script src="db-config.js"></script>
 <script>
-  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  // Base URL + client options (fetch wrapper + pinned storage key) come
+  // from db-config.js — routes through /db/* when proxy mode is on.
+  const SUPABASE_URL = (window.recallDbConfig && window.recallDbConfig.url()) || 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: {
-      fetch: (url, options = {}) => {
-        try {
-          const u = new URL(url, window.location.href);
-          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
-            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
-          }
-          return fetch(u.toString(), options);
-        } catch (_) { return fetch(url, options); }
-      }
-    }
-  });
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
+    (window.recallDbConfig && window.recallDbConfig.options()) || { auth: { storageKey: 'sb-hkjiyibpeqdoqzlyqzwz-auth-token' } });
 
   // ----- Utilities ----------------------------------------------------------
 
@@ -1146,7 +1171,7 @@
     document.querySelectorAll('.side button').forEach((b) => {
       b.classList.toggle('active', b.dataset.section === name);
     });
-    ['dashboard', 'staff', 'invites', 'lessons', 'tree', 'audit', 'dev'].forEach((s) => {
+    ['dashboard', 'staff', 'invites', 'lessons', 'tree', 'audit', 'site', 'dev'].forEach((s) => {
       $('sec-' + s).classList.toggle('hidden', s !== name);
     });
     // Refresh the section we just showed so the data is always live.
@@ -1156,10 +1181,65 @@
     if (name === 'lessons')   loadLessons();
     if (name === 'tree')      loadSubjectTree();
     if (name === 'audit')     loadAudit();
+    if (name === 'site')      loadSiteMode();
     if (name === 'dev')       loadDev();
   }
   document.querySelectorAll('.side button').forEach((b) => {
     b.addEventListener('click', () => showSection(b.dataset.section));
+  });
+
+  // ----- Site settings (database connection mode) ---------------------------
+
+  // The mode the segmented control is showing. Differs from the saved mode
+  // between a click and the admin pressing "Save mode".
+  let siteModePending = null;
+
+  function paintSiteModeTabs(active, status) {
+    document.querySelectorAll('#siteModeTabs button').forEach((b) => {
+      b.classList.toggle('active', b.dataset.mode === active);
+    });
+    if (status !== undefined) $('siteModeStatus').textContent = status;
+  }
+
+  async function loadSiteMode() {
+    paintSiteModeTabs(siteModePending || 'proxy', 'Loading…');
+    const { data, error } = await supabaseClient.rpc('get_supabase_mode');
+    if (error || (data !== 'proxy' && data !== 'direct')) {
+      // Most likely cause: the migration hasn't been applied yet.
+      $('siteModeStatus').textContent =
+        'Could not read the mode — apply supabase_site_settings.sql to the project first.';
+      return;
+    }
+    siteModePending = data;
+    paintSiteModeTabs(data, 'Current mode: ' + data);
+  }
+
+  document.querySelectorAll('#siteModeTabs button').forEach((b) => {
+    b.addEventListener('click', () => {
+      siteModePending = b.dataset.mode;
+      paintSiteModeTabs(siteModePending, 'Not saved yet — press “Save mode”.');
+    });
+  });
+
+  $('siteModeSave').addEventListener('click', async () => {
+    if (!siteModePending) return;
+    const saveBtn = $('siteModeSave');
+    saveBtn.disabled = true;
+    const { data, error } = await supabaseClient.rpc('set_supabase_mode', { p_mode: siteModePending });
+    saveBtn.disabled = false;
+    if (error) {
+      toast('Could not save: ' + (error.message || 'unknown error'), 'error');
+      return;
+    }
+    if (data && data.ok === false) {
+      toast('Could not save: ' + (data.reason || 'rejected'), 'error');
+      return;
+    }
+    const saved = (data && data.mode) || siteModePending;
+    paintSiteModeTabs(saved, 'Saved. Visitors switch over on their next page load.');
+    toast('Connection mode saved: ' + saved, 'success');
+    // db-config.js notices the change on its background check and reloads
+    // this page into the new mode — a live confirmation for the admin.
   });
 
   // ----- Boot: verify admin role, then load ---------------------------------

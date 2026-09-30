@@ -171,34 +171,21 @@
   <!-- Supabase JS client. Pinned to a known-good version; matches the
        version used elsewhere in the project so the cookie/session
        domain is identical and sign-in persists across pages. -->
+  <!-- db-config.js supplies the base URL (proxy /db routing) and the
+       shared client options (fetch wrapper + pinned storage key). -->
+  <script src="db-config.js"></script>
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
     // The anon key is intentionally public — Supabase anon keys are
     // designed to live in client code. RLS on every table is the
     // actual access control.
-    const SUPABASE_URL = "https://hkjiyibpeqdoqzlyqzwz.supabase.co";
+    const SUPABASE_URL = (window.recallDbConfig && window.recallDbConfig.url()) || "https://hkjiyibpeqdoqzlyqzwz.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv";
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
-      // Mirrors the apikey-fallback used in signup.html / login.html —
-      // privacy extensions that strip the `apikey` header can still
-      // call the gateway when the key is also passed as a query
-      // parameter. The anon key is public anyway.
-      global: {
-        fetch: (url, options = {}) => {
-          try {
-            const u = new URL(url, window.location.href);
-            if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
-              u.searchParams.set('apikey', SUPABASE_ANON_KEY);
-            }
-            return fetch(u.toString(), options);
-          } catch (_) {
-            return fetch(url, options);
-          }
-        }
-      }
-    });
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
+      (window.recallDbConfig && window.recallDbConfig.options({
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+      })) || { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'sb-hkjiyibpeqdoqzlyqzwz-auth-token' } });
     // Module scope isn't visible to classic scripts — expose the client so
     // brand-dashboard.js can point the logo at the signed-in user's dashboard.
     window.supabaseClient = supabase;

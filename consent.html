@@ -195,12 +195,16 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script src="db-config.js"></script>
 <script>
-  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  // Base URL + client options (fetch wrapper + pinned storage key) come
+  // from db-config.js — routes through /db/* when proxy mode is on.
+  const SUPABASE_URL = (window.recallDbConfig && window.recallDbConfig.url()) || 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
   // Use a local name; `const supabase` would collide with the `var supabase`
   // the @supabase UMD bundle declares at top level.
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
+    (window.recallDbConfig && window.recallDbConfig.options()) || { auth: { storageKey: 'sb-hkjiyibpeqdoqzlyqzwz-auth-token' } });
 
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');

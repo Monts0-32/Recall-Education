@@ -1803,6 +1803,7 @@
 <div class="toast-wrap" id="toastWrap"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script src="db-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
 <script src="lesson-render.js"></script>
 <script>
@@ -1826,9 +1827,12 @@
   //        'lesson' activity_log row, then redirect to dashboard.
   // ==========================================================================
 
-  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  // Base URL + client options (fetch wrapper + pinned storage key) come
+  // from db-config.js — routes through /db/* when proxy mode is on.
+  const SUPABASE_URL = (window.recallDbConfig && window.recallDbConfig.url()) || 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
+    (window.recallDbConfig && window.recallDbConfig.options()) || { auth: { storageKey: 'sb-hkjiyibpeqdoqzlyqzwz-auth-token' } });
 
   const $ = (id) => document.getElementById(id);
   const L = window.LessonRender;
@@ -3370,13 +3374,33 @@
       p_activities: activities,
       p_completed: false,
     };
-    if (useBeacon && navigator.sendBeacon) {
-      // sendBeacon takes a Blob; we use text/plain to avoid a CORS preflight.
-      const ok = navigator.sendBeacon(
-        SUPABASE_URL + '/rest/v1/rpc/log_lesson_session',
-        new Blob([JSON.stringify(payload)], { type: 'text/plain' })
-      );
-      // We can't read the response from a beacon; trust the delivery.
+    if (useBeacon) {
+      // Final flush on unload. A keepalive fetch survives the page close
+      // (like sendBeacon) but — unlike sendBeacon, which cannot set
+      // headers — carries the apikey + Bearer token the RPC needs.
+      // text/plain body avoids a CORS preflight. Falls back to a raw
+      // sendBeacon if the session read fails.
+      supabaseClient.auth.getSession().then(({ data }) => {
+        const tok = data && data.session ? data.session.access_token : null;
+        return fetch(SUPABASE_URL + '/rest/v1/rpc/log_lesson_session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain',
+            apikey: SUPABASE_ANON_KEY,
+            ...(tok && { Authorization: 'Bearer ' + tok }),
+          },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        }).catch(() => {
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(
+              SUPABASE_URL + '/rest/v1/rpc/log_lesson_session',
+              new Blob([JSON.stringify(payload)], { type: 'text/plain' })
+            );
+          }
+        });
+      }).catch(() => { /* page is closing anyway; next beat re-queues */ });
+      // We can't read the response; trust the delivery.
       return;
     }
     try {

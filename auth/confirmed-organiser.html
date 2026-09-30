@@ -227,11 +227,15 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../db-config.js"></script>
 <script>
-  // Supabase client — same project as the rest of the site.
-  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Supabase client — same project as the rest of the site. Base URL +
+  // client options (fetch wrapper + pinned storage key) come from
+  // db-config.js — routes through /db/* when proxy mode is on.
+  const SUPABASE_URL = (window.recallDbConfig && window.recallDbConfig.url()) || 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
+    (window.recallDbConfig && window.recallDbConfig.options()) || { auth: { storageKey: 'sb-hkjiyibpeqdoqzlyqzwz-auth-token' } });
 
   const $ = (id) => document.getElementById(id);
 

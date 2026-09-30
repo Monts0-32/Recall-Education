@@ -3,13 +3,16 @@
 <body>
 <pre id="out" style="font-family:monospace;font-size:14px;white-space:pre-wrap"></pre>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script src="db-config.js"></script>
 <script>
 const out = document.getElementById('out');
 const log = (...a) => { out.textContent += a.join(' ') + '\n'; console.log(...a); };
 
-const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+// Base URL + client options (fetch wrapper + pinned storage key) come from db-config.js.
+const SUPABASE_URL = (window.recallDbConfig && window.recallDbConfig.url()) || 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
+  (window.recallDbConfig && window.recallDbConfig.options()) || { auth: { storageKey: 'sb-hkjiyibpeqdoqzlyqzwz-auth-token' } });
 
 (async () => {
   for (const code of ['BIRM-2024', 'SCH-Q3KY8N', 'NOPE-9999']) {

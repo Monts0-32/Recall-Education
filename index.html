@@ -1071,6 +1071,7 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script src="db-config.js"></script>
 <script>
   document.querySelectorAll('.faq-item').forEach(function (item) {
     const q = item.querySelector('.faq-q');
@@ -1084,7 +1085,9 @@
   // returning user lands with their session intact. Mounts the welcome bar
   // (avatar + name + bell + dashboard link + sign-out) above the marketing
   // nav when a session is present.
-  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  // Base URL + client options come from db-config.js (proxy /db routing +
+  // pinned storage key); the keepSignedIn flags pass through its merge.
+  const SUPABASE_URL = (window.recallDbConfig && window.recallDbConfig.url()) || 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
   const KEEP_KEY = 'recall.keepSignedIn';
   let keepSignedIn = true;
@@ -1094,24 +1097,12 @@
     else if (raw === '1') keepSignedIn = true;
     else localStorage.setItem(KEEP_KEY, '1');
   } catch (_) {}
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    persistSession: keepSignedIn,
-    autoRefreshToken: keepSignedIn,
-    detectSessionInUrl: true,
-    global: {
-      fetch: (url, options = {}) => {
-        try {
-          const u = new URL(url, window.location.href);
-          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
-            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
-          }
-          return fetch(u.toString(), options);
-        } catch (_) {
-          return fetch(url, options);
-        }
-      }
-    }
-  });
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
+    (window.recallDbConfig && window.recallDbConfig.options({
+      persistSession: keepSignedIn,
+      autoRefreshToken: keepSignedIn,
+      detectSessionInUrl: true
+    })) || { persistSession: keepSignedIn, autoRefreshToken: keepSignedIn, detectSessionInUrl: true, auth: { storageKey: 'sb-hkjiyibpeqdoqzlyqzwz-auth-token' } });
   window.supabaseClient = supabaseClient;
 </script>
 <script src="topbar.js" defer></script>

@@ -22,10 +22,12 @@
   'use strict';
 
   // ---------------------------------------------------------------------------
-  // Supabase client — same shape as every other page.
+  // Supabase client — same shape as every other page. Base URL + client
+  // options (fetch wrapper + pinned storage key) come from db-config.js,
+  // which profile.html loads right after the UMD bundle.
   // ---------------------------------------------------------------------------
-  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhraml5aWJwZXFkb3F6bHlxend6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MzkxNDgsImV4cCI6MjA5OTQxNTE0OH0.UGVZ0-b9-c7JVtu006mmyfj0NkIbpmmn0wCNNqdi9iU';
+  const SUPABASE_URL = (window.recallDbConfig && window.recallDbConfig.url()) || 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
   const KEEP_KEY = 'recall.keepSignedIn';
   let keepSignedIn = true;
   try {
@@ -34,24 +36,12 @@
     else if (raw === '1') keepSignedIn = true;
     else localStorage.setItem(KEEP_KEY, '1');
   } catch (_) { /* private mode etc. */ }
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    persistSession: keepSignedIn,
-    autoRefreshToken: keepSignedIn,
-    detectSessionInUrl: true,
-    global: {
-      fetch: (url, options = {}) => {
-        try {
-          const u = new URL(url, window.location.href);
-          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
-            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
-          }
-          return fetch(u.toString(), options);
-        } catch (_) {
-          return fetch(url, options);
-        }
-      }
-    }
-  });
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY,
+    (window.recallDbConfig && window.recallDbConfig.options({
+      persistSession: keepSignedIn,
+      autoRefreshToken: keepSignedIn,
+      detectSessionInUrl: true
+    })) || { persistSession: keepSignedIn, autoRefreshToken: keepSignedIn, detectSessionInUrl: true, auth: { storageKey: 'sb-hkjiyibpeqdoqzlyqzwz-auth-token' } });
   window.supabaseClient = supabaseClient;
 
   // ---------------------------------------------------------------------------

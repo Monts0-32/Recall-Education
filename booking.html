@@ -284,22 +284,12 @@
 <div class="toast-wrap" id="toastWrap"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script src="db-config.js"></script>
 <script>
-  const SUPABASE_URL = 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
+  const SUPABASE_URL = (window.recallDbConfig && window.recallDbConfig.url()) || 'https://hkjiyibpeqdoqzlyqzwz.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: {
-      fetch: (url, options = {}) => {
-        try {
-          const u = new URL(url, window.location.href);
-          if (u.host.endsWith('.supabase.co') && !u.searchParams.has('apikey')) {
-            u.searchParams.set('apikey', SUPABASE_ANON_KEY);
-          }
-          return fetch(u.toString(), options);
-        } catch (_) { return fetch(url, options); }
-      }
-    }
-  });
+  // Client options (fetch wrapper + pinned storage key) come from db-config.js.
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, (window.recallDbConfig && window.recallDbConfig.options()) || { auth: { storageKey: 'sb-hkjiyibpeqdoqzlyqzwz-auth-token' } });
 
   const $ = (id) => document.getElementById(id);
   const escapeHtml = (s) => String(s == null ? '' : s)

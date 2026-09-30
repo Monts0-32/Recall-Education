@@ -1,12 +1,18 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "recall-education",
+  "main": "worker.js",
   "compatibility_date": "2026-07-12",
   "observability": {
     "enabled": true
   },
   "assets": {
-    "directory": "."
+    "directory": ".",
+    // Bindings name under which the entry script reaches the static assets.
+    "binding": "ASSETS",
+    // Only /db* reaches the Worker (worker.js proxies those to Supabase);
+    // every other request is served straight from assets.
+    "run_worker_first": ["/db", "/db/*"]
   },
   "compatibility_flags": [
     "nodejs_compat"
