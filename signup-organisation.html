@@ -781,6 +781,11 @@
         password: btn.dataset.password,
       });
       if (loginErr) throw loginErr;
+      // Give supabase-js a beat to finish persisting the session to
+      // localStorage before we tear the page down — navigating in the
+      // same tick can very occasionally race the storage write and land
+      // the dashboard signed out.
+      await new Promise((r) => setTimeout(r, 250));
       window.location.href = btn.dataset.dashboard;
     } catch (err) {
       btn.disabled = false;
