@@ -1689,7 +1689,11 @@
     if (data?.session) revealStaffTools(data.session);
   });
   supabaseClient.auth.onAuthStateChange((_event, session) => {
-    if (session) revealStaffTools(session);
+    // Fire-and-forget: supabase-js awaits this callback during client
+    // init, and revealStaffTools may call rpc() which awaits that same
+    // init via getSession — returning the promise would deadlock the
+    // auth lock (page stuck on "Loading…" until a lucky refresh).
+    if (session) void revealStaffTools(session);
   });
 
   function wireSignOut() {

@@ -401,8 +401,16 @@
     }).catch(function () { /* swallow */ });
 
     if (typeof sb.auth.onAuthStateChange === 'function') {
-      sb.auth.onAuthStateChange(async function (_event, session) {
-        if (session && session.user && !slot.firstChild) {
+      sb.auth.onAuthStateChange(function (_event, session) {
+        if (!session || !session.user || slot.firstChild) return;
+        // Fire-and-forget, deliberately: supabase-js awaits every
+        // onAuthStateChange callback while the client initialises, and
+        // any query inside awaits that same initialisation (each
+        // from()/rpc() call resolves the session via getSession, which
+        // waits on init). Returning the promise from this callback would
+        // deadlock the auth navigator-lock forever — pages would hang on
+        // "Loading…" until a lucky refresh. Kick the work off instead.
+        void (async function () {
           let profile = { id: session.user.id, full_name: '', role: 'student', avatar_url: null };
           try {
             const { data: p } = await sb
@@ -411,7 +419,7 @@
           } catch (_) {}
           if (slot.firstChild) return;
           renderAvatarPillInto(slot, session.user, profile);
-        }
+        })();
       });
     }
   }
