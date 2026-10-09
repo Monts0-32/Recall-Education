@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network diagnostics</title>
+<!-- ---------------------------------------------------------------------------
+  Recall — network diagnostics page (diag-net)
+
+  Times every dependency a normal page load makes, one by one, so we can
+  see exactly which hop eats the seconds when the site "stays on
+  loading". Companion to diag-school-code.html. Safe to leave deployed:
+  it only makes read-only GETs with the public key and prints timings.
+--------------------------------------------------------------------------- -->
+<style>
+  body { font-family: monospace; background: #111; color: #eee; padding: 20px; }
+  pre { white-space: pre-wrap; }
+  .slow { color: #f66; font-weight: bold; }
+</style>
+</head>
+<body>
+<h3>Network diagnostics</h3>
+<pre id="out">starting…</pre>
+<!-- src is only set when the diagnostics finish, which holds this page's
+     load event (and therefore --dump-dom) until real wall-clock timings
+     for every request below have landed in the DOM. -->
+<img id="hold" alt="" width="1" height="1">
+<script>
+(async function () {
+  const out = document.getElementById('out');
+  const lines = [];
+  const t0 = performance.now();
+  function log(s, slow) {
+    lines.push(s);
+    if (slow) lines.push('  <<< SLOW');
+    out.textContent = lines.join('\n');
+  }
+  async function timeFetch(label, url, opts) {
+    const s = performance.now();
+    try {
+      const r = await fetch(url, opts);
+      const body = await r.arrayBuffer(); // force full download
+      const ms = Math.round(performance.now() - s);
+      log(label + ': ' + ms + 'ms, status ' + r.status + ', ' +
+          (body.byteLength / 1024).toFixed(1) + 'KB', ms > 2000);
+      return ms;
+    } catch (e) {
+      const ms = Math.round(performance.now() - s);
+      log(label + ': FAILED after ' + ms + 'ms — ' + e.message, true);
+      return ms;
+    }
+  }
+  const KEY = 'sb_publishable_eCBuj0Ab6w5LPNnfnKkQTA_xd2vVImv';
+  const H = { apikey: KEY };
+
+  log('ua: ' + navigator.userAgent);
+  log('protocol: ' + (location.protocol + ' // page loaded over ' +
+      (performance.getEntriesByType('navigation')[0] &&
+       performance.getEntriesByType('navigation')[0].nextHopProtocol || '?')));
+  log('');
+
+  log('--- 3 rounds, same requests a page makes ---');
+  for (let i = 1; i <= 3; i++) {
+    log('round ' + i);
+    // 1. The supabase UMD script tag every page blocks on.
+    await timeFetch('jsdelivr supabase-js (script src)',
+      'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4', { cache: 'no-store' });
+    // 2. Same-origin Worker proxy: auth health.
+    await timeFetch('/db auth health (proxy)', '/db/auth/v1/health', { headers: H });
+    // 3. Same-origin proxy RPC.
+    await timeFetch('/db get_supabase_mode (proxy)',
+      '/db/rest/v1/rpc/get_supabase_mode?apikey=' + KEY, { headers: H });
+    // 4. Direct Supabase (what fallback mode uses).
+    await timeFetch('direct supabase auth health',
+      'https://hkjiyibpeqdoqzlyqzwz.supabase.co/auth/v1/health', { headers: H });
+    log('');
+  }
+
+  log('--- resource timing for everything this page loaded ---');
+  for (const e of performance.getEntriesByType('resource')) {
+    log(e.name.slice(0, 90) + ' — ' + Math.round(e.duration) + 'ms (' + e.nextHopProtocol + ')');
+  }
+  log('');
+  log('total: ' + Math.round(performance.now() - t0) + 'ms');
+  document.title = 'DIAG-DONE';
+  // Release the load event now that the results are in the DOM.
+  document.getElementById('hold').src =
+    'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
+})();
+</script>
+</body>
+</html>
