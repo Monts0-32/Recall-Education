@@ -40,10 +40,15 @@
 //
 //   200 { ok:true,
 //         school: { id, name, code },
+//         expires_at, expires_in_minutes,  // demo self-deletes after this
 //         password,                     // shared by all 8 demo accounts
 //         accounts: [ {role,label,name,email,user_id,dashboard} × 8 ] }
 //   429 { ok:false, reason:'demo_rate_limited' }
 //   500 { ok:false, reason:'<step>: <msg>' }   — after best-effort cleanup
+//
+// Demo schools live for DEMO_TTL_MINUTES (see _shared/demo-expiry.ts):
+// expire-demo-schools reaps them via pg_cron and this function sweeps any
+// stragglers before applying its abuse guard.
 //
 // On any failure partway through, everything created so far is torn down
 // (delete the school row — school_id FKs cascade — then deleteUser each
@@ -70,6 +75,7 @@
 // ============================================================================
 
 import { createClient } from "@supabase/supabase-js";
+import { DEMO_SCHOOL_PREFIX, DEMO_TTL_MINUTES, cleanupExpiredDemoSchools } from "../_shared/demo-expiry.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY =
@@ -83,7 +89,6 @@ const SUPABASE_SERVICE_ROLE_KEY =
 // No 0/O/1/I — unambiguous in handwriting and in the demo panel's
 // monospace email addresses.
 const TAG_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const DEMO_SCHOOL_PREFIX = "Recall Demo School";
 const DEMO_DOMAIN = "recalleducation.co.uk";
 const DEMO_WINDOW_MINUTES = 60;
 const DEMO_MAX_PER_WINDOW = 10;
@@ -162,6 +167,18 @@ Deno.serve(async (req) => {
   const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  // ------------------------------------------------------------------
+  // Sweep expired demos first. Demo schools live for DEMO_TTL_MINUTES
+  // (pg_cron normally reaps them every minute, but self-heal here too)
+  // — otherwise the abuse guard below would keep counting long-dead
+  // demos until they fell out of the hour window.
+  // ------------------------------------------------------------------
+  try {
+    await cleanupExpiredDemoSchools(sb);
+  } catch (err) {
+    console.error("create-demo-school: expiry sweep failed (continuing):", err);
+  }
 
   // ------------------------------------------------------------------
   // Abuse guard — count demo schools created in the last hour.
@@ -635,6 +652,9 @@ Deno.serve(async (req) => {
       JSON.stringify({
         ok: true,
         school: { id: school.id, name: school.name, code: school.code },
+        // The whole demo self-deletes DEMO_TTL_MINUTES after creation.
+        expires_at: new Date(Date.now() + DEMO_TTL_MINUTES * 60 * 1000).toISOString(),
+        expires_in_minutes: DEMO_TTL_MINUTES,
         password,
         accounts,
       }),
