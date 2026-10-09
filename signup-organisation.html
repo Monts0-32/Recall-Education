@@ -152,6 +152,61 @@
     .btn-primary:hover { background: var(--blue-2); border-color: var(--blue-2); }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
+    .btn-secondary {
+      width: 100%;
+      background: transparent; color: var(--blue);
+      padding: 10px 18px; border-radius: var(--r-sm);
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      border: 1px solid var(--line);
+      cursor: pointer;
+      margin-top: 10px;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .btn-secondary:hover { border-color: var(--blue); background: var(--blue-dim); }
+    .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ---------- demo school panel ---------- */
+    .demo-panel {
+      margin-top: 22px;
+      border: 1px solid rgba(63,185,80,0.55);
+      border-radius: var(--r-sm);
+      background: linear-gradient(135deg, rgba(63,185,80,0.14) 0%, rgba(63,185,80,0.05) 100%);
+      padding: 16px;
+    }
+    .demo-panel[hidden] { display: none; }
+    .demo-panel .demo-title { font-weight: 700; color: #6FE07A; font-size: 14.5px; }
+    .demo-panel .demo-sub { font-size: 13px; color: var(--text-2); margin-top: 4px; }
+    .demo-panel .demo-pw { margin: 10px 0 14px; font-size: 13px; color: var(--text-2); }
+    .demo-panel .demo-pw code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--text); background: rgba(255,255,255,0.06);
+      border: 1px solid var(--line); border-radius: 4px;
+      padding: 2px 6px; margin-left: 6px;
+      user-select: all; overflow-wrap: anywhere;
+    }
+    .demo-account {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 9px 10px; border: 1px solid var(--line);
+      border-radius: var(--r-sm); margin-bottom: 8px;
+    }
+    .demo-account .who { min-width: 0; }
+    .demo-account .who .nm { font-size: 13px; font-weight: 600; color: var(--text); }
+    .demo-account .who .em {
+      font-size: 12px; color: var(--text-3);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+    .demo-account button {
+      background: var(--blue); color: #fff;
+      border: 1px solid var(--blue); border-radius: var(--r-sm);
+      padding: 7px 12px; font-family: inherit; font-size: 12.5px; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+      transition: background 0.15s ease;
+    }
+    .demo-account button:hover { background: var(--blue-2); border-color: var(--blue-2); }
+    .demo-account button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .demo-note { font-size: 12px; color: var(--text-3); margin-top: 12px; }
+
     .error-banner, .ok-banner {
       display: none;
       border-radius: var(--r-sm);
@@ -268,10 +323,24 @@
       </label>
 
       <button type="submit" class="btn-primary" id="submitBtn">Create account</button>
+      <button type="button" class="btn-secondary" id="demoBtn">Try the demo instead</button>
     </form>
 
     <div class="foot">
       Different role? <a href="login.html">Pick a different sign-up</a>
+    </div>
+
+    <!-- Rendered by JS after a successful create-demo-school call. All
+         server-returned strings go in via textContent — never innerHTML. -->
+    <div class="demo-panel" id="demoPanel" hidden>
+      <div class="demo-title">Your demo school is ready</div>
+      <div class="demo-sub" id="demoSchoolInfo"></div>
+      <div class="demo-pw"><span>All accounts share this password:</span><code id="demoPw"></code></div>
+      <div id="demoAccounts"></div>
+      <div class="demo-note">
+        Everything in the demo school is throwaway — click around, assign homework, try the dashboards.
+        Log in as any account below to see Recall from that role's point of view.
+      </div>
     </div>
   </div>
 </main>
@@ -597,6 +666,126 @@
       submitBtn.disabled = false;
       submitBtn.textContent = orig;
       showError('Network error. Check your connection and try again.');
+    }
+  });
+
+  // ---------- one-click demo school ----------
+  // Clicking "Try the demo instead" asks the create-demo-school Edge
+  // Function to provision a whole throwaway school (organiser + 2
+  // teachers + 5 students + classes, homework, announcements...).
+  // The panel it renders lets the visitor log straight in as any of
+  // the demo accounts without ever seeing the sign-up form.
+  const demoBtn = $('demoBtn');
+  const realSubmitBtn = $('submitBtn');
+
+  demoBtn.addEventListener('click', async () => {
+    const orig = demoBtn.textContent;
+    demoBtn.disabled = true;
+    realSubmitBtn.disabled = true;
+    demoBtn.textContent = 'Setting up your demo school… (this takes ~15 seconds)';
+    hideError();
+
+    let data;
+    try {
+      const { data: d, error: fnErr } = await supabaseClient.functions.invoke(
+        'create-demo-school',
+        { body: {} }
+      );
+      if (fnErr) throw fnErr;
+      data = d;
+    } catch (err) {
+      demoBtn.disabled = false;
+      realSubmitBtn.disabled = false;
+      demoBtn.textContent = orig;
+      // functions.invoke wraps non-2xx responses in FunctionsHttpError,
+      // which stashes the Response on .context.response.
+      const status = err && err.context && err.context.response ? err.context.response.status : null;
+      const msg = (err && err.message) || '';
+      if (status === 429 || msg.includes('demo_rate_limited') || msg.includes('429')) {
+        showError('The demo is very popular right now. Please try again in a little while.');
+      } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+        showError('Network error. Check your connection and try again.');
+      } else {
+        showError('The demo isn\'t available right now. Please try again in a moment.');
+      }
+      return;
+    }
+
+    if (!data || data.ok !== true) {
+      demoBtn.disabled = false;
+      realSubmitBtn.disabled = false;
+      demoBtn.textContent = orig;
+      const reason = data && data.reason;
+      if (reason === 'demo_rate_limited') {
+        showError('The demo is very popular right now. Please try again in a little while.');
+      } else {
+        showError('We couldn\'t set up the demo school. Please try again in a moment.');
+      }
+      return;
+    }
+
+    // Success — render the panel. Server-returned strings are inserted
+    // with textContent only (defence-in-depth against any oddity in the
+    // generated school name / email addresses).
+    $('demoSchoolInfo').textContent =
+      data.school.name + ' · join code ' + data.school.code;
+    $('demoPw').textContent = data.password;
+
+    const wrap = $('demoAccounts');
+    wrap.textContent = '';
+    for (const acc of data.accounts) {
+      const row = document.createElement('div');
+      row.className = 'demo-account';
+
+      const who = document.createElement('div');
+      who.className = 'who';
+      const nm = document.createElement('div');
+      nm.className = 'nm';
+      nm.textContent = acc.label + ': ' + acc.name;
+      const em = document.createElement('div');
+      em.className = 'em';
+      em.textContent = acc.email;
+      who.appendChild(nm);
+      who.appendChild(em);
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = 'Log in';
+      btn.dataset.email = acc.email;
+      btn.dataset.password = data.password;
+      btn.dataset.dashboard = acc.dashboard;
+
+      row.appendChild(who);
+      row.appendChild(btn);
+      wrap.appendChild(row);
+    }
+
+    $('demoPanel').hidden = false;
+    demoBtn.textContent = 'Demo school created';
+    realSubmitBtn.disabled = false;   // the form still works if they'd rather sign up for real
+    $('demoPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // Event-delegated login: the buttons carry their account's email /
+  // password / dashboard target in data attributes. Signing in swaps
+  // this browser's session to the demo account and jumps to that
+  // role's dashboard.
+  $('demoAccounts').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-dashboard]');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+    try {
+      const { error: loginErr } = await supabaseClient.auth.signInWithPassword({
+        email: btn.dataset.email,
+        password: btn.dataset.password,
+      });
+      if (loginErr) throw loginErr;
+      window.location.href = btn.dataset.dashboard;
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Log in';
+      showError(explainAuthError(err && err.message));
     }
   });
 </script>
