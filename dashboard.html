@@ -163,6 +163,9 @@
       font-size: 13.5px; font-weight: 500;
     }
     .side-nav a:hover { background: var(--bg-3); color: var(--text); text-decoration: none; }
+    /* display:flex above outranks the UA's [hidden]{display:none}, which
+       made the staff/admin links visible to students despite hidden. */
+    .side-nav a[hidden] { display: none; }
     .side-nav a.active { background: var(--blue-pale); color: var(--blue); }
     .side-nav a svg { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.8; }
     .side-nav a.active svg { opacity: 1; }
