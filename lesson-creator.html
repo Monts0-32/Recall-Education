@@ -3015,7 +3015,7 @@
           ${(t.lessons || []).length
             ? `<span style="color:var(--text-4); font-size:11px;">${t.lessons.length}</span>`
             : ''}
-          <button class="row-btn" title="Rename" onclick="event.stopPropagation(); openTopicModal('${t.id}')">✎</button>
+          <button class="row-btn" title="Rename" onclick="event.stopPropagation(); openTopicModal(null, '${t.id}')">✎</button>
           <button class="row-btn" title="Delete" onclick="event.stopPropagation(); deleteTopic('${t.id}')">🗑</button>
         </div>
         ${(t.lessons || []).map(l => renderLessonRow(t, l)).join('')}
@@ -3148,7 +3148,7 @@
             <label class="kind-chip">
               <input type="radio" name="kind" value="exam_board" checked />
               <strong>Exam board</strong>
-              <span class="hint">Auto-generates ${esc(levelLabel)} for ${esc(subject.name)}.</span>
+              <span class="hint">Auto-generates ${escapeHtml(levelLabel)} for ${escapeHtml(subject.name)}.</span>
             </label>
             <label class="kind-chip">
               <input type="radio" name="kind" value="course" />
@@ -3787,6 +3787,22 @@
     await loadTree();
   };
 
+  // Registry of built-in activity templates (files shipped in
+  // /activities/). Declared at module level because it is shared by
+  // THREE surfaces: the "From a template" tab of the new-activity
+  // picker inside openLessonModal, the "+ From template…" modal
+  // (openActivityTemplatePicker), and createLessonFromActivityTemplate.
+  // It used to live inside openLessonModal, which silently broke the
+  // other two with "ACTIVITY_TEMPLATES is not defined".
+  const ACTIVITY_TEMPLATES = [
+    {
+      id: 'spot-the-scam',
+      title: 'Spot the Scam — Cyber (Y7)',
+      file:  'activities/spot-the-scam/index.html',
+      hint:  '8 rounds of email-spotting with 3 difficulty modes, hearts, hints and a reveal.'
+    }
+  ];
+
   window.openLessonModal = (topicId, id, mode = 'topic') => {
     // mode: 'topic' (default — under a topic), 'general' (loose, no subject),
     // or 'activity' (a single HTML file rendered as a sandboxed iframe).
@@ -3846,16 +3862,9 @@
     // relative URL in lessons.activity_path, which the lesson player
     // loads the same way as an uploaded file — no bucket upload needed
     // (and the teacher can still replace it later via "Replace HTML").
-    // ACTIVITY_TEMPLATES is the registry of those built-ins; add an
-    // entry here whenever you drop a new file into /activities/.
-    const ACTIVITY_TEMPLATES = [
-      {
-        id: 'spot-the-scam',
-        title: 'Spot the Scam — Cyber (Y7)',
-        file:  'activities/spot-the-scam/index.html',
-        hint:  '8 rounds of email-spotting with 3 difficulty modes, hearts, hints and a reveal.'
-      }
-    ];
+    // ACTIVITY_TEMPLATES (declared at module level below, shared with
+    // openActivityTemplatePicker) is the registry of those built-ins;
+    // add an entry there whenever you drop a new file into /activities/.
     const fileRow = (!id && mode === 'activity') ? `
       <div class="form-row" id="activitySourceRow">
         <label>Activity source</label>
@@ -4224,6 +4233,12 @@
     };
     state.dirty = false;
     state.metaDirty = false;
+    // Reviewer comments are per-lesson — drop the previous lesson's
+    // cached fetch (and close its rail) so we don't paint lesson A's
+    // comments onto lesson B, and so the toggle refetches for this
+    // lesson instead of serving the stale cache.
+    state.reviewerComments = null;
+    closeReviewerRail();
     renderCatalog();
     renderEditor();
   };
@@ -4876,8 +4891,13 @@
       railList.appendChild(panel);
     });
 
-    // Wire the rail's resolve buttons (delegated).
-    railList.addEventListener('click', onReviewerRailClick);
+    // Wire the rail's resolve buttons (delegated). Assign via .onclick
+    // rather than addEventListener — paintReviewerComments runs again
+    // after every block-list re-render while the comments toggle is on,
+    // and addEventListener would stack a duplicate listener each time
+    // (one click then fired N RPC calls and N toasts). The property
+    // assignment is idempotent.
+    railList.onclick = onReviewerRailClick;
   }
 
   function renderReviewerResolveButton(c) {
