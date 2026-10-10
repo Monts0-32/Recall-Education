@@ -749,29 +749,42 @@
       font-size: 13px; color: var(--text); padding: 10px;
     }
     .preview .swipe-progress { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); }
-    .preview .shf-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-    .preview .shf-stage { position: relative; width: 100%; max-width: 320px; height: 150px; touch-action: none; user-select: none; outline: none; }
+    .preview .shf-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .preview .shf-stage {
+      position: relative; width: 100%; max-width: 340px; height: 180px; /* JS sets the real height */
+      touch-action: none; user-select: none; outline: none;
+      transition: height 0.45s ease;
+    }
     .preview .shf-card {
-      position: absolute; inset: 0;
+      position: absolute; left: 0; right: 0; top: 0;
       background: var(--bg-3); border: 1px solid var(--line);
-      border-radius: var(--r-sm);
-      overflow: hidden; display: flex; flex-direction: column;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.3);
-      transition: transform 0.45s cubic-bezier(.22,.61,.36,1), opacity 0.45s ease;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.3);
+      transition: transform 0.55s cubic-bezier(.32,.72,0,1), opacity 0.55s ease;
       cursor: grab;
     }
-    .preview .shf-img { width: 100%; flex: 1 1 auto; min-height: 0; object-fit: contain; background: var(--bg-1); pointer-events: none; user-select: none; -webkit-user-drag: none; }
-    .preview .shf-caption { padding: 5px 10px; font-size: 12px; font-weight: 500; color: var(--text-2); text-align: center; border-top: 1px solid var(--line-2); }
-    .preview .shf-controls { display: flex; gap: 6px; align-items: center; }
-    .preview .shf-btn {
+    .preview .shf-stage.shf-dragging .shf-card { transition: none; cursor: grabbing; }
+    .preview .shf-img { display: block; width: 100%; height: auto; background: var(--bg-1); pointer-events: none; user-select: none; -webkit-user-drag: none; }
+    .preview .shf-caption { padding: 6px 10px; font-size: 12px; font-weight: 500; color: var(--text-2); text-align: center; border-top: 1px solid var(--line-2); }
+    .preview .shf-nav { display: flex; align-items: center; gap: 8px; }
+    .preview .shf-dots { display: flex; align-items: center; gap: 5px; }
+    .preview .shf-dot {
+      width: 7px; height: 7px; border-radius: 999px;
+      background: var(--bg-4); border: 0; padding: 0; cursor: pointer;
+      transition: width 0.25s ease, background 0.25s ease;
+    }
+    .preview .shf-dot.active { width: 18px; background: var(--blue); }
+    .preview .shf-arrow {
+      width: 26px; height: 26px; border-radius: 50%;
       background: var(--bg-3); color: var(--text-2);
       border: 1px solid var(--line-2);
-      padding: 4px 10px; border-radius: 999px;
-      font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+      display: grid; place-items: center;
+      font-size: 15px; line-height: 1;
+      font-family: inherit; cursor: pointer;
     }
-    .preview .shf-btn:hover { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
-    .preview .shf-btn.shuffle:hover { background: var(--green-dim); color: var(--green); border-color: var(--green); }
-    .preview .shf-progress { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); }
+    .preview .shf-arrow:hover { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
+    .preview .shf-arrow.shuffle:hover { background: var(--green-dim); color: var(--green); border-color: var(--green); }
     .preview .cs-carousel {
       background: var(--bg-3); border: 1px solid var(--line);
       border-radius: var(--r-sm); padding: 12px;
@@ -1846,31 +1859,45 @@
     .student-preview-body .swipe-card:nth-child(3) { transform: scale(0.9)  translateY(12px); opacity: 0.4; }
     .student-preview-body .swipe-card:nth-child(n+4) { display: none; }
     .student-preview-body .swipe-progress { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3); }
-    .student-preview-body .shf-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-    .student-preview-body .shf-stage { position: relative; width: 100%; max-width: 380px; height: 280px; touch-action: none; user-select: none; outline: none; }
+    .student-preview-body .shf-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .student-preview-body .shf-stage {
+      position: relative; width: 100%; max-width: 520px; height: 280px; /* JS sets the real height */
+      touch-action: none; user-select: none; outline: none;
+      transition: height 0.45s ease;
+    }
     .student-preview-body .shf-card {
-      position: absolute; inset: 0;
+      position: absolute; left: 0; right: 0; top: 0;
       background: var(--bg-3); border: 1px solid var(--line);
-      border-radius: var(--r-md);
-      overflow: hidden; display: flex; flex-direction: column;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-      transition: transform 0.45s cubic-bezier(.22,.61,.36,1), opacity 0.45s ease;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.38);
+      transition: transform 0.55s cubic-bezier(.32,.72,0,1), opacity 0.55s ease;
       cursor: grab;
     }
-    .student-preview-body .shf-img { width: 100%; flex: 1 1 auto; min-height: 0; object-fit: contain; background: var(--bg-1); pointer-events: none; user-select: none; -webkit-user-drag: none; }
-    .student-preview-body .shf-caption { padding: 10px 14px; font-size: 13.5px; font-weight: 500; color: var(--text-2); text-align: center; border-top: 1px solid var(--line-2); }
-    .student-preview-body .shf-controls { display: flex; gap: 8px; align-items: center; }
-    .student-preview-body .shf-btn {
+    .student-preview-body .shf-stage.shf-dragging .shf-card { transition: none; cursor: grabbing; }
+    .student-preview-body .shf-img { display: block; width: 100%; height: auto; background: var(--bg-1); pointer-events: none; user-select: none; -webkit-user-drag: none; }
+    .student-preview-body .shf-caption { padding: 10px 16px; font-size: 14px; font-weight: 500; color: var(--text-2); text-align: center; border-top: 1px solid var(--line-2); }
+    .student-preview-body .shf-nav { display: flex; align-items: center; gap: 10px; }
+    .student-preview-body .shf-dots { display: flex; align-items: center; gap: 6px; }
+    .student-preview-body .shf-dot {
+      width: 8px; height: 8px; border-radius: 999px;
+      background: var(--bg-4); border: 0; padding: 0; cursor: pointer;
+      transition: width 0.25s ease, background 0.25s ease;
+    }
+    .student-preview-body .shf-dot:hover { background: var(--text-4); }
+    .student-preview-body .shf-dot.active { width: 22px; background: var(--blue); }
+    .student-preview-body .shf-arrow {
+      width: 32px; height: 32px; border-radius: 50%;
       background: var(--bg-3); color: var(--text-2);
       border: 1px solid var(--line-2);
-      padding: 8px 16px; border-radius: 999px;
-      font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+      display: grid; place-items: center;
+      font-size: 18px; line-height: 1;
+      font-family: inherit; cursor: pointer;
       transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
     }
-    .student-preview-body .shf-btn:hover { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
-    .student-preview-body .shf-btn.shuffle:hover { background: var(--green-dim); color: var(--green); border-color: var(--green); }
-    .student-preview-body .shf-btn:active { transform: scale(0.95); }
-    .student-preview-body .shf-progress { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3); }
+    .student-preview-body .shf-arrow:hover { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
+    .student-preview-body .shf-arrow.shuffle:hover { background: var(--green-dim); color: var(--green); border-color: var(--green); }
+    .student-preview-body .shf-arrow:active { transform: scale(0.92); }
     @keyframes fx-shf-wobble {
       0%   { transform: rotate(0deg); }
       25%  { transform: rotate(-5deg); }
@@ -6530,7 +6557,7 @@
     return `
       <div class="form-row">
         <label>Prompt (markdown)</label>
-        <textarea oninput="updateBlock(${i}, {prompt: this.value})" placeholder="Flick through the deck — drag the top card or use the arrows.">${escapeHtml(b.data.prompt || '')}</textarea>
+        <textarea oninput="updateBlock(${i}, {prompt: this.value})" placeholder="Drag through the deck of cards.">${escapeHtml(b.data.prompt || '')}</textarea>
       </div>
       <div class="form-row">
         <label>Cards — one image per card (list order = deal order)</label>
@@ -6569,7 +6596,7 @@
         </label>
       </div>
       <div class="form-row" style="margin: 0;">
-        <label>Preview (drag the top card, shuffle, or use ◀ / ▶)</label>
+        <label>Preview (drag the stack, tap the dots, or use ‹ ›)</label>
         <div class="preview">${renderBlock(b)}</div>
       </div>
     `;

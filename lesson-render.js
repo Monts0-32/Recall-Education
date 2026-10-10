@@ -1229,7 +1229,7 @@
     card_shuffle: {
       label: 'Image card shuffle',
       defaults: () => ({
-        prompt: 'Flick through the deck — drag the top card or use the arrows.',
+        prompt: 'Drag through the deck of cards — swipe left to move on.',
         shuffleOnLoad: true,
         required: false,
         allowRetry: true,
@@ -1487,9 +1487,11 @@
     `);
   }
 
-  // renderCardShuffle(b) — a stack of image cards. The bind function
-  // (bindCardShuffle) lays the deck out in JS (slots + z-index), supports
-  // drag-to-flick, prev/next and a shuffle re-deal.
+  // renderCardShuffle(b) — a carousel-style stack of image cards (Swiper
+  // "effect cards" look): the active card sits front and centre at the
+  // image's natural size, the next cards peek out behind it on both
+  // sides with a slight rotation/offset, and the student drags the
+  // stack or taps the dots/arrows. bindCardShuffle does the layout.
   function renderCardShuffle(b) {
     const d = b.data || {};
     const cards = (d.cards || []).filter(c => c && (c.url || c.caption));
@@ -1499,17 +1501,19 @@
       <div class="shf-wrap" data-pbid="shf-wrap">
         <div class="shf-stage" data-pbid="shf-stage" tabindex="0" data-cards="${escapeHtml(JSON.stringify(cards))}">
           ${cards.map((c, i) => `<div class="shf-card" data-i="${i}">
-            ${c.url ? `<img class="shf-img" src="${escapeHtml(c.url)}" alt="${escapeHtml(c.alt || '')}" draggable="false" loading="lazy" />` : ''}
+            ${c.url ? `<img class="shf-img" src="${escapeHtml(c.url)}" alt="${escapeHtml(c.alt || '')}" draggable="false" />` : ''}
             ${c.caption ? `<div class="shf-caption">${escapeHtml(c.caption)}</div>` : ''}
           </div>`).join('')}
         </div>
-        <div class="shf-controls">
-          <button type="button" class="shf-btn" data-shf="prev" title="Previous card (←)">◀</button>
-          <button type="button" class="shf-btn shuffle" data-shf="shuffle" title="Shuffle the deck">🔀 Shuffle</button>
-          <button type="button" class="shf-btn" data-shf="next" title="Next card (→)">▶</button>
+        <div class="shf-nav">
+          <button type="button" class="shf-arrow" data-shf="prev" title="Previous card (←)">‹</button>
+          <div class="shf-dots">
+            ${cards.map((_, i) => `<span class="shf-dot${i === 0 ? ' active' : ''}" data-shf-dot="${i}" title="Card ${i + 1}"></span>`).join('')}
+          </div>
+          <button type="button" class="shf-arrow" data-shf="next" title="Next card (→)">›</button>
+          <button type="button" class="shf-arrow shuffle" data-shf="shuffle" title="Shuffle the deck">🔀</button>
+          <button type="button" class="reset-btn" data-pb="reset" hidden>Go again</button>
         </div>
-        <div class="shf-progress"><span data-pbid="shf-seen">1</span> / <span data-pbid="shf-total">${cards.length}</span> cards seen</div>
-        <button type="button" class="reset-btn" data-pb="reset" hidden>Shuffle &amp; go again</button>
       </div>
       <div data-pb="feedback"></div>
     `);
@@ -3312,62 +3316,101 @@
     rootEl.tabIndex = 0;
   }
 
-  // bindCardShuffle — the image-card deck. Layout is fully JS-driven:
-  // `order` is the deck order (array of card indices), `pos` points at the
-  // card currently on top, and relayout() assigns each card a "slot"
-  // (0 = top, 1-2 = peeking behind, 3+ = buried) as an inline transform +
-  // z-index. The student drags the top card (it tilts with the drag and
-  // flings out past a threshold) or uses ◀ / ▶; the Shuffle button
-  // gathers the deck and re-deals it with a staggered deal animation.
-  // Completes (onScore 1/1) once every card has been on top.
+  // bindCardShuffle — the image-card carousel (Swiper "effect cards"
+  // motion, hand-rolled). `order` is the deck order, `pos` points at the
+  // active card. Every card carries the full image at its natural aspect
+  // ratio (the card is only as wide as the stage, its height follows the
+  // image); relayout(dx) assigns each card a transform based on its
+  // SIGNED offset from the active card:
+  //   offset  0        — front and centre, full size
+  //   offset +1..3     — peeking out to the right, rotated/scaled back
+  //   offset -1..3     — peeking out to the left, mirrored
+  //   |offset| > 3     — tucked away (opacity 0)
+  // Dragging translates the whole stack (active at 1:1, the peeks at a
+  // fraction — parallax) and releases snap to the next/previous card with
+  // a springy easing, exactly like a touch carousel. The stage height
+  // animates to the active card's height so cards of different aspect
+  // ratios all display big and uncropped.
+  // Completes (onScore 1/1) once every card has been active.
   function bindCardShuffle(rootEl, d, blockId, onScore) {
     const stage = rootEl.querySelector('[data-pbid="shf-stage"]');
-    const seenEl = rootEl.querySelector('[data-pbid="shf-seen"]');
-    const totalEl = rootEl.querySelector('[data-pbid="shf-total"]');
     if (!stage) return;
     const cards = stage.dataset.cards ? JSON.parse(stage.dataset.cards) : [];
     if (!cards.length) return;
     const n = cards.length;
     const cardEls = {};                       // original index -> element
     stage.querySelectorAll('.shf-card').forEach(el => { cardEls[el.dataset.i] = el; });
-    // A small resting tilt per card so the stack looks organic.
-    Object.values(cardEls).forEach(el => { el.dataset.shfRot = String((Math.random() * 6 - 3).toFixed(2)); });
-    let order = cards.map((_, i) => i);       // deck order (top first)
+    const dots = [...rootEl.querySelectorAll('.shf-dot')];
+    let order = cards.map((_, i) => i);        // deck order (active first)
     let pos = 0;
     const seen = new Set();
     let animating = false, done = false, drag = null;
-    if (totalEl) totalEl.textContent = String(n);
+    const MAX_PEEK = 3;
 
-    // relayout() — push every card to its slot transform. `jumpEl` (the
-    // card that just flew out) skips the CSS transition so it doesn't
-    // visibly slide back across the stage.
-    function relayout(jumpEl) {
+    function topEl() { return cardEls[order[pos]]; }
+
+    // signedOffset — offset of deck position `oi` from the active card,
+    // wrapped to the range [-n/2, n/2] so a wrapped card peeks from the
+    // nearer side.
+    function signedOffset(oi) {
+      let off = (oi - pos + n) % n;
+      if (off > n / 2) off -= n;
+      return off;
+    }
+
+    // sizeStage() — the stage is as tall as the ACTIVE card (cards are
+    // absolutely positioned; their peeks overflow visibly). Called on
+    // advance, on image load and on window resize.
+    function sizeStage() {
+      const top = topEl();
+      if (!top) return;
+      const h = top.offsetHeight;
+      if (h > 0) stage.style.height = h + 'px';
+    }
+
+    function syncDots() {
+      dots.forEach((el, di) => el.classList.toggle('active', di === pos));
+    }
+
+    // relayout(dx) — position every card at its offset. `dx` is the live
+    // drag distance in px (0 when snapped): the active card tracks it
+    // 1:1 (with a rotation tilt), the peeking cards at ~0.18× parallax.
+    function relayout(dx) {
+      dx = dx || 0;
       order.forEach((idx, oi) => {
         const el = cardEls[idx];
-        const slot = (oi - pos + n) % n;
-        el.style.zIndex = String(n - slot);
-        if (jumpEl === el) el.style.transition = 'none';
-        const rot = slot === 0 ? (parseFloat(el.dataset.shfRot) || 0) : 0;
-        if (slot > 2) {
-          el.style.transform = `translateY(-16px) scale(0.82) rotate(0deg)`;
-          el.style.opacity = '0';
+        const off = signedOffset(oi);
+        const abs = Math.abs(off);
+        if (abs === 0) {
+          el.style.transform = `translate(${dx}px, ${Math.abs(dx) * 0.06}px) rotate(${(dx * 0.035).toFixed(2)}deg)`;
+          el.style.opacity = '1';
+          el.style.zIndex = '100';
+        } else if (abs <= MAX_PEEK) {
+          const side = off > 0 ? 1 : -1;
+          const x = side * (14 + abs * 24) + dx * 0.18;
+          el.style.transform =
+            `translate(${x.toFixed(1)}px, ${(abs * 9).toFixed(1)}px) scale(${(1 - abs * 0.055).toFixed(3)}) rotate(${(side * abs * 2.2).toFixed(1)}deg)`;
+          el.style.opacity = String(1 - abs * 0.16);
+          el.style.zIndex = String(100 - abs * 10);
         } else {
-          el.style.transform = `translateY(${-slot * 10}px) scale(${(1 - slot * 0.06).toFixed(3)}) rotate(${rot}deg)`;
-          el.style.opacity = String(1 - slot * 0.28);
+          const side = off > 0 ? 1 : -1;
+          el.style.transform =
+            `translate(${side * 90}px, ${(MAX_PEEK * 9).toFixed(1)}px) scale(0.8) rotate(${side * 8}deg)`;
+          el.style.opacity = '0';
+          el.style.zIndex = String(100 - abs * 10);
         }
-        if (jumpEl === el) { void el.offsetWidth; el.style.transition = ''; }
       });
     }
 
-    // deal(delayMs) — gather every card into a loose pile (no transition,
-    // random x/rot scatter so it looks like a riffle), then glide them
-    // out to their slots one after another.
+    // deal(staggerMs) — gather every card into a loose pile below the
+    // stage (no transition, random x/rot scatter), then glide them out
+    // to their carousel positions one after another.
     function deal(staggerMs) {
       order.forEach((idx, oi) => {
         const el = cardEls[idx];
         el.style.transition = 'none';
         el.style.zIndex = String(1000 + oi);
-        el.style.transform = `translateX(${(Math.random() * 70 - 35).toFixed(1)}px) translateY(34px) scale(0.6) rotate(${(Math.random() * 36 - 18).toFixed(1)}deg)`;
+        el.style.transform = `translate(${(Math.random() * 60 - 30).toFixed(1)}px, 60px) scale(0.55) rotate(${(Math.random() * 24 - 12).toFixed(1)}deg)`;
         el.style.opacity = '0';
       });
       void stage.offsetWidth; // commit the gather before re-enabling transitions
@@ -3377,16 +3420,13 @@
         el.style.transitionDelay = (oi * staggerMs / 1000) + 's';
       });
       relayout();
-      setTimeout(() => order.forEach(idx => { cardEls[idx].style.transitionDelay = ''; }), n * staggerMs + 600);
+      setTimeout(() => order.forEach(idx => { cardEls[idx].style.transitionDelay = ''; }), n * staggerMs + 700);
     }
 
-    function topEl() { return cardEls[order[pos]]; }
-
-    // markSeen() — the card on top counts as viewed; completes the block
-    // once the whole deck has been on top.
+    // markSeen() — the active card counts as viewed; completes the block
+    // once the whole deck has been active.
     function markSeen() {
       seen.add(order[pos]);
-      if (seenEl) seenEl.textContent = String(seen.size);
       if (seen.size >= n && !done) finish();
     }
 
@@ -3402,7 +3442,6 @@
         btn.addEventListener('click', () => {
           done = false;
           seen.clear();
-          if (seenEl) seenEl.textContent = '0';
           btn.hidden = true;
           clearFeedback(rootEl);
           doShuffle();
@@ -3420,29 +3459,30 @@
       pos = 0;
       animating = true;
       restart(stage, 'fx-shf-wobble');
-      deal(45);
-      setTimeout(() => { animating = false; markSeen(); }, n * 45 + 450);
+      deal(40);
+      syncDots();
+      sizeStage();
+      setTimeout(() => { animating = false; markSeen(); }, n * 40 + 550);
     }
 
+    // advance(dir) — the whole stack re-arranges: the old active glides to
+    // a side peek, the next card rises from the opposite side. This IS the
+    // effect-cards motion; no separate fly-out needed.
     function advance(dir) {
       if (animating) return false;
       if (n < 2) { markSeen(); return false; }
       animating = true;
-      const top = topEl();
-      const isNext = dir === 'next';
-      top.style.transform = `translateX(${isNext ? 140 : -140}%) rotate(${isNext ? 22 : -22}deg)`;
-      top.style.opacity = '0';
-      setTimeout(() => {
-        pos = (pos + (isNext ? 1 : n - 1)) % n;
-        relayout(top);            // top jumps behind the stack, others glide
-        animating = false;
-        markSeen();
-      }, 320);
+      pos = (pos + (dir === 'next' ? 1 : n - 1)) % n;
+      relayout();
+      syncDots();
+      sizeStage();
+      markSeen();
+      setTimeout(() => { animating = false; }, 480);
       return true;
     }
 
     // --- wiring ---
-    rootEl.querySelectorAll('.shf-btn').forEach(btn => {
+    rootEl.querySelectorAll('.shf-arrow').forEach(btn => {
       ripple(btn);
       btn.addEventListener('click', () => {
         const act = btn.dataset.shf;
@@ -3450,38 +3490,42 @@
         else advance(act);
       });
     });
-    const shBtn = rootEl.querySelector('[data-shf="shuffle"]');
-    if (shBtn) shBtn.addEventListener('click', () => restart(shBtn, 'fx-tada'));
+    dots.forEach((el, di) => el.addEventListener('click', () => {
+      if (animating || di === pos) return;
+      pos = di;
+      relayout();
+      syncDots();
+      sizeStage();
+      markSeen();
+    }));
 
-    // Drag the top card: it tilts with the pointer and flings out past a
-    // threshold (right = next, left = prev); short drags spring back.
+    // Drag the stack: every card follows the pointer (active 1:1 with a
+    // tilt, peeks at parallax); release snaps to the next/previous card
+    // past a distance-or-velocity threshold, otherwise springs back.
     stage.style.touchAction = 'none';
     stage.addEventListener('pointerdown', (e) => {
       if (animating) return;
-      const top = topEl();
-      if (!top) return;
-      drag = { x0: e.clientX, dx: 0, top, pid: e.pointerId };
-      top.style.transition = 'none';
-      try { top.setPointerCapture(e.pointerId); } catch (_) {}
+      drag = { x0: e.clientX, t0: Date.now(), dx: 0 };
+      stage.classList.add('shf-dragging');   // .shf-dragging .shf-card { transition: none }
+      try { stage.setPointerCapture(e.pointerId); } catch (_) {}
       e.preventDefault();
     });
     stage.addEventListener('pointermove', (e) => {
       if (!drag) return;
       drag.dx = e.clientX - drag.x0;
-      drag.top.style.transform =
-        `translate(${drag.dx}px, ${Math.abs(drag.dx) * 0.1}px) rotate(${(drag.dx * 0.06).toFixed(2)}deg) scale(1)`;
-      drag.top.style.opacity = String(Math.max(0.3, 1 - Math.abs(drag.dx) / 320));
+      relayout(drag.dx);
     });
     const endDrag = () => {
       if (!drag) return;
-      const { dx, top } = drag;
+      const { dx } = drag;
+      const dt = Math.max(1, Date.now() - drag.t0);
       drag = null;
-      top.style.transition = '';
-      // Fling out past the threshold; otherwise spring back. If advance
-      // is mid-animation (returns false) the card must still spring back
-      // or it would be left hanging at the drag offset.
-      const flung = Math.abs(dx) > 60 ? advance(dx > 0 ? 'next' : 'prev') : false;
-      if (!flung) relayout();
+      stage.classList.remove('shf-dragging');
+      const w = stage.offsetWidth || 300;
+      const vel = dx / dt;                   // px per ms
+      // Swipe left → next (carousel convention), right → previous.
+      if (Math.abs(dx) > w * 0.22 || Math.abs(vel) > 0.55) advance(dx < 0 ? 'next' : 'prev');
+      else relayout();                       // spring back
     };
     stage.addEventListener('pointerup', endDrag);
     stage.addEventListener('pointercancel', endDrag);
@@ -3491,6 +3535,16 @@
       if (e.key === 'ArrowLeft') { e.preventDefault(); advance('prev'); }
       else if (e.key === 'ArrowRight') { e.preventDefault(); advance('next'); }
     });
+
+    // Auto-size: once each image loads (and on window resize) re-measure
+    // the active card so the stage always frames it fully.
+    Object.values(cardEls).forEach(el => {
+      const img = el.querySelector('.shf-img');
+      if (img && !img.complete) img.addEventListener('load', sizeStage, { once: true });
+      if (img) img.addEventListener('error', sizeStage, { once: true });
+    });
+    window.addEventListener('resize', sizeStage);
+    setTimeout(sizeStage, 60);
 
     // Entrance: deal the deck in, shuffling first if the author asked.
     oneShot(stage, 'fx-fade-up');
