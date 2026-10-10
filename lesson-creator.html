@@ -749,6 +749,29 @@
       font-size: 13px; color: var(--text); padding: 10px;
     }
     .preview .swipe-progress { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); }
+    .preview .shf-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .preview .shf-stage { position: relative; width: 100%; max-width: 320px; height: 150px; touch-action: none; user-select: none; outline: none; }
+    .preview .shf-card {
+      position: absolute; inset: 0;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-sm);
+      overflow: hidden; display: flex; flex-direction: column;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+      transition: transform 0.45s cubic-bezier(.22,.61,.36,1), opacity 0.45s ease;
+      cursor: grab;
+    }
+    .preview .shf-img { width: 100%; flex: 1 1 auto; min-height: 0; object-fit: contain; background: var(--bg-1); pointer-events: none; user-select: none; -webkit-user-drag: none; }
+    .preview .shf-caption { padding: 5px 10px; font-size: 12px; font-weight: 500; color: var(--text-2); text-align: center; border-top: 1px solid var(--line-2); }
+    .preview .shf-controls { display: flex; gap: 6px; align-items: center; }
+    .preview .shf-btn {
+      background: var(--bg-3); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 4px 10px; border-radius: 999px;
+      font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .preview .shf-btn:hover { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
+    .preview .shf-btn.shuffle:hover { background: var(--green-dim); color: var(--green); border-color: var(--green); }
+    .preview .shf-progress { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); }
     .preview .cs-carousel {
       background: var(--bg-3); border: 1px solid var(--line);
       border-radius: var(--r-sm); padding: 12px;
@@ -1823,6 +1846,38 @@
     .student-preview-body .swipe-card:nth-child(3) { transform: scale(0.9)  translateY(12px); opacity: 0.4; }
     .student-preview-body .swipe-card:nth-child(n+4) { display: none; }
     .student-preview-body .swipe-progress { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3); }
+    .student-preview-body .shf-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .student-preview-body .shf-stage { position: relative; width: 100%; max-width: 380px; height: 280px; touch-action: none; user-select: none; outline: none; }
+    .student-preview-body .shf-card {
+      position: absolute; inset: 0;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      overflow: hidden; display: flex; flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      transition: transform 0.45s cubic-bezier(.22,.61,.36,1), opacity 0.45s ease;
+      cursor: grab;
+    }
+    .student-preview-body .shf-img { width: 100%; flex: 1 1 auto; min-height: 0; object-fit: contain; background: var(--bg-1); pointer-events: none; user-select: none; -webkit-user-drag: none; }
+    .student-preview-body .shf-caption { padding: 10px 14px; font-size: 13.5px; font-weight: 500; color: var(--text-2); text-align: center; border-top: 1px solid var(--line-2); }
+    .student-preview-body .shf-controls { display: flex; gap: 8px; align-items: center; }
+    .student-preview-body .shf-btn {
+      background: var(--bg-3); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 8px 16px; border-radius: 999px;
+      font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    }
+    .student-preview-body .shf-btn:hover { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
+    .student-preview-body .shf-btn.shuffle:hover { background: var(--green-dim); color: var(--green); border-color: var(--green); }
+    .student-preview-body .shf-btn:active { transform: scale(0.95); }
+    .student-preview-body .shf-progress { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3); }
+    @keyframes fx-shf-wobble {
+      0%   { transform: rotate(0deg); }
+      25%  { transform: rotate(-5deg); }
+      60%  { transform: rotate(4deg); }
+      100% { transform: rotate(0deg); }
+    }
+    .fx-shf-wobble { animation: fx-shf-wobble 0.55s ease; }
     .student-preview-body .cs-carousel {
       background: var(--bg-3); border: 1px solid var(--line);
       border-radius: var(--r-md); padding: 16px;
@@ -4780,7 +4835,7 @@
     'Text & structure': ['heading', 'text', 'callout', 'image', 'video', 'math', 'audio', 'divider', 'quote', 'keypoints', 'worked_example', 'reveal', 'flashcard'],
     'Interactive practice': ['mcq', 'truefalse', 'shortanswer', 'fillblank', 'match', 'ordering', 'hotspot', 'categorise', 'slider', 'dial', 'sequence', 'connect', 'pile', 'html'],
     'Layout': ['accordion', 'tabs', 'compare', 'timeline', 'steps'],
-    'Study aids': ['objectives', 'prerequisites', 'glossary', 'summary', 'cardset', 'flashcard_stack', 'progress_meter', 'mindmap', 'memory_game', 'swipe_cards', 'card_slideshow'],
+    'Study aids': ['objectives', 'prerequisites', 'glossary', 'summary', 'cardset', 'flashcard_stack', 'progress_meter', 'mindmap', 'memory_game', 'swipe_cards', 'card_shuffle', 'card_slideshow'],
   };
   // password_checker is intentionally NOT in BLOCK_GROUPS — it can only
   // be added via the "Cyber (Y7) — Password strength" template card,
@@ -6469,6 +6524,120 @@
     }
   };
 
+  // ----- Image card shuffle editor -----
+  function renderCardShuffleEditor(b, i) {
+    const cards = b.data.cards || [];
+    return `
+      <div class="form-row">
+        <label>Prompt (markdown)</label>
+        <textarea oninput="updateBlock(${i}, {prompt: this.value})" placeholder="Flick through the deck — drag the top card or use the arrows.">${escapeHtml(b.data.prompt || '')}</textarea>
+      </div>
+      <div class="form-row">
+        <label>Cards — one image per card (list order = deal order)</label>
+        <div class="repeater">
+          ${cards.map((c, ci) => `
+            <div class="pair-row" style="flex-direction:column;align-items:stretch;gap:6px;">
+              <div style="display:flex;gap:6px;align-items:center;">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-3);min-width:18px;">${ci+1}</span>
+                <input value="${escapeHtml(c.url||'')}" oninput="updateShuffleCardField(${i}, ${ci}, 'url', this.value)" placeholder="Image URL (or upload)" style="flex:1;" />
+                <button class="upload-btn" onclick="uploadShuffleImage(${i}, ${ci})" title="Upload to lesson-images bucket">↑ Upload</button>
+                <input type="file" id="shfFile-${i}-${ci}" accept="image/*" hidden onchange="handleShuffleImageUpload(${i}, ${ci}, this)" />
+                <button class="del" onclick="removeShuffleCard(${i}, ${ci})" title="Remove card">✕</button>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <input value="${escapeHtml(c.alt||'')}" oninput="updateShuffleCardField(${i}, ${ci}, 'alt', this.value)" placeholder="Alt text (describe the image)" style="flex:1;" />
+                <input value="${escapeHtml(c.caption||'')}" oninput="updateShuffleCardField(${i}, ${ci}, 'caption', this.value)" placeholder="Caption (optional)" style="flex:1;" />
+              </div>
+              ${c.url ? `<img src="${escapeHtml(c.url)}" alt="" style="max-height:56px;border-radius:6px;border:1px solid var(--line-2);align-self:flex-start;" />` : ''}
+            </div>`).join('')}
+          <button class="add" onclick="addShuffleCard(${i})">+ Add card</button>
+        </div>
+        <span class="hint">Uploads go to the <code>lesson-images</code> bucket (≤ 8 MB each). Remove ✕ and re-add to reorder cards.</span>
+      </div>
+      <div class="form-row inline">
+        <label style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" ${b.data.shuffleOnLoad !== false ? 'checked' : ''} onchange="updateBlock(${i}, {shuffleOnLoad: this.checked})" />
+          Shuffle the deck when the lesson loads
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${b.data.required ? 'checked' : ''} onchange="updateBlock(${i}, {required: this.checked})" />
+          Required
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;margin-left:12px;">
+          <input type="checkbox" ${b.data.allowRetry !== false ? 'checked' : ''} onchange="updateBlock(${i}, {allowRetry: this.checked})" />
+          Allow retry
+        </label>
+      </div>
+      <div class="form-row" style="margin: 0;">
+        <label>Preview (drag the top card, shuffle, or use ◀ / ▶)</label>
+        <div class="preview">${renderBlock(b)}</div>
+      </div>
+    `;
+  }
+  window.updateShuffleCardField = (i, ci, field, val) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.cards) data.cards = [];
+    if (!data.cards[ci]) data.cards[ci] = { url: '', alt: '', caption: '' };
+    data.cards[ci][field] = val;
+    state.dirty = true; renderEditorHeader();
+    // Refresh the preview only (keeps focus in the input).
+    if (field === 'url') {
+      const block = document.querySelector(`.block[data-block-index="${i}"]`);
+      if (block) {
+        const preview = block.querySelector('.preview');
+        if (preview) {
+          preview.innerHTML = renderBlock(state.currentLesson.blocks[i]);
+          bindInteractive(preview, state.currentLesson.blocks[i]);
+        }
+      }
+    }
+  };
+  window.addShuffleCard = (i) => {
+    const data = state.currentLesson.blocks[i].data;
+    if (!data.cards) data.cards = [];
+    data.cards.push({ url: '', alt: '', caption: '' });
+    state.dirty = true;
+    renderBlocksList();
+    renderEditorHeader();
+  };
+  window.removeShuffleCard = (i, ci) => {
+    state.currentLesson.blocks[i].data.cards.splice(ci, 1);
+    state.dirty = true;
+    renderBlocksList();
+    renderEditorHeader();
+  };
+  window.uploadShuffleImage = (i, ci) => {
+    const fileInput = document.getElementById(`shfFile-${i}-${ci}`);
+    if (fileInput) fileInput.click();
+  };
+  window.handleShuffleImageUpload = async (i, ci, fileInput) => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) { toast('Image too large (max 8 MB).', 'error'); fileInput.value = ''; return; }
+    if (!state.currentLesson) { toast('Open a lesson first.', 'error'); return; }
+    const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+    const path = `lessons/${state.currentLesson.id}/${crypto.randomUUID()}.${ext}`;
+    const btn = fileInput.previousElementSibling;
+    if (btn) btn.disabled = true;
+    const { error } = await supabaseClient.storage
+      .from('lesson-images')
+      .upload(path, file, { upsert: false, contentType: file.type });
+    if (error) { toast('Upload failed: ' + error.message, 'error'); if (btn) btn.disabled = false; fileInput.value = ''; return; }
+    const { data: pub } = supabaseClient.storage.from('lesson-images').getPublicUrl(path);
+    if (pub && pub.publicUrl) {
+      const data = state.currentLesson.blocks[i].data;
+      if (!data.cards) data.cards = [];
+      if (!data.cards[ci]) data.cards[ci] = { url: '', alt: '', caption: '' };
+      data.cards[ci].url = pub.publicUrl;
+      state.dirty = true;
+      renderBlocksList();
+      renderEditorHeader();
+      toast('Image uploaded', 'success');
+    }
+    if (btn) btn.disabled = false;
+    fileInput.value = '';
+  };
+
   // ----- Progress meter editor -----
   function renderProgressMeterEditor(b, i) {
     const d = b.data || {};
@@ -7997,6 +8166,7 @@
     mindmap:         (b, i) => renderMindmapEditor(b, i),
     memory_game:     (b, i) => renderMemoryGameEditor(b, i),
     swipe_cards:     (b, i) => renderSwipeCardsEditor(b, i),
+    card_shuffle:   (b, i) => renderCardShuffleEditor(b, i),
     card_slideshow:  (b, i) => renderCardSlideshowEditor(b, i),
     html:          (b, i) => renderHtmlEditor(b, i),
     denary_binary: (b, i) => renderDenaryBinaryEditor(b, i),

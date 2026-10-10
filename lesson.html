@@ -1155,6 +1155,69 @@
       color: var(--text-3);
     }
 
+    /* ---------- Image card shuffle (card_shuffle) ---------------------- */
+    .practice .shf-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .practice .shf-stage {
+      position: relative;
+      width: 100%; max-width: 380px; height: 300px;
+      touch-action: none; user-select: none;
+      outline: none;
+    }
+    .practice .shf-stage:focus-visible {
+      outline: 2px solid var(--blue); outline-offset: 4px;
+      border-radius: var(--r-md);
+    }
+    .practice .shf-card {
+      position: absolute; inset: 0;
+      background: var(--bg-3); border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      transition: transform 0.45s cubic-bezier(.22,.61,.36,1), opacity 0.45s ease;
+      will-change: transform;
+      cursor: grab;
+    }
+    .practice .shf-card:active { cursor: grabbing; }
+    .practice .shf-img {
+      width: 100%; flex: 1 1 auto; min-height: 0;
+      object-fit: contain;
+      background: var(--bg-1);
+      user-select: none; -webkit-user-drag: none;
+      pointer-events: none;
+    }
+    .practice .shf-caption {
+      padding: 10px 14px;
+      font-size: 13.5px; font-weight: 500; color: var(--text-2);
+      text-align: center;
+      border-top: 1px solid var(--line-2);
+    }
+    .practice .shf-controls { display: flex; gap: 8px; align-items: center; }
+    .practice .shf-btn {
+      background: var(--bg-3); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      padding: 8px 16px; border-radius: 999px;
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    }
+    .practice .shf-btn:hover { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
+    .practice .shf-btn.shuffle:hover { background: var(--green-dim); color: var(--green); border-color: var(--green); }
+    .practice .shf-btn:active { transform: scale(0.95); }
+    .practice .shf-progress {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--text-3);
+    }
+    @keyframes fx-shf-wobble {
+      0%   { transform: rotate(0deg); }
+      25%  { transform: rotate(-5deg); }
+      60%  { transform: rotate(4deg); }
+      100% { transform: rotate(0deg); }
+    }
+    .fx-shf-wobble { animation: fx-shf-wobble 0.55s ease; }
+
     /* ---------- Card carousel (card_slideshow) ------------------------- */
     .cs-carousel {
       background: var(--bg-3); border: 1px solid var(--line);
