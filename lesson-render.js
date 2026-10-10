@@ -1222,15 +1222,18 @@
       render: renderSwipeCards
     },
 
-    // card_shuffle — a deck of IMAGE cards. The author uploads one image
-    // per card; the deck deals in with a staggered animation, can be
-    // shuffled (gather + re-deal with a wobble), and the student drags or
-    // clicks through the stack. Completes once every card has been seen.
+    // card_shuffle — a carousel-style stack of IMAGE cards (Swiper
+    // "effect cards" look): the active card sits front and centre at
+    // the image's natural size, the next cards peek out behind it on
+    // both sides, and the student drags the stack — chevron buttons on
+    // the image sides are the manual alternative. Completes once every
+    // card has been active.
     card_shuffle: {
       label: 'Image card shuffle',
       defaults: () => ({
         prompt: 'Drag through the deck of cards — swipe left to move on.',
         shuffleOnLoad: true,
+        showShuffle: true,
         required: false,
         allowRetry: true,
         cards: [
@@ -1491,7 +1494,10 @@
   // "effect cards" look): the active card sits front and centre at the
   // image's natural size, the next cards peek out behind it on both
   // sides with a slight rotation/offset, and the student drags the
-  // stack or taps the dots/arrows. bindCardShuffle does the layout.
+  // stack. Chevron buttons over the image sides are the manual
+  // alternative to swiping; the nav row under the stage holds the dot
+  // pagination, an optional shuffle button, and the retry button.
+  // bindCardShuffle does the layout.
   function renderCardShuffle(b) {
     const d = b.data || {};
     const cards = (d.cards || []).filter(c => c && (c.url || c.caption));
@@ -1504,14 +1510,14 @@
             ${c.url ? `<img class="shf-img" src="${escapeHtml(c.url)}" alt="${escapeHtml(c.alt || '')}" draggable="false" />` : ''}
             ${c.caption ? `<div class="shf-caption">${escapeHtml(c.caption)}</div>` : ''}
           </div>`).join('')}
+          <button type="button" class="shf-arrow" data-shf="prev" title="Previous card (←)">‹</button>
+          <button type="button" class="shf-arrow" data-shf="next" title="Next card (→)">›</button>
         </div>
         <div class="shf-nav">
-          <button type="button" class="shf-arrow" data-shf="prev" title="Previous card (←)">‹</button>
           <div class="shf-dots">
             ${cards.map((_, i) => `<span class="shf-dot${i === 0 ? ' active' : ''}" data-shf-dot="${i}" title="Card ${i + 1}"></span>`).join('')}
           </div>
-          <button type="button" class="shf-arrow" data-shf="next" title="Next card (→)">›</button>
-          <button type="button" class="shf-arrow shuffle" data-shf="shuffle" title="Shuffle the deck">🔀</button>
+          ${d.showShuffle !== false ? `<button type="button" class="shf-arrow shuffle" data-shf="shuffle" title="Shuffle the deck">🔀</button>` : ''}
           <button type="button" class="reset-btn" data-pb="reset" hidden>Go again</button>
         </div>
       </div>
@@ -3319,18 +3325,18 @@
   // bindCardShuffle — the image-card carousel (Swiper "effect cards"
   // motion, hand-rolled). `order` is the deck order, `pos` points at the
   // active card. Every card carries the full image at its natural aspect
-  // ratio (the card is only as wide as the stage, its height follows the
-  // image); relayout(dx) assigns each card a transform based on its
-  // SIGNED offset from the active card:
+  // ratio; the stage sizes to the TALLEST card (so a big card behind a
+  // small active one never hangs over the nav row) and each card is
+  // vertically centred on it. relayout(dx) assigns each card a transform
+  // based on its SIGNED offset from the active card:
   //   offset  0        — front and centre, full size
   //   offset +1..3     — peeking out to the right, rotated/scaled back
   //   offset -1..3     — peeking out to the left, mirrored
   //   |offset| > 3     — tucked away (opacity 0)
   // Dragging translates the whole stack (active at 1:1, the peeks at a
   // fraction — parallax) and releases snap to the next/previous card with
-  // a springy easing, exactly like a touch carousel. The stage height
-  // animates to the active card's height so cards of different aspect
-  // ratios all display big and uncropped.
+  // a springy easing, exactly like a touch carousel; the chevron buttons
+  // over the image sides and the dots below are the manual alternative.
   // Completes (onScore 1/1) once every card has been active.
   function bindCardShuffle(rootEl, d, blockId, onScore) {
     const stage = rootEl.querySelector('[data-pbid="shf-stage"]');
@@ -3358,13 +3364,18 @@
       return off;
     }
 
-    // sizeStage() — the stage is as tall as the ACTIVE card (cards are
-    // absolutely positioned; their peeks overflow visibly). Called on
-    // advance, on image load and on window resize.
+    // sizeStage() — the stage is as tall as the TALLEST card, not the
+    // active one: cards are absolutely positioned and vertically centred
+    // (top: 50% + translateY(-50%) in relayout), so with a small image
+    // active and a big one behind it, the big card still fits inside the
+    // stage instead of hanging below it over the nav row. Called on
+    // image load, window resize and after layout changes.
     function sizeStage() {
-      const top = topEl();
-      if (!top) return;
-      const h = top.offsetHeight;
+      let h = 0;
+      order.forEach(idx => {
+        const el = cardEls[idx];
+        if (el && el.offsetHeight > h) h = el.offsetHeight;
+      });
       if (h > 0) stage.style.height = h + 'px';
     }
 
@@ -3372,9 +3383,11 @@
       dots.forEach((el, di) => el.classList.toggle('active', di === pos));
     }
 
-    // relayout(dx) — position every card at its offset. `dx` is the live
-    // drag distance in px (0 when snapped): the active card tracks it
-    // 1:1 (with a rotation tilt), the peeking cards at ~0.18× parallax.
+    // relayout(dx) — position every card at its offset, vertically
+    // centred on the stage (the cards are top: 50% and every transform
+    // ends with translateY(-50%)). `dx` is the live drag distance in px
+    // (0 when snapped): the active card tracks it 1:1 (with a rotation
+    // tilt), the peeking cards at ~0.18× parallax.
     function relayout(dx) {
       dx = dx || 0;
       order.forEach((idx, oi) => {
@@ -3382,20 +3395,20 @@
         const off = signedOffset(oi);
         const abs = Math.abs(off);
         if (abs === 0) {
-          el.style.transform = `translate(${dx}px, ${Math.abs(dx) * 0.04}px) rotate(${(dx * 0.035).toFixed(2)}deg)`;
+          el.style.transform = `translate(${dx}px, ${Math.abs(dx) * 0.04}px) translateY(-50%) rotate(${(dx * 0.035).toFixed(2)}deg)`;
           el.style.opacity = '1';
           el.style.zIndex = '100';
         } else if (abs <= MAX_PEEK) {
           const side = off > 0 ? 1 : -1;
           const x = side * (14 + abs * 24) + dx * 0.18;
           el.style.transform =
-            `translate(${x.toFixed(1)}px, ${(abs * 6).toFixed(1)}px) scale(${(1 - abs * 0.055).toFixed(3)}) rotate(${(side * abs * 2.2).toFixed(1)}deg)`;
+            `translate(${x.toFixed(1)}px, ${(abs * 6).toFixed(1)}px) translateY(-50%) scale(${(1 - abs * 0.055).toFixed(3)}) rotate(${(side * abs * 2.2).toFixed(1)}deg)`;
           el.style.opacity = String(1 - abs * 0.16);
           el.style.zIndex = String(100 - abs * 10);
         } else {
           const side = off > 0 ? 1 : -1;
           el.style.transform =
-            `translate(${side * 90}px, ${(MAX_PEEK * 6).toFixed(1)}px) scale(0.8) rotate(${side * 8}deg)`;
+            `translate(${side * 90}px, ${(MAX_PEEK * 6).toFixed(1)}px) translateY(-50%) scale(0.8) rotate(${side * 8}deg)`;
           el.style.opacity = '0';
           el.style.zIndex = String(100 - abs * 10);
         }
@@ -3410,7 +3423,7 @@
         const el = cardEls[idx];
         el.style.transition = 'none';
         el.style.zIndex = String(1000 + oi);
-        el.style.transform = `translate(${(Math.random() * 60 - 30).toFixed(1)}px, 60px) scale(0.55) rotate(${(Math.random() * 24 - 12).toFixed(1)}deg)`;
+        el.style.transform = `translate(${(Math.random() * 60 - 30).toFixed(1)}px, 60px) translateY(-50%) scale(0.55) rotate(${(Math.random() * 24 - 12).toFixed(1)}deg)`;
         el.style.opacity = '0';
       });
       void stage.offsetWidth; // commit the gather before re-enabling transitions
@@ -3505,6 +3518,9 @@
     stage.style.touchAction = 'none';
     stage.addEventListener('pointerdown', (e) => {
       if (animating) return;
+      // The side arrows live INSIDE the stage now — a press on one is a
+      // click, not the start of a drag.
+      if (e.target.closest && e.target.closest('.shf-arrow')) return;
       drag = { x0: e.clientX, t0: Date.now(), dx: 0 };
       stage.classList.add('shf-dragging');   // .shf-dragging .shf-card { transition: none }
       try { stage.setPointerCapture(e.pointerId); } catch (_) {}

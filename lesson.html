@@ -1178,7 +1178,7 @@
       border-radius: 20px;
     }
     .practice .shf-card {
-      position: absolute; left: 0; right: 0; top: 0;
+      position: absolute; left: 0; right: 0; top: 50%;
       background: var(--bg-3); border: 1px solid var(--line);
       border-radius: 18px;
       overflow: hidden;
@@ -1207,6 +1207,32 @@
       padding: 5px 12px; border-radius: 999px;
       font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
     }
+    /* Side arrows — simple chevron icons over the left/right edges of
+       the active card, the manual alternative to dragging. */
+    .practice .shf-stage .shf-arrow {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      left: 14px; z-index: 200;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(0,0,0,0.42); color: #fff;
+      border: 0; display: grid; place-items: center;
+      font-size: 24px; line-height: 1; font-family: inherit; cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+    .practice .shf-stage .shf-arrow[data-shf="next"] { left: auto; right: 14px; }
+    .practice .shf-stage .shf-arrow:hover { background: rgba(0,0,0,0.68); }
+    .practice .shf-stage .shf-arrow:active { transform: translateY(-50%) scale(0.9); }
+    /* Shuffle button (optional — the author can turn it off). */
+    .practice .shf-nav .shf-arrow.shuffle {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--bg-3); color: var(--text-2);
+      border: 1px solid var(--line-2);
+      display: grid; place-items: center;
+      font-size: 15px; line-height: 1;
+      font-family: inherit; cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    }
+    .practice .shf-nav .shf-arrow.shuffle:hover { background: var(--green-dim); color: var(--green); border-color: var(--green); }
+    .practice .shf-nav .shf-arrow.shuffle:active { transform: scale(0.92); }
     .practice .shf-dots { display: flex; align-items: center; gap: 6px; }
     .practice .shf-dot {
       width: 8px; height: 8px; border-radius: 999px;
@@ -1216,18 +1242,6 @@
     }
     .practice .shf-dot:hover { background: var(--text-4); }
     .practice .shf-dot.active { width: 22px; background: var(--blue); }
-    .practice .shf-arrow {
-      width: 32px; height: 32px; border-radius: 50%;
-      background: var(--bg-3); color: var(--text-2);
-      border: 1px solid var(--line-2);
-      display: grid; place-items: center;
-      font-size: 18px; line-height: 1;
-      font-family: inherit; cursor: pointer;
-      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
-    }
-    .practice .shf-arrow:hover { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
-    .practice .shf-arrow.shuffle:hover { background: var(--green-dim); color: var(--green); border-color: var(--green); }
-    .practice .shf-arrow:active { transform: scale(0.92); }
     @keyframes fx-shf-wobble {
       0%   { transform: rotate(0deg); }
       25%  { transform: rotate(-5deg); }
