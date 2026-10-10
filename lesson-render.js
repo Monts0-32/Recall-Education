@@ -3382,20 +3382,20 @@
         const off = signedOffset(oi);
         const abs = Math.abs(off);
         if (abs === 0) {
-          el.style.transform = `translate(${dx}px, ${Math.abs(dx) * 0.06}px) rotate(${(dx * 0.035).toFixed(2)}deg)`;
+          el.style.transform = `translate(${dx}px, ${Math.abs(dx) * 0.04}px) rotate(${(dx * 0.035).toFixed(2)}deg)`;
           el.style.opacity = '1';
           el.style.zIndex = '100';
         } else if (abs <= MAX_PEEK) {
           const side = off > 0 ? 1 : -1;
           const x = side * (14 + abs * 24) + dx * 0.18;
           el.style.transform =
-            `translate(${x.toFixed(1)}px, ${(abs * 9).toFixed(1)}px) scale(${(1 - abs * 0.055).toFixed(3)}) rotate(${(side * abs * 2.2).toFixed(1)}deg)`;
+            `translate(${x.toFixed(1)}px, ${(abs * 6).toFixed(1)}px) scale(${(1 - abs * 0.055).toFixed(3)}) rotate(${(side * abs * 2.2).toFixed(1)}deg)`;
           el.style.opacity = String(1 - abs * 0.16);
           el.style.zIndex = String(100 - abs * 10);
         } else {
           const side = off > 0 ? 1 : -1;
           el.style.transform =
-            `translate(${side * 90}px, ${(MAX_PEEK * 9).toFixed(1)}px) scale(0.8) rotate(${side * 8}deg)`;
+            `translate(${side * 90}px, ${(MAX_PEEK * 6).toFixed(1)}px) scale(0.8) rotate(${side * 8}deg)`;
           el.style.opacity = '0';
           el.style.zIndex = String(100 - abs * 10);
         }

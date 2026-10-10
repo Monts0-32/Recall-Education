@@ -1165,7 +1165,10 @@
     }
     .practice .shf-stage {
       position: relative;
-      width: 100%; max-width: 560px; height: 320px; /* JS sets the real height */
+      width: 100%; max-width: 760px; height: 320px; /* JS sets the real height */
+      /* Side cards peek out below the stage bottom — keep the nav row
+         clear of them (peek = up to 18px of offset + drag tilt). */
+      margin-bottom: 28px;
       touch-action: none; user-select: none;
       outline: none;
       transition: height 0.45s ease;
@@ -1197,7 +1200,13 @@
       text-align: center;
       border-top: 1px solid var(--line-2);
     }
-    .practice .shf-nav { display: flex; align-items: center; gap: 10px; }
+    .practice .shf-nav { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+    .practice .shf-nav .reset-btn {
+      background: var(--green-dim); color: var(--green);
+      border: 1px solid var(--green);
+      padding: 5px 12px; border-radius: 999px;
+      font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
     .practice .shf-dots { display: flex; align-items: center; gap: 6px; }
     .practice .shf-dot {
       width: 8px; height: 8px; border-radius: 999px;

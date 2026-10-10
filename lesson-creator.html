@@ -751,7 +751,8 @@
     .preview .swipe-progress { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); }
     .preview .shf-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
     .preview .shf-stage {
-      position: relative; width: 100%; max-width: 340px; height: 180px; /* JS sets the real height */
+      position: relative; width: 100%; max-width: 440px; height: 180px; /* JS sets the real height */
+      margin-bottom: 22px;
       touch-action: none; user-select: none; outline: none;
       transition: height 0.45s ease;
     }
@@ -767,7 +768,13 @@
     .preview .shf-stage.shf-dragging .shf-card { transition: none; cursor: grabbing; }
     .preview .shf-img { display: block; width: 100%; height: auto; background: var(--bg-1); pointer-events: none; user-select: none; -webkit-user-drag: none; }
     .preview .shf-caption { padding: 6px 10px; font-size: 12px; font-weight: 500; color: var(--text-2); text-align: center; border-top: 1px solid var(--line-2); }
-    .preview .shf-nav { display: flex; align-items: center; gap: 8px; }
+    .preview .shf-nav { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .preview .shf-nav .reset-btn {
+      background: var(--green-dim); color: var(--green);
+      border: 1px solid var(--green);
+      padding: 3px 10px; border-radius: 999px;
+      font-family: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+    }
     .preview .shf-dots { display: flex; align-items: center; gap: 5px; }
     .preview .shf-dot {
       width: 7px; height: 7px; border-radius: 999px;
@@ -1861,7 +1868,8 @@
     .student-preview-body .swipe-progress { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3); }
     .student-preview-body .shf-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
     .student-preview-body .shf-stage {
-      position: relative; width: 100%; max-width: 520px; height: 280px; /* JS sets the real height */
+      position: relative; width: 100%; max-width: 700px; height: 280px; /* JS sets the real height */
+      margin-bottom: 28px;
       touch-action: none; user-select: none; outline: none;
       transition: height 0.45s ease;
     }
@@ -1877,7 +1885,13 @@
     .student-preview-body .shf-stage.shf-dragging .shf-card { transition: none; cursor: grabbing; }
     .student-preview-body .shf-img { display: block; width: 100%; height: auto; background: var(--bg-1); pointer-events: none; user-select: none; -webkit-user-drag: none; }
     .student-preview-body .shf-caption { padding: 10px 16px; font-size: 14px; font-weight: 500; color: var(--text-2); text-align: center; border-top: 1px solid var(--line-2); }
-    .student-preview-body .shf-nav { display: flex; align-items: center; gap: 10px; }
+    .student-preview-body .shf-nav { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+    .student-preview-body .shf-nav .reset-btn {
+      background: var(--green-dim); color: var(--green);
+      border: 1px solid var(--green);
+      padding: 5px 12px; border-radius: 999px;
+      font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
     .student-preview-body .shf-dots { display: flex; align-items: center; gap: 6px; }
     .student-preview-body .shf-dot {
       width: 8px; height: 8px; border-radius: 999px;
